@@ -3,9 +3,36 @@ import { decryptJson, encryptJson } from '../../lib/crypto';
 import { round } from '../../calc/anthropometry';
 import { HttpError } from '../../middleware/error';
 import type { CheckinBody, FoodLogBody, WaterLogBody } from './logging.schemas';
-import { buildDashboard, dayKey, sumTotals, type WeightPoint } from './dashboard';
+import { buildDashboard, dayKey, sumTotals, type MicronutrientBlock, type WeightPoint } from './dashboard';
 import { wellnessKcalOnDay } from '../wellness/wellnessLog.service';
+import { micronutrientTargets, MICRONUTRIENT_LABELS, type MicronutrientKey } from '../../calc/micronutrients';
+import type { SensitiveData } from '../profile/profile.schemas';
+import type { Sex } from '../../calc/types';
 import { localDayKey } from '../../lib/tz';
+
+/** Whole years between an ISO date-of-birth and now. */
+function ageFromDob(dob: string, now: Date): number {
+  const born = new Date(dob);
+  let age = now.getUTCFullYear() - born.getUTCFullYear();
+  const m = now.getUTCMonth() - born.getUTCMonth();
+  if (m < 0 || (m === 0 && now.getUTCDate() < born.getUTCDate())) age -= 1;
+  return Math.max(0, age);
+}
+
+/**
+ * Micronutrient RDA targets for the user. Intake is not yet computed (foods carry no nutrient
+ * columns until Step 4), so this returns targets with `available: false` rather than flagging every
+ * nutrient as deficient. Server-computed; educational.
+ */
+function micronutrientBlock(sex: Sex, ageYears: number): MicronutrientBlock {
+  const rda = micronutrientTargets(sex, ageYears);
+  const keys = Object.keys(rda) as MicronutrientKey[];
+  return {
+    available: false,
+    note: 'Micronutrient tracking begins once your logged foods carry nutrient data.',
+    targets: keys.map((key) => ({ key, label: MICRONUTRIENT_LABELS[key], rda: rda[key], intake: null, pct: null, low: false })),
+  };
+}
 
 /**
  * UTC [start, end) instants bounding the local calendar day containing `date`.
@@ -143,7 +170,7 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
   const todayKey = localDayKey(offsetMin, now.getTime());
   const { start: dayStart, end: dayEnd } = dayRange(now, offsetMin);
 
-  const [todayFood, waterMl, snapshot, checkins, distinctDays, exerciseBurn, wellnessBurn] = await Promise.all([
+  const [todayFood, waterMl, snapshot, checkins, distinctDays, exerciseBurn, wellnessBurn, profile] = await Promise.all([
     listFood(userId, now, offsetMin),
     waterTotal(userId, now, offsetMin),
     prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } }),
@@ -154,7 +181,14 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
       _sum: { kcal: true },
     }),
     wellnessKcalOnDay(userId, dayStart, dayEnd),
+    prisma.profile.findUnique({ where: { userId } }),
   ]);
+
+  let micronutrients: MicronutrientBlock | undefined;
+  if (profile?.sensitiveEnc) {
+    const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
+    micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now));
+  }
 
   const result = snapshot?.result as
     | {
@@ -186,5 +220,6 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     bmi: result?.bmi ?? null,
     projection: result?.projection ?? [],
     burnedTodayKcal: (exerciseBurn._sum.kcal ?? 0) + wellnessBurn,
+    micronutrients,
   });
 }

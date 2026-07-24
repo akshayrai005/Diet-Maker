@@ -109,6 +109,23 @@ export interface DashboardInput {
   projection?: { label: string; weeks: number; weightKg: number; bmi: number }[];
   /** Calories burned today from logged exercise + wellness sessions. */
   burnedTodayKcal?: number;
+  micronutrients?: MicronutrientBlock;
+}
+
+export interface MicronutrientTargetView {
+  key: string;
+  label: string;
+  rda: number;
+  intake?: number | null;
+  pct?: number | null;
+  low?: boolean;
+}
+
+export interface MicronutrientBlock {
+  /** False until foods carry nutrient data (Step 4) — the UI shows targets, not false deficiencies. */
+  available: boolean;
+  note: string;
+  targets: MicronutrientTargetView[];
 }
 
 /** Assembles the dashboard payload. Pure — the service just feeds it fetched data. */
@@ -153,5 +170,6 @@ export function buildDashboard(input: DashboardInput) {
     bmi: input.bmi ?? null,
     weight: weightTrend(input.weightPoints),
     projection: input.projection ?? [],
+    micronutrients: input.micronutrients ?? null,
   };
 }
