@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -30,6 +33,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -170,68 +174,132 @@ fun OnboardingScreen(
     val canSave = height.toDoubleOrNull() != null && weight.toDoubleOrNull() != null &&
         target.toDoubleOrNull() != null && dob.isNotBlank()
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
+    val steps = listOf("About you", "Your goals", "Movement", "Health", "Ready")
+    var step by remember { mutableIntStateOf(0) }
+    val lastStep = steps.lastIndex
+
+    fun doSave() {
+        val h = height.toDoubleOrNull(); val w = weight.toDoubleOrNull(); val t = target.toDoubleOrNull()
+        if (h != null && w != null && t != null && dob.isNotBlank()) {
+            viewModel.save(
+                ProfileUpsertRequest(
+                    heightCm = h,
+                    activityLevel = activity,
+                    goal = goal,
+                    dietType = diet,
+                    sensitive = SensitiveData(
+                        sex = sex,
+                        gender = gender,
+                        genderSelfDescribe = if (gender == "self_describe") genderSelfDescribe.ifBlank { null } else null,
+                        occupation = occupation,
+                        budgetTier = budgetTier,
+                        dietStrictness = dietStrictness,
+                        fitnessLevel = fitnessLevel,
+                        intensityPreference = intensity,
+                        dob = dob.trim(),
+                        currentWeightKg = w,
+                        targetWeightKg = t,
+                        conditions = conditions.toList(),
+                        fastDayOfWeek = fastDay,
+                        exerciseLocation = exLocation,
+                        bodyGoal = bodyGoal,
+                        workoutRestDay = workoutRest,
+                        smoking = smoking,
+                        alcohol = alcohol,
+                        contraception = if (sex == "female") contraception else null,
+                    ),
+                ),
+                onDone,
+            )
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            if (editing) "Edit your profile" else "Your health profile",
+            if (editing) "Edit your profile" else steps[step],
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
         )
-        Text("We use this to compute safe, personalised targets.", style = MaterialTheme.typography.bodyMedium)
+        LinearProgressIndicator(progress = { (step + 1) / steps.size.toFloat() }, modifier = Modifier.fillMaxWidth())
+        Text("Step ${step + 1} of ${steps.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        numberField(height, { height = it }, "Height (cm)")
-        numberField(weight, { weight = it }, "Current weight (kg)")
-        numberField(target, { target = it }, "Target weight (kg)")
-        DobPicker(dob) { dob = it }
-
-        Dropdown("Gender", GENDER, gender) { gender = it }
-        if (gender == "self_describe") {
-            OutlinedTextField(
-                value = genderSelfDescribe,
-                onValueChange = { genderSelfDescribe = it.take(40) },
-                label = { Text("Describe (optional)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (step) {
+                0 -> {
+                    Text("A few basics so everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
+                    numberField(height, { height = it }, "Height (cm)")
+                    numberField(weight, { weight = it }, "Current weight (kg)")
+                    numberField(target, { target = it }, "Target weight (kg)")
+                    DobPicker(dob) { dob = it }
+                    Dropdown("Gender", GENDER, gender) { gender = it }
+                    if (gender == "self_describe") {
+                        OutlinedTextField(
+                            value = genderSelfDescribe,
+                            onValueChange = { genderSelfDescribe = it.take(40) },
+                            label = { Text("Describe (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Dropdown("Sex for health calculations", SEX, sex) { sex = it }
+                    Text(
+                        "We ask sex separately only because BMR and body-fat formulas need it — it doesn't change how we address you.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                1 -> {
+                    Dropdown("Goal", GOAL, goal) { goal = it }
+                    Dropdown("Diet", DIET, diet) { diet = it }
+                    Dropdown("Activity level", ACTIVITY, activity) { activity = it }
+                    Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
+                    Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
+                    Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
+                }
+                2 -> {
+                    Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
+                    Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+                    Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
+                    Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
+                    Text(
+                        "Harder isn't always better — pick what you can keep up with. We cap intensity for safety.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
+                }
+                3 -> {
+                    Label("Conditions (optional)")
+                    MultiChoiceChips(CONDITIONS, conditions)
+                    Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
+                    Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
+                    Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
+                    if (sex == "female") {
+                        Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
+                    }
+                }
+                else -> {
+                    Text("You're all set 🎉", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "We'll build your personalised plan across Diet, Movement, Mind and Discipline — with safe, explainable targets. Small habits, big results.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        "Goal: ${labelOf(GOAL, goal)}  ·  Diet: ${labelOf(DIET, diet)}\nLevel: ${labelOf(FITNESS_LEVEL, fitnessLevel)}  ·  Intensity: ${labelOf(INTENSITY, intensity)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
-        Dropdown("Sex for health calculations", SEX, sex) { sex = it }
-        Text(
-            "We ask sex separately only because BMR and body-fat formulas need it — it doesn't change how we address you.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
-        Dropdown("Activity level", ACTIVITY, activity) { activity = it }
-        Dropdown("Goal", GOAL, goal) { goal = it }
-        Dropdown("Diet", DIET, diet) { diet = it }
-        Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
-        Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
-        Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
-        Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
-        Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
-        Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
-        Text(
-            "Harder isn't always better — pick what you can keep up with. We cap intensity for safety.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
-        Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
-        Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
-        Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
-        if (sex == "female") {
-            Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
-        }
 
-        Label("Conditions (optional)")
-        MultiChoiceChips(CONDITIONS, conditions)
-
-        if (state.error != null) {
-            Text(state.error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        state.error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
-        if (!canSave) {
+        if (step == 0 && !canSave) {
             Text(
                 "Fill height, weight, target and date of birth to continue.",
                 style = MaterialTheme.typography.bodySmall,
@@ -239,50 +307,32 @@ fun OnboardingScreen(
             )
         }
 
-        Button(
-            onClick = {
-                val h = height.toDoubleOrNull(); val w = weight.toDoubleOrNull(); val t = target.toDoubleOrNull()
-                if (h != null && w != null && t != null && dob.isNotBlank()) {
-                    viewModel.save(
-                        ProfileUpsertRequest(
-                            heightCm = h,
-                            activityLevel = activity,
-                            goal = goal,
-                            dietType = diet,
-                            sensitive = SensitiveData(
-                                sex = sex,
-                                gender = gender,
-                                genderSelfDescribe = if (gender == "self_describe") genderSelfDescribe.ifBlank { null } else null,
-                                occupation = occupation,
-                                budgetTier = budgetTier,
-                                dietStrictness = dietStrictness,
-                                fitnessLevel = fitnessLevel,
-                                intensityPreference = intensity,
-                                dob = dob.trim(),
-                                currentWeightKg = w,
-                                targetWeightKg = t,
-                                conditions = conditions.toList(),
-                                fastDayOfWeek = fastDay,
-                                exerciseLocation = exLocation,
-                                bodyGoal = bodyGoal,
-                                workoutRestDay = workoutRest,
-                                smoking = smoking,
-                                alcohol = alcohol,
-                                contraception = if (sex == "female") contraception else null,
-                            ),
-                        ),
-                        onDone,
-                    )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (step > 0) {
+                OutlinedButton(onClick = { step-- }, modifier = Modifier.weight(1f)) { Text("Back") }
+            }
+            if (step < lastStep) {
+                Button(
+                    onClick = { if (step != 0 || canSave) step++ },
+                    enabled = step != 0 || canSave,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Next") }
+            } else {
+                Button(
+                    onClick = { doSave() },
+                    enabled = !state.loading && canSave,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp))
+                    else Text(if (editing) "Save changes" else "Create my plan")
                 }
-            },
-            enabled = !state.loading && canSave,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp))
-            else Text(if (editing) "Save changes" else "See my plan")
+            }
         }
     }
 }
+
+private fun <T> labelOf(options: List<Pair<T, String>>, value: T): String =
+    options.firstOrNull { it.first == value }?.second ?: ""
 
 private fun fmt(v: Double): String = if (v % 1.0 == 0.0) v.toLong().toString() else v.toString()
 
