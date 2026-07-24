@@ -51,17 +51,17 @@ class SettingsViewModel @Inject constructor(
     fun setAccent(accent: String) { viewModelScope.launch { themeStore.setAccent(accent) } }
     fun setThemeMode(mode: String) { viewModelScope.launch { themeStore.setMode(mode) } }
 
-    private val _reminderPrefs = MutableStateFlow<com.nutriai.data.remote.dto.ReminderPrefsDto?>(null)
-    val reminderPrefs: StateFlow<com.nutriai.data.remote.dto.ReminderPrefsDto?> = _reminderPrefs.asStateFlow()
+    private val _serverReminders = MutableStateFlow<com.nutriai.data.remote.dto.ReminderPrefsDto?>(null)
+    val serverReminders: StateFlow<com.nutriai.data.remote.dto.ReminderPrefsDto?> = _serverReminders.asStateFlow()
 
     fun loadReminderPrefs() {
-        viewModelScope.launch { _reminderPrefs.value = repository.reminderPrefs().getOrNull() }
+        viewModelScope.launch { _serverReminders.value = repository.reminderPrefs().getOrNull() }
     }
 
     /** Persist the user's workout time (HH:MM) + walk toggle to the server mirror. */
     fun saveReminderPrefs(prefs: com.nutriai.data.remote.dto.ReminderPrefsDto) {
         viewModelScope.launch {
-            repository.putReminderPrefs(prefs).getOrNull()?.let { _reminderPrefs.value = it }
+            repository.putReminderPrefs(prefs).getOrNull()?.let { _serverReminders.value = it }
         }
     }
 

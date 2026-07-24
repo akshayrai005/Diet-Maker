@@ -16,7 +16,7 @@ accountRouter.get(
   }),
 );
 
-/** Delete account + all data (irreversible). */
+/** Soft-delete the account (restorable by logging in within the grace window). */
 accountRouter.delete(
   '/me',
   requireAuth,

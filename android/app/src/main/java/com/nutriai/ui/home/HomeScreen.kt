@@ -170,7 +170,7 @@ private fun DashboardTab(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Delete account?") },
-            text = { Text("This permanently deletes your account and all your data from our servers. This cannot be undone.") },
+            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind — just log back in within a week to restore it. After that it's permanent.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false

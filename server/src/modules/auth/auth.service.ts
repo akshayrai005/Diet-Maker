@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { randomToken, sha256, decryptJson } from '../../lib/crypto';
 import { HttpError } from '../../middleware/error';
+import { withinGrace } from '../account/grace';
 import { hashPassword, verifyPassword } from './password';
 import type { SensitiveData } from '../profile/profile.schemas';
 import {
@@ -72,6 +73,14 @@ export async function login(email: string, password: string) {
     ? await verifyPassword(user.passwordHash, password)
     : await verifyPassword('$argon2id$v=19$m=19456,t=2,p=1$AAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAA', password);
   if (!user || !ok) throw new HttpError(401, 'Invalid email or password');
+
+  // Soft-deleted accounts: a successful login inside the grace window restores the account;
+  // past the window it's treated as gone (no credential-leaking distinction).
+  if (user.deletedAt) {
+    if (!withinGrace(user.deletedAt, new Date())) throw new HttpError(401, 'Invalid email or password');
+    await prisma.user.update({ where: { id: user.id }, data: { deletedAt: null } });
+    await prisma.auditLog.create({ data: { userId: user.id, action: 'account.restored' } });
+  }
 
   await prisma.auditLog.create({ data: { userId: user.id, action: 'auth.login' } });
   return { user: publicUser(user), tokens: await issueTokens(user) };

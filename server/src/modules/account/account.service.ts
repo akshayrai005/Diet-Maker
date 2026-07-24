@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { decryptJson } from '../../lib/crypto';
 import { HttpError } from '../../middleware/error';
+import { DELETE_GRACE_DAYS } from './grace';
 
 /**
  * Full data export for the authenticated user (GDPR "download my data"). Sensitive fields
@@ -50,9 +51,28 @@ function safeDecrypt(payload: string): unknown {
   }
 }
 
-/** Hard-deletes the account and all related data (cascades via schema onDelete). */
+/**
+ * Soft-deletes the account: marks `deletedAt` and revokes sessions. The data is retained through a
+ * grace window (see grace.ts) during which logging back in restores the account; a later purge job
+ * hard-deletes accounts past the window (cascades via schema onDelete).
+ */
 export async function deleteAccount(userId: string): Promise<void> {
-  // Best-effort audit line before the cascade removes the user's own logs.
   await prisma.auditLog.create({ data: { userId, action: 'account.delete_requested' } }).catch(() => undefined);
-  await prisma.user.delete({ where: { id: userId } });
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } }),
+    prisma.refreshToken.deleteMany({ where: { userId } }),
+  ]);
+}
+
+/** Hard-deletes accounts whose grace window has elapsed. Intended for a scheduled purge job. */
+export async function purgeExpiredAccounts(now: Date = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - DELETE_GRACE_DAYS * 86_400_000);
+  const stale = await prisma.user.findMany({
+    where: { deletedAt: { not: null, lt: cutoff } },
+    select: { id: true },
+  });
+  for (const u of stale) {
+    await prisma.user.delete({ where: { id: u.id } }).catch(() => undefined);
+  }
+  return stale.length;
 }
