@@ -29,6 +29,8 @@ export interface AnalysisNarrative {
   biggestLever: string;
   correlatedInsight: string;
   nextMonth: string;
+  /** Present when the energy-balance prediction and the scale trend disagree; null otherwise. */
+  honestyFlag: string | null;
   pillars: { label: string; score: number; line: string }[];
   clinicalNote: string;
   disclaimer: string;
@@ -86,6 +88,29 @@ function nextMonthFor(input: AnalysisInput): string {
   return p.note;
 }
 
+/**
+ * Honest flag when the energy-balance prediction and the actual scale trend disagree — e.g. logged
+ * intake implies loss but the scale is up (usually under-logging). Returns null when they agree or
+ * there isn't enough data. PURE.
+ */
+function scaleVsIntakeFlag(input: AnalysisInput): string | null {
+  const predicted = input.prediction?.projectedMonthlyDeltaKg;
+  const actual = input.weightDeltaKg;
+  if (predicted == null || actual == null) return null;
+  // Only flag a clear contradiction (opposite directions, both non-trivial).
+  const predDown = predicted < -0.2;
+  const predUp = predicted > 0.2;
+  const actUp = actual > 0.3;
+  const actDown = actual < -0.3;
+  if (predDown && actUp) {
+    return 'Heads-up: your logged intake predicts a loss, but the scale is up — you may be under-logging a few things. Log everything for a week and the numbers will line up.';
+  }
+  if (predUp && actDown) {
+    return 'Nice — the scale is moving down faster than your logged intake predicts. Keep it up; just make sure you’re eating enough to stay safe.';
+  }
+  return null;
+}
+
 function pillarLine(label: string, score: number): string {
   if (score >= 80) return `${label} is strong — protect this habit.`;
   if (score >= 60) return `${label} is solid with a little headroom.`;
@@ -98,6 +123,7 @@ export function buildAnalysisNarrative(input: AnalysisInput): AnalysisNarrative 
   const ratingLine = `Your overall health rating is ${input.overall}/100 — grade ${input.grade}. It weights Diet 60%, Exercise 25% and Discipline 15%, and only counts pillars you’ve given data for.`;
   const correlatedInsight = correlatedInsightFor(input);
   const nextMonth = nextMonthFor(input);
+  const honestyFlag = scaleVsIntakeFlag(input);
   const pillars = input.pillars.map((p) => ({ label: p.label, score: Math.round(p.score), line: pillarLine(p.label, p.score) }));
   const clinicalNote = input.hasRiskFindings
     ? 'A couple of health signals are worth a professional’s eyes — bring them to your next check-up rather than self-treating.'
@@ -110,6 +136,7 @@ export function buildAnalysisNarrative(input: AnalysisInput): AnalysisNarrative 
     correlatedInsight,
     ...pillars.map((p) => `${p.label} (${p.score}/100): ${p.line}`),
     `Next month: ${nextMonth}`,
+    ...(honestyFlag ? [honestyFlag] : []),
     clinicalNote,
     DISCLAIMER,
   ];
@@ -121,6 +148,7 @@ export function buildAnalysisNarrative(input: AnalysisInput): AnalysisNarrative 
     biggestLever: input.biggestLever,
     correlatedInsight,
     nextMonth,
+    honestyFlag,
     pillars,
     clinicalNote,
     disclaimer: DISCLAIMER,

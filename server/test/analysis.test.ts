@@ -59,4 +59,27 @@ describe('buildAnalysisNarrative', () => {
   it('handles no prediction gracefully', () => {
     expect(buildAnalysisNarrative({ ...base, prediction: null }).nextMonth).toContain('trend');
   });
+
+  it('flags when intake predicts loss but the scale is up (under-logging)', () => {
+    const n = buildAnalysisNarrative({
+      ...base,
+      weightDeltaKg: 1.0, // scale up
+      prediction: { ...base.prediction!, projectedMonthlyDeltaKg: -1.5 }, // predicts loss
+    });
+    expect(n.honestyFlag).toContain('under-logging');
+    expect(n.paragraphs).toContain(n.honestyFlag);
+  });
+
+  it('does not flag when prediction and scale agree', () => {
+    const n = buildAnalysisNarrative({
+      ...base,
+      weightDeltaKg: -1.0,
+      prediction: { ...base.prediction!, projectedMonthlyDeltaKg: -1.5 },
+    });
+    expect(n.honestyFlag).toBeNull();
+  });
+
+  it('does not flag without weight data', () => {
+    expect(buildAnalysisNarrative({ ...base, weightDeltaKg: null }).honestyFlag).toBeNull();
+  });
 });
