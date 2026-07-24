@@ -66,6 +66,12 @@ export const sensitiveSchema = z.object({
   clinicianOverride: z.boolean().optional(),
   /** Optional weekly fasting day: 0=Sun .. 6=Sat. That day gets a light plan. */
   fastDayOfWeek: z.number().int().min(0).max(6).optional(),
+  /** Budget-aware planning: bias toward cheaper foods. */
+  budgetTier: z.enum(['low', 'medium', 'flexible']).optional(),
+  /** Foods/tags the user already has at home — plans prefer these. */
+  pantryTags: z.array(z.string().max(40)).max(50).optional(),
+  /** Macro-band strictness: relaxed widens the bands, strict narrows them. */
+  dietStrictness: z.enum(['relaxed', 'standard', 'strict']).optional(),
   /** Workout preferences (drive the exercise plan). */
   exerciseLocation: z.enum(['gym', 'home', 'none']).optional(),
   bodyGoal: z.enum(['fatloss', 'athletic', 'muscular']).optional(),

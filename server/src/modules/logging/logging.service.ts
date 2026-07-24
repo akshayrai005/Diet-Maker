@@ -10,7 +10,6 @@ import {
   assessMicronutrients,
   MICRONUTRIENT_LABELS,
   type MicronutrientKey,
-  type Micronutrients,
 } from '../../calc/micronutrients';
 import { estimateMicronutrientsPer100g } from '../../calc/micronutrientEstimate';
 import type { SensitiveData } from '../profile/profile.schemas';
@@ -26,6 +25,20 @@ const DEFICIENCY_TIPS: Record<MicronutrientKey, string> = {
   folateMcg: 'Folate — leafy greens, dals, and citrus fruit.',
   potassiumMg: 'Potassium — banana, coconut water, spinach, or beans.',
   magnesiumMg: 'Magnesium — nuts, whole grains, dals, and dark greens.',
+  vitaminAMcg: 'Vitamin A — carrot, pumpkin, dark greens, milk, and egg.',
+  vitaminCMg: 'Vitamin C — amla, guava, citrus, capsicum, and tomato.',
+  vitaminEMg: 'Vitamin E — almonds, peanuts, sunflower seeds, and oils.',
+  vitaminKMcg: 'Vitamin K — spinach, methi, and other dark leafy greens.',
+  vitaminB1Mg: 'Thiamin (B1) — whole grains, dals, peanuts, and millets.',
+  vitaminB2Mg: 'Riboflavin (B2) — milk, curd, egg, and green leaves.',
+  vitaminB3Mg: 'Niacin (B3) — chicken, fish, peanuts, and whole grains.',
+  vitaminB6Mg: 'Vitamin B6 — chicken, fish, banana, and chana.',
+  zincMg: 'Zinc — meat, seeds, nuts, and whole grains.',
+  seleniumMcg: 'Selenium — fish, egg, whole wheat, and seeds.',
+  iodineMcg: 'Iodine — iodised salt, fish, egg, and dairy.',
+  phosphorusMg: 'Phosphorus — dairy, dals, nuts, and whole grains.',
+  copperMcg: 'Copper — nuts, seeds, whole grains, and dals.',
+  manganeseMg: 'Manganese — whole grains, nuts, and leafy greens.',
 };
 
 /** Whole years between an ISO date-of-birth and now. */
@@ -42,12 +55,17 @@ function ageFromDob(dob: string, now: Date): number {
  * (category-based IFCT/DRI approximations); when nothing quantifiable was logged it returns targets
  * with `available: false` rather than flagging every nutrient as deficient. Server-computed.
  */
-function micronutrientBlock(sex: Sex, ageYears: number, intake: Micronutrients | null): MicronutrientBlock {
+function micronutrientBlock(
+  sex: Sex,
+  ageYears: number,
+  intake: Partial<Record<MicronutrientKey, number | null>> | null,
+): MicronutrientBlock {
   const rda = micronutrientTargets(sex, ageYears);
   const keys = Object.keys(rda) as MicronutrientKey[];
 
-  const hasIntake = intake != null && keys.some((k) => (intake[k] ?? 0) > 0);
-  if (!hasIntake) {
+  const assessment = intake != null ? assessMicronutrients(intake, sex, ageYears) : null;
+  const anyData = assessment != null && assessment.nutrients.some((n) => n.hasData);
+  if (!assessment || !anyData) {
     return {
       available: false,
       note: 'Log foods to see your vitamins & minerals vs target.',
@@ -56,7 +74,6 @@ function micronutrientBlock(sex: Sex, ageYears: number, intake: Micronutrients |
     };
   }
 
-  const assessment = assessMicronutrients(intake as Micronutrients, sex, ageYears);
   const byKey = new Map(assessment.nutrients.map((n) => [n.key, n]));
   return {
     available: true,
@@ -64,16 +81,28 @@ function micronutrientBlock(sex: Sex, ageYears: number, intake: Micronutrients |
     coveragePct: assessment.coveragePct,
     targets: keys.map((key) => {
       const n = byKey.get(key);
-      return { key, label: MICRONUTRIENT_LABELS[key], rda: rda[key], intake: n?.intake ?? 0, pct: n?.pct ?? 0, low: n?.low ?? false };
+      return {
+        key,
+        label: MICRONUTRIENT_LABELS[key],
+        rda: rda[key],
+        intake: n?.intake ?? null,
+        pct: n?.pct ?? null,
+        low: n?.low ?? false,
+      };
     }),
     tips: assessment.deficiencies.slice(0, 3).map((k) => DEFICIENCY_TIPS[k]),
   };
 }
 
-/** Estimated micronutrient intake from today's logged foods (entries without a foodId contribute 0). */
+/**
+ * Estimated micronutrient intake from today's logged foods. A nutrient only "hasData" if at least
+ * one logged food (with a foodId) contributed a category estimate for it; nutrients no logged food
+ * could estimate come back as `null` (no data), never a misleading 0. Entries without a foodId are
+ * skipped. Returns null only when nothing with a foodId was logged at all.
+ */
 async function estimateTodayMicronutrients(
   todayFood: { foodId: string | null; grams: number }[],
-): Promise<Micronutrients | null> {
+): Promise<Record<MicronutrientKey, number | null> | null> {
   const withFood = todayFood.filter((f) => f.foodId);
   if (withFood.length === 0) return null;
 
@@ -84,23 +113,30 @@ async function estimateTodayMicronutrients(
   });
   const byId = new Map(foods.map((f) => [f.id, f]));
 
-  const total: Micronutrients = {
-    ironMg: 0, calciumMg: 0, vitaminB12Mcg: 0, vitaminDMcg: 0, folateMcg: 0, potassiumMg: 0, magnesiumMg: 0,
-  };
+  const keys = Object.keys(MICRONUTRIENT_LABELS) as MicronutrientKey[];
+  const sums = {} as Record<MicronutrientKey, number>;
+  const seen = {} as Record<MicronutrientKey, boolean>;
+  for (const key of keys) {
+    sums[key] = 0;
+    seen[key] = false;
+  }
+
   for (const entry of withFood) {
     const food = byId.get(entry.foodId as string);
     if (!food) continue;
     const per100 = estimateMicronutrientsPer100g({ name: food.name, category: food.category, tags: food.tags });
     const factor = entry.grams / 100;
-    total.ironMg += per100.ironMg * factor;
-    total.calciumMg += per100.calciumMg * factor;
-    total.vitaminB12Mcg += per100.vitaminB12Mcg * factor;
-    total.vitaminDMcg += per100.vitaminDMcg * factor;
-    total.folateMcg += per100.folateMcg * factor;
-    total.potassiumMg += per100.potassiumMg * factor;
-    total.magnesiumMg += per100.magnesiumMg * factor;
+    for (const key of keys) {
+      const v = per100[key];
+      if (v == null) continue;
+      sums[key] += v * factor;
+      seen[key] = true;
+    }
   }
-  return total;
+
+  const out = {} as Record<MicronutrientKey, number | null>;
+  for (const key of keys) out[key] = seen[key] ? sums[key] : null;
+  return out;
 }
 
 /**

@@ -57,6 +57,16 @@ private val OCCUPATION = listOf(
     "homemaker" to "Homemaker",
     "other" to "Other",
 )
+private val BUDGET = listOf(
+    "low" to "Tight budget (cheapest foods)",
+    "medium" to "Moderate",
+    "flexible" to "Flexible",
+)
+private val STRICTNESS = listOf(
+    "relaxed" to "Relaxed",
+    "standard" to "Standard",
+    "strict" to "Strict",
+)
 private val ACTIVITY = listOf(
     "sedentary" to "Sedentary (desk job)",
     "light" to "Lightly active",
@@ -101,6 +111,8 @@ fun OnboardingScreen(
     var gender by remember { mutableStateOf("male") }
     var genderSelfDescribe by remember { mutableStateOf("") }
     var occupation by remember { mutableStateOf("desk") }
+    var budgetTier by remember { mutableStateOf("medium") }
+    var dietStrictness by remember { mutableStateOf("standard") }
     var activity by remember { mutableStateOf("moderate") }
     var goal by remember { mutableStateOf("lose") }
     var diet by remember { mutableStateOf("nonveg") }
@@ -127,6 +139,8 @@ fun OnboardingScreen(
             gender = s.gender ?: s.sex.ifBlank { gender }
             genderSelfDescribe = s.genderSelfDescribe ?: genderSelfDescribe
             occupation = s.occupation ?: occupation
+            budgetTier = s.budgetTier ?: budgetTier
+            dietStrictness = s.dietStrictness ?: dietStrictness
             conditions.clear(); conditions.addAll(s.conditions)
             fastDay = s.fastDayOfWeek
             exLocation = s.exerciseLocation ?: exLocation
@@ -177,6 +191,8 @@ fun OnboardingScreen(
         Dropdown("Activity level", ACTIVITY, activity) { activity = it }
         Dropdown("Goal", GOAL, goal) { goal = it }
         Dropdown("Diet", DIET, diet) { diet = it }
+        Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
+        Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
         Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
         Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
         Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
@@ -216,6 +232,8 @@ fun OnboardingScreen(
                                 gender = gender,
                                 genderSelfDescribe = if (gender == "self_describe") genderSelfDescribe.ifBlank { null } else null,
                                 occupation = occupation,
+                                budgetTier = budgetTier,
+                                dietStrictness = dietStrictness,
                                 dob = dob.trim(),
                                 currentWeightKg = w,
                                 targetWeightKg = t,

@@ -86,6 +86,9 @@ export async function generateAndSavePlan(
     allergies: sensitive.allergies,
     conditions: sensitive.conditions,
     locale: 'IN',
+    budgetTier: sensitive.budgetTier,
+    pantryTags: sensitive.pantryTags,
+    strictness: sensitive.dietStrictness,
   };
 
   const foods = await prisma.food.findMany();

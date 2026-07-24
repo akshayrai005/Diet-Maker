@@ -44,13 +44,18 @@ fun MicronutrientsCard(m: Micronutrients, modifier: Modifier = Modifier) {
                 return@Column
             }
 
-            m.targets.forEach { t ->
+            // Only nutrients we can actually estimate from today's foods get a bar; the rest are
+            // shown honestly as "no data yet" (never a fake 0% / deficiency).
+            val tracked = m.targets.filter { it.pct != null }
+            val noData = m.targets.filter { it.pct == null }
+
+            tracked.forEach { t ->
                 val pct = (t.pct ?: 0).coerceIn(0, 100)
                 val barColor = if (t.low) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(t.label, style = MaterialTheme.typography.labelMedium)
-                        Text("${t.pct ?: 0}%", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
+                        Text("${t.pct}%", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = barColor)
                     }
                     Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
                         Box(Modifier.fillMaxWidth(pct / 100f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(barColor))
@@ -60,6 +65,14 @@ fun MicronutrientsCard(m: Micronutrients, modifier: Modifier = Modifier) {
 
             m.tips.forEach { tip ->
                 Text("• $tip", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (noData.isNotEmpty()) {
+                Text(
+                    "No data yet: ${noData.joinToString(", ") { it.label }}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             Text(m.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

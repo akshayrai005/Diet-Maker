@@ -343,6 +343,27 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
  * it produces a rotating multi-day plan honouring diet type, allergies and conditions.
  * No LLM, no randomness — the same inputs always yield the same plan.
  */
+/**
+ * Orders foods by a deterministic preference score (lower = preferred): locale match, pantry-on-hand,
+ * and budget (prefer cheaper `costTier` when the budget is tight). PURE — buildDay picks from the
+ * front of this list, so these signals steer selection without touching the macro-fitting logic.
+ */
+export function orderByPreference(foods: FoodItem[], prefs: PlanPreferences): FoodItem[] {
+  const pantry = new Set((prefs.pantryTags ?? []).map((t) => t.toLowerCase()));
+  const budgetWeight = prefs.budgetTier === 'low' ? 3 : prefs.budgetTier === 'medium' ? 1.5 : 0;
+  const score = (f: FoodItem): number => {
+    let s = 0;
+    if (prefs.locale && f.locale === prefs.locale) s -= 4;
+    if (pantry.size && (pantry.has(f.name.toLowerCase()) || f.tags.some((t) => pantry.has(t.toLowerCase())))) s -= 8;
+    if (budgetWeight) s += (f.costTier - 1) * budgetWeight; // costTier 1 adds 0; pricier foods sink
+    return s;
+  };
+  return foods
+    .map((f, i) => ({ f, i, s: score(f) }))
+    .sort((a, b) => a.s - b.s || a.i - b.i) // ties keep original order (stable, deterministic)
+    .map((x) => x.f);
+}
+
 export function generateWeekPlan(
   foods: FoodItem[],
   targets: PlanTargets,
@@ -353,13 +374,7 @@ export function generateWeekPlan(
   if (eligible.length === 0) {
     throw new Error('No foods match the diet/allergy/condition constraints');
   }
-  // Bias toward the requested locale, but keep the rest as fallback.
-  const ordered = prefs.locale
-    ? [
-        ...eligible.filter((f) => f.locale === prefs.locale),
-        ...eligible.filter((f) => f.locale !== prefs.locale),
-      ]
-    : eligible;
+  const ordered = orderByPreference(eligible, prefs);
 
   const dayCount = options.days ?? 7;
   const days: DayPlan[] = [];

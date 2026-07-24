@@ -74,6 +74,12 @@ export interface PlanPreferences {
   conditions: string[];
   /** Monthly food budget in the user's currency; undefined = no constraint. */
   monthlyBudget?: number;
+  /** Budget bias for food selection: 'low' prefers costTier 1, 'medium' ≤2, 'flexible' no bias. */
+  budgetTier?: 'low' | 'medium' | 'flexible';
+  /** Foods/tags the user already has — floated to the front so plans use what's on hand. */
+  pantryTags?: string[];
+  /** Macro-band strictness: 'relaxed' widens the acceptable bands, 'strict' narrows them. */
+  strictness?: 'relaxed' | 'standard' | 'strict';
   locale?: string; // bias toward this locale's foods
 }
 
