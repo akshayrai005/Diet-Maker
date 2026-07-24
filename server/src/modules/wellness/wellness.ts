@@ -100,6 +100,22 @@ const YOGA: YogaFlow[] = [
       { name: 'Bridge', hold: '6 breaths', cue: 'Press through the feet, lift the hips.' },
     ],
   },
+  {
+    id: 'power-flow',
+    name: 'Power Vinyasa Flow',
+    focus: 'Build strength & stamina (advanced)',
+    durationMin: 25,
+    level: 'intermediate',
+    poses: [
+      { name: 'Sun Salutation B', hold: '5 rounds', cue: 'Link breath to movement, steady and strong.' },
+      { name: 'Warrior II → Reverse Warrior (each side)', hold: '5 breaths', cue: 'Front knee bent, open the chest.' },
+      { name: 'Side Angle → Triangle (each side)', hold: '5 breaths', cue: 'Long side body, reach through the top hand.' },
+      { name: 'Chair → Twisted Chair (each side)', hold: '5 breaths', cue: 'Sit low, hook the elbow, keep knees level.' },
+      { name: 'Crow Pose (or knees-on-arms prep)', hold: '3 tries', cue: 'Gaze forward, squeeze the knees, lean in slowly.' },
+      { name: 'Wheel or Bridge', hold: '5 breaths ×2', cue: 'Open the front body; stop if the low back pinches.' },
+      { name: 'Savasana', hold: '3 min', cue: 'Earn the rest — let everything go.' },
+    ],
+  },
 ];
 
 const MEDITATION: Meditation[] = [
@@ -168,6 +184,33 @@ const MEDITATION: Meditation[] = [
       'Bring to mind one thing about your body or health you are grateful for.',
       'Set one simple intention for the day.',
       'Breathe it in, then gently begin your morning.',
+    ],
+  },
+  {
+    id: 'two-min-calm',
+    name: 'Two-Minute Calm',
+    goal: 'A quick reset, anywhere',
+    durationMin: 2,
+    steps: [
+      'Wherever you are, let the shoulders drop.',
+      'Breathe in through the nose for 4.',
+      'Breathe out slowly for 6 — the long exhale is what calms you.',
+      'Repeat for a handful of rounds, then carry on.',
+    ],
+    pattern: { inhaleSec: 4, hold1Sec: 0, exhaleSec: 6, hold2Sec: 0 },
+  },
+  {
+    id: 'deep-relaxation',
+    name: 'Deep Relaxation (Yoga Nidra)',
+    goal: 'Deep, full-body rest',
+    durationMin: 20,
+    steps: [
+      'Lie down warm and comfortable; let the body feel heavy.',
+      'Set a gentle intention for the practice.',
+      'Slowly move attention through the body — right side, left side, front, back.',
+      'Notice the natural breath without changing it.',
+      'Rest in stillness between waking and sleep for several minutes.',
+      'Gently deepen the breath and return when you are ready.',
     ],
   },
 ];
