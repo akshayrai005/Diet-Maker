@@ -128,6 +128,9 @@ class AppRepository @Inject constructor(
     suspend fun recommendWellness(mood: Int?): Result<com.nutriai.data.remote.dto.WellnessRecommendation> =
         runCatching { api.recommendWellness(mood).recommendation }
 
+    suspend fun wellnessSuggest(mood: Int? = null, energy: Int? = null, sleep: Double? = null): Result<com.nutriai.data.remote.dto.NowSuggestion> =
+        runCatching { api.wellnessSuggest(mood, energy, sleep).suggestion }
+
     suspend fun logWellnessSession(refId: String): Result<com.nutriai.data.remote.dto.WellnessSessionDto> =
         runCatching { api.logWellnessSession(com.nutriai.data.remote.dto.WellnessSessionRequest(refId)).session }
 

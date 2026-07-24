@@ -97,6 +97,13 @@ interface NutriApi {
     @GET("wellness/history")
     suspend fun wellnessHistory(): com.nutriai.data.remote.dto.WellnessHistory
 
+    @GET("wellness/suggest")
+    suspend fun wellnessSuggest(
+        @Query("mood") mood: Int?,
+        @Query("energy") energy: Int?,
+        @Query("sleep") sleep: Double?,
+    ): com.nutriai.data.remote.dto.NowSuggestionEnvelope
+
     @GET("rating")
     suspend fun rating(): com.nutriai.data.remote.dto.RatingEnvelope
 

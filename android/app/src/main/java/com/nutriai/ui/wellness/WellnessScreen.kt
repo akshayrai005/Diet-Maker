@@ -68,7 +68,12 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
 
-data class WellnessUiState(val loading: Boolean = true, val wellness: Wellness? = null, val toast: String? = null)
+data class WellnessUiState(
+    val loading: Boolean = true,
+    val wellness: Wellness? = null,
+    val suggestion: com.nutriai.data.remote.dto.NowSuggestion? = null,
+    val toast: String? = null,
+)
 
 @HiltViewModel
 class WellnessViewModel @Inject constructor(
@@ -81,6 +86,11 @@ class WellnessViewModel @Inject constructor(
         viewModelScope.launch {
             val w = repository.wellness().getOrNull()
             _state.value = _state.value.copy(loading = false, wellness = w)
+        }
+        viewModelScope.launch {
+            repository.wellnessSuggest().getOrNull()?.let { s ->
+                _state.value = _state.value.copy(suggestion = s)
+            }
         }
     }
 
@@ -134,6 +144,32 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
 
         if (state.loading) {
             item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
+        }
+
+        state.suggestion?.let { s ->
+            if (s.meditation != null || s.yoga != null) {
+                item {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(s.reason.ifBlank { "For right now" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            val picks = listOfNotNull(s.yoga?.name, s.meditation?.name).joinToString("  ·  ")
+                            if (picks.isNotBlank()) {
+                                Text(picks, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f))
+                            }
+                            s.meditation?.let { med ->
+                                TextButton(
+                                    onClick = { active = med },
+                                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Start ${med.name}" },
+                                ) { Text("▶ Start ${med.name}") }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (w != null && w.yoga.isNotEmpty()) {
@@ -329,7 +365,8 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier.size(200.dp).scale(animScale).clip(CircleShape)
-                        .background(Brush.radialGradient(listOf(BrandGreen, BrandGreenDeep))),
+                        .background(Brush.radialGradient(listOf(BrandGreen, BrandGreenDeep)))
+                        .semantics { contentDescription = "Breathing guide: $phaseLabel" },
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

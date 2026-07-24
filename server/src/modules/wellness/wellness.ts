@@ -176,6 +176,80 @@ export function getWellness(): { yoga: YogaFlow[]; meditation: Meditation[] } {
   return { yoga: YOGA, meditation: MEDITATION };
 }
 
+export interface SuggestNowInput {
+  /** Local hour 0–23, passed in so this stays pure/deterministic. */
+  hour: number;
+  mood?: number | null; // 1 (low) .. 5 (great)
+  energy?: number | null; // 1 (drained) .. 5 (buzzing)
+  sleepHours?: number | null;
+}
+
+export interface NowSuggestion {
+  yoga: YogaFlow | null;
+  meditation: Meditation | null;
+  reason: string;
+}
+
+/**
+ * Picks a specific flow + meditation for *right now* from the time of day and how the user feels
+ * (mood / energy / last night's sleep). Pure & deterministic — the caller passes the local hour.
+ */
+export function suggestNow(input: SuggestNowInput): NowSuggestion {
+  const { hour } = input;
+  const low = input.mood != null && input.mood <= 2;
+  const highEnergy = input.energy != null && input.energy >= 4;
+  const lowEnergy = input.energy != null && input.energy <= 2;
+  const poorSleep = input.sleepHours != null && input.sleepHours < 6;
+  const morning = hour >= 5 && hour < 11;
+  const midday = hour >= 11 && hour < 17;
+  const evening = hour >= 17 && hour < 22;
+  const night = hour >= 22 || hour < 5;
+
+  const reasons: string[] = [];
+  let yogaId: string;
+  let medId: string;
+
+  if (night) {
+    yogaId = 'wind-down';
+    medId = '478-sleep';
+    reasons.push('it’s late — wind down for sleep');
+  } else if (low) {
+    yogaId = 'wind-down';
+    medId = 'stress-reset';
+    reasons.push('a gentle reset for a heavy moment');
+  } else if (evening) {
+    yogaId = 'wind-down';
+    medId = poorSleep ? '478-sleep' : 'body-scan';
+    reasons.push('easing into the evening');
+  } else if (morning) {
+    if (lowEnergy || poorSleep) {
+      yogaId = 'desk-reset';
+      medId = 'gratitude';
+      reasons.push(poorSleep ? 'a soft start after short sleep' : 'a low-key start to build energy');
+    } else if (highEnergy) {
+      yogaId = 'core-strength';
+      medId = 'gratitude';
+      reasons.push('channel that morning energy');
+    } else {
+      yogaId = 'morning-energizer';
+      medId = 'box-breathing';
+      reasons.push('wake the body and mind');
+    }
+  } else {
+    // Midday (and any remaining daytime slot).
+    yogaId = 'desk-reset';
+    medId = lowEnergy ? 'stress-reset' : 'box-breathing';
+    reasons.push(midday ? 'undo a stretch of sitting' : 'a quick midday reset');
+  }
+
+  const byId = <T extends { id: string }>(list: T[], id: string): T | undefined => list.find((x) => x.id === id);
+  return {
+    yoga: byId(YOGA, yogaId) ?? YOGA[0] ?? null,
+    meditation: byId(MEDITATION, medId) ?? MEDITATION[0] ?? null,
+    reason: `For right now — ${reasons[0] ?? 'a balanced session'}.`,
+  };
+}
+
 export interface WellnessRecommendation {
   yoga: YogaFlow | null;
   meditation: Meditation | null;

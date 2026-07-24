@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { getWellness, recommendWellness } from './wellness';
+import { getWellness, recommendWellness, suggestNow } from './wellness';
 import { logWellnessSession, wellnessHistory } from './wellnessLog.service';
 import { requireCompleteProfile } from '../profile/profile.service';
 import { getCycle } from '../cycle/cycle.service';
@@ -46,6 +46,26 @@ wellnessRouter.get(
       activityLevel: profile.activityLevel,
     });
     res.json({ recommendation });
+  }),
+);
+
+/** A specific flow + meditation for right now, from the local time and how the user feels. */
+wellnessRouter.get(
+  '/wellness/suggest',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const num = (q: unknown): number | null => {
+      const n = Number(q);
+      return Number.isFinite(n) ? n : null;
+    };
+    const localHour = new Date(Date.now() + tzOffsetMin(req) * 60_000).getUTCHours();
+    const suggestion = suggestNow({
+      hour: localHour,
+      mood: num(req.query.mood),
+      energy: num(req.query.energy),
+      sleepHours: num(req.query.sleep),
+    });
+    res.json({ suggestion });
   }),
 );
 

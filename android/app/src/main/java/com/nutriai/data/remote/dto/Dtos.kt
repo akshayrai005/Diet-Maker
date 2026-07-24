@@ -450,6 +450,12 @@ data class WellnessRecommendation(
 @Serializable
 data class WellnessRecommendationEnvelope(val recommendation: WellnessRecommendation)
 
+@Serializable
+data class NowSuggestion(val yoga: YogaFlow? = null, val meditation: Meditation? = null, val reason: String = "")
+
+@Serializable
+data class NowSuggestionEnvelope(val suggestion: NowSuggestion = NowSuggestion())
+
 // ---- Health rating + coach brief ----
 @Serializable
 data class RatingPillar(
