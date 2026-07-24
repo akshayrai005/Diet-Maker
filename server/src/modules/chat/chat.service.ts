@@ -1,11 +1,20 @@
 import { prisma } from '../../lib/prisma';
-import { decryptJson } from '../../lib/crypto';
+import { decryptJson, encryptJson } from '../../lib/crypto';
 import type { FoodItem, MealSlot } from '../food/food.types';
 import { answer, type ChatReply } from './chat.engine';
 import { getAiProvider } from '../../ai';
 
 const DISCLAIMER =
   'This is educational guidance, not medical advice — please consult a professional.';
+
+/** Chat content is encrypted at rest. Legacy plaintext rows (pre-encryption) are returned as-is. */
+function decryptChatContent(stored: string): string {
+  try {
+    return decryptJson<string>(stored);
+  } catch {
+    return stored;
+  }
+}
 
 // The disclaimer is shown ONCE in the chat UI (a persistent footer), not on every reply.
 // Strip it from individual answers so the conversation isn't spammed with it.
@@ -54,7 +63,7 @@ export async function chatHistory(userId: string, take = 40) {
     orderBy: { createdAt: 'desc' },
     take,
   });
-  return rows.reverse().map((m) => ({ id: m.id, role: m.role, content: m.content, createdAt: m.createdAt }));
+  return rows.reverse().map((m) => ({ id: m.id, role: m.role, content: decryptChatContent(m.content), createdAt: m.createdAt }));
 }
 
 export async function chat(userId: string, message: string, firstName?: string): Promise<ChatReply> {
@@ -67,7 +76,7 @@ export async function chat(userId: string, message: string, firstName?: string):
 
   const history = historyRows
     .reverse()
-    .map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: m.content }));
+    .map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: decryptChatContent(m.content) }));
 
   const result = snapshot?.result as
     | { dailyKcal: number; proteinG: number; waterMl: number }
@@ -111,8 +120,8 @@ export async function chat(userId: string, message: string, firstName?: string):
   // Persist the exchange so the coach remembers it next time.
   await prisma.chatMessage.createMany({
     data: [
-      { userId, role: 'user', content: message.slice(0, 2000) },
-      { userId, role: 'assistant', content: reply.reply.slice(0, 2000) },
+      { userId, role: 'user', content: encryptJson(message.slice(0, 2000)) },
+      { userId, role: 'assistant', content: encryptJson(reply.reply.slice(0, 2000)) },
     ],
   });
   await prisma.auditLog.create({ data: { userId, action: 'chat.query', detail: reply.intent } });
