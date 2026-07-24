@@ -30,10 +30,10 @@ object ReminderCatalog {
             ReminderJob("meal_lunch", 12, 30, "🍽️ Lunch (12:30–2 pm)", "Time for lunch — log it to stay on target.", tab = 2),
             ReminderJob("meal_dinner", 19, 0, "🌙 Dinner (7–8:30 pm)", "Aim to finish dinner by 8:30. Log your meal.", tab = 2),
         )
-        ReminderGroup.WATER -> listOf(
-            ReminderJob("water_am", 11, 0, "💧 Hydration check", "Time for a glass of water — log it.", tab = 0),
-            ReminderJob("water_pm", 16, 0, "💧 Stay hydrated", "A little water goes a long way. Log a glass.", tab = 0),
-        )
+        // Hydration nudges through waking hours (quiet hours 22:00–07:00 suppress any that land late).
+        ReminderGroup.WATER -> listOf(9, 11, 13, 15, 17, 19).map { h ->
+            ReminderJob("water_$h", h, 0, "💧 Hydration check", "Time for a glass of water — log it.", tab = 0)
+        }
         ReminderGroup.WORKOUT -> listOf(workoutJob(18, 0))
         ReminderGroup.WEIGH_IN -> listOf(
             ReminderJob("weigh_in", 7, 30, "⚖️ Weekly weigh-in", "Log this week's weight to track your progress.", tab = 0, weeklyDayIso = 1),

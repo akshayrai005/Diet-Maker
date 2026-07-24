@@ -46,17 +46,26 @@ class ReminderWorker(
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(title)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .setContentIntent(pending)
-            .build()
+        // Quiet hours (22:00–06:59): suppress gentle hydration nudges so they never wake anyone.
+        // User-set workout pre-alerts, meals and weigh-in still fire as scheduled.
+        val jobKey = inputData.getString(KEY_JOB_KEY).orEmpty()
+        val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        val quietHours = hour >= 22 || hour < 7
+        val suppress = quietHours && jobKey.startsWith("water")
 
-        runCatching { NotificationManagerCompat.from(applicationContext).notify(notifId, notification) }
+        if (!suppress) {
+            val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setAutoCancel(true)
+                .setContentIntent(pending)
+                .build()
+            runCatching { NotificationManagerCompat.from(applicationContext).notify(notifId, notification) }
+        }
 
         // Re-schedule this reminder for its next occurrence (tomorrow / next weekly day).
         // This is what keeps a one-time job repeating at the exact clock time without drift.
@@ -74,7 +83,9 @@ class ReminderWorker(
     }
 
     companion object {
-        const val CHANNEL_ID = "nutriai_reminders"
+        // v2: recreated at HIGH importance so nudges show as heads-up banners (channel importance
+        // is immutable once created, so upgrading requires a new id).
+        const val CHANNEL_ID = "kaizen_reminders_v2"
         const val KEY_JOB_KEY = "job_key"
         const val KEY_TITLE = "title"
         const val KEY_TEXT = "text"
@@ -89,8 +100,8 @@ class ReminderWorker(
                     val channel = NotificationChannel(
                         CHANNEL_ID,
                         "Reminders",
-                        NotificationManager.IMPORTANCE_DEFAULT,
-                    ).apply { description = "Meal, hydration and weigh-in nudges" }
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply { description = "Workout, meal, hydration and weigh-in nudges" }
                     mgr.createNotificationChannel(channel)
                 }
             }
