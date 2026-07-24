@@ -144,6 +144,13 @@ class AppRepository @Inject constructor(
     suspend fun coachToday(): Result<com.nutriai.data.remote.dto.CoachTodayEnvelope> =
         runCatching { api.coachToday() }
 
+    // ---- Reminder prefs (server mirror) ----
+    suspend fun reminderPrefs(): Result<com.nutriai.data.remote.dto.ReminderPrefsDto> =
+        runCatching { api.reminderPrefs().prefs }
+
+    suspend fun putReminderPrefs(prefs: com.nutriai.data.remote.dto.ReminderPrefsDto): Result<com.nutriai.data.remote.dto.ReminderPrefsDto> =
+        runCatching { api.putReminderPrefs(prefs).prefs }
+
     // ---- Discipline habits ----
     suspend fun disciplineToday(): Result<com.nutriai.data.remote.dto.DisciplineToday> =
         runCatching { api.disciplineToday() }

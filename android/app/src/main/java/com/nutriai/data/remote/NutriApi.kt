@@ -110,6 +110,12 @@ interface NutriApi {
     @GET("coach/today")
     suspend fun coachToday(): com.nutriai.data.remote.dto.CoachTodayEnvelope
 
+    @GET("reminders/prefs")
+    suspend fun reminderPrefs(): com.nutriai.data.remote.dto.ReminderPrefsEnvelope
+
+    @retrofit2.http.PUT("reminders/prefs")
+    suspend fun putReminderPrefs(@Body body: com.nutriai.data.remote.dto.ReminderPrefsDto): com.nutriai.data.remote.dto.ReminderPrefsEnvelope
+
     @GET("discipline/today")
     suspend fun disciplineToday(): com.nutriai.data.remote.dto.DisciplineToday
 

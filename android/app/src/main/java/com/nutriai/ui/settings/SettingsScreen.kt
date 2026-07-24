@@ -19,10 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -59,6 +61,7 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
+    val remoteReminders by viewModel.reminderPrefs.collectAsStateWithLifecycle()
     var showDelete by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -101,6 +104,15 @@ fun SettingsScreen(
         }
 
         item { RemindersCard(reminders = reminders, onToggle = onToggleReminder) }
+
+        remoteReminders?.let { rp ->
+            item {
+                WorkoutReminderCard(
+                    prefs = rp,
+                    onSave = { viewModel.saveReminderPrefs(it) },
+                )
+            }
+        }
 
         item {
             ThemeCard(
@@ -200,6 +212,56 @@ private fun ThemeCard(
                     FilterChip(selected = mode == key, onClick = { onMode(key) }, label = { Text(label) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutReminderCard(
+    prefs: com.nutriai.data.remote.dto.ReminderPrefsDto,
+    onSave: (com.nutriai.data.remote.dto.ReminderPrefsDto) -> Unit,
+) {
+    var time by remember(prefs) { mutableStateOf(prefs.workoutTime ?: "18:00") }
+    var workout by remember(prefs) { mutableStateOf(prefs.workoutEnabled) }
+    var walk by remember(prefs) { mutableStateOf(prefs.walkEnabled) }
+    val valid = Regex("^([01]\\d|2[0-3]):[0-5]\\d$").matches(time)
+
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("⏰ Workout & walk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Workout pre-alert", style = MaterialTheme.typography.bodyLarge)
+                    Text("A nudge 10 minutes before your set time", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = workout, onCheckedChange = { workout = it })
+            }
+            if (workout) {
+                OutlinedTextField(
+                    value = time,
+                    onValueChange = { time = it.take(5) },
+                    label = { Text("Workout time (HH:MM, 24h)") },
+                    singleLine = true,
+                    isError = !valid,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Walk nudge", style = MaterialTheme.typography.bodyLarge)
+                    Text("A reminder to move when you've been still too long", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = walk, onCheckedChange = { walk = it })
+            }
+            Button(
+                onClick = { onSave(prefs.copy(workoutEnabled = workout, walkEnabled = walk, workoutTime = if (workout && valid) time else prefs.workoutTime)) },
+                enabled = !workout || valid,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Save preferences") }
         }
     }
 }

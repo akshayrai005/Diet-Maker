@@ -518,6 +518,21 @@ data class CoachBrief(
 @Serializable
 data class CoachTodayEnvelope(val brief: CoachBrief = CoachBrief(), val rating: RatingResult = RatingResult())
 
+// ---- Reminder preferences (server mirror) ----
+@Serializable
+data class ReminderPrefsDto(
+    val mealsEnabled: Boolean = true,
+    val waterEnabled: Boolean = true,
+    val workoutEnabled: Boolean = false,
+    val weighInEnabled: Boolean = true,
+    val walkEnabled: Boolean = false,
+    val workoutTime: String? = null,
+    val waterIntervalMin: Int = 60,
+)
+
+@Serializable
+data class ReminderPrefsEnvelope(val prefs: ReminderPrefsDto = ReminderPrefsDto())
+
 // ---- Discipline habits ----
 @Serializable
 data class AdherenceComponent(
