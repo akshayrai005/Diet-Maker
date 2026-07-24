@@ -64,6 +64,7 @@ model User {
   wellnessSessions WellnessSession[]
   habits           Habit[]
   habitLogs        HabitLog[]
+  reminderPrefs    ReminderPrefs?
 
   @@map("users")
 }
@@ -289,6 +290,23 @@ model HabitLog {
   @@unique([habitId, date])
   @@index([userId, date])
   @@map("habit_logs")
+}
+
+/// Server mirror of the user's on-device reminder preferences, so schedules survive reinstall and
+/// can be reasoned about server-side. The device WorkManager remains the source of firing.
+model ReminderPrefs {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealsEnabled     Boolean  @default(true)
+  waterEnabled     Boolean  @default(true)
+  workoutEnabled   Boolean  @default(false)
+  weighInEnabled   Boolean  @default(true)
+  walkEnabled      Boolean  @default(false)
+  workoutTime      String? // "HH:MM" local — fires a pre-alert 10 min before
+  waterIntervalMin Int      @default(60)
+  updatedAt        DateTime @updatedAt
+
+  @@map("reminder_prefs")
 }
 
 /// A logged menstrual period (start, optional end). The cycle engine self-calibrates

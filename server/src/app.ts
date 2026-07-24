@@ -25,6 +25,7 @@ import { riskRouter } from './modules/risk/risk.routes';
 import { ratingRouter } from './modules/rating/rating.routes';
 import { coachRouter } from './modules/coach/coach.routes';
 import { disciplineRouter } from './modules/discipline/discipline.routes';
+import { remindersRouter } from './modules/reminders/reminders.routes';
 
 /**
  * Builds the Express app. Kept free of `listen()` so tests can import it directly
@@ -81,6 +82,7 @@ export function createApp(): Express {
   api.use('/', ratingRouter);
   api.use('/', coachRouter);
   api.use('/', disciplineRouter);
+  api.use('/', remindersRouter);
   app.use('/api/v1', api);
 
   app.use(notFound);
