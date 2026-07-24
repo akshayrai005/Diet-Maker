@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nutriai.data.remote.dto.CoachBrief
 import com.nutriai.data.remote.dto.RatingResult
@@ -50,17 +52,20 @@ fun AnalysisCard(rating: RatingResult?, coach: CoachBrief?, modifier: Modifier =
             rating?.let { r ->
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     RatingRing(overall = r.overall, grade = r.grade)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        r.pillars.forEach { p -> PillarBar(label = p.label, score = p.score.toInt()) }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Health rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        r.biggestLever.message.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
-                r.biggestLever.message.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        "Biggest lever: $it",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium,
-                    )
+                // Per-pillar bars — full width so the value never crosses the card edge.
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    r.pillars.forEach { p -> PillarBar(label = p.label, score = p.score.toInt()) }
                 }
             }
 
@@ -113,20 +118,24 @@ private fun RatingRing(overall: Int, grade: String) {
 
 @Composable
 private fun PillarBar(label: String, score: Int) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-            Text("$score", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-        }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(label, Modifier.width(84.dp), style = MaterialTheme.typography.labelLarge, maxLines = 1)
         Box(
-            Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+            Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
             Box(
-                Modifier.fillMaxWidth(score.coerceIn(0, 100) / 100f).height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.primary),
+                Modifier.fillMaxWidth(score.coerceIn(0, 100) / 100f).height(10.dp)
+                    .clip(RoundedCornerShape(5.dp)).background(MaterialTheme.colorScheme.primary),
             )
         }
+        Text(
+            "$score",
+            Modifier.width(30.dp),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.End,
+        )
     }
 }
 

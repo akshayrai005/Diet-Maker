@@ -34,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -234,15 +236,23 @@ private fun AuthScaffold(
             verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(
-                painter = painterResource(R.drawable.ic_launcher_foreground),
-                contentDescription = null,
-                modifier = Modifier.size(96.dp),
-            )
+            Card(
+                modifier = Modifier.size(128.dp),
+                shape = RoundedCornerShape(30.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = "Kaizen logo",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().padding(14.dp),
+                )
+            }
             Text(
                 "Kaizen",
                 color = Color.White,
-                fontSize = 40.sp,
+                fontSize = 42.sp,
                 fontWeight = FontWeight.Bold,
             )
             Text(

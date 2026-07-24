@@ -40,6 +40,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -55,6 +56,11 @@ class SplashViewModel @Inject constructor(private val repository: AppRepository)
     init {
         viewModelScope.launch {
             repository.warmup()
+            // If already signed in, prefetch the dashboard while the splash is up so Home opens
+            // straight away instead of showing the "waking up" state.
+            runCatching {
+                if (repository.isLoggedIn.first()) repository.dashboard()
+            }
             _ready.value = true
         }
     }
