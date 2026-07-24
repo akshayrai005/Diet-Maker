@@ -158,7 +158,34 @@ function dayCards(r: WeeklyReport): string {
 }
 
 /** Renders a full premium HTML report from the report data. Self-contained, print/PDF friendly. */
-export function renderReportHtml(r: WeeklyReport, opts: { label: string }): string {
+export interface ReportAnalysis {
+  rating: { overall: number; grade: string; pillars: { label: string; score: number }[]; biggestLever: string };
+  paragraphs: string[];
+}
+
+/** Grade → accent colour for the analysis ring. */
+function gradeColor(grade: string): string {
+  const g = grade.toUpperCase();
+  if (g === 'A' || g === 'B') return 'var(--good)';
+  if (g === 'C') return 'var(--warn)';
+  return 'var(--crit)';
+}
+
+function analysisSection(a: ReportAnalysis): string {
+  const bars = a.rating.pillars
+    .map((p) => {
+      const w = Math.max(0, Math.min(100, Math.round(p.score)));
+      return `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${esc(p.label)}</span><b>${w}</b></div><div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden"><div style="height:8px;width:${w}%;background:var(--accent);border-radius:4px"></div></div></div>`;
+    })
+    .join('');
+  const body = a.paragraphs.map((t) => `<p style="margin:6px 0">${esc(t)}</p>`).join('');
+  return `<section><div class="sh"><h2>Your Analysis</h2><span class="hint">coach read-out</span></div>
+<div class="hero"><div class="card score-card">${ring(a.rating.overall, gradeColor(a.rating.grade))}<div class="verdict">Grade ${esc(a.rating.grade)}</div></div>
+<div class="card" style="flex:1;align-content:start">${bars}</div></div>
+<div class="card" style="margin-top:12px;font-size:13.5px">${body}</div></section>`;
+}
+
+export function renderReportHtml(r: WeeklyReport, opts: { label: string; analysis?: ReportAnalysis }): string {
   const x = derive(r, 30);
   const target = r.targets?.dailyKcal ?? 0;
   const pT = r.targets?.proteinG ?? 0;
@@ -219,6 +246,8 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 
 <header><div><div class="brand"><div class="logo">N</div><h1>Health &amp; Nutrition Report</h1></div>
 <div class="sub"><b>${esc(r.name)}</b> · ${esc(opts.label)} · generated ${new Date(r.generatedAt).toDateString()}</div></div></header>
+
+${opts.analysis ? analysisSection(opts.analysis) : ''}
 
 <section><div class="sh"><h2>How you're doing</h2><span class="hint">${esc(opts.label).toLowerCase()}</span></div>
 <div class="hero"><div class="card score-card">${ring(x.score, 'var(--accent)')}<div class="verdict">${x.scoreWord}</div></div>

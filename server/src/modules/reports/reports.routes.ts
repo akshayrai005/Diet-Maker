@@ -2,10 +2,22 @@ import { Router } from 'express';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
 import { getGrocery, getWeeklyReport, getGamification, getReportView } from './reports.service';
+import { getAnalysis } from './analysis.service';
 import { reportToCsv } from './report';
 import { renderReportPdf } from './pdf';
+import { tzOffsetMin } from '../../lib/tz';
 
 export const reportsRouter = Router();
+
+// Coach-voice narrative analysis + explainable rating — GET /report/analysis.
+reportsRouter.get(
+  '/report/analysis',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const { narrative, rating } = await getAnalysis(req.user!.id, tzOffsetMin(req));
+    res.json({ narrative, rating });
+  }),
+);
 
 reportsRouter.get(
   '/grocery',

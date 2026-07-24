@@ -7,7 +7,8 @@ import { waterTotal, listFood } from '../logging/logging.service';
 import type { DayPlan, FoodItem, MealSlot } from '../food/food.types';
 import { buildGroceryList } from './grocery';
 import { buildWeeklyReport, type ReportDay } from './report';
-import { renderReportHtml } from './reportHtml';
+import { renderReportHtml, type ReportAnalysis } from './reportHtml';
+import { getAnalysis, toReportAnalysis } from './analysis.service';
 import { computeBadges, badgeSummary, type GamificationStats } from './gamification';
 
 function toFoodItem(f: {
@@ -194,7 +195,15 @@ export async function getReportView(
       : c === 1
         ? 'Last week'
         : `Last ${c} weeks`;
-  return renderReportHtml(report, { label });
+
+  // Lead the report with the coach-voice analysis (rating ring + pillar bars + narrative).
+  let analysis: ReportAnalysis | undefined;
+  try {
+    analysis = toReportAnalysis(await getAnalysis(userId, 0, now));
+  } catch {
+    // Incomplete profile / no rating yet — render the report without the analysis header.
+  }
+  return renderReportHtml(report, { label, analysis });
 }
 
 export async function getGamification(userId: string, now: Date = new Date()) {
