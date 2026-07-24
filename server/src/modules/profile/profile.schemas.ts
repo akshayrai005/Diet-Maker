@@ -42,7 +42,13 @@ export const DIET_TYPES = [
 
 /** Sensitive health payload — stored AES-256-GCM-encrypted at rest. */
 export const sensitiveSchema = z.object({
+  /** Sex used ONLY for metabolic math (BMR / body-fat). Kept separate from `gender` identity. */
   sex: z.enum(['male', 'female']),
+  /** Inclusive gender identity (display); does not affect any calculation. */
+  gender: z.enum(['male', 'female', 'nonbinary', 'self_describe', 'prefer_not']).optional(),
+  genderSelfDescribe: z.string().max(40).optional(),
+  /** Occupation activity pattern — captured to tune daily-movement expectations. */
+  occupation: z.enum(['student', 'desk', 'on_feet', 'homemaker', 'other']).optional(),
   dob: z.string().date(),
   currentWeightKg: z.number().positive().max(500),
   targetWeightKg: z.number().positive().max(500),

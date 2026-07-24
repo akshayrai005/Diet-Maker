@@ -51,6 +51,9 @@ data class MeResponse(val user: PublicUser)
 @Serializable
 data class SensitiveData(
     val sex: String,
+    val gender: String? = null,
+    val genderSelfDescribe: String? = null,
+    val occupation: String? = null,
     val dob: String,
     val currentWeightKg: Double,
     val targetWeightKg: Double,

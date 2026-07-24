@@ -43,6 +43,20 @@ import com.nutriai.data.remote.dto.ProfileUpsertRequest
 import com.nutriai.data.remote.dto.SensitiveData
 
 private val SEX = listOf("male" to "Male", "female" to "Female")
+private val GENDER = listOf(
+    "male" to "Male",
+    "female" to "Female",
+    "nonbinary" to "Non-binary",
+    "self_describe" to "Prefer to self-describe",
+    "prefer_not" to "Prefer not to say",
+)
+private val OCCUPATION = listOf(
+    "student" to "Student",
+    "desk" to "Desk / office",
+    "on_feet" to "On my feet",
+    "homemaker" to "Homemaker",
+    "other" to "Other",
+)
 private val ACTIVITY = listOf(
     "sedentary" to "Sedentary (desk job)",
     "light" to "Lightly active",
@@ -84,6 +98,9 @@ fun OnboardingScreen(
     var target by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var sex by remember { mutableStateOf("male") }
+    var gender by remember { mutableStateOf("male") }
+    var genderSelfDescribe by remember { mutableStateOf("") }
+    var occupation by remember { mutableStateOf("desk") }
     var activity by remember { mutableStateOf("moderate") }
     var goal by remember { mutableStateOf("lose") }
     var diet by remember { mutableStateOf("nonveg") }
@@ -107,6 +124,9 @@ fun OnboardingScreen(
             target = fmt(s.targetWeightKg)
             dob = s.dob
             sex = s.sex.ifBlank { sex }
+            gender = s.gender ?: s.sex.ifBlank { gender }
+            genderSelfDescribe = s.genderSelfDescribe ?: genderSelfDescribe
+            occupation = s.occupation ?: occupation
             conditions.clear(); conditions.addAll(s.conditions)
             fastDay = s.fastDayOfWeek
             exLocation = s.exerciseLocation ?: exLocation
@@ -137,7 +157,23 @@ fun OnboardingScreen(
         numberField(target, { target = it }, "Target weight (kg)")
         DobPicker(dob) { dob = it }
 
-        Dropdown("Sex", SEX, sex) { sex = it }
+        Dropdown("Gender", GENDER, gender) { gender = it }
+        if (gender == "self_describe") {
+            OutlinedTextField(
+                value = genderSelfDescribe,
+                onValueChange = { genderSelfDescribe = it.take(40) },
+                label = { Text("Describe (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        Dropdown("Sex for health calculations", SEX, sex) { sex = it }
+        Text(
+            "We ask sex separately only because BMR and body-fat formulas need it — it doesn't change how we address you.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
         Dropdown("Activity level", ACTIVITY, activity) { activity = it }
         Dropdown("Goal", GOAL, goal) { goal = it }
         Dropdown("Diet", DIET, diet) { diet = it }
@@ -177,6 +213,9 @@ fun OnboardingScreen(
                             dietType = diet,
                             sensitive = SensitiveData(
                                 sex = sex,
+                                gender = gender,
+                                genderSelfDescribe = if (gender == "self_describe") genderSelfDescribe.ifBlank { null } else null,
+                                occupation = occupation,
                                 dob = dob.trim(),
                                 currentWeightKg = w,
                                 targetWeightKg = t,
