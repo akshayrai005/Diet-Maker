@@ -1,6 +1,11 @@
 export type ExerciseLocation = 'gym' | 'home' | 'none';
 export type BodyGoal = 'fatloss' | 'athletic' | 'muscular';
 
+/** Self-reported training experience — scales volume and progression ceilings. */
+export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
+/** How hard the user wants to push — scales sets/volume (capped by safety). */
+export type IntensityPreference = 'easy' | 'standard' | 'hard' | 'beast';
+
 /** Progressive-overload hint for the next session, derived from the user's logged history. */
 export interface NextSession {
   suggestedWeightKg: number | null;
@@ -17,6 +22,12 @@ export interface ExerciseItem {
   type: 'strength' | 'cardio' | 'mobility';
   /** Present once the user has logged this exercise before. */
   nextSession?: NextSession;
+  /** Short, safe form cue (e.g. "brace your core, neutral spine"). */
+  cue?: string;
+  /** Primary muscle group trained (e.g. "chest", "legs"). */
+  muscleGroup?: string;
+  /** Equipment needed (e.g. "barbell", "bodyweight"). */
+  equipment?: string;
 }
 
 export interface WorkoutDay {

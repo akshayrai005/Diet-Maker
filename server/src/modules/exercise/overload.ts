@@ -13,6 +13,8 @@
  * shed fatigue and resensitise for the next block.
  */
 
+import type { FitnessLevel } from './exercise.types';
+
 /**
  * One performed/logged set, aligned to the persisted `ExerciseLog` fields
  * (`exerciseName`, `weightKg`, `reps`, `sets`, `performedAt` → `date`).
@@ -248,4 +250,142 @@ export function overloadTrendFromHistory(history: LoggedSet[]): 'up' | 'flat' | 
   if (up > down) return 'up';
   if (down > up) return 'down';
   return 'flat';
+}
+
+/** Direction the app should nudge the user's self-reported fitness level. */
+export interface LevelChangeSuggestion {
+  direction: 'up' | 'down' | 'hold';
+  reason: string;
+}
+
+export interface LevelChangeOptions {
+  /**
+   * Distinct training sessions required before a promotion is considered
+   * (default 4). Guards against promoting on a lucky day or two.
+   */
+  minSessionsToPromote?: number;
+}
+
+const DEFAULT_MIN_SESSIONS_TO_PROMOTE = 4;
+/** Fewer than this many distinct sessions counts as "too little to sustain the level". */
+const MIN_SESSIONS_TO_SUSTAIN = 2;
+/** This many regressed exercises counts as "repeated misses". */
+const REPEATED_MISS_COUNT = 2;
+
+/** Distinct calendar days present in the history — one "session" per day. */
+function distinctSessionCount(history: LoggedSet[]): number {
+  const days = new Set<number>();
+  for (const s of history) {
+    if (!s || typeof s.exerciseName !== 'string' || s.exerciseName.length === 0) continue;
+    days.add(Math.floor(toMs(s.date) / (24 * 60 * 60 * 1000)));
+  }
+  return days.size;
+}
+
+/**
+ * Suggest promoting / demoting the user's fitness LEVEL from their logged history — PURE.
+ *
+ * The metric per exercise is top weight (or top reps for bodyweight), earliest vs
+ * latest session. Votes are tallied across exercises, plus a count of exercises whose
+ * MOST RECENT session regressed vs the prior ("misses").
+ *
+ * Deterministic thresholds:
+ *  - PROMOTE ('up'): not already 'advanced', AND ≥ `minSessionsToPromote` (default 4)
+ *    distinct sessions logged, AND more exercises trending up than down, AND zero
+ *    regressed exercises. Consistent progression over enough sessions ⇒ ready for more.
+ *  - DEMOTE ('down'): not already 'beginner', AND any of: more exercises trending down
+ *    than up, OR fewer than 2 distinct sessions (too little to sustain the level), OR
+ *    ≥ 2 regressed exercises (repeated misses). Struggling / stagnating ⇒ ease down.
+ *  - HOLD otherwise (including at the 'advanced' ceiling and 'beginner' floor).
+ *
+ * `Date` is used only to order/bucket the caller-supplied ISO dates, so identical
+ * inputs always yield an identical suggestion.
+ */
+export function suggestLevelChange(
+  history: LoggedSet[],
+  currentLevel: FitnessLevel,
+  opts: LevelChangeOptions = {},
+): LevelChangeSuggestion {
+  const minToPromote =
+    opts.minSessionsToPromote && opts.minSessionsToPromote > 0
+      ? Math.floor(opts.minSessionsToPromote)
+      : DEFAULT_MIN_SESSIONS_TO_PROMOTE;
+
+  const clean = (history ?? []).filter(
+    (s) => s && typeof s.exerciseName === 'string' && s.exerciseName.length > 0,
+  );
+  const sessions = distinctSessionCount(clean);
+
+  const groups = new Map<string, LoggedSet[]>();
+  for (const s of clean) {
+    const arr = groups.get(s.exerciseName);
+    if (arr) arr.push(s);
+    else groups.set(s.exerciseName, [s]);
+  }
+
+  const metric = (s: LoggedSet): number =>
+    s.weightKg !== null && s.weightKg !== undefined ? s.weightKg : (s.reps ?? 0);
+
+  let up = 0;
+  let down = 0;
+  let misses = 0;
+  for (const sets of groups.values()) {
+    if (sets.length < 2) continue;
+    const sorted = [...sets].sort((a, b) => toMs(a.date) - toMs(b.date));
+    const first = metric(sorted[0]!);
+    const last = metric(sorted[sorted.length - 1]!);
+    if (!(first === 0 && last === 0)) {
+      if (last > first + 1e-6) up += 1;
+      else if (last < first - 1e-6) down += 1;
+    }
+    if (didRegress(sorted[sorted.length - 1]!, sorted[sorted.length - 2]!)) misses += 1;
+  }
+
+  // PROMOTE — consistent progression over enough sessions.
+  if (
+    currentLevel !== 'advanced' &&
+    sessions >= minToPromote &&
+    up > down &&
+    misses === 0
+  ) {
+    return {
+      direction: 'up',
+      reason:
+        `Progressing consistently — ${up} exercise(s) up vs ${down} down across ` +
+        `${sessions} sessions with no regressions. Ready to level up.`,
+    };
+  }
+
+  // DEMOTE — struggling, stagnating, or too little to sustain the level.
+  if (currentLevel !== 'beginner') {
+    if (down > up) {
+      return {
+        direction: 'down',
+        reason: `Trending down (${down} exercise(s) down vs ${up} up). Ease the level to rebuild.`,
+      };
+    }
+    if (sessions < MIN_SESSIONS_TO_SUSTAIN) {
+      return {
+        direction: 'down',
+        reason:
+          `Only ${sessions} logged session(s) — too little to sustain this level. ` +
+          `Ease down and build consistency.`,
+      };
+    }
+    if (misses >= REPEATED_MISS_COUNT) {
+      return {
+        direction: 'down',
+        reason: `Repeated misses on ${misses} exercise(s). Ease the level and nail your reps.`,
+      };
+    }
+  }
+
+  // HOLD — steady, or already at a boundary level.
+  const reason =
+    currentLevel === 'advanced' && up > down
+      ? 'Already at the advanced level — keep progressing where you are.'
+      : currentLevel === 'beginner' && (down > up || sessions < MIN_SESSIONS_TO_SUSTAIN)
+        ? 'Already at the beginner level — hold and build consistency before easing further.'
+        : 'Steady — keep training at your current level.';
+  return { direction: 'hold', reason };
 }

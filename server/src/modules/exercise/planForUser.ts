@@ -3,6 +3,7 @@ import { decryptJson } from '../../lib/crypto';
 import type { SensitiveData } from '../profile/profile.schemas';
 import { generateWeeklyWorkout } from './workoutGenerator';
 import { localSunday, localToday } from '../../lib/tz';
+import { ageFromDob } from '../nutrition/calc.service';
 import type { BodyGoal, ExerciseLocation, WeeklyWorkout } from './exercise.types';
 
 /** Sensible default body goal from the diet goal when the user hasn't chosen one. */
@@ -24,10 +25,16 @@ export async function weeklyWorkoutForUser(userId: string, offsetMin = 0): Promi
   const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
   const location: ExerciseLocation = s.exerciseLocation ?? 'home';
   const goal: BodyGoal = s.bodyGoal ?? goalToBody(profile.goal);
+  const under18 = ageFromDob(s.dob) < 18;
+  const medicalCaution = (s.conditions?.length ?? 0) > 0 || profile.reducedMobility;
 
   return generateWeeklyWorkout(goal, location, {
     restDayOfWeek: s.workoutRestDay,
     startDate: localSunday(offsetMin),
     today: localToday(offsetMin),
+    fitnessLevel: s.fitnessLevel,
+    intensity: s.intensityPreference,
+    under18,
+    medicalCaution,
   });
 }

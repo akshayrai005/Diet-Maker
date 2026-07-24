@@ -57,6 +57,8 @@ data class SensitiveData(
     val budgetTier: String? = null,
     val dietStrictness: String? = null,
     val pantryTags: List<String>? = null,
+    val fitnessLevel: String? = null,
+    val intensityPreference: String? = null,
     val dob: String,
     val currentWeightKg: Double,
     val targetWeightKg: Double,
@@ -90,6 +92,9 @@ data class ExerciseItem(
     val sets: Int,
     val reps: String,
     val type: String,
+    val cue: String? = null,
+    val muscleGroup: String? = null,
+    val equipment: String? = null,
     val nextSession: NextSession? = null,
 )
 
@@ -115,7 +120,10 @@ data class WeeklyWorkout(
 )
 
 @Serializable
-data class WorkoutEnvelope(val plan: WeeklyWorkout)
+data class LevelSuggestion(val direction: String = "hold", val reason: String = "")
+
+@Serializable
+data class WorkoutEnvelope(val plan: WeeklyWorkout, val levelSuggestion: LevelSuggestion? = null)
 
 // ---- Workout logging (performed sets) ----
 @Serializable

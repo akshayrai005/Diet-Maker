@@ -96,6 +96,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
 data class MoveState(
     val loading: Boolean = true,
     val plan: WeeklyWorkout? = null,
+    val levelSuggestion: com.nutriai.data.remote.dto.LevelSuggestion? = null,
     val error: String? = null,
     val toast: String? = null,
 )
@@ -110,9 +111,13 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
     fun load() {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            val r = repository.exercisePlan()
-            _state.value = if (r.isSuccess) _state.value.copy(loading = false, plan = r.getOrNull(), error = null)
-            else _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
+            val r = repository.exercisePlanFull()
+            _state.value = if (r.isSuccess) {
+                val env = r.getOrNull()
+                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, error = null)
+            } else {
+                _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
+            }
         }
     }
 
@@ -124,9 +129,10 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             )
             if (r.isSuccess) {
                 val kcal = r.getOrNull()?.kcal ?: 0
-                val plan = repository.exercisePlan().getOrNull()
+                val env = repository.exercisePlanFull().getOrNull()
                 _state.value = _state.value.copy(
-                    plan = plan ?: _state.value.plan,
+                    plan = env?.plan ?: _state.value.plan,
+                    levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
                     toast = "Logged $name · ~$kcal kcal 🔥",
                 )
             } else {
@@ -190,6 +196,37 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
+        state.levelSuggestion?.takeIf { it.direction == "up" || it.direction == "down" }?.let { ls ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (ls.direction == "up") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer,
+                    ),
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            if (ls.direction == "up") "⬆️ Ready to level up" else "🌱 Consider easing down",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Text(
+                            ls.reason,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = (if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer).copy(alpha = 0.9f),
+                        )
+                        Text(
+                            "Change it in your profile (Me › Edit health profile).",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = (if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer).copy(alpha = 0.75f),
+                        )
+                    }
+                }
+            }
+        }
+
         plan?.days?.takeIf { it.isNotEmpty() }?.let { days ->
             item { Text("This week · tap a day", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
             item {
@@ -230,6 +267,14 @@ private fun ExerciseCard(index: Int, ex: ExerciseItem, onLog: () -> Unit) {
                     "${ex.sets} × ${ex.reps}",
                     Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
+                Text(
+                    "💡 $cue",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 

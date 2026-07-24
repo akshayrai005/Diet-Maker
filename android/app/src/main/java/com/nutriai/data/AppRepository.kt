@@ -298,6 +298,10 @@ class AppRepository @Inject constructor(
     suspend fun exercisePlan(): Result<com.nutriai.data.remote.dto.WeeklyWorkout> =
         runCatching { api.exercisePlan().plan }
 
+    /** Plan plus the auto level-up/ease-down suggestion. */
+    suspend fun exercisePlanFull(): Result<com.nutriai.data.remote.dto.WorkoutEnvelope> =
+        runCatching { api.exercisePlan() }
+
     // ---- Workout logging ----
     suspend fun logExercise(body: com.nutriai.data.remote.dto.ExerciseLogRequest): Result<com.nutriai.data.remote.dto.ExerciseLogDto> =
         runCatching { api.logExercise(body).entry }

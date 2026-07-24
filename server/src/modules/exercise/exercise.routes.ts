@@ -7,11 +7,12 @@ import { HttpError } from '../../middleware/error';
 import type { SensitiveData } from '../profile/profile.schemas';
 import { generateWeeklyWorkout } from './workoutGenerator';
 import { localSunday, localToday, tzOffsetMin } from '../../lib/tz';
-import type { BodyGoal, ExerciseLocation } from './exercise.types';
+import type { BodyGoal, ExerciseLocation, FitnessLevel } from './exercise.types';
 import { exerciseLogSchema } from './exerciseLog.schemas';
 import * as logSvc from './exerciseLog.service';
 import { adaptWorkoutToCycle } from './cycleAdapt';
-import { recommendNextSession, type LoggedSet } from './overload';
+import { recommendNextSession, suggestLevelChange, type LoggedSet } from './overload';
+import { ageFromDob } from '../nutrition/calc.service';
 
 export const exerciseRouter = Router();
 
@@ -37,12 +38,19 @@ exerciseRouter.get(
     const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
     const location: ExerciseLocation = s.exerciseLocation ?? 'home';
     const goal: BodyGoal = s.bodyGoal ?? goalToBody(profile.goal);
+    const currentLevel: FitnessLevel = s.fitnessLevel ?? 'intermediate';
+    const under18 = ageFromDob(s.dob) < 18;
+    const medicalCaution = (s.conditions?.length ?? 0) > 0 || profile.reducedMobility;
 
     const offset = tzOffsetMin(req);
     let plan = generateWeeklyWorkout(goal, location, {
       restDayOfWeek: s.workoutRestDay,
       startDate: localSunday(offset),
       today: localToday(offset),
+      fitnessLevel: currentLevel,
+      intensity: s.intensityPreference,
+      under18,
+      medicalCaution,
     });
 
     // Period-aware: for female profiles, ease period days to gentle recovery.
@@ -70,14 +78,14 @@ exerciseRouter.get(
       orderBy: { performedAt: 'desc' },
       take: 300,
     });
-    if (logs.length > 0) {
-      const history: LoggedSet[] = logs.map((l) => ({
-        exerciseName: l.exerciseName,
-        date: l.performedAt.toISOString(),
-        weightKg: l.weightKg,
-        reps: l.reps,
-        sets: l.sets,
-      }));
+    const history: LoggedSet[] = logs.map((l) => ({
+      exerciseName: l.exerciseName,
+      date: l.performedAt.toISOString(),
+      weightKg: l.weightKg,
+      reps: l.reps,
+      sets: l.sets,
+    }));
+    if (history.length > 0) {
       const byName = new Map(recommendNextSession(history).map((s) => [s.exerciseName, s]));
       plan = {
         ...plan,
@@ -102,7 +110,10 @@ exerciseRouter.get(
       };
     }
 
-    res.json({ plan });
+    // Auto promotion/demotion nudge so the app can prompt "level up / ease down".
+    const levelSuggestion = suggestLevelChange(history, currentLevel);
+
+    res.json({ plan, levelSuggestion });
   }),
 );
 

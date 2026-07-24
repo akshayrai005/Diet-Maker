@@ -2,6 +2,8 @@ import {
   BodyGoal,
   ExerciseItem,
   ExerciseLocation,
+  FitnessLevel,
+  IntensityPreference,
   WeeklyWorkout,
   WorkoutDay,
 } from './exercise.types';
@@ -123,6 +125,184 @@ export interface WorkoutOptions {
   startDate?: Date;
   today?: Date;
   days?: number;
+  /** Training experience — scales volume and progression ceilings. Defaults to 'intermediate'. */
+  fitnessLevel?: FitnessLevel;
+  /** How hard to push — scales sets/volume. Defaults to 'standard'. Safety-capped below. */
+  intensity?: IntensityPreference;
+  /** Under-18 lifter — SAFETY cap: forces hard/beast down to standard. */
+  under18?: boolean;
+  /** Medical caution (any flagged condition / reduced mobility) — SAFETY cap, same effect. */
+  medicalCaution?: boolean;
+}
+
+// ---- Level + intensity scaling (PURE, deterministic) ----
+
+/** Per-intensity multiplier applied to each exercise's set count. */
+const INTENSITY_SET_FACTOR: Record<IntensityPreference, number> = {
+  easy: 0.75,
+  standard: 1,
+  hard: 1.15,
+  beast: 1.3,
+};
+
+/** Hard ceiling on sets per exercise, by level. Global sane cap is 6; beginners cap at 3. */
+const LEVEL_MAX_SETS: Record<FitnessLevel, number> = {
+  beginner: 3,
+  intermediate: 5,
+  advanced: 6,
+};
+
+/** Max exercises kept per training day, by level. Beginners keep it simple (~5). */
+const LEVEL_MAX_EXERCISES: Record<FitnessLevel, number> = {
+  beginner: 5,
+  intermediate: Number.POSITIVE_INFINITY,
+  advanced: Number.POSITIVE_INFINITY,
+};
+
+export interface IntensityCapOptions {
+  under18?: boolean;
+  medicalCaution?: boolean;
+}
+
+/**
+ * SAFETY gate over the requested intensity — PURE.
+ *
+ * When the lifter is under 18 OR has a medical caution flag, we clamp the two
+ * top gears (`hard` and `beast`) down to `standard`. `easy`/`standard` pass
+ * through unchanged, and we never push anyone below `easy`. With no caution
+ * flags the preference is returned as-is.
+ */
+export function cappedIntensity(
+  pref: IntensityPreference,
+  opts: IntensityCapOptions = {},
+): IntensityPreference {
+  if (opts.under18 || opts.medicalCaution) {
+    if (pref === 'beast' || pref === 'hard') return 'standard';
+  }
+  return pref;
+}
+
+/** Scale one exercise's sets by intensity, floored at 1 and capped by level + the global 6. */
+function scaleSets(base: number, factor: number, level: FitnessLevel): number {
+  const scaled = Math.round(base * factor);
+  const capped = Math.min(scaled, LEVEL_MAX_SETS[level], 6);
+  return Math.max(1, capped);
+}
+
+/**
+ * Small deterministic form-cue lookup keyed by tokens in the exercise name.
+ * The FIRST matching rule wins; unknown movements get no annotation. Cues are
+ * intentionally short and safety-first.
+ */
+const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = [
+  { match: ['deadlift', 'romanian', 'rdl', 'rack pull'], muscleGroup: 'posterior chain', cue: 'brace your core, neutral spine, drive through your heels' },
+  { match: ['close-grip', 'skull crusher', 'pushdown', 'kickback', 'tricep', 'jm press', 'dips'], muscleGroup: 'triceps', cue: 'keep your elbows tucked, full lockout' },
+  { match: ['squat', 'wall sit', 'leg press', 'hack squat', 'split squat'], muscleGroup: 'legs', cue: 'chest up, brace your core, knees track over your toes' },
+  { match: ['bench', 'chest press', 'chest fly', 'cable fly', 'pec-deck', 'crossover', 'svend'], muscleGroup: 'chest', cue: 'shoulder blades retracted, control the descent' },
+  { match: ['push-up', 'push up', 'pushup'], muscleGroup: 'chest', cue: 'brace your core, keep a straight line head to heels' },
+  { match: ['overhead', 'shoulder press', 'arnold', 'push press', 'military', 'upright row'], muscleGroup: 'shoulders', cue: 'brace your core, ribs down, press straight overhead' },
+  { match: ['lateral raise', 'front raise', 'rear-delt', 'reverse fly', 'reverse pec', 'y-raise', 'face pull', 'face-pull'], muscleGroup: 'shoulders', cue: 'lead with the elbows, no swinging' },
+  { match: ['pulldown', 'pull-up', 'pull up', 'pullup', 'chin-up', 'pullover'], muscleGroup: 'back', cue: 'drive your elbows down, control the stretch' },
+  { match: ['row'], muscleGroup: 'back', cue: 'flat back, pull to the ribs, squeeze the shoulder blades' },
+  { match: ['curl'], muscleGroup: 'biceps', cue: 'keep your elbows pinned, no swinging' },
+  { match: ['lunge', 'step-up', 'step up'], muscleGroup: 'legs', cue: 'torso tall, front knee over the ankle' },
+  { match: ['plank'], muscleGroup: 'core', cue: "brace your core, straight line, don't let the hips sag" },
+  { match: ['crunch', 'leg raise', 'knee raise', 'russian twist', 'hollow', 'dead bug', 'ab wheel', 'sit-up'], muscleGroup: 'core', cue: 'brace your core, move slowly and controlled' },
+  { match: ['glute bridge', 'hip thrust'], muscleGroup: 'glutes', cue: 'squeeze the glutes at the top, ribs down' },
+  { match: ['calf raise'], muscleGroup: 'calves', cue: 'full range of motion, pause at the top' },
+  { match: ['leg curl', 'nordic'], muscleGroup: 'hamstrings', cue: 'controlled tempo, no jerking' },
+  { match: ['leg extension'], muscleGroup: 'quads', cue: 'controlled tempo, squeeze at the top' },
+];
+
+/** Detect equipment from the exercise name; undefined when it can't be told. */
+function equipmentFor(lower: string): string | undefined {
+  if (lower.includes('barbell') || lower.includes('ez-bar') || lower.includes('trap-bar')) return 'barbell';
+  if (lower.includes('dumbbell')) return 'dumbbell';
+  if (lower.includes('cable')) return 'cable';
+  if (lower.includes('machine') || lower.includes('leg press') || lower.includes('pec-deck') || lower.includes('hack squat')) return 'machine';
+  if (lower.includes('kettlebell')) return 'kettlebell';
+  if (lower.includes('backpack') || lower.includes('towel') || lower.includes('band')) return 'minimal';
+  if (
+    lower.includes('push-up') || lower.includes('pushup') || lower.includes('plank') ||
+    lower.includes('bodyweight') || lower.includes('pull-up') || lower.includes('chin-up') ||
+    lower.includes('sit') || lower.includes('bridge') || lower.includes('superman') ||
+    lower.includes('burpee') || lower.includes('lunge') || lower.includes('crunch')
+  ) return 'bodyweight';
+  return undefined;
+}
+
+/** Deterministic cue/muscleGroup/equipment annotation for a movement, keyed by name. */
+function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> {
+  const lower = name.toLowerCase();
+  for (const rule of CUE_RULES) {
+    if (rule.match.some((token) => lower.includes(token))) {
+      const out: Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> = {
+        cue: rule.cue,
+        muscleGroup: rule.muscleGroup,
+      };
+      const eq = equipmentFor(lower);
+      if (eq !== undefined) out.equipment = eq;
+      return out;
+    }
+  }
+  const eq = equipmentFor(lower);
+  return eq !== undefined ? { equipment: eq } : {};
+}
+
+/** A light mobility/cardio finisher appended for advanced lifters / beast intensity. */
+const FINISHER: ExerciseItem = {
+  name: 'Conditioning finisher',
+  sets: 1,
+  reps: '3 rounds',
+  type: 'cardio',
+  cue: 'push the pace but keep clean form',
+  muscleGroup: 'full body',
+  equipment: 'bodyweight',
+};
+
+/** Rest-guidance text tuned to level + intensity. */
+function restGuidance(level: FitnessLevel, intensity: IntensityPreference): string {
+  if (level === 'beginner') return 'Rest ~90-120s between sets while you learn the movements.';
+  if (level === 'advanced' || intensity === 'hard' || intensity === 'beast') {
+    return 'Rest ~45-60s between sets to keep the intensity high.';
+  }
+  return 'Rest ~60-90s between sets.';
+}
+
+/**
+ * PURE post-processing scale: rebuilds every day/exercise (no shared refs mutated)
+ * so that fitness LEVEL and (already-capped) INTENSITY meaningfully change the plan —
+ * sets, exercise volume, a level-gated finisher, form cues, and rest guidance.
+ */
+function applyScaling(
+  plan: WeeklyWorkout,
+  level: FitnessLevel,
+  intensity: IntensityPreference,
+): WeeklyWorkout {
+  const factor = INTENSITY_SET_FACTOR[intensity];
+  const maxExercises = LEVEL_MAX_EXERCISES[level];
+  const addFinisher = level !== 'beginner' && (level === 'advanced' || intensity === 'beast');
+
+  const days: WorkoutDay[] = plan.days.map((day) => {
+    if (day.rest) {
+      // Rest days keep their light recovery items but still gain cues/annotations.
+      return { ...day, exercises: day.exercises.map((ex) => ({ ...ex, ...annotate(ex.name) })) };
+    }
+
+    let items = day.exercises.map((ex) => ({
+      ...ex,
+      ...annotate(ex.name),
+      sets: scaleSets(ex.sets, factor, level),
+    }));
+
+    if (Number.isFinite(maxExercises)) items = items.slice(0, maxExercises);
+    if (addFinisher) items = [...items, { ...FINISHER }];
+
+    return { ...day, exercises: items };
+  });
+
+  const note = `${plan.note} ${restGuidance(level, intensity)}`;
+  return { ...plan, days, note };
 }
 
 function labelFor(date: Date, today: Date): string {
@@ -191,5 +371,13 @@ export function generateWeeklyWorkout(
           ? '7-day plan (no fixed rest day).'
           : '6 training days + 1 rest day. Progress by adding reps or load each week.';
 
-  return { location, goal, days, block, blockLabel, note, disclaimer: DISCLAIMER };
+  const base: WeeklyWorkout = { location, goal, days, block, blockLabel, note, disclaimer: DISCLAIMER };
+
+  // Level + intensity scaling. Intensity is SAFETY-capped for minors / medical caution.
+  const level: FitnessLevel = options.fitnessLevel ?? 'intermediate';
+  const intensity = cappedIntensity(options.intensity ?? 'standard', {
+    under18: options.under18,
+    medicalCaution: options.medicalCaution,
+  });
+  return applyScaling(base, level, intensity);
 }

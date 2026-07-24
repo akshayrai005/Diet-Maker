@@ -67,6 +67,17 @@ private val STRICTNESS = listOf(
     "standard" to "Standard",
     "strict" to "Strict",
 )
+private val FITNESS_LEVEL = listOf(
+    "beginner" to "Beginner",
+    "intermediate" to "Intermediate",
+    "advanced" to "Advanced",
+)
+private val INTENSITY = listOf(
+    "easy" to "Easy",
+    "standard" to "Standard",
+    "hard" to "Hard",
+    "beast" to "Beast",
+)
 private val ACTIVITY = listOf(
     "sedentary" to "Sedentary (desk job)",
     "light" to "Lightly active",
@@ -113,6 +124,8 @@ fun OnboardingScreen(
     var occupation by remember { mutableStateOf("desk") }
     var budgetTier by remember { mutableStateOf("medium") }
     var dietStrictness by remember { mutableStateOf("standard") }
+    var fitnessLevel by remember { mutableStateOf("beginner") }
+    var intensity by remember { mutableStateOf("standard") }
     var activity by remember { mutableStateOf("moderate") }
     var goal by remember { mutableStateOf("lose") }
     var diet by remember { mutableStateOf("nonveg") }
@@ -141,6 +154,8 @@ fun OnboardingScreen(
             occupation = s.occupation ?: occupation
             budgetTier = s.budgetTier ?: budgetTier
             dietStrictness = s.dietStrictness ?: dietStrictness
+            fitnessLevel = s.fitnessLevel ?: fitnessLevel
+            intensity = s.intensityPreference ?: intensity
             conditions.clear(); conditions.addAll(s.conditions)
             fastDay = s.fastDayOfWeek
             exLocation = s.exerciseLocation ?: exLocation
@@ -195,6 +210,13 @@ fun OnboardingScreen(
         Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
         Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
         Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+        Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
+        Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
+        Text(
+            "Harder isn't always better — pick what you can keep up with. We cap intensity for safety.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
         Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
         Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
@@ -234,6 +256,8 @@ fun OnboardingScreen(
                                 occupation = occupation,
                                 budgetTier = budgetTier,
                                 dietStrictness = dietStrictness,
+                                fitnessLevel = fitnessLevel,
+                                intensityPreference = intensity,
                                 dob = dob.trim(),
                                 currentWeightKg = w,
                                 targetWeightKg = t,
