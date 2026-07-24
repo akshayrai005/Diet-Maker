@@ -23,21 +23,29 @@ import javax.inject.Singleton
 @Singleton
 class ReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val prefs: ReminderPrefs,
 ) {
     private val workManager get() = WorkManager.getInstance(context)
 
     /** Applies the given on/off map: schedules enabled groups, cancels disabled ones. */
-    fun apply(settings: Map<ReminderGroup, Boolean>) {
+    suspend fun apply(settings: Map<ReminderGroup, Boolean>) {
         settings.forEach { (group, enabled) ->
             if (enabled) scheduleGroup(group) else cancelGroup(group)
         }
     }
 
-    fun scheduleGroup(group: ReminderGroup) {
+    suspend fun scheduleGroup(group: ReminderGroup) {
         ReminderWorker.ensureChannel(context)
+        // The workout pre-alert is scheduled from the user's set time; the rest are fixed.
+        val jobs = if (group == ReminderGroup.WORKOUT) {
+            val (h, m) = prefs.workoutTime()
+            listOf(ReminderCatalog.workoutJob(h, m))
+        } else {
+            ReminderCatalog.jobs(group)
+        }
         // REPLACE: re-anchor to the next occurrence and cleanly migrate any stale periodic job
         // from an older app version. It never fires early — the delay is always to a future time.
-        ReminderCatalog.jobs(group).forEach { enqueue(context, it, ExistingWorkPolicy.REPLACE) }
+        jobs.forEach { enqueue(context, it, ExistingWorkPolicy.REPLACE) }
     }
 
     fun cancelGroup(group: ReminderGroup) {

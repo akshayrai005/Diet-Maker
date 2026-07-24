@@ -58,10 +58,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { _serverReminders.value = repository.reminderPrefs().getOrNull() }
     }
 
-    /** Persist the user's workout time (HH:MM) + walk toggle to the server mirror. */
+    /** Persist workout time + toggles to the server mirror AND the on-device schedule. */
     fun saveReminderPrefs(prefs: com.nutriai.data.remote.dto.ReminderPrefsDto) {
         viewModelScope.launch {
             repository.putReminderPrefs(prefs).getOrNull()?.let { _serverReminders.value = it }
+            // Mirror the workout time to the on-device scheduler so the pre-alert fires locally.
+            prefs.workoutTime?.split(":")?.let { parts ->
+                val h = parts.getOrNull(0)?.toIntOrNull()
+                val m = parts.getOrNull(1)?.toIntOrNull()
+                if (h != null && m != null) reminderPrefs.setWorkoutTime(h, m)
+            }
+            reminderPrefs.setEnabled(ReminderGroup.WORKOUT, prefs.workoutEnabled)
+            if (prefs.workoutEnabled) reminderScheduler.scheduleGroup(ReminderGroup.WORKOUT)
+            else reminderScheduler.cancelGroup(ReminderGroup.WORKOUT)
         }
     }
 

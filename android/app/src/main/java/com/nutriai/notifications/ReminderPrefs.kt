@@ -3,6 +3,7 @@ package com.nutriai.notifications
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -34,4 +35,18 @@ class ReminderPrefs @Inject constructor(
     }
 
     suspend fun snapshot(): Map<ReminderGroup, Boolean> = settings.first()
+
+    // ---- Workout pre-alert time (local) ----
+    private val workoutHourKey = intPreferencesKey("workout_hour")
+    private val workoutMinKey = intPreferencesKey("workout_min")
+
+    /** The user's set workout time (hour, minute); defaults to 18:00. The pre-alert fires 10 min before. */
+    suspend fun workoutTime(): Pair<Int, Int> {
+        val p = context.reminderStore.data.first()
+        return (p[workoutHourKey] ?: 18) to (p[workoutMinKey] ?: 0)
+    }
+
+    suspend fun setWorkoutTime(hour: Int, minute: Int) {
+        context.reminderStore.edit { it[workoutHourKey] = hour; it[workoutMinKey] = minute }
+    }
 }

@@ -61,9 +61,14 @@ class ReminderWorker(
         // Re-schedule this reminder for its next occurrence (tomorrow / next weekly day).
         // This is what keeps a one-time job repeating at the exact clock time without drift.
         inputData.getString(KEY_JOB_KEY)?.let { key ->
-            ReminderCatalog.jobByKey(key)?.let { job ->
-                runCatching { ReminderScheduler.enqueue(applicationContext, job, ExistingWorkPolicy.REPLACE) }
+            // The workout pre-alert re-arms from the user's stored time; others from the fixed catalog.
+            val job = if (key == ReminderCatalog.WORKOUT_KEY) {
+                val (h, m) = ReminderPrefs(applicationContext).workoutTime()
+                ReminderCatalog.workoutJob(h, m)
+            } else {
+                ReminderCatalog.jobByKey(key)
             }
+            job?.let { runCatching { ReminderScheduler.enqueue(applicationContext, it, ExistingWorkPolicy.REPLACE) } }
         }
         return Result.success()
     }

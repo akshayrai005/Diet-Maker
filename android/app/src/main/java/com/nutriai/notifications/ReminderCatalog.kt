@@ -17,7 +17,7 @@ data class ReminderJob(
 enum class ReminderGroup(val label: String, val subtitle: String) {
     MEALS("Meal reminders", "Breakfast, lunch & dinner windows"),
     WATER("Hydration reminders", "Gentle water nudges through the day"),
-    WORKOUT("5 AM workout call", "Early wake-up nudge — tap to open your plan"),
+    WORKOUT("Workout pre-alert", "Fires 10 min before your set workout time"),
     WEIGH_IN("Weekly weigh-in", "A Monday-morning check-in nudge"),
 }
 
@@ -34,11 +34,24 @@ object ReminderCatalog {
             ReminderJob("water_am", 11, 0, "💧 Hydration check", "Time for a glass of water — log it.", tab = 0),
             ReminderJob("water_pm", 16, 0, "💧 Stay hydrated", "A little water goes a long way. Log a glass.", tab = 0),
         )
-        ReminderGroup.WORKOUT -> listOf(
-            ReminderJob("workout_5am", 5, 0, "🏋️ 5 AM — time to train", "Rise and grind. Tap to open today's workout.", tab = 1),
-        )
+        ReminderGroup.WORKOUT -> listOf(workoutJob(18, 0))
         ReminderGroup.WEIGH_IN -> listOf(
             ReminderJob("weigh_in", 7, 30, "⚖️ Weekly weigh-in", "Log this week's weight to track your progress.", tab = 0, weeklyDayIso = 1),
+        )
+    }
+
+    const val WORKOUT_KEY = "workout_prealert"
+
+    /** The workout pre-alert job — fires 10 minutes before the given workout time (wraps past midnight). */
+    fun workoutJob(hour: Int, minute: Int): ReminderJob {
+        var m = minute - 10
+        var h = hour
+        if (m < 0) { m += 60; h = (h + 23) % 24 }
+        return ReminderJob(
+            WORKOUT_KEY, h, m,
+            "🏋️ Get set for exercise",
+            "Your workout is in 10 minutes — tap to open today's plan.",
+            tab = 1,
         )
     }
 
