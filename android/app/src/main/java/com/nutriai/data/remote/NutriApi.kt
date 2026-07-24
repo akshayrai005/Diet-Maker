@@ -31,6 +31,10 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface NutriApi {
+    /** Wakes the (cold-starting) backend. Any HTTP response means the server is up. */
+    @GET
+    suspend fun ping(@retrofit2.http.Url url: String): retrofit2.Response<okhttp3.ResponseBody>
+
     @POST("auth/register")
     suspend fun register(@Body body: RegisterRequest): AuthResponse
 

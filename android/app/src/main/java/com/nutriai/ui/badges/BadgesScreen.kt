@@ -228,60 +228,80 @@ private fun BadgeCard(badge: Badge) {
     val earned = badge.earned
     val v = badgeVisual(badge)
     Card(
-        modifier = Modifier.fillMaxWidth().height(150.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (earned) 4.dp else 1.dp),
+        modifier = Modifier.fillMaxWidth().height(180.dp),
+        shape = RoundedCornerShape(22.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (earned) 3.dp else 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (earned) v.accent.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            containerColor = if (earned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         ),
+        border = if (earned) androidx.compose.foundation.BorderStroke(1.dp, v.accent.copy(alpha = 0.35f)) else null,
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxSize().padding(vertical = 16.dp, horizontal = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Colourful medallion — gradient when earned, soft tint + lock badge when not.
+            // Medallion: soft accent ring + gradient disc (earned) or muted disc + lock (locked).
             Box(contentAlignment = Alignment.Center) {
                 Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .then(
-                            if (earned) {
-                                Modifier.background(Brush.linearGradient(listOf(v.accent, v.accent.copy(alpha = 0.7f))))
-                            } else {
-                                Modifier.background(v.accent.copy(alpha = 0.16f))
-                            },
-                        ),
+                    Modifier.size(60.dp).clip(CircleShape).background(v.accent.copy(alpha = if (earned) 0.16f else 0.10f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(v.emoji, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.alpha(if (earned) 1f else 0.6f))
-                }
-                if (!earned) {
                     Box(
-                        Modifier.align(Alignment.BottomEnd).size(20.dp).clip(CircleShape)
+                        Modifier.size(46.dp).clip(CircleShape).then(
+                            if (earned) Modifier.background(Brush.linearGradient(listOf(v.accent, v.accent.copy(alpha = 0.72f))))
+                            else Modifier.background(v.accent.copy(alpha = 0.18f)),
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(v.emoji, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.alpha(if (earned) 1f else 0.5f))
+                    }
+                }
+                if (earned) {
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface).padding(2.dp)
+                            .clip(CircleShape).background(v.accent),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("✓", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold) }
+                } else {
+                    Box(
+                        Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center,
                     ) { Text("🔒", style = MaterialTheme.typography.labelSmall) }
                 }
             }
 
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    badge.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    color = if (earned) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    badge.description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+
             Text(
-                badge.title,
-                style = MaterialTheme.typography.titleSmall,
+                if (earned) "EARNED" else "LOCKED",
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                color = if (earned) v.accent else MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                badge.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                color = if (earned) v.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (earned) v.accent.copy(alpha = 0.14f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f))
+                    .padding(horizontal = 10.dp, vertical = 3.dp),
             )
         }
     }

@@ -144,6 +144,20 @@ class AppRepository @Inject constructor(
     suspend fun coachToday(): Result<com.nutriai.data.remote.dto.CoachTodayEnvelope> =
         runCatching { api.coachToday() }
 
+    /**
+     * Trigger the (cold-starting) backend and poll until it answers OK, so the splash can hold
+     * until the server is actually up. Bounded (~18s) so it never blocks forever.
+     */
+    suspend fun warmup(): Boolean {
+        val root = com.nutriai.BuildConfig.API_BASE_URL.substringBefore("/api/v1")
+        repeat(12) {
+            val up = runCatching { api.ping("$root/health").isSuccessful }.getOrDefault(false)
+            if (up) return true
+            kotlinx.coroutines.delay(1500)
+        }
+        return false
+    }
+
     // ---- Reminder prefs (server mirror) ----
     suspend fun reminderPrefs(): Result<com.nutriai.data.remote.dto.ReminderPrefsDto> =
         runCatching { api.reminderPrefs().prefs }
