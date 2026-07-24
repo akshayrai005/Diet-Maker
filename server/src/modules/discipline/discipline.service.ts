@@ -91,3 +91,37 @@ export async function toggleHabit(userId: string, habitId: string, date: string,
     await prisma.habitLog.deleteMany({ where: { habitId, userId, date } });
   }
 }
+
+/** Slugify a custom habit title into a stable, unique-ish key. */
+function slugify(title: string): string {
+  return (
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'habit'
+  );
+}
+
+/** Create a custom habit for the user. */
+export async function createHabit(userId: string, title: string, icon?: string): Promise<HabitView> {
+  const trimmed = title.trim();
+  if (!trimmed) throw new HttpError(400, 'Habit title is required');
+
+  const count = await prisma.habit.count({ where: { userId } });
+  // Ensure a unique key even if the title collides with an existing slug.
+  let key = slugify(trimmed);
+  if (await prisma.habit.findUnique({ where: { userId_key: { userId, key } } })) {
+    key = `${key}-${count + 1}`;
+  }
+  const habit = await prisma.habit.create({
+    data: { userId, key, title: trimmed, icon: icon?.slice(0, 4) ?? '✅', sortOrder: 100 + count },
+  });
+  return { id: habit.id, key: habit.key, title: habit.title, icon: habit.icon, doneToday: false, streakDays: 0 };
+}
+
+/** Remove a habit (and its logs cascade). */
+export async function deleteHabit(userId: string, habitId: string): Promise<void> {
+  const res = await prisma.habit.deleteMany({ where: { id: habitId, userId } });
+  if (res.count === 0) throw new HttpError(404, 'Habit not found');
+}

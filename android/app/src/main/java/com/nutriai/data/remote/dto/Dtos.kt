@@ -582,6 +582,12 @@ data class DisciplineToday(
 @Serializable
 data class HabitToggleRequest(val done: Boolean, val date: String? = null)
 
+@Serializable
+data class HabitCreateRequest(val title: String, val icon: String? = null)
+
+@Serializable
+data class HabitCreateEnvelope(val habit: HabitView)
+
 // ---- Wellness session logging ----
 @Serializable
 data class WellnessSessionRequest(val refId: String)

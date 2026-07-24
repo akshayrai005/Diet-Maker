@@ -129,6 +129,12 @@ interface NutriApi {
         @Body body: com.nutriai.data.remote.dto.HabitToggleRequest,
     ): com.nutriai.data.remote.dto.DisciplineToday
 
+    @POST("habits")
+    suspend fun createHabit(@Body body: com.nutriai.data.remote.dto.HabitCreateRequest): com.nutriai.data.remote.dto.HabitCreateEnvelope
+
+    @retrofit2.http.DELETE("habits/{id}")
+    suspend fun deleteHabit(@retrofit2.http.Path("id") id: String): retrofit2.Response<Unit>
+
     // ---- AI vision ----
     @POST("body/assess-photo")
     suspend fun assessBodyPhoto(@Body body: com.nutriai.data.remote.dto.PhotoRequest): com.nutriai.data.remote.dto.BodyAssessEnvelope

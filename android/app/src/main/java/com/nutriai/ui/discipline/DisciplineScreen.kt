@@ -1,6 +1,7 @@
 package com.nutriai.ui.discipline
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,20 +9,28 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
@@ -65,11 +74,48 @@ class DisciplineViewModel @Inject constructor(private val repository: AppReposit
             }
         }
     }
+
+    fun addHabit(title: String) {
+        viewModelScope.launch {
+            if (repository.createHabit(title).isSuccess) refresh()
+        }
+    }
+
+    fun removeHabit(id: String) {
+        viewModelScope.launch {
+            if (repository.deleteHabit(id).isSuccess) refresh()
+        }
+    }
 }
 
 @Composable
 fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showAdd by remember { mutableStateOf(false) }
+    var newTitle by remember { mutableStateOf("") }
+
+    if (showAdd) {
+        AlertDialog(
+            onDismissRequest = { showAdd = false },
+            title = { Text("Add a habit") },
+            text = {
+                OutlinedTextField(
+                    value = newTitle,
+                    onValueChange = { newTitle = it.take(60) },
+                    label = { Text("e.g. 10-minute walk after lunch") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.addHabit(newTitle); newTitle = ""; showAdd = false },
+                    enabled = newTitle.isNotBlank(),
+                ) { Text("Add") }
+            },
+            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } },
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -98,7 +144,19 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
             }
 
             item { Text("Today’s habits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            items(d.habits.size) { i -> HabitRow(d.habits[i], onToggle = { viewModel.toggle(d.habits[i]) }) }
+            items(d.habits.size) { i ->
+                HabitRow(
+                    d.habits[i],
+                    onToggle = { viewModel.toggle(d.habits[i]) },
+                    onDelete = { viewModel.removeHabit(d.habits[i].id) },
+                )
+            }
+            item {
+                TextButton(
+                    onClick = { showAdd = true },
+                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a habit" },
+                ) { Text("＋ Add habit") }
+            }
 
             if (d.adherence.topActions.isNotEmpty()) {
                 item { Text("Quick wins", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
@@ -149,7 +207,7 @@ private fun AdherenceRing(score: Int) {
 }
 
 @Composable
-private fun HabitRow(habit: HabitView, onToggle: () -> Unit) {
+private fun HabitRow(habit: HabitView, onToggle: () -> Unit, onDelete: () -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
@@ -170,6 +228,16 @@ private fun HabitRow(habit: HabitView, onToggle: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
+            Text(
+                "✕",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable { onDelete() }
+                    .semantics { contentDescription = "Delete ${habit.title}" }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
         }
     }
 }

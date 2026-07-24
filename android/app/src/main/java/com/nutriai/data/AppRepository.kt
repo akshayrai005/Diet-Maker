@@ -172,6 +172,12 @@ class AppRepository @Inject constructor(
     suspend fun toggleHabit(id: String, done: Boolean): Result<com.nutriai.data.remote.dto.DisciplineToday> =
         runCatching { api.toggleHabit(id, com.nutriai.data.remote.dto.HabitToggleRequest(done)) }
 
+    suspend fun createHabit(title: String): Result<Unit> =
+        runCatching { api.createHabit(com.nutriai.data.remote.dto.HabitCreateRequest(title)); Unit }
+
+    suspend fun deleteHabit(id: String): Result<Unit> =
+        runCatching { api.deleteHabit(id); Unit }
+
     // ---- AI vision ----
     suspend fun assessBodyPhoto(imageBase64: String): Result<com.nutriai.data.remote.dto.BodyAssessment> =
         runCatching { api.assessBodyPhoto(com.nutriai.data.remote.dto.PhotoRequest(imageBase64)).assessment }

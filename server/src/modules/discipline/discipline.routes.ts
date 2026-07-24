@@ -3,9 +3,32 @@ import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
 import { tzOffsetMin, localDayKey } from '../../lib/tz';
-import { getDisciplineToday, toggleHabit } from './discipline.service';
+import { getDisciplineToday, toggleHabit, createHabit, deleteHabit } from './discipline.service';
 
 export const disciplineRouter = Router();
+
+const createSchema = z.object({ title: z.string().min(1).max(60), icon: z.string().max(4).optional() });
+
+/** Add a custom habit. */
+disciplineRouter.post(
+  '/habits',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const { title, icon } = createSchema.parse(req.body);
+    const habit = await createHabit(req.user!.id, title, icon);
+    res.status(201).json({ habit });
+  }),
+);
+
+/** Delete a habit. */
+disciplineRouter.delete(
+  '/habits/:id',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    await deleteHabit(req.user!.id, req.params.id!);
+    res.status(204).end();
+  }),
+);
 
 /** Discipline dashboard — real adherence score + per-habit streaks + evening review + nudges. */
 disciplineRouter.get(
