@@ -22,9 +22,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -216,15 +218,40 @@ private fun ThemeCard(
     }
 }
 
+/** "11:00 AM" from 24h hour+minute. */
+private fun fmt12(hour: Int, minute: Int): String {
+    val ampm = if (hour < 12) "AM" else "PM"
+    val h12 = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    return "%d:%02d %s".format(h12, minute, ampm)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutReminderCard(
     prefs: com.nutriai.data.remote.dto.ReminderPrefsDto,
     onSave: (com.nutriai.data.remote.dto.ReminderPrefsDto) -> Unit,
 ) {
-    var time by remember(prefs) { mutableStateOf(prefs.workoutTime ?: "18:00") }
+    val parts = (prefs.workoutTime ?: "18:00").split(":")
+    var hour by remember(prefs) { mutableStateOf(parts.getOrNull(0)?.toIntOrNull() ?: 18) }
+    var minute by remember(prefs) { mutableStateOf(parts.getOrNull(1)?.toIntOrNull() ?: 0) }
     var workout by remember(prefs) { mutableStateOf(prefs.workoutEnabled) }
     var walk by remember(prefs) { mutableStateOf(prefs.walkEnabled) }
-    val valid = Regex("^([01]\\d|2[0-3]):[0-5]\\d$").matches(time)
+    var showPicker by remember { mutableStateOf(false) }
+
+    if (showPicker) {
+        val tp = rememberTimePickerState(initialHour = hour, initialMinute = minute, is24Hour = false)
+        AlertDialog(
+            onDismissRequest = { showPicker = false },
+            title = { Text("When do you work out?") },
+            text = { TimePicker(state = tp) },
+            confirmButton = { TextButton(onClick = { hour = tp.hour; minute = tp.minute; showPicker = false }) { Text("Set") } },
+            dismissButton = { TextButton(onClick = { showPicker = false }) { Text("Cancel") } },
+        )
+    }
 
     Card(
         Modifier.fillMaxWidth(),
@@ -241,13 +268,13 @@ private fun WorkoutReminderCard(
                 Switch(checked = workout, onCheckedChange = { workout = it })
             }
             if (workout) {
-                OutlinedTextField(
-                    value = time,
-                    onValueChange = { time = it.take(5) },
-                    label = { Text("Workout time (HH:MM, 24h)") },
-                    singleLine = true,
-                    isError = !valid,
-                    modifier = Modifier.fillMaxWidth(),
+                OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Workout time:  ${fmt12(hour, minute)}", fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    "You'll get a heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)} (10 min before).",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -258,8 +285,7 @@ private fun WorkoutReminderCard(
                 Switch(checked = walk, onCheckedChange = { walk = it })
             }
             Button(
-                onClick = { onSave(prefs.copy(workoutEnabled = workout, walkEnabled = walk, workoutTime = if (workout && valid) time else prefs.workoutTime)) },
-                enabled = !workout || valid,
+                onClick = { onSave(prefs.copy(workoutEnabled = workout, walkEnabled = walk, workoutTime = "%02d:%02d".format(hour, minute))) },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Save preferences") }
         }
