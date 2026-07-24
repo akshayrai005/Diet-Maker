@@ -450,6 +450,45 @@ data class WellnessRecommendation(
 @Serializable
 data class WellnessRecommendationEnvelope(val recommendation: WellnessRecommendation)
 
+// ---- Health rating + coach brief ----
+@Serializable
+data class RatingPillar(
+    val key: String,
+    val label: String,
+    val weight: Double = 0.0,
+    val score: Double = 0.0,
+)
+
+@Serializable
+data class BiggestLever(val pillar: String = "", val message: String = "")
+
+@Serializable
+data class RatingResult(
+    val overall: Int = 0,
+    val grade: String = "",
+    val pillars: List<RatingPillar> = emptyList(),
+    val biggestLever: BiggestLever = BiggestLever(),
+)
+
+@Serializable
+data class RatingEnvelope(val rating: RatingResult = RatingResult())
+
+@Serializable
+data class CoachBrief(
+    val greeting: String = "",
+    val ratingSummary: String = "",
+    val dietFocus: String = "",
+    val moveOrRest: String = "",
+    val mindNudge: String = "",
+    val disciplineActions: List<String> = emptyList(),
+    val streak: String = "",
+    val prediction: String = "",
+    val disclaimer: String = "",
+)
+
+@Serializable
+data class CoachTodayEnvelope(val brief: CoachBrief = CoachBrief(), val rating: RatingResult = RatingResult())
+
 // ---- Wellness session logging ----
 @Serializable
 data class WellnessSessionRequest(val refId: String)

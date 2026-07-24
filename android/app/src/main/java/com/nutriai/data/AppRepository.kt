@@ -134,6 +134,13 @@ class AppRepository @Inject constructor(
     suspend fun wellnessHistory(): Result<com.nutriai.data.remote.dto.WellnessHistory> =
         runCatching { api.wellnessHistory() }
 
+    // ---- Health rating + coach brief ----
+    suspend fun rating(): Result<com.nutriai.data.remote.dto.RatingResult> =
+        runCatching { api.rating().rating }
+
+    suspend fun coachToday(): Result<com.nutriai.data.remote.dto.CoachTodayEnvelope> =
+        runCatching { api.coachToday() }
+
     // ---- AI vision ----
     suspend fun assessBodyPhoto(imageBase64: String): Result<com.nutriai.data.remote.dto.BodyAssessment> =
         runCatching { api.assessBodyPhoto(com.nutriai.data.remote.dto.PhotoRequest(imageBase64)).assessment }

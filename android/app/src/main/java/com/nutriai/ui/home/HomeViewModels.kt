@@ -30,6 +30,8 @@ data class DashboardState(
     val weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
     val weekKcalTarget: Double? = null,
     val maintenanceKcal: Double? = null, // TDEE — what the body burns/day
+    val coach: com.nutriai.data.remote.dto.CoachBrief? = null,
+    val rating: com.nutriai.data.remote.dto.RatingResult? = null,
     val error: String? = null,
 )
 
@@ -127,6 +129,12 @@ class DashboardViewModel @Inject constructor(
                     weekDays = rep.days,
                     weekKcalTarget = rep.targets?.dailyKcal,
                 )
+            }
+        }
+        // Coach brief + health rating (server-computed) for the "Your Analysis" home card.
+        viewModelScope.launch {
+            repository.coachToday().getOrNull()?.let { c ->
+                _state.value = _state.value.copy(coach = c.brief, rating = c.rating)
             }
         }
     }

@@ -90,6 +90,8 @@ fun PremiumDashboard(
     weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
     weekKcalTarget: Double? = null,
     maintenanceKcal: Double? = null,
+    coach: com.nutriai.data.remote.dto.CoachBrief? = null,
+    rating: com.nutriai.data.remote.dto.RatingResult? = null,
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
@@ -102,6 +104,11 @@ fun PremiumDashboard(
     ) {
         // 1. Hero
         item { HeroCard(greetingName = greetingName, streakDays = d.streakDays) }
+
+        // 1a. Your Analysis — server-computed health rating + today's coach brief.
+        if (rating != null || coach != null) {
+            item { com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach) }
+        }
 
         // 1b. AI Coach — proactive, deterministic morning insights from today's data.
         item { CoachCard(name = greetingName, dashboard = d, sleepHours = sleepHours, steps = steps) }

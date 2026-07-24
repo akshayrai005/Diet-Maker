@@ -203,6 +203,8 @@ private fun DashboardTab(
             weekDays = state.weekDays,
             weekKcalTarget = state.weekKcalTarget,
             maintenanceKcal = state.maintenanceKcal,
+            coach = state.coach,
+            rating = state.rating,
             onConnectSteps = {
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }
