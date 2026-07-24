@@ -62,6 +62,8 @@ model User {
   chatMessages     ChatMessage[]
   savedFoods       SavedFood[]
   wellnessSessions WellnessSession[]
+  habits           Habit[]
+  habitLogs        HabitLog[]
 
   @@map("users")
 }
@@ -252,6 +254,41 @@ model WellnessSession {
 
   @@index([userId, completedAt])
   @@map("wellness_sessions")
+}
+
+/// A tracked daily discipline habit (e.g. 10k steps, no sugar after 8pm). Per-user; defaults are
+/// seeded lazily on first access. Completion is recorded per calendar day in HabitLog.
+model Habit {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String // stable slug for the default set
+  title     String
+  icon      String?
+  active    Boolean    @default(true)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  logs      HabitLog[]
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("habits")
+}
+
+/// One day's completion of a habit (local calendar day key). Absence = not done that day.
+model HabitLog {
+  id        String   @id @default(uuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String // YYYY-MM-DD local day key
+  done      Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([userId, date])
+  @@map("habit_logs")
 }
 
 /// A logged menstrual period (start, optional end). The cycle engine self-calibrates

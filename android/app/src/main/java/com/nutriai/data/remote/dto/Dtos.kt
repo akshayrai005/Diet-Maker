@@ -515,6 +515,44 @@ data class CoachBrief(
 @Serializable
 data class CoachTodayEnvelope(val brief: CoachBrief = CoachBrief(), val rating: RatingResult = RatingResult())
 
+// ---- Discipline habits ----
+@Serializable
+data class AdherenceComponent(
+    val key: String = "",
+    val label: String = "",
+    val points: Double = 0.0,
+    val maxPoints: Double = 0.0,
+    val detail: String = "",
+)
+
+@Serializable
+data class Adherence(
+    val score: Int = 0,
+    val components: List<AdherenceComponent> = emptyList(),
+    val topActions: List<String> = emptyList(),
+)
+
+@Serializable
+data class HabitView(
+    val id: String,
+    val key: String = "",
+    val title: String = "",
+    val icon: String? = null,
+    val doneToday: Boolean = false,
+    val streakDays: Int = 0,
+)
+
+@Serializable
+data class DisciplineToday(
+    val adherence: Adherence = Adherence(),
+    val habits: List<HabitView> = emptyList(),
+    val review: String = "",
+    val nudges: List<String> = emptyList(),
+)
+
+@Serializable
+data class HabitToggleRequest(val done: Boolean, val date: String? = null)
+
 // ---- Wellness session logging ----
 @Serializable
 data class WellnessSessionRequest(val refId: String)

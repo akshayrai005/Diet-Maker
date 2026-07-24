@@ -47,6 +47,7 @@ private data class MoreItem(val key: String, val icon: String, val label: String
 
 private val MORE_ITEMS = listOf(
     MoreItem("coach", "💬", "AI Coach", "Chat with your coach"),
+    MoreItem("discipline", "✅", "Discipline", "Daily habits, streaks & adherence"),
     MoreItem("checkin", "⚖️", "Weekly check-in", "Log weight & measurements"),
     MoreItem("body", "📸", "Body Check", "Progress photos + AI body-fat"),
     MoreItem("barcode", "📷", "Scan barcode", "Camera food lookup"),
@@ -75,6 +76,7 @@ fun MoreScreen(
             }
             when (selected) {
                 "coach" -> com.nutriai.ui.coach.CoachScreen(Modifier.fillMaxSize())
+                "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())
                 "checkin" -> CheckinScreen(Modifier.fillMaxSize())
                 "body" -> BodyScreen(Modifier.fillMaxSize())
                 "barcode" -> BarcodeScreen(Modifier.fillMaxSize())

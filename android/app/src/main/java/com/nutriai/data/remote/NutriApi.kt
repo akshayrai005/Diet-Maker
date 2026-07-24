@@ -110,6 +110,15 @@ interface NutriApi {
     @GET("coach/today")
     suspend fun coachToday(): com.nutriai.data.remote.dto.CoachTodayEnvelope
 
+    @GET("discipline/today")
+    suspend fun disciplineToday(): com.nutriai.data.remote.dto.DisciplineToday
+
+    @POST("habits/{id}/toggle")
+    suspend fun toggleHabit(
+        @retrofit2.http.Path("id") id: String,
+        @Body body: com.nutriai.data.remote.dto.HabitToggleRequest,
+    ): com.nutriai.data.remote.dto.DisciplineToday
+
     // ---- AI vision ----
     @POST("body/assess-photo")
     suspend fun assessBodyPhoto(@Body body: com.nutriai.data.remote.dto.PhotoRequest): com.nutriai.data.remote.dto.BodyAssessEnvelope
