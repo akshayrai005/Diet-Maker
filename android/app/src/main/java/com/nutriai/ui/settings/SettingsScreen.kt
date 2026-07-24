@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -57,6 +58,7 @@ fun SettingsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
+    val theme by viewModel.theme.collectAsStateWithLifecycle()
     var showDelete by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -99,6 +101,15 @@ fun SettingsScreen(
         }
 
         item { RemindersCard(reminders = reminders, onToggle = onToggleReminder) }
+
+        item {
+            ThemeCard(
+                accent = theme.accent,
+                mode = theme.mode,
+                onAccent = viewModel::setAccent,
+                onMode = viewModel::setThemeMode,
+            )
+        }
 
         item {
             Card(
@@ -157,6 +168,36 @@ private fun SettingsHero(name: String?, email: String?) {
                     if (!email.isNullOrBlank()) {
                         Text(email, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeCard(
+    accent: String,
+    mode: String,
+    onAccent: (String) -> Unit,
+    onMode: (String) -> Unit,
+) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("🎨 Appearance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+            Text("Accent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
+                    FilterChip(selected = accent == key, onClick = { onAccent(key) }, label = { Text(label) })
+                }
+            }
+            Text("Theme", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
+                    FilterChip(selected = mode == key, onClick = { onMode(key) }, label = { Text(label) })
                 }
             }
         }

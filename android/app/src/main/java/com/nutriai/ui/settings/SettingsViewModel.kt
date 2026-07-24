@@ -3,6 +3,8 @@ package com.nutriai.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
+import com.nutriai.data.local.ThemePrefs
+import com.nutriai.data.local.ThemeStore
 import com.nutriai.data.remote.dto.PublicUser
 import com.nutriai.notifications.ReminderGroup
 import com.nutriai.notifications.ReminderPrefs
@@ -27,6 +29,7 @@ class SettingsViewModel @Inject constructor(
     private val repository: AppRepository,
     private val reminderPrefs: ReminderPrefs,
     private val reminderScheduler: ReminderScheduler,
+    private val themeStore: ThemeStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsState())
@@ -35,12 +38,18 @@ class SettingsViewModel @Inject constructor(
     val reminders: StateFlow<Map<ReminderGroup, Boolean>> =
         reminderPrefs.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    val theme: StateFlow<ThemePrefs> =
+        themeStore.prefs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePrefs())
+
     fun setReminder(group: ReminderGroup, enabled: Boolean) {
         viewModelScope.launch {
             reminderPrefs.setEnabled(group, enabled)
             if (enabled) reminderScheduler.scheduleGroup(group) else reminderScheduler.cancelGroup(group)
         }
     }
+
+    fun setAccent(accent: String) { viewModelScope.launch { themeStore.setAccent(accent) } }
+    fun setThemeMode(mode: String) { viewModelScope.launch { themeStore.setMode(mode) } }
 
     init {
         viewModelScope.launch {

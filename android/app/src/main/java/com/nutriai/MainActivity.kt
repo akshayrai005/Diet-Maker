@@ -12,13 +12,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.nutriai.data.local.ThemePrefs
+import com.nutriai.data.local.ThemeStore
 import com.nutriai.notifications.ReminderPrefs
 import com.nutriai.notifications.ReminderScheduler
 import com.nutriai.notifications.ReminderWorker
@@ -33,6 +37,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var reminderPrefs: ReminderPrefs
     @Inject lateinit var reminderScheduler: ReminderScheduler
+    @Inject lateinit var themeStore: ThemeStore
 
     private val openTab = mutableIntStateOf(0)
 
@@ -50,7 +55,13 @@ class MainActivity : ComponentActivity() {
         maybeRequestNotificationPermission()
 
         setContent {
-            NutriAiTheme {
+            val theme by themeStore.prefs.collectAsState(initial = ThemePrefs())
+            val dark = when (theme.mode) {
+                "light" -> false
+                "dark" -> true
+                else -> isSystemInDarkTheme()
+            }
+            NutriAiTheme(darkTheme = dark, accent = theme.accent) {
                 // Opaque, full-screen background so the launcher never shows through.
                 Surface(
                     modifier = Modifier.fillMaxSize(),

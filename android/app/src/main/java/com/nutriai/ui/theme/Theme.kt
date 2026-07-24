@@ -51,13 +51,33 @@ private val DarkColors = darkColorScheme(
     outline = Color(0xFF3E5A49),
 )
 
+/** Selectable accent palettes (primary colour). Calm Green is the brand default. */
+private data class Accent(val primary: Color, val onPrimary: Color, val container: Color, val onContainer: Color)
+
+private fun accentFor(name: String, dark: Boolean): Accent = when (name) {
+    "pink" -> if (dark) Accent(Color(0xFFF3A9C6), Color(0xFF4A1229), Color(0xFF7A2947), Color(0xFFFAE0EA))
+    else Accent(Color(0xFFD46A93), Color.White, Color(0xFFFAE0EA), Color(0xFF7A2947))
+    "yellow" -> if (dark) Accent(Color(0xFFEBD07A), Color(0xFF3D2F05), Color(0xFF6B540A), Color(0xFFFAF0CE))
+    else Accent(Color(0xFFC9A227), Color.White, Color(0xFFFAF0CE), Color(0xFF6B540A))
+    else -> if (dark) Accent(BrandGreenLight, Color(0xFF0A2E1D), BrandGreenDeep, BrandMint)
+    else Accent(BrandGreen, Color.White, BrandMint, BrandGreenDeep)
+}
+
 @Composable
 fun NutriAiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    accent: String = "green",
     content: @Composable () -> Unit,
 ) {
     // Fixed brand palette (no dynamic color) so every screen looks consistent + colorful.
-    val colorScheme = if (darkTheme) DarkColors else LightColors
+    val base = if (darkTheme) DarkColors else LightColors
+    val a = accentFor(accent, darkTheme)
+    val colorScheme = base.copy(
+        primary = a.primary,
+        onPrimary = a.onPrimary,
+        primaryContainer = a.container,
+        onPrimaryContainer = a.onContainer,
+    )
     MaterialTheme(
         colorScheme = colorScheme,
         typography = NutriTypography,
