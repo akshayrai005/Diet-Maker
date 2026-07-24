@@ -250,6 +250,26 @@ data class Dashboard(
     val bmi: Double? = null,
     val weight: WeightTrend,
     val projection: List<ProjectionPoint> = emptyList(),
+    val micronutrients: Micronutrients? = null,
+)
+
+@Serializable
+data class MicronutrientTarget(
+    val key: String,
+    val label: String,
+    val rda: Double,
+    val intake: Double? = null,
+    val pct: Int? = null,
+    val low: Boolean = false,
+)
+
+@Serializable
+data class Micronutrients(
+    val available: Boolean = false,
+    val note: String = "",
+    val coveragePct: Int? = null,
+    val targets: List<MicronutrientTarget> = emptyList(),
+    val tips: List<String> = emptyList(),
 )
 
 @Serializable

@@ -122,10 +122,13 @@ export interface MicronutrientTargetView {
 }
 
 export interface MicronutrientBlock {
-  /** False until foods carry nutrient data (Step 4) — the UI shows targets, not false deficiencies. */
+  /** True once we can estimate intake from logged foods; false shows targets only. */
   available: boolean;
   note: string;
+  coveragePct?: number;
   targets: MicronutrientTargetView[];
+  /** Actionable, food-source tips for the biggest computed gaps. */
+  tips: string[];
 }
 
 /** Assembles the dashboard payload. Pure — the service just feeds it fetched data. */

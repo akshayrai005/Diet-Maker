@@ -5,10 +5,28 @@ import { HttpError } from '../../middleware/error';
 import type { CheckinBody, FoodLogBody, WaterLogBody } from './logging.schemas';
 import { buildDashboard, dayKey, sumTotals, type MicronutrientBlock, type WeightPoint } from './dashboard';
 import { wellnessKcalOnDay } from '../wellness/wellnessLog.service';
-import { micronutrientTargets, MICRONUTRIENT_LABELS, type MicronutrientKey } from '../../calc/micronutrients';
+import {
+  micronutrientTargets,
+  assessMicronutrients,
+  MICRONUTRIENT_LABELS,
+  type MicronutrientKey,
+  type Micronutrients,
+} from '../../calc/micronutrients';
+import { estimateMicronutrientsPer100g } from '../../calc/micronutrientEstimate';
 import type { SensitiveData } from '../profile/profile.schemas';
 import type { Sex } from '../../calc/types';
 import { localDayKey } from '../../lib/tz';
+
+/** Food-source guidance for each nutrient's deficiency (IFCT-informed, educational). */
+const DEFICIENCY_TIPS: Record<MicronutrientKey, string> = {
+  ironMg: 'Add iron — spinach, dal, roasted chana, or a little jaggery.',
+  calciumMg: 'Add calcium — milk, curd, paneer, ragi, or sesame.',
+  vitaminB12Mcg: 'B12 comes from dairy, egg and fish; strict vegans may need a supplement.',
+  vitaminDMcg: 'Vitamin D — some morning sun, fortified milk, or egg yolk.',
+  folateMcg: 'Folate — leafy greens, dals, and citrus fruit.',
+  potassiumMg: 'Potassium — banana, coconut water, spinach, or beans.',
+  magnesiumMg: 'Magnesium — nuts, whole grains, dals, and dark greens.',
+};
 
 /** Whole years between an ISO date-of-birth and now. */
 function ageFromDob(dob: string, now: Date): number {
@@ -20,18 +38,69 @@ function ageFromDob(dob: string, now: Date): number {
 }
 
 /**
- * Micronutrient RDA targets for the user. Intake is not yet computed (foods carry no nutrient
- * columns until Step 4), so this returns targets with `available: false` rather than flagging every
- * nutrient as deficient. Server-computed; educational.
+ * Micronutrient intake-vs-RDA for the user. Intake is estimated from today's logged foods
+ * (category-based IFCT/DRI approximations); when nothing quantifiable was logged it returns targets
+ * with `available: false` rather than flagging every nutrient as deficient. Server-computed.
  */
-function micronutrientBlock(sex: Sex, ageYears: number): MicronutrientBlock {
+function micronutrientBlock(sex: Sex, ageYears: number, intake: Micronutrients | null): MicronutrientBlock {
   const rda = micronutrientTargets(sex, ageYears);
   const keys = Object.keys(rda) as MicronutrientKey[];
+
+  const hasIntake = intake != null && keys.some((k) => (intake[k] ?? 0) > 0);
+  if (!hasIntake) {
+    return {
+      available: false,
+      note: 'Log foods to see your vitamins & minerals vs target.',
+      targets: keys.map((key) => ({ key, label: MICRONUTRIENT_LABELS[key], rda: rda[key], intake: null, pct: null, low: false })),
+      tips: [],
+    };
+  }
+
+  const assessment = assessMicronutrients(intake as Micronutrients, sex, ageYears);
+  const byKey = new Map(assessment.nutrients.map((n) => [n.key, n]));
   return {
-    available: false,
-    note: 'Micronutrient tracking begins once your logged foods carry nutrient data.',
-    targets: keys.map((key) => ({ key, label: MICRONUTRIENT_LABELS[key], rda: rda[key], intake: null, pct: null, low: false })),
+    available: true,
+    note: 'Estimated from today’s logged foods — educational, not lab-measured.',
+    coveragePct: assessment.coveragePct,
+    targets: keys.map((key) => {
+      const n = byKey.get(key);
+      return { key, label: MICRONUTRIENT_LABELS[key], rda: rda[key], intake: n?.intake ?? 0, pct: n?.pct ?? 0, low: n?.low ?? false };
+    }),
+    tips: assessment.deficiencies.slice(0, 3).map((k) => DEFICIENCY_TIPS[k]),
   };
+}
+
+/** Estimated micronutrient intake from today's logged foods (entries without a foodId contribute 0). */
+async function estimateTodayMicronutrients(
+  todayFood: { foodId: string | null; grams: number }[],
+): Promise<Micronutrients | null> {
+  const withFood = todayFood.filter((f) => f.foodId);
+  if (withFood.length === 0) return null;
+
+  const ids = [...new Set(withFood.map((f) => f.foodId as string))];
+  const foods = await prisma.food.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, category: true, tags: true },
+  });
+  const byId = new Map(foods.map((f) => [f.id, f]));
+
+  const total: Micronutrients = {
+    ironMg: 0, calciumMg: 0, vitaminB12Mcg: 0, vitaminDMcg: 0, folateMcg: 0, potassiumMg: 0, magnesiumMg: 0,
+  };
+  for (const entry of withFood) {
+    const food = byId.get(entry.foodId as string);
+    if (!food) continue;
+    const per100 = estimateMicronutrientsPer100g({ name: food.name, category: food.category, tags: food.tags });
+    const factor = entry.grams / 100;
+    total.ironMg += per100.ironMg * factor;
+    total.calciumMg += per100.calciumMg * factor;
+    total.vitaminB12Mcg += per100.vitaminB12Mcg * factor;
+    total.vitaminDMcg += per100.vitaminDMcg * factor;
+    total.folateMcg += per100.folateMcg * factor;
+    total.potassiumMg += per100.potassiumMg * factor;
+    total.magnesiumMg += per100.magnesiumMg * factor;
+  }
+  return total;
 }
 
 /**
@@ -187,7 +256,8 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
   let micronutrients: MicronutrientBlock | undefined;
   if (profile?.sensitiveEnc) {
     const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
-    micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now));
+    const intake = await estimateTodayMicronutrients(todayFood);
+    micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now), intake);
   }
 
   const result = snapshot?.result as

@@ -129,6 +129,11 @@ fun PremiumDashboard(
         // 3. Macro row
         item { MacroRow(dashboard = d) }
 
+        // Micronutrients vs RDA (estimated server-side from today's logged foods).
+        d.micronutrients?.let { mn ->
+            if (mn.targets.isNotEmpty()) item { com.nutriai.ui.analysis.MicronutrientsCard(mn) }
+        }
+
         // 3b. Day-to-day goal monitor (last 7 days' calorie adherence).
         if (weekDays.isNotEmpty() && weekKcalTarget != null && weekKcalTarget > 0) {
             item { GoalMonitorCard(days = weekDays, target = weekKcalTarget) }
