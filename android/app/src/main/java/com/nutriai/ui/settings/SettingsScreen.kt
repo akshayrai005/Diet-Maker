@@ -64,6 +64,7 @@ fun SettingsScreen(
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val remoteReminders by viewModel.serverReminders.collectAsStateWithLifecycle()
+    val walkNudge by viewModel.walkNudge.collectAsStateWithLifecycle()
     var showDelete by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -114,6 +115,22 @@ fun SettingsScreen(
                     onSave = { viewModel.saveReminderPrefs(it) },
                 )
             }
+        }
+
+        item {
+            WalkNudgeCard(
+                enabled = walkNudge,
+                onToggle = { enabled ->
+                    if (enabled &&
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
+                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    viewModel.setWalkNudge(enabled)
+                },
+            )
         }
 
         item {
@@ -325,6 +342,34 @@ private fun RemindersCard(
                         onCheckedChange = { onToggle(group, it) },
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WalkNudgeCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("🚶 Walk nudge", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+            Row(
+                Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text("Remind me to move", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "Uses Health Connect steps — if you've been sitting still during the day, a gentle nudge suggests a 5-minute walk. Needs step access; stays quiet at night.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle)
             }
         }
     }

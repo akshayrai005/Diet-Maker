@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
@@ -224,17 +226,20 @@ private fun DashboardTab(
         )
         state.loading -> Column(
             Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CircularProgressIndicator()
-            Text("Waking up your coach…", style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                Text("Waking up your coach…", style = MaterialTheme.typography.titleMedium)
+            }
             Text(
                 "The free server can take up to ~30s to start on first open. Hang tight.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            com.nutriai.ui.components.SkeletonList(count = 4, lines = 3, modifier = Modifier.padding(top = 4.dp))
         }
         else -> Column(
             Modifier.fillMaxSize().padding(24.dp),

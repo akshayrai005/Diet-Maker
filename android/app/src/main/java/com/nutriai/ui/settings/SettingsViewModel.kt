@@ -41,6 +41,17 @@ class SettingsViewModel @Inject constructor(
     val theme: StateFlow<ThemePrefs> =
         themeStore.prefs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePrefs())
 
+    /** Step-aware "go for a walk" nudge (reads Health Connect steps; off by default). */
+    val walkNudge: StateFlow<Boolean> =
+        reminderPrefs.walkEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun setWalkNudge(enabled: Boolean) {
+        viewModelScope.launch {
+            reminderPrefs.setWalkEnabled(enabled)
+            if (enabled) reminderScheduler.scheduleWalkNudge() else reminderScheduler.cancelWalkNudge()
+        }
+    }
+
     fun setReminder(group: ReminderGroup, enabled: Boolean) {
         viewModelScope.launch {
             reminderPrefs.setEnabled(group, enabled)

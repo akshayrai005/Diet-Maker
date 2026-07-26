@@ -2,8 +2,10 @@ package com.nutriai.notifications
 
 import android.content.Context
 import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Calendar
@@ -50,6 +52,27 @@ class ReminderScheduler @Inject constructor(
 
     fun cancelGroup(group: ReminderGroup) {
         ReminderCatalog.jobs(group).forEach { workManager.cancelUniqueWork(it.key) }
+    }
+
+    /**
+     * Step-aware walk nudge. Unlike the clock-anchored reminders this is genuinely periodic
+     * (~90 min), because it only reacts to Health Connect step deltas — exact timing doesn't matter,
+     * and the worker itself gates on waking hours + movement so it never nags.
+     */
+    fun scheduleWalkNudge() {
+        ReminderWorker.ensureChannel(context)
+        val request = PeriodicWorkRequestBuilder<WalkNudgeWorker>(90, TimeUnit.MINUTES)
+            .addTag(TAG)
+            .build()
+        workManager.enqueueUniquePeriodicWork(
+            WalkNudgeWorker.UNIQUE_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
+
+    fun cancelWalkNudge() {
+        workManager.cancelUniqueWork(WalkNudgeWorker.UNIQUE_NAME)
     }
 
     companion object {
