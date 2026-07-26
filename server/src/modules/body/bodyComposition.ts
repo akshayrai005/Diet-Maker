@@ -78,13 +78,15 @@ function round2(x: number) {
 export function bodyFatBand(sex: Sex, pct: number): string {
   const f = sex === 'female';
   if (f) {
-    if (pct < 14) return 'Essential/athlete range';
+    if (pct < 12) return 'Very low — may affect health'; // hormonal/menstrual risk below essential
+    if (pct < 16) return 'Athlete range';
     if (pct < 21) return 'Fitness range';
     if (pct < 25) return 'Acceptable range';
     if (pct < 32) return 'Above average';
     return 'High';
   }
-  if (pct < 6) return 'Essential/athlete range';
+  if (pct < 4) return 'Very low — may affect health';
+  if (pct < 8) return 'Athlete range';
   if (pct < 14) return 'Fitness range';
   if (pct < 18) return 'Acceptable range';
   if (pct < 25) return 'Above average';

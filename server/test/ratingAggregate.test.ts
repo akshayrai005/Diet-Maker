@@ -52,11 +52,22 @@ describe('aggregateRatingInputs', () => {
     expect(disc.loggingConsistencyPct).toBe(29); // 2 of 7 days ≈ 29%
   });
 
-  it('drops adherenceScore when today has no data', () => {
+  it('drops adherenceScore when today has no data (but there is another signal)', () => {
     const disc = aggregateRatingInputs({
       target, dietDays: [], daysInWindow: 7, workoutsCompleted: 0,
-      workoutsScheduled: 0, overloadTrend: 'flat', loggingStreakDays: 0, todayAdherence: null,
+      workoutsScheduled: 0, overloadTrend: 'flat', loggingStreakDays: 3, todayAdherence: null,
     }).discipline!;
     expect(disc.adherenceScore).toBeUndefined();
+    expect(disc.habitStreakDays).toBe(3);
+  });
+
+  it('a brand-new Day-0 user (nothing logged) gets NO pillar data — never a shaming 0/F', () => {
+    const input = aggregateRatingInputs({
+      target: null, dietDays: [], daysInWindow: 7, workoutsCompleted: 0,
+      workoutsScheduled: 5, overloadTrend: 'flat', loggingStreakDays: 0, todayAdherence: null,
+    });
+    expect(input.diet).toBeUndefined();
+    expect(input.exercise).toBeUndefined(); // has a plan (scheduled 5) but completed 0 → not scored
+    expect(input.discipline).toBeUndefined();
   });
 });

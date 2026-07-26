@@ -144,6 +144,48 @@ deficiency→food tips still fire and respect diet type. Animal foods keep `null
 folate / vitamin A (they genuinely lack them) — so the coverage test requires ≥1 core nutrient, not
 all five. **Phase 1 acceptance met.**
 
+## Final Closers, Phase 3 — QA sweep, fixes & honest re-rate
+
+### Test script (core journeys for a real-user session)
+Give a tester a debug build and a fresh account; watch, don't guide. Have them:
+1. **Onboard** (profile: height/weight/goal, diet, conditions, physique goal).
+2. **Plan** — open Diet, read the day's plan; swap a meal.
+3. **Log a day** — add 2–3 foods + water; check the calorie ring updates.
+4. **Vitamins & minerals card** — confirm real %s appear; tap a nutrient.
+5. **Body/Progress** — log measurements; (optionally) add a progress photo; read the body-fat/waist-hip.
+6. **Coach brief / Analysis** — read the rating + coach lines.
+7. **Reminder** — enable a reminder (meal/walk/med) and confirm it fires.
+8. **Dark mode + largest font scale + TalkBack** through the above.
+
+### Honest status of the 5-person loop
+**The 5-real-people-on-devices sessions were NOT run** — this environment has no physical devices or
+recruited testers, and fabricating user sessions would violate the honesty invariant. Instead a
+rigorous **static first-run/empty-state + content audit** was performed (a subagent read every
+target screen). That is a genuine QA pass, but it is not a substitute for watching real humans; the
+test script above is ready for you to run.
+
+### Audit findings + fixes applied
+- **[HIGH, fixed] Day-0 users saw a shaming red "F".** A brand-new account (nothing logged) still
+  produced a rating of 0 / grade F because the discipline & exercise pillars were always populated
+  (streak 0, plan scheduled 0-completed). Fixed server-side: pillars are only emitted when there's a
+  real signal; a new `RatingResult.hasData=false` makes the dashboard show an encouraging "start
+  logging" state instead of the ring. (rating/aggregate.ts + rating.ts; AnalysisCard.kt) + tests.
+- **[content, fixed] Female very-low body-fat mislabeled.** `<14%` returned "Essential/athlete range";
+  now `<12%` returns "Very low — may affect health" (hormonal/menstrual risk), and the athlete band
+  starts higher. (bodyComposition.ts) + test.
+- **[content, fixed] BP diastolic cutoff inconsistency.** The risk engine used ≥85 for "elevated"
+  while the vitals engine used ≥80 (ACC/AHA). Aligned the risk engine to ≥80. (risk.ts)
+- **[cosmetic, fixed] Sleep hours rendered "6.333333h".** Now formatted to 1 decimal. (PremiumDashboard.kt)
+- **[verified clean]** Vitals, Progress, Strength-trend, Medications, Mood, Micronutrients all have
+  proper empty states, chart guards (≥2 points, zero-range), and no NaN/undefined/divide-by-zero;
+  micronutrient seed spot-checked vs ICMR-NIN/USDA with no order-of-magnitude errors; red-flag/vitals
+  copy is careful, cited and non-diagnostic; body-fat is correctly hidden for minors.
+- **[noted, not fixed] Micronutrient "good sources" dialog isn't diet-type filtered** — it lists
+  some non-veg sources to everyone (it also always includes veg options). Low priority; logged for a
+  future pass.
+
+Build 0 errors, 435 tests (+4). One-phase-per-commit maintained.
+
 ### Honest gaps (cannot run in this environment)
 - **Bundled offline font** — needs a licensed `.ttf` in `res/font/`; no font binary is fetchable
   here, so it remains deferred (the roomier system type-scale stands). Drop a Nunito/Inter `.ttf` in

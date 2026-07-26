@@ -49,7 +49,9 @@ export function aggregateRatingInputs(a: RatingAggregateInput): RatingInput {
   }
 
   // ---- Exercise ----
-  if (a.workoutsScheduled > 0 || a.workoutsCompleted > 0) {
+  // Only counts once the user has actually completed a workout — a brand-new user who merely HAS a
+  // plan (scheduled > 0, completed 0) shouldn't be scored/shamed before they've done anything.
+  if (a.workoutsCompleted > 0) {
     input.exercise = {
       workoutsCompleted: a.workoutsCompleted,
       workoutsScheduled: a.workoutsScheduled,
@@ -61,13 +63,19 @@ export function aggregateRatingInputs(a: RatingAggregateInput): RatingInput {
   }
 
   // ---- Discipline ----
-  input.discipline = {
-    ...(a.todayAdherence != null ? { adherenceScore: clampPct(a.todayAdherence) } : {}),
-    habitStreakDays: a.loggingStreakDays,
-    ...(a.daysInWindow > 0
-      ? { loggingConsistencyPct: clampPct((100 * a.dietDays.length) / a.daysInWindow) }
-      : {}),
-  };
+  // Only emit when there's a real signal (a habit score today, an active streak, or logged days).
+  // A Day-0 user with nothing logged gets NO pillar data, so the rating shows an encouraging
+  // "start logging" state instead of a shaming red F.
+  const hasDisciplineSignal = a.todayAdherence != null || a.loggingStreakDays > 0 || a.dietDays.length > 0;
+  if (hasDisciplineSignal) {
+    input.discipline = {
+      ...(a.todayAdherence != null ? { adherenceScore: clampPct(a.todayAdherence) } : {}),
+      habitStreakDays: a.loggingStreakDays,
+      ...(a.daysInWindow > 0
+        ? { loggingConsistencyPct: clampPct((100 * a.dietDays.length) / a.daysInWindow) }
+        : {}),
+    };
+  }
 
   return input;
 }

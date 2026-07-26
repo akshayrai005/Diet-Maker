@@ -551,6 +551,8 @@ data class BiggestLever(val pillar: String = "", val message: String = "")
 data class RatingResult(
     val overall: Int = 0,
     val grade: String = "",
+    /** False for a brand-new user with nothing logged — show encouragement, not a 0/F ring. */
+    val hasData: Boolean = true,
     val pillars: List<RatingPillar> = emptyList(),
     val biggestLever: BiggestLever = BiggestLever(),
 )

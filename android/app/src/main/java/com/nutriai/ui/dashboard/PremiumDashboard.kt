@@ -277,10 +277,11 @@ private fun buildCoachInsights(
 
     // Sleep (highest-value signal when available).
     sleepHours?.let {
+        val h = String.format(java.util.Locale.US, "%.1f", it)
         when {
-            it < 6.5 -> out += Insight("😴", "You slept only ${it}h. Go easier on intensity today and hydrate more.")
-            it >= 7.5 -> out += Insight("💪", "Great ${it}h of sleep — your body's recovered for a strong day.")
-            else -> out += Insight("🛌", "${it}h sleep — aim for 7–8h tonight for better recovery.")
+            it < 6.5 -> out += Insight("😴", "You slept only ${h}h. Go easier on intensity today and hydrate more.")
+            it >= 7.5 -> out += Insight("💪", "Great ${h}h of sleep — your body's recovered for a strong day.")
+            else -> out += Insight("🛌", "${h}h sleep — aim for 7–8h tonight for better recovery.")
         }
     }
 

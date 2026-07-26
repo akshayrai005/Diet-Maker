@@ -50,22 +50,34 @@ fun AnalysisCard(rating: RatingResult?, coach: CoachBrief?, modifier: Modifier =
             }
 
             rating?.let { r ->
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RatingRing(overall = r.overall, grade = r.grade)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Health rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        r.biggestLever.message.takeIf { it.isNotBlank() }?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                if (!r.hasData) {
+                    // Brand-new user: encourage, don't shame with a 0 / red F.
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Your health rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text(
+                            r.biggestLever.message.ifBlank { "Start by logging your meals — your rating builds as you go." },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RatingRing(overall = r.overall, grade = r.grade)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Health rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            r.biggestLever.message.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
-                }
-                // Per-pillar bars — full width so the value never crosses the card edge.
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    r.pillars.forEach { p -> PillarBar(label = p.label, score = p.score.toInt()) }
+                    // Per-pillar bars — full width so the value never crosses the card edge.
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                        r.pillars.forEach { p -> PillarBar(label = p.label, score = p.score.toInt()) }
+                    }
                 }
             }
 

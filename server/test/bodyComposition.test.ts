@@ -54,4 +54,10 @@ describe('bodyFatBand', () => {
     expect(bodyFatBand('female', 22)).toMatch(/acceptable/i);
     expect(bodyFatBand('male', 30)).toBe('High');
   });
+  it('flags a dangerously LOW body fat as a health concern, not praise', () => {
+    expect(bodyFatBand('female', 10)).toMatch(/may affect health/i); // below essential for women
+    expect(bodyFatBand('male', 3)).toMatch(/may affect health/i);
+    // just above the floor is the athlete range, not "very low"
+    expect(bodyFatBand('female', 15)).toMatch(/athlete/i);
+  });
 });

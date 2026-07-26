@@ -50,14 +50,24 @@ loop** which needs 5 humans on physical devices.
    + TalkBack; fix the top ~10 trip-ups. This last loop is what turns 8.6 into 9.8 — it cannot be
    self-declared.
 
+## Final Closers pass (what changed)
+- **Micronutrient coverage 15 → 62/62** foods (real data on a normal day, coverage-guard test).
+- **Warm font DONE**: Nunito (OFL) bundled offline in `res/font/`, applied app-wide via the type
+  scale — no runtime download. (Pulled legitimately from @fontsource and converted woff2→ttf.)
+- **Never-shame fix**: a brand-new Day-0 user no longer sees a red "F" rating — the card shows an
+  encouraging "start logging" state until there's real data. Plus content fixes (female very-low
+  body-fat now flagged as a health concern; BP diastolic cutoff aligned to ACC/AHA; sleep-hours
+  formatting). UX/a11y → **7.5**.
+
 ## Remaining to 9.8 (honest)
-1. **Bundled offline font** — needs a licensed `.ttf` dropped into `res/font/` (no binary fetchable
-   in the build environment); then point the type scale at it.
-2. **On-device pass** of the new screens (Vitals, Progress/body, Medications, Mind, Strength-trend) +
-   walk/med reminders firing.
-3. **5-person real-user loop** on physical devices — the last mile that can't be self-declared.
+1. **On-device pass** of the new screens (Vitals, Progress/body, Medications, Mind, Strength-trend) +
+   walk/med reminders actually firing on hardware.
+2. **5-person real-user loop** on physical devices — **not run** (no devices/testers in this
+   environment, and fabricating sessions would be dishonest). A rigorous static empty-state + content
+   audit was done instead and its top findings fixed; the test script in HUMAN_QA is ready to run.
+   This last loop is what turns ~8.9 into 9.8 and cannot be self-declared.
 
 ## Verification state
 - `cd server && npm ci && npx prisma generate && npm run build` → **0 errors**.
-- `npx vitest run` → **428 tests / 45 files** green (`npm test` is watch mode — don't use in CI).
+- `npx vitest run` → **435 tests / 45 files** green (`npm test` is watch mode — don't use in CI).
 - Android `assembleDebug` verified green on CI (akshayrai005). Migrations are additive; no secrets committed.

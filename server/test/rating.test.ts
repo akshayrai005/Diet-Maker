@@ -91,6 +91,16 @@ describe('computeRating — missing pillar renormalises weights', () => {
     expect(discipline.score).toBe(0);
     expect(discipline.inputs.adherenceScore).toBeNull();
   });
+
+  it('hasData is false for a brand-new user with no pillars (client shows encouragement, not F)', () => {
+    const r = computeRating({});
+    expect(r.hasData).toBe(false);
+    expect(r.biggestLever.message).toMatch(/start by logging/i);
+  });
+
+  it('hasData is true once any pillar has data', () => {
+    expect(computeRating({ diet: { calorieAdherencePct: 50, proteinHitPct: 50, micronutrientCoveragePct: 50, waterPct: 50 } }).hasData).toBe(true);
+  });
 });
 
 describe('computeRating — biggest lever is the weakest weighted pillar', () => {

@@ -57,6 +57,9 @@ export interface PillarResult {
 export interface RatingResult {
   overall: number; // 0–100
   grade: Grade;
+  /** False for a brand-new user with nothing logged yet — clients should show an encouraging
+   *  "start logging" state rather than a (shaming) 0 / F rating. */
+  hasData: boolean;
   pillars: PillarResult[];
   biggestLever: { pillar: PillarKey; message: string };
 }
@@ -269,6 +272,7 @@ export function computeRating(input: RatingInput): RatingResult {
   return {
     overall,
     grade: gradeFor(overall),
+    hasData: withData.length > 0,
     pillars: computations.map((c) => c.result),
     biggestLever,
   };

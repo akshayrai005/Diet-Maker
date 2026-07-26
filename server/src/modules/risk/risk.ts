@@ -144,12 +144,12 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         recommendation: 'Cut salt to ~1500–2000 mg/day (DASH pattern), limit alcohol, move daily.',
         nextAction: 'Get your BP confirmed by a doctor — a single high reading needs verifying.',
       });
-    } else if (bp.systolic >= 130 || bp.diastolic >= 85) {
+    } else if (bp.systolic >= 130 || bp.diastolic >= 80) {
       findings.push({
         id: 'hypertension',
         label: 'Blood pressure elevated',
         level: 'moderate',
-        why: `Your reading ${bp.systolic}/${bp.diastolic} mmHg is above the ideal < 120/80.`,
+        why: `Your reading ${bp.systolic}/${bp.diastolic} mmHg is above the ideal < 120/80 (ACC/AHA Stage 1 starts at 130/80).`,
         recommendation: 'Reduce salt and processed food, add potassium-rich vegetables and daily walks.',
         nextAction: 'Recheck BP over a week at the same time of day.',
       });
