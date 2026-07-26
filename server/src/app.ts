@@ -67,6 +67,10 @@ export function createApp(): Express {
 
   const api = express.Router();
   api.use(globalLimit);
+  // Apply the STRICTER AI limit ONLY to the expensive AI/report paths. (Mounting it via
+  // `api.use('/', aiLimit, router)` previously applied it to EVERY request — a `/` mount path runs
+  // for all routes — which throttled the whole API to 40/15min and 429'd normal usage.)
+  api.use(['/chat', '/report', '/coach', '/recipe', '/body/assess-photo', '/foods/photo'], aiLimit);
   api.get('/', (_req: Request, res: Response) => {
     res.json({ name: 'nutriai-api', version: API_VERSION });
   });
@@ -74,20 +78,20 @@ export function createApp(): Express {
   api.use('/', profileRouter);
   api.use('/', planRouter);
   api.use('/', loggingRouter);
-  api.use('/', aiLimit, chatRouter);
-  api.use('/', aiLimit, reportsRouter);
+  api.use('/', chatRouter);
+  api.use('/', reportsRouter);
   api.use('/', accountRouter);
   api.use('/', familyRouter);
   api.use('/', exerciseRouter);
   api.use('/', guidanceRouter);
   api.use('/', cycleRouter);
   api.use('/', wellnessRouter);
-  api.use('/', aiLimit, visionRouter);
-  api.use('/', aiLimit, recipeRouter);
+  api.use('/', visionRouter);
+  api.use('/', recipeRouter);
   api.use('/', savedFoodRouter);
   api.use('/', riskRouter);
   api.use('/', ratingRouter);
-  api.use('/', aiLimit, coachRouter);
+  api.use('/', coachRouter);
   api.use('/', disciplineRouter);
   api.use('/', remindersRouter);
   api.use('/', vitalsRouter);
