@@ -144,15 +144,17 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'Upper (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Backpack rows', 4, '15'), s('Y-raise', 3, '15'), s('Chair dips', 3, '15')] },
     { focus: 'Lower (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Step-ups', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Wall sit', 3, '60s')] },
   ]],
+  // Full-body: each day hits ALL major groups with ~2 movements each (chest, back, shoulders,
+  // legs, biceps, triceps) ≈ 12 exercises. (Beginners are still trimmed by the level's exercise cap.)
   'fullbody:gym': [[
-    { focus: 'Full-body A', exercises: [s('Back squat', 4, '8-10'), s('Barbell bench press', 4, '8-10'), s('Barbell row', 3, '10'), s('Overhead barbell press', 3, '10'), s('Barbell curl', 2, '12')] },
-    { focus: 'Full-body B', exercises: [s('Deadlift', 4, '6'), s('Incline dumbbell press', 3, '10'), s('Lat pulldown', 3, '12'), s('Lateral raise', 3, '15'), s('Rope pushdown', 2, '12')] },
-    { focus: 'Full-body C', exercises: [s('Front squat', 4, '8'), s('Dumbbell shoulder press', 3, '10'), s('Seated cable row', 3, '12'), s('Romanian deadlift', 3, '10'), s('Hammer curl', 2, '12')] },
+    { focus: 'Full-body A', exercises: [s('Barbell bench press', 4, '8-10'), s('Cable fly', 3, '12'), s('Barbell row', 4, '8-10'), s('Lat pulldown', 3, '12'), s('Overhead barbell press', 3, '10'), s('Lateral raise', 3, '15'), s('Back squat', 4, '8-10'), s('Leg curl', 3, '12'), s('Barbell curl', 3, '12'), s('Rope pushdown', 3, '12'), s('Romanian deadlift', 3, '10'), s('Standing calf raise', 3, '15')] },
+    { focus: 'Full-body B', exercises: [s('Incline dumbbell press', 4, '10'), s('Chest dips', 3, '10'), s('Weighted pull-ups', 4, '8'), s('Seated cable row', 3, '12'), s('Dumbbell shoulder press', 3, '10'), s('Rear-delt fly', 3, '15'), s('Front squat', 4, '8'), s('Leg press', 3, '12'), s('Hammer curl', 3, '12'), s('Skull crushers', 3, '10'), s('Deadlift', 3, '6'), s('Seated calf raise', 3, '20')] },
+    { focus: 'Full-body C', exercises: [s('Flat dumbbell press', 4, '10'), s('Pec-deck fly', 3, '15'), s('T-bar row', 4, '10'), s('Straight-arm pulldown', 3, '15'), s('Arnold press', 3, '10'), s('Cable lateral raise', 3, '15'), s('Hack squat', 4, '12'), s('Walking lunges', 3, '12'), s('EZ-bar curl', 3, '10'), s('Cable overhead extension', 3, '12'), s('Leg extension', 3, '15'), s('Calf raise', 3, '20')] },
   ]],
   'fullbody:home': [[
-    { focus: 'Full-body A', exercises: [s('Bodyweight squats', 4, '20'), s('Push-ups', 4, '15'), s('Backpack rows', 3, '15'), s('Pike push-ups', 3, '10'), s('Glute bridges', 3, '20')] },
-    { focus: 'Full-body B', exercises: [s('Reverse lunges', 4, '15'), s('Diamond push-ups', 3, '12'), s('Doorway rows', 3, '12'), s('Chair dips', 3, '15'), s('Superman', 3, '15')] },
-    { focus: 'Full-body C', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Feet-elevated push-ups', 3, '12'), s('Backpack rows', 3, '15'), s('Wall sit', 3, '45s'), s('Single-leg glute bridge', 3, '12')] },
+    { focus: 'Full-body A', exercises: [s('Push-ups', 4, '15-20'), s('Chair dips', 3, '15'), s('Backpack rows', 4, '15'), s('Doorway rows', 3, '12'), s('Pike push-ups', 3, '10'), s('Backpack curls', 3, '15'), s('Bodyweight squats', 4, '20'), s('Glute bridges', 3, '20'), s('Reverse lunges', 3, '15'), s('Wall sit', 3, '45s')] },
+    { focus: 'Full-body B', exercises: [s('Diamond push-ups', 4, '12'), s('Wide push-ups', 3, '15'), s('Backpack rows', 4, '15'), s('Superman', 3, '15'), s('Pike push-ups', 3, '10'), s('Y-raise', 3, '15'), s('Bulgarian split squat (chair)', 3, '12'), s('Single-leg glute bridge', 3, '12'), s('Step-ups', 3, '15'), s('Towel curls', 3, '15')] },
+    { focus: 'Full-body C', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Doorway rows', 4, '12'), s('Reverse snow-angels', 3, '15'), s('Pike push-ups', 3, '12'), s('Backpack shrugs', 3, '20'), s('Jump squats', 3, '15'), s('Reverse lunges', 3, '15'), s('Wall sit', 3, '60s'), s('Backpack curls', 3, '15')] },
   ]],
 };
 

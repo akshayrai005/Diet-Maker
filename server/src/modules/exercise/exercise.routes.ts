@@ -52,6 +52,9 @@ exerciseRouter.get(
       intensity: s.intensityPreference,
       under18,
       medicalCaution,
+      // Selectable training split (Chest/Back/... , PPL, Upper-Lower, Full-body) + priority muscles.
+      split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
+      priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
     });
 
     // Period-aware: for female profiles, ease period days to gentle recovery.

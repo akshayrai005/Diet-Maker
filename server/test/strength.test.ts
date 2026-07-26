@@ -129,6 +129,14 @@ describe('selectable training splits', () => {
   it('full_body days each hit the whole body', () => {
     expect(focuses('full_body').every((x) => /full-body/.test(x))).toBe(true);
   });
+
+  it('full_body (gym, non-beginner) has ~12 exercises covering all major groups', () => {
+    const day = generateWeeklyWorkout('muscular', 'gym', { split: 'full_body', fitnessLevel: 'intermediate' })
+      .days.find((d) => !d.rest)!;
+    expect(day.exercises.length).toBeGreaterThanOrEqual(10);
+    const groups = new Set(day.exercises.map((e) => e.muscleGroup));
+    for (const g of ['chest', 'back', 'shoulders', 'legs']) expect(groups.has(g)).toBe(true);
+  });
   it('splits work for home too, and every day still gets warm-up + core', () => {
     const days = generateWeeklyWorkout('muscular', 'home', { split: 'push_pull_legs' }).days.filter((d) => !d.rest);
     expect(days.length).toBeGreaterThan(0);
