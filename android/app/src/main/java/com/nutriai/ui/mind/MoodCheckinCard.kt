@@ -1,6 +1,7 @@
 package com.nutriai.ui.mind
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -200,6 +201,8 @@ fun MoodCheckinCard(modifier: Modifier = Modifier, viewModel: MoodViewModel = hi
     }
 }
 
+// Evenly-spaced 5-across row of bordered, equal-weight cells so the Mood / Stress /
+// Sleep rows line up as one neat grid. The selected cell is clearly filled.
 @Composable
 private fun FaceSelector(label: String, faces: List<String>, selected: Int?, onSelect: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -210,13 +213,21 @@ private fun FaceSelector(label: String, faces: List<String>, selected: Int?, onS
                 val isSel = selected == value
                 Box(
                     Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isSel) MaterialTheme.colorScheme.primary.copy(alpha = 0.9f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSel) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            shape = RoundedCornerShape(12.dp),
+                        )
                         .clickable { onSelect(value) }
-                        .semantics { contentDescription = "$label level $value of 5" },
+                        .semantics { contentDescription = "$label $value of 5" + if (isSel) ", selected" else "" },
                     contentAlignment = Alignment.Center,
-                ) { Text(face, style = MaterialTheme.typography.titleLarge) }
+                ) {
+                    Text(face, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(vertical = 12.dp))
+                }
             }
         }
     }

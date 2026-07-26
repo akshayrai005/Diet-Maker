@@ -208,29 +208,53 @@ private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
 }
 
+// One shared item style for every content row on the Mind page (yoga flows and
+// meditation/breathing). Same 16dp card, padding, title/meta typography and a single
+// trailing action slot, so a yoga flow and a meditation read as siblings.
 @Composable
-private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
+private fun MindItemCard(
+    title: String,
+    meta: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {},
+    expandedContent: (@Composable () -> Unit)? = null,
+) {
+    val shell = Modifier.fillMaxWidth().then(modifier)
     Card(
-        Modifier.fillMaxWidth().clickable { expanded = !expanded },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        modifier = if (onClick != null) shell.clickable { onClick() } else shell,
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(flow.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("${flow.focus}  ·  ${flow.durationMin} min  ·  ${flow.level}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(if (expanded) "▲" else "▼")
+                trailing()
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(
-                    onClick = onDone,
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Mark ${flow.name} done" },
-                ) { Text("✓ Mark done") }
-            }
-            if (expanded) {
+            expandedContent?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    MindItemCard(
+        title = flow.name,
+        meta = "${flow.focus}  ·  ${flow.durationMin} min  ·  ${flow.level}",
+        onClick = { expanded = !expanded },
+        trailing = {
+            Text(
+                if (expanded) "▲" else "▼",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        },
+        expandedContent = if (expanded) {
+            {
                 // Aligned table: #  |  Pose + cue  |  Hold
                 Row(Modifier.fillMaxWidth().padding(top = 2.dp)) {
                     Text("#", Modifier.size(width = 22.dp, height = 16.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -247,26 +271,29 @@ private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
                         Text(p.hold, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(start = 8.dp, top = 2.dp))
                     }
                 }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = onDone,
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Mark ${flow.name} done" },
+                    ) { Text("✓ Mark done") }
+                }
             }
-        }
-    }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
 private fun MeditationCard(med: Meditation, onOpen: () -> Unit) {
-    Card(
-        Modifier.fillMaxWidth().clickable { onOpen() },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(med.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text("${med.goal}  ·  ${med.durationMin} min", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+    MindItemCard(
+        title = med.name,
+        meta = "${med.goal}  ·  ${med.durationMin} min",
+        onClick = onOpen,
+        trailing = {
             Text("▶", color = BrandGreen, style = MaterialTheme.typography.titleLarge)
-        }
-    }
+        },
+    )
 }
 
 @Composable
