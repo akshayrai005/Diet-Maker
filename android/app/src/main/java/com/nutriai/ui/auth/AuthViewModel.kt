@@ -12,6 +12,26 @@ import javax.inject.Inject
 
 data class AuthUiState(val loading: Boolean = false, val error: String? = null)
 
+/** Turns raw exceptions (e.g. "HTTP 409") into calm, human messages. */
+fun friendlyAuthError(t: Throwable?): String = when (t) {
+    is retrofit2.HttpException -> {
+        val serverMsg = runCatching {
+            t.response()?.errorBody()?.string()?.let { org.json.JSONObject(it).optString("error") }
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+        when (t.code()) {
+            409 -> "An account with this email already exists. Try logging in instead."
+            401 -> "Incorrect email or password. Please try again."
+            400 -> serverMsg ?: "Please check your details and try again."
+            429 -> "Too many attempts — please wait a minute and try again."
+            in 500..599 -> "The server is waking up (the free server can take ~30s on first open). Please try again in a moment."
+            else -> serverMsg ?: "Something went wrong. Please try again."
+        }
+    }
+    is java.net.UnknownHostException, is java.io.IOException ->
+        "No internet connection. Check your network and try again."
+    else -> t?.message?.takeIf { it.isNotBlank() && !it.startsWith("HTTP") } ?: "Something went wrong. Please try again."
+}
+
 /** Forgot-password flow: verify (email+DOB) then set a new password. */
 data class ForgotState(
     val loading: Boolean = false,
@@ -37,7 +57,7 @@ class AuthViewModel @Inject constructor(
                 _state.value = AuthUiState()
                 if (profile?.sensitive == null) onNeedsProfile() else onHome()
             } else {
-                _state.value = AuthUiState(error = result.exceptionOrNull()?.message ?: "Something went wrong")
+                _state.value = AuthUiState(error = friendlyAuthError(result.exceptionOrNull()))
             }
         }
     }
@@ -59,7 +79,7 @@ class AuthViewModel @Inject constructor(
             _forgot.value = when {
                 r.isSuccess && r.getOrDefault(false) -> ForgotState(verified = true)
                 r.isSuccess -> ForgotState(error = "That email and date of birth don't match an account.")
-                else -> ForgotState(error = r.exceptionOrNull()?.message ?: "Something went wrong")
+                else -> ForgotState(error = friendlyAuthError(r.exceptionOrNull()))
             }
         }
     }
@@ -73,7 +93,7 @@ class AuthViewModel @Inject constructor(
                 _forgot.value = ForgotState()
                 onDone()
             } else {
-                _forgot.value = _forgot.value.copy(loading = false, error = r.exceptionOrNull()?.message ?: "Something went wrong")
+                _forgot.value = _forgot.value.copy(loading = false, error = friendlyAuthError(r.exceptionOrNull()))
             }
         }
     }
@@ -85,7 +105,7 @@ class AuthViewModel @Inject constructor(
             _state.value = if (result.isSuccess) {
                 AuthUiState()
             } else {
-                AuthUiState(error = result.exceptionOrNull()?.message ?: "Something went wrong")
+                AuthUiState(error = friendlyAuthError(result.exceptionOrNull()))
             }
             if (result.isSuccess) onSuccess()
         }

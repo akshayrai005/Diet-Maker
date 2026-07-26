@@ -50,7 +50,16 @@ async function issueTokens(user: User): Promise<AuthTokens> {
 export async function register(input: RegisterInput) {
   const email = input.email.toLowerCase().trim();
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) throw new HttpError(409, 'An account with this email already exists');
+  if (existing) {
+    if (existing.deletedAt) {
+      // The email belongs to a SELF-deleted account still in its grace window. Signing up again with
+      // it is an explicit "I want a fresh account" — so hard-delete the old one (cascades all its
+      // data) and continue, instead of blocking the user with their own deletion.
+      await prisma.user.delete({ where: { id: existing.id } });
+    } else {
+      throw new HttpError(409, 'An account with this email already exists');
+    }
+  }
 
   const user = await prisma.user.create({
     data: {
