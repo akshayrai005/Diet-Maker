@@ -86,3 +86,25 @@ RAHUL (regular smoker + family history + overweight) risk → obesity, smoking, 
 > Method caveat unchanged: behavioural acceptance verified against the deterministic engine (the
 > source of truth the UI renders) + Android compile via CI; on-device visual/UX QA is the remaining
 > real-user loop (needs a physical debug build — the one part that can't run in this environment).
+
+---
+
+## Diet-Data pass, Phase 1 — real micronutrient data
+
+The `Food` table gained 21 measured micronutrient columns (ICMR-NIN 2017 / USDA FDC, `null`=unknown);
+staples are seeded; the intake engine prefers a food's real column and falls back to the category
+estimate per-nutrient. Priya's typical veg day through the real engine:
+
+```
+Foods: poha, curd, 2 roti, dal-tadka, palak, banana, warm milk, roasted chana
+Coverage: 61% | nutrients with data: 20/21
+Sample %: Iron 78%, Calcium 62%, Vitamin B12 58%, Folate 102%, Potassium 94%, Magnesium 98%, Vit A 114%, Vit C 34%
+No-data (excluded, NOT flagged deficient): Vitamin D
+Deficiency → veg food tips: Vitamin C → Amla/Guava/Oranges | B12 → Milk-curd/Fortified | Zinc → Chana/Cashews | Calcium → Ragi/Sesame/Milk
+```
+
+✅ Priya sees **real %s** instead of "no data" everywhere; **Vitamin D stays "no data"** (no logged
+food carried it) — never a fake deficiency; deficiency→food tips fire and are veg-safe (no
+chicken/fish/egg). Per-nutrient tap opens a "why it matters + good sources" sheet (educational copy,
+no invented numbers). Tests: 6 added (staple plausibility, no-data honesty, seeded-day coverage).
+**Phase 1 acceptance met.**

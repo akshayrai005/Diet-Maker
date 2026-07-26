@@ -117,10 +117,7 @@ async function estimateTodayMicronutrients(
   if (withFood.length === 0) return null;
 
   const ids = [...new Set(withFood.map((f) => f.foodId as string))];
-  const foods = await prisma.food.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, name: true, category: true, tags: true },
-  });
+  const foods = await prisma.food.findMany({ where: { id: { in: ids } } });
   const byId = new Map(foods.map((f) => [f.id, f]));
 
   const keys = Object.keys(MICRONUTRIENT_LABELS) as MicronutrientKey[];
@@ -134,10 +131,13 @@ async function estimateTodayMicronutrients(
   for (const entry of withFood) {
     const food = byId.get(entry.foodId as string);
     if (!food) continue;
-    const per100 = estimateMicronutrientsPer100g({ name: food.name, category: food.category, tags: food.tags });
+    // Prefer the food's MEASURED per-100g columns; fall back to the category estimate per-nutrient
+    // for any column still unknown (null). A key with neither real nor estimated value stays no-data.
+    const estimate = estimateMicronutrientsPer100g({ name: food.name, category: food.category, tags: food.tags });
     const factor = entry.grams / 100;
     for (const key of keys) {
-      const v = per100[key];
+      const measured = (food as unknown as Record<string, number | null>)[key];
+      const v = measured != null ? measured : estimate[key];
       if (v == null) continue;
       sums[key] += v * factor;
       seen[key] = true;

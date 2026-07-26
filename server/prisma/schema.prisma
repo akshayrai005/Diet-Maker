@@ -165,6 +165,31 @@ model Food {
   source          String   @default("seed")
   createdAt       DateTime @default(now())
 
+  // Measured micronutrients per 100 g (ICMR-NIN 2020 / USDA FDC). NULL = unknown (never 0 — a
+  // missing value must never become a false deficiency). The intake engine prefers these over the
+  // category estimate when present. Units: *_Mg = mg, *_Mcg = mcg.
+  ironMg        Float?
+  calciumMg     Float?
+  magnesiumMg   Float?
+  potassiumMg   Float?
+  zincMg        Float?
+  phosphorusMg  Float?
+  copperMcg     Float?
+  manganeseMg   Float?
+  seleniumMcg   Float?
+  iodineMcg     Float?
+  vitaminAMcg   Float?
+  vitaminCMg    Float?
+  vitaminDMcg   Float?
+  vitaminEMg    Float?
+  vitaminKMcg   Float?
+  vitaminB1Mg   Float?
+  vitaminB2Mg   Float?
+  vitaminB3Mg   Float?
+  vitaminB6Mg   Float?
+  vitaminB12Mcg Float?
+  folateMcg     Float?
+
   @@index([category])
   @@index([locale])
   @@map("foods")

@@ -1,14 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 import { SEED_FOODS } from '../src/data/foods.seed';
+import { MICRONUTRIENTS_PER_100G } from '../src/data/micronutrientData';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log(`Seeding ${SEED_FOODS.length} foods...`);
+  let withMicros = 0;
   for (const f of SEED_FOODS) {
+    // Measured micronutrients for this food (absent keys stay NULL — unknown, not zero).
+    const micros = MICRONUTRIENTS_PER_100G[f.id] ?? {};
+    if (Object.keys(micros).length) withMicros++;
     await prisma.food.upsert({
       where: { id: f.id },
       update: {
+        ...micros,
         name: f.name,
         locale: f.locale,
         region: f.region ?? null,
@@ -29,6 +35,7 @@ async function main() {
         source: 'seed',
       },
       create: {
+        ...micros,
         id: f.id,
         name: f.name,
         locale: f.locale,
@@ -52,7 +59,7 @@ async function main() {
     });
   }
   const count = await prisma.food.count();
-  console.log(`Done. Foods in DB: ${count}`);
+  console.log(`Done. Foods in DB: ${count} (${withMicros} with measured micronutrients).`);
 }
 
 main()
