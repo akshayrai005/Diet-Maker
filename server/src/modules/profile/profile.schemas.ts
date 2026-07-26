@@ -82,6 +82,8 @@ export const sensitiveSchema = z.object({
   fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   /** How hard the user wants to push the workout (safety-capped for minors / medical). */
   intensityPreference: z.enum(['easy', 'standard', 'hard', 'beast']).optional(),
+  /** User-selected training split (overrides the goal-derived program). */
+  trainingSplit: z.enum(['full_body', 'push_pull_legs', 'upper_lower', 'body_part', 'fat_loss']).optional(),
   /** Aesthetic physique goal — shifts calories/protein safely (never an aggressive cut for minors). */
   physiqueGoal: z.enum(['recomp', 'lean_bulk', 'cut', 'maintain']).optional(),
   /** Muscle groups to bring up — extra training volume within safe caps. */

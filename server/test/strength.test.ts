@@ -107,3 +107,38 @@ describe('every routine has a visible core/abs block', () => {
     expect(core.some((e) => /crunch|leg raise|russian/i.test(e.name))).toBe(false);
   });
 });
+
+describe('selectable training splits', () => {
+  const focuses = (split: any, loc: any = 'gym') =>
+    generateWeeklyWorkout('muscular', loc, { split, fitnessLevel: 'intermediate' })
+      .days.filter((d) => !d.rest).map((d) => d.focus.toLowerCase());
+
+  it('body_part = the classic chest/back/shoulders/arms/legs split', () => {
+    const f = focuses('body_part').join(' | ');
+    expect(f).toMatch(/chest/); expect(f).toMatch(/back/); expect(f).toMatch(/shoulders/);
+    expect(f).toMatch(/biceps|triceps/); expect(f).toMatch(/legs/);
+  });
+  it('push_pull_legs cycles push/pull/legs', () => {
+    const f = focuses('push_pull_legs').join(' | ');
+    expect(f).toMatch(/push/); expect(f).toMatch(/pull/); expect(f).toMatch(/legs/);
+  });
+  it('upper_lower alternates upper/lower', () => {
+    const f = focuses('upper_lower').join(' | ');
+    expect(f).toMatch(/upper/); expect(f).toMatch(/lower/);
+  });
+  it('full_body days each hit the whole body', () => {
+    expect(focuses('full_body').every((x) => /full-body/.test(x))).toBe(true);
+  });
+  it('splits work for home too, and every day still gets warm-up + core', () => {
+    const days = generateWeeklyWorkout('muscular', 'home', { split: 'push_pull_legs' }).days.filter((d) => !d.rest);
+    expect(days.length).toBeGreaterThan(0);
+    for (const d of days) {
+      expect((d.warmup?.length ?? 0)).toBeGreaterThan(0);
+      expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(2);
+    }
+  });
+  it('no split falls back to the goal-derived program (unchanged)', () => {
+    const withGoal = generateWeeklyWorkout('fatloss', 'gym', {}).days.filter((d) => !d.rest).map((d) => d.focus);
+    expect(withGoal.length).toBeGreaterThan(0);
+  });
+});

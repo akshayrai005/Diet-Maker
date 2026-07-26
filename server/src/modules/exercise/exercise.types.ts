@@ -1,6 +1,9 @@
 export type ExerciseLocation = 'gym' | 'home' | 'none';
 export type BodyGoal = 'fatloss' | 'athletic' | 'muscular';
 
+/** User-selectable training split (overrides the goal-derived program when set). */
+export type TrainingSplit = 'full_body' | 'push_pull_legs' | 'upper_lower' | 'body_part' | 'fat_loss';
+
 /** Self-reported training experience — scales volume and progression ceilings. */
 export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
 /** How hard the user wants to push — scales sets/volume (capped by safety). */

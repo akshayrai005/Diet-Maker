@@ -4,6 +4,7 @@ import {
   ExerciseLocation,
   FitnessLevel,
   IntensityPreference,
+  TrainingSplit,
   WeeklyWorkout,
   WorkoutDay,
 } from './exercise.types';
@@ -112,6 +113,47 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'HIIT', exercises: [c('Squat jumps', 5, '15'), c('Skater jumps', 5, '20'), c('Burpees', 5, '10'), c('Plank jacks', 5, '20')] },
     { focus: 'Steady cardio', exercises: [c('Brisk walk / cycle', 1, '35-40 min'), m('Stretching', 1, '10 min')] },
   ]],
+
+  // ---- Selectable splits (Push/Pull/Legs, Upper/Lower, Full-body). Core/warm-up/cool-down are
+  // appended automatically. body_part → 'muscular', fat_loss → 'fatloss' reuse the programs above. ----
+  'ppl:gym': [[
+    { focus: 'Push (Chest / Shoulders / Triceps)', exercises: [s('Barbell bench press', 4, '8-10'), s('Overhead barbell press', 4, '8-10'), s('Incline dumbbell press', 3, '10-12'), s('Lateral raise', 3, '15'), s('Rope pushdown', 3, '12-15')] },
+    { focus: 'Pull (Back / Biceps)', exercises: [s('Deadlift', 4, '6-8'), s('Lat pulldown', 4, '10-12'), s('Barbell row', 3, '8-10'), s('Face pull', 3, '15'), s('Barbell curl', 3, '10-12')] },
+    { focus: 'Legs', exercises: [s('Back squat', 4, '8-10'), s('Romanian deadlift', 3, '10'), s('Leg press', 3, '12'), s('Leg curl', 3, '12'), s('Standing calf raise', 4, '15')] },
+    { focus: 'Push (Volume)', exercises: [s('Incline barbell press', 4, '8-10'), s('Dumbbell shoulder press', 3, '10'), s('Cable fly', 3, '15'), s('Lateral raise', 3, '15'), s('Skull crushers', 3, '10')] },
+    { focus: 'Pull (Volume)', exercises: [s('Weighted pull-ups', 4, '8'), s('T-bar row', 3, '10'), s('Seated cable row', 3, '12'), s('Rear-delt fly', 3, '15'), s('EZ-bar curl', 3, '10')] },
+    { focus: 'Legs (Volume)', exercises: [s('Front squat', 4, '8'), s('Hack squat', 3, '12'), s('Walking lunges', 3, '12'), s('Leg extension', 3, '15'), s('Seated calf raise', 4, '20')] },
+  ]],
+  'ppl:home': [[
+    { focus: 'Push (Chest / Shoulders / Triceps)', exercises: [s('Push-ups', 4, '15-20'), s('Pike push-ups', 3, '10'), s('Diamond push-ups', 3, '12'), s('Chair dips', 3, '15')] },
+    { focus: 'Pull (Back / Biceps)', exercises: [s('Backpack rows', 4, '12'), s('Doorway rows', 3, '12'), s('Superman', 3, '15'), s('Backpack curls', 3, '15')] },
+    { focus: 'Legs', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Wall sit', 3, '45s')] },
+    { focus: 'Push (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Pike push-ups', 3, '10'), s('Chair dips', 3, '15')] },
+    { focus: 'Pull (Advanced)', exercises: [s('Backpack rows', 4, '15'), s('Towel curls', 3, '15'), s('Superman pulls', 3, '15'), s('Y-raise', 3, '15')] },
+    { focus: 'Legs (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Step-ups', 3, '15')] },
+  ]],
+  'upperlower:gym': [[
+    { focus: 'Upper (Strength)', exercises: [s('Barbell bench press', 4, '6-8'), s('Barbell row', 4, '8'), s('Overhead barbell press', 3, '8'), s('Lat pulldown', 3, '10'), s('Barbell curl', 3, '10'), s('Rope pushdown', 3, '12')] },
+    { focus: 'Lower (Strength)', exercises: [s('Back squat', 4, '6-8'), s('Romanian deadlift', 3, '10'), s('Leg press', 3, '12'), s('Leg curl', 3, '12'), s('Standing calf raise', 4, '15')] },
+    { focus: 'Upper (Hypertrophy)', exercises: [s('Incline dumbbell press', 4, '10'), s('Weighted pull-ups', 3, '8'), s('Lateral raise', 4, '15'), s('Seated cable row', 3, '12'), s('Hammer curl', 3, '12'), s('Skull crushers', 3, '10')] },
+    { focus: 'Lower (Hypertrophy)', exercises: [s('Front squat', 4, '8'), s('Deadlift', 3, '6'), s('Walking lunges', 3, '12'), s('Leg extension', 3, '15'), s('Seated calf raise', 4, '20')] },
+  ]],
+  'upperlower:home': [[
+    { focus: 'Upper', exercises: [s('Push-ups', 4, '15-20'), s('Backpack rows', 4, '12'), s('Pike push-ups', 3, '10'), s('Doorway rows', 3, '12'), s('Chair dips', 3, '15'), s('Backpack curls', 3, '15')] },
+    { focus: 'Lower', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Wall sit', 3, '45s'), s('Single-leg glute bridge', 3, '12')] },
+    { focus: 'Upper (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Backpack rows', 4, '15'), s('Y-raise', 3, '15'), s('Chair dips', 3, '15')] },
+    { focus: 'Lower (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Step-ups', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Wall sit', 3, '60s')] },
+  ]],
+  'fullbody:gym': [[
+    { focus: 'Full-body A', exercises: [s('Back squat', 4, '8-10'), s('Barbell bench press', 4, '8-10'), s('Barbell row', 3, '10'), s('Overhead barbell press', 3, '10'), s('Barbell curl', 2, '12')] },
+    { focus: 'Full-body B', exercises: [s('Deadlift', 4, '6'), s('Incline dumbbell press', 3, '10'), s('Lat pulldown', 3, '12'), s('Lateral raise', 3, '15'), s('Rope pushdown', 2, '12')] },
+    { focus: 'Full-body C', exercises: [s('Front squat', 4, '8'), s('Dumbbell shoulder press', 3, '10'), s('Seated cable row', 3, '12'), s('Romanian deadlift', 3, '10'), s('Hammer curl', 2, '12')] },
+  ]],
+  'fullbody:home': [[
+    { focus: 'Full-body A', exercises: [s('Bodyweight squats', 4, '20'), s('Push-ups', 4, '15'), s('Backpack rows', 3, '15'), s('Pike push-ups', 3, '10'), s('Glute bridges', 3, '20')] },
+    { focus: 'Full-body B', exercises: [s('Reverse lunges', 4, '15'), s('Diamond push-ups', 3, '12'), s('Doorway rows', 3, '12'), s('Chair dips', 3, '15'), s('Superman', 3, '15')] },
+    { focus: 'Full-body C', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Feet-elevated push-ups', 3, '12'), s('Backpack rows', 3, '15'), s('Wall sit', 3, '45s'), s('Single-leg glute bridge', 3, '12')] },
+  ]],
 };
 
 const REST_DAY: ExerciseItem[] = [
@@ -137,6 +179,21 @@ export interface WorkoutOptions {
   medicalCaution?: boolean;
   /** Priority muscle groups to bring up — extra volume within the level's set caps. */
   priorityMuscles?: string[];
+  /** User-selected training split — overrides the goal-derived program when set. */
+  split?: TrainingSplit;
+}
+
+/** Map a selectable split + location to a PROGRAMS key (body_part/fat_loss reuse existing programs). */
+function splitProgramKey(split: TrainingSplit, location: ExerciseLocation): string {
+  const loc = location === 'none' ? 'home' : location;
+  const base: Record<TrainingSplit, string> = {
+    body_part: 'muscular',
+    fat_loss: 'fatloss',
+    full_body: 'fullbody',
+    push_pull_legs: 'ppl',
+    upper_lower: 'upperlower',
+  };
+  return `${base[split]}:${loc}`;
 }
 
 // ---- Level + intensity scaling (PURE, deterministic) ----
@@ -335,8 +392,8 @@ export function generateWeeklyWorkout(
   location: ExerciseLocation,
   options: WorkoutOptions = {},
 ): WeeklyWorkout {
-  const key = `${goal}:${location === 'none' ? 'home' : location}`;
-  const program = PROGRAMS[key] ?? PROGRAMS[`${goal}:home`]!;
+  const key = options.split ? splitProgramKey(options.split, location) : `${goal}:${location === 'none' ? 'home' : location}`;
+  const program = PROGRAMS[key] ?? PROGRAMS[`${goal}:${location === 'none' ? 'home' : location}`] ?? PROGRAMS[`${goal}:home`]!;
   const refDate = options.startDate ?? new Date(0);
   const block = blockForDate(refDate, program.length);
   const templates = program[block]!;

@@ -111,6 +111,15 @@ private val DIET = listOf(
 )
 private val EX_LOC = listOf("gym" to "Gym", "home" to "Home", "none" to "No workouts")
 private val BODY_GOAL = listOf("fatloss" to "Fat loss", "athletic" to "Athletic / lean", "muscular" to "Muscular")
+// Training split: value → plain-language, body-neutral label. null = auto (server picks from goal).
+private val TRAINING_SPLIT: List<Pair<String?, String>> = listOf(
+    null to "Auto (based on my goal)",
+    "body_part" to "Body-part split — Chest / Back / Shoulders / Arms / Legs",
+    "push_pull_legs" to "Push / Pull / Legs",
+    "upper_lower" to "Upper / Lower",
+    "full_body" to "Full-body (3 days/week)",
+    "fat_loss" to "Fat-loss circuits",
+)
 private val DAYS: List<Pair<Int?, String>> = listOf(
     null to "None", 0 to "Sunday", 1 to "Monday", 2 to "Tuesday",
     3 to "Wednesday", 4 to "Thursday", 5 to "Friday", 6 to "Saturday",
@@ -164,6 +173,7 @@ fun OnboardingScreen(
     var fastDay by remember { mutableStateOf<Int?>(null) }
     var exLocation by remember { mutableStateOf("home") }
     var bodyGoal by remember { mutableStateOf("fatloss") }
+    var trainingSplit by remember { mutableStateOf<String?>(null) }
     var workoutRest by remember { mutableStateOf<Int?>(0) }
     var smoking by remember { mutableStateOf("no") }
     var alcohol by remember { mutableStateOf("no") }
@@ -194,6 +204,7 @@ fun OnboardingScreen(
             fastDay = s.fastDayOfWeek
             exLocation = s.exerciseLocation ?: exLocation
             bodyGoal = s.bodyGoal ?: bodyGoal
+            trainingSplit = s.trainingSplit
             workoutRest = s.workoutRestDay ?: workoutRest
             smoking = s.smoking ?: smoking
             alcohol = s.alcohol ?: alcohol
@@ -257,6 +268,7 @@ fun OnboardingScreen(
                         fastDayOfWeek = fastDay,
                         exerciseLocation = exLocation,
                         bodyGoal = bodyGoal,
+                        trainingSplit = trainingSplit,
                         workoutRestDay = workoutRest,
                         smoking = smoking,
                         alcohol = alcohol,
@@ -332,6 +344,15 @@ fun OnboardingScreen(
                 2 -> {
                     Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
                     Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+
+                    Label("Training split (optional)")
+                    TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
+                    Text(
+                        "Your Move plan updates to this split.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
                     Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
                     Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
                     Text(
@@ -548,6 +569,37 @@ private fun PhysiqueGoalPicker(
             selected = selected == null,
             onClick = { onSelect(null) },
         )
+    }
+}
+
+/**
+ * Single-select training split as radio rows with plain-language, body-neutral labels. The value
+ * may be null ("Auto"), so options are `String?` → label. Each row is ≥48dp with a contentDescription.
+ */
+@Composable
+private fun TrainingSplitPicker(
+    options: List<Pair<String?, String>>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        options.forEach { (value, label) ->
+            val isSel = selected == value
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onSelect(value) }
+                    .heightIn(min = 48.dp)
+                    .padding(vertical = 4.dp)
+                    .semantics { contentDescription = if (isSel) "$label, selected" else label },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RadioButton(selected = isSel, onClick = { onSelect(value) })
+                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 

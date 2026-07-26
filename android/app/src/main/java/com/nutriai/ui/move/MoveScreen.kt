@@ -324,18 +324,20 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     item { SessionHeader("🔥 Warm-up") }
                     items(day.warmup.size) { i ->
                         val w = day.warmup[i]
-                        SecondaryExerciseRow(w, "Warm-up", onDone = { viewModel.logDone(w.name, "Warm-up", w.reps, 2) })
+                        ExerciseRowCard(w, "Warm-up", showDone = true, onDone = { viewModel.logDone(w.name, "Warm-up", w.reps, 2) })
                     }
                 }
 
-                // Main lifts — full cards with sets/reps/log/cue/swap.
+                // Main lifts — same card, with the numbered badge + sets/reps/log/cue/swap controls.
                 if (day.exercises.isNotEmpty()) {
                     item { SessionHeader("🏋️ Main") }
                     items(day.exercises.size) { i ->
                         val ex = day.exercises[i]
-                        ExerciseCard(
-                            index = i,
+                        ExerciseRowCard(
                             ex = ex,
+                            section = "Main",
+                            index = i,
+                            showLogSet = true,
                             onLog = { logTarget = ex },
                             onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
                         )
@@ -347,14 +349,14 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     item { SessionHeader("🧱 Core & Abs") }
                     items(day.core.size) { i ->
                         val cr = day.core[i]
-                        SecondaryExerciseRow(cr, "Core", onDone = { viewModel.logDone(cr.name, "Core", cr.reps, 3) })
+                        ExerciseRowCard(cr, "Core", showDone = true, onDone = { viewModel.logDone(cr.name, "Core", cr.reps, 3) })
                     }
                 }
 
                 // Cardio (single item, if any).
                 day.cardio?.let { c ->
                     item { SessionHeader("🏃 Cardio") }
-                    item { SecondaryExerciseRow(c, "Cardio", onDone = { viewModel.logDone(c.name, "Cardio", c.reps, 15) }) }
+                    item { ExerciseRowCard(c, "Cardio", showDone = true, onDone = { viewModel.logDone(c.name, "Cardio", c.reps, 15) }) }
                 }
 
                 // Cool-down.
@@ -362,7 +364,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     item { SessionHeader("🧊 Cool-down") }
                     items(day.cooldown.size) { i ->
                         val cd = day.cooldown[i]
-                        SecondaryExerciseRow(cd, "Cool-down", onDone = { viewModel.logDone(cd.name, "Cool-down", cd.reps, 2) })
+                        ExerciseRowCard(cd, "Cool-down", showDone = true, onDone = { viewModel.logDone(cd.name, "Cool-down", cd.reps, 2) })
                     }
                 }
 
@@ -393,40 +395,104 @@ private fun SessionHeader(title: String) {
     )
 }
 
-/** Compact row for warm-up / cardio / cool-down items: illustration + name + reps + "mark done". */
+/**
+ * One shared card for EVERY Move section (warm-up, main, core, cardio, cool-down) so the whole tab
+ * reads as a single design: same shape/padding, [ExerciseIllustration], and name + reps/target
+ * styling. Section-specific controls are opt-in:
+ *  - Main passes [index] (numbered badge), [showLogSet]/[onLog], and optional [onSwap].
+ *  - Warm-up / core / cardio / cool-down pass [showDone]/[onDone] for the "Done → ✓ Done" action.
+ * The cue and next-session target lines render only when the item carries them (i.e. Main).
+ */
 @Composable
-private fun SecondaryExerciseRow(ex: ExerciseItem, section: String, onDone: (() -> Unit)? = null) {
+private fun ExerciseRowCard(
+    ex: ExerciseItem,
+    section: String,
+    index: Int? = null,
+    showLogSet: Boolean = false,
+    onLog: (() -> Unit)? = null,
+    onSwap: (() -> Unit)? = null,
+    showDone: Boolean = false,
+    onDone: (() -> Unit)? = null,
+) {
     var done by remember(ex.name, section) { mutableStateOf(false) }
+    val repsLabel = if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps
     Card(
         Modifier.fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .semantics { contentDescription = "$section: ${ex.name}, ${ex.sets} sets of ${ex.reps}${if (done) ", logged" else ""}" },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+            .semantics { contentDescription = "$section: ${ex.name}, $repsLabel${if (showDone && done) ", logged" else ""}" },
+        shape = RoundedCornerShape(16.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
-            Column(Modifier.weight(1f)) {
-                Text(ex.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (index != null) {
+                    Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                        Text("${index + 1}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                // Bundled offline form diagram for the muscle group.
+                ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
+                Column(Modifier.weight(1f)) {
+                    Text(ex.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
+                        Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Text(
-                    if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    repsLabel,
+                    Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
                 )
             }
-            if (onDone != null) {
-                if (done) {
-                    Text("✓ Done", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                } else {
-                    OutlinedButton(
-                        onClick = { done = true; onDone() },
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.heightIn(min = 40.dp).semantics { contentDescription = "Mark ${ex.name} done and count its calories" },
-                    ) { Text("Done") }
+
+            ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
+                Text("💡 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            ex.nextSession?.let { ns ->
+                val target = buildString {
+                    append("Next: ")
+                    if (ns.suggestedWeightKg != null) append("${trimKg(ns.suggestedWeightKg)} kg × ")
+                    append("${ns.suggestedReps} × ${ns.suggestedSets}")
+                    if (ns.deload) append(" · deload")
+                }
+                Text(
+                    target,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (ns.deload) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            if ((showLogSet && onLog != null) || onSwap != null || (showDone && onDone != null)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (showLogSet && onLog != null) {
+                        TextButton(
+                            onClick = onLog,
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a set of ${ex.name}" },
+                        ) { Text("＋ Log set") }
+                    }
+                    if (onSwap != null) {
+                        TextButton(
+                            onClick = onSwap,
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Swap or see alternatives for ${ex.name}" },
+                        ) { Text("⇄ Swap / alternatives") }
+                    }
+                    if (showDone && onDone != null) {
+                        if (done) {
+                            Text(
+                                "✓ Done",
+                                Modifier.heightIn(min = 48.dp).padding(vertical = 14.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else {
+                            OutlinedButton(
+                                onClick = { done = true; onDone() },
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Mark ${ex.name} done and count its calories" },
+                            ) { Text("Done") }
+                        }
+                    }
                 }
             }
         }
@@ -465,68 +531,6 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
             ) { Text("Close") }
         },
     )
-}
-
-@Composable
-private fun ExerciseCard(index: Int, ex: ExerciseItem, onLog: () -> Unit, onSwap: (() -> Unit)? = null) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                    Text("${index + 1}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-                // Bundled offline form diagram for the muscle group.
-                ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
-                Column(Modifier.weight(1f)) {
-                    Text(ex.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
-                        Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Text(
-                    "${ex.sets} × ${ex.reps}",
-                    Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
-                Text(
-                    "💡 $cue",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            ex.nextSession?.let { ns ->
-                val target = buildString {
-                    append("Next: ")
-                    if (ns.suggestedWeightKg != null) append("${trimKg(ns.suggestedWeightKg)} kg × ")
-                    append("${ns.suggestedReps} × ${ns.suggestedSets}")
-                    if (ns.deload) append(" · deload")
-                }
-                Text(
-                    target,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (ns.deload) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(
-                    onClick = onLog,
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a set of ${ex.name}" },
-                ) { Text("＋ Log set") }
-                if (onSwap != null) {
-                    TextButton(
-                        onClick = onSwap,
-                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Swap or see alternatives for ${ex.name}" },
-                    ) { Text("⇄ Swap / alternatives") }
-                }
-            }
-        }
-    }
 }
 
 @Composable

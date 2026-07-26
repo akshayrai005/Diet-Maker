@@ -37,5 +37,6 @@ export async function weeklyWorkoutForUser(userId: string, offsetMin = 0): Promi
     under18,
     medicalCaution,
     priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
+    split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
   });
 }

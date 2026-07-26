@@ -82,6 +82,10 @@ data class SensitiveData(
     // priorityMuscles ⊆ shoulders, back, chest, arms, legs, glutes, core (max 4).
     val physiqueGoal: String? = null,
     val priorityMuscles: List<String> = emptyList(),
+    // Preferred training split ∈ full_body | push_pull_legs | upper_lower | body_part | fat_loss.
+    // null = auto (server derives it from the goal). Optional/additive — older payloads omit it and
+    // the server regenerates the Move plan from this value.
+    val trainingSplit: String? = null,
     // Goal-timeline: how fast the user wants to reach targetWeightKg, in weeks (1–260).
     // Optional/additive — the server clamps to a safe pace and older payloads simply omit it.
     val targetTimeframeWeeks: Int? = null,
