@@ -3,6 +3,7 @@ import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
 import {
   checkinSchema,
+  moodCheckinSchema,
   foodLogSchema,
   waterLogSchema,
 } from './logging.schemas';
@@ -83,6 +84,26 @@ loggingRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const checkins = await svc.listCheckins(req.user!.id);
     res.json({ checkins });
+  }),
+);
+
+/** Mind-pillar mood/stress/sleep-quality check-in (no weigh-in). */
+loggingRouter.post(
+  '/checkins/mood',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const body = moodCheckinSchema.parse(req.body);
+    const checkin = await svc.createMoodCheckin(req.user!.id, body);
+    res.status(201).json({ checkin });
+  }),
+);
+
+/** Recent mood/stress/sleep series + a supportive, deterministic insight. */
+loggingRouter.get(
+  '/checkins/mood',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    res.json(await svc.getMoodInsight(req.user!.id));
   }),
 );
 

@@ -90,6 +90,8 @@ class ReminderScheduler @Inject constructor(
                 .putString(ReminderWorker.KEY_TEXT, job.text)
                 .putInt(ReminderWorker.KEY_NOTIF_ID, job.key.hashCode())
                 .putInt(ReminderWorker.KEY_TAB, job.tab)
+                .putInt(ReminderWorker.KEY_HOUR, job.hour)
+                .putInt(ReminderWorker.KEY_MINUTE, job.minute)
                 .build()
 
             val request = OneTimeWorkRequestBuilder<ReminderWorker>()

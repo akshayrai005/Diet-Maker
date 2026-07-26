@@ -67,6 +67,8 @@ model User {
   habitLogs        HabitLog[]
   reminderPrefs    ReminderPrefs?
   vitalLogs        VitalLog[]
+  medications      Medication[]
+  medicationLogs   MedicationLog[]
 
   @@map("users")
 }
@@ -313,13 +315,18 @@ model ReminderPrefs {
 
 /// A logged menstrual period (start, optional end). The cycle engine self-calibrates
 /// cycle length from the gaps between starts to estimate the current phase.
+/// startDate/endDate are plaintext + indexed (needed for cycle-phase math + ordering; a date alone
+/// is low-sensitivity). The sensitive detail — symptoms, flow, mood, notes — is AES-256-GCM-encrypted
+/// (key-versioned) in `detailsEnc`, decrypted in memory only when needed. See SECURITY.md.
 model PeriodLog {
-  id        String    @id @default(uuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startDate DateTime
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate  DateTime
+  endDate    DateTime?
+  /// AES-256-GCM JSON: { symptoms?: string[], flow?: string, mood?: number, notes?: string }
+  detailsEnc String?
+  createdAt  DateTime  @default(now())
 
   @@index([userId, startDate])
   @@map("period_logs")
@@ -341,6 +348,41 @@ model VitalLog {
 
   @@index([userId, type, measuredAt])
   @@map("vital_logs")
+}
+
+/// A medication or supplement the user takes. Name/dose/notes/times reveal health conditions, so
+/// the whole payload is AES-256-GCM-encrypted in `detailsEnc`; only the coarse `type` + `active`
+/// flag (needed for filtering/scheduling) are plaintext. Kaizen never checks drug interactions.
+model Medication {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String // 'med' | 'supplement'
+  active     Boolean  @default(true)
+  /// AES-256-GCM JSON: { name, dose?, times?: string[] "HH:mm", notes? }
+  detailsEnc String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  logs MedicationLog[]
+
+  @@index([userId])
+  @@map("medications")
+}
+
+/// One adherence event — "I took it". No sensitive fields beyond the FK, so stored plain.
+model MedicationLog {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicationId String
+  medication   Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  takenAt      DateTime   @default(now())
+  createdAt    DateTime   @default(now())
+
+  @@index([userId, takenAt])
+  @@index([medicationId, takenAt])
+  @@map("medication_logs")
 }
 
 /// Persisted coach chat so the AI has memory across sessions. Content is not medical data;
@@ -387,6 +429,8 @@ model WeeklyCheckin {
   energy          Int? // 1..5
   sleepHours      Float?
   mood            Int? // 1..5
+  stress          Int? // 1..5 (1 calm .. 5 very stressed)
+  sleepQuality    Int? // 1..5 (1 poor .. 5 great)
   pain            Int? // 1..5
   notes           String?
   createdAt       DateTime @default(now())

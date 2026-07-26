@@ -73,6 +73,11 @@ fun CoachScreen(
     val listState = rememberLazyListState()
     val messages = state.messages
 
+    // Red-flag safety net — surfaced alongside the coach's normal reply.
+    state.redFlagMessage?.let { msg ->
+        com.nutriai.ui.safety.RedFlagDialog(message = msg, onDismiss = { viewModel.clearRedFlag() })
+    }
+
     // Keep the newest message in view as the conversation grows.
     LaunchedEffect(messages.size, state.sending) {
         val count = messages.size + if (state.sending) 1 else 0

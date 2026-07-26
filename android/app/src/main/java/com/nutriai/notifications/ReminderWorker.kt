@@ -70,12 +70,24 @@ class ReminderWorker(
         // Re-schedule this reminder for its next occurrence (tomorrow / next weekly day).
         // This is what keeps a one-time job repeating at the exact clock time without drift.
         inputData.getString(KEY_JOB_KEY)?.let { key ->
-            // The workout pre-alert re-arms from the user's stored time; others from the fixed catalog.
-            val job = if (key == ReminderCatalog.WORKOUT_KEY) {
-                val (h, m) = ReminderPrefs(applicationContext).workoutTime()
-                ReminderCatalog.workoutJob(h, m)
-            } else {
-                ReminderCatalog.jobByKey(key)
+            // The workout pre-alert re-arms from the user's stored time; medication reminders
+            // re-arm from the hour/minute carried in inputData (so they stay dynamic per med);
+            // all others come from the fixed catalog.
+            val job = when {
+                key == ReminderCatalog.WORKOUT_KEY -> {
+                    val (h, m) = ReminderPrefs(applicationContext).workoutTime()
+                    ReminderCatalog.workoutJob(h, m)
+                }
+                key.startsWith(MED_KEY_PREFIX) -> {
+                    val h = inputData.getInt(KEY_HOUR, -1)
+                    val m = inputData.getInt(KEY_MINUTE, -1)
+                    if (h in 0..23 && m in 0..59) {
+                        ReminderJob(key, h, m, title, text, tab = inputData.getInt(KEY_TAB, 0))
+                    } else {
+                        null
+                    }
+                }
+                else -> ReminderCatalog.jobByKey(key)
             }
             job?.let { runCatching { ReminderScheduler.enqueue(applicationContext, it, ExistingWorkPolicy.REPLACE) } }
         }
@@ -91,7 +103,12 @@ class ReminderWorker(
         const val KEY_TEXT = "text"
         const val KEY_NOTIF_ID = "notif_id"
         const val KEY_TAB = "tab"
+        const val KEY_HOUR = "hour"
+        const val KEY_MINUTE = "minute"
         const val EXTRA_TAB = "com.nutriai.OPEN_TAB"
+
+        /** Unique-work key prefix for per-med, per-time dose reminders (keyed by med id + time). */
+        const val MED_KEY_PREFIX = "med::"
 
         fun ensureChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

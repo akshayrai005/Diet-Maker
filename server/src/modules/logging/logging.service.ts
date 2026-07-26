@@ -2,7 +2,9 @@ import { prisma } from '../../lib/prisma';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import { round } from '../../calc/anthropometry';
 import { HttpError } from '../../middleware/error';
-import type { CheckinBody, FoodLogBody, WaterLogBody } from './logging.schemas';
+import type { CheckinBody, FoodLogBody, WaterLogBody, MoodCheckinBody } from './logging.schemas';
+import { moodInsight } from '../wellness/moodInsight';
+import { suggestFoodsForDeficiencies, type DietPattern } from '../nutrition/deficiencyFoods';
 import { buildDashboard, dayKey, sumTotals, type MicronutrientBlock, type WeightPoint } from './dashboard';
 import { wellnessKcalOnDay } from '../wellness/wellnessLog.service';
 import {
@@ -59,6 +61,7 @@ function micronutrientBlock(
   sex: Sex,
   ageYears: number,
   intake: Partial<Record<MicronutrientKey, number | null>> | null,
+  dietCtx?: { dietType?: string; allergies?: string[]; budgetTier?: 'low' | 'mid' | 'high' },
 ): MicronutrientBlock {
   const rda = micronutrientTargets(sex, ageYears);
   const keys = Object.keys(rda) as MicronutrientKey[];
@@ -75,6 +78,12 @@ function micronutrientBlock(
   }
 
   const byKey = new Map(assessment.nutrients.map((n) => [n.key, n]));
+  // Deficiency → specific diet-compatible, allergen-safe foods (budget-preferred).
+  const foodFixes = suggestFoodsForDeficiencies(assessment.deficiencies, {
+    dietType: (dietCtx?.dietType as DietPattern) ?? 'nonveg',
+    allergies: dietCtx?.allergies,
+    budgetTier: dietCtx?.budgetTier,
+  });
   return {
     available: true,
     note: 'Estimated from today’s logged foods — educational, not lab-measured.',
@@ -91,6 +100,7 @@ function micronutrientBlock(
       };
     }),
     tips: assessment.deficiencies.slice(0, 3).map((k) => DEFICIENCY_TIPS[k]),
+    foodFixes,
   };
 }
 
@@ -230,7 +240,7 @@ export async function waterTotal(userId: string, date: Date, offsetMin = 0): Pro
 }
 
 export async function createCheckin(userId: string, body: CheckinBody) {
-  const { date, energy, sleepHours, mood, pain, notes, ...measurements } = body;
+  const { date, energy, sleepHours, mood, stress, sleepQuality, pain, notes, ...measurements } = body;
   const checkin = await prisma.weeklyCheckin.create({
     data: {
       userId,
@@ -239,6 +249,8 @@ export async function createCheckin(userId: string, body: CheckinBody) {
       energy: energy ?? null,
       sleepHours: sleepHours ?? null,
       mood: mood ?? null,
+      stress: stress ?? null,
+      sleepQuality: sleepQuality ?? null,
       pain: pain ?? null,
       notes: notes ?? null,
     },
@@ -247,6 +259,39 @@ export async function createCheckin(userId: string, body: CheckinBody) {
     data: { userId, action: 'checkin.create', detail: 'weight/measurements written' },
   });
   return { id: checkin.id, date: checkin.date };
+}
+
+/** A quick Mind-pillar mood/stress/sleep-quality check-in (no weigh-in / no measurements). */
+export async function createMoodCheckin(userId: string, body: MoodCheckinBody) {
+  const checkin = await prisma.weeklyCheckin.create({
+    data: {
+      userId,
+      date: body.date ? new Date(body.date) : new Date(),
+      measurementsEnc: null,
+      mood: body.mood ?? null,
+      stress: body.stress ?? null,
+      sleepQuality: body.sleepQuality ?? null,
+      notes: body.notes ?? null,
+    },
+  });
+  return { id: checkin.id, date: checkin.date };
+}
+
+/** Recent mood/stress/sleep series + a deterministic, supportive insight (with professional nudge). */
+export async function getMoodInsight(userId: string, limit = 30) {
+  const rows = await prisma.weeklyCheckin.findMany({
+    where: { userId },
+    orderBy: { date: 'asc' },
+    select: { date: true, mood: true, stress: true, sleepQuality: true },
+  });
+  const entries = rows
+    .filter((r) => r.mood != null || r.stress != null || r.sleepQuality != null)
+    .slice(-limit);
+  const insight = moodInsight(entries.map((e) => ({ mood: e.mood, stress: e.stress, sleepQuality: e.sleepQuality })));
+  return {
+    series: entries.map((e) => ({ date: e.date, mood: e.mood, stress: e.stress, sleepQuality: e.sleepQuality })),
+    insight,
+  };
 }
 
 export async function listCheckins(userId: string) {
@@ -293,7 +338,12 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
   if (profile?.sensitiveEnc) {
     const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
     const intake = await estimateTodayMicronutrients(todayFood);
-    micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now), intake);
+    micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now), intake, {
+      dietType: (s as { dietType?: string }).dietType ?? profile.dietType,
+      allergies: (s as { allergies?: string[] }).allergies,
+      // Profile budget tier is low|medium|flexible; only 'low' maps to a cheap-food preference.
+      budgetTier: (s as { budgetTier?: string }).budgetTier === 'low' ? 'low' : undefined,
+    });
   }
 
   const result = snapshot?.result as

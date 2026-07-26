@@ -33,6 +33,26 @@ Do **not** file public issues for security problems.
 - Secrets are read from the environment only. `.env` is git-ignored; only `.env.example`
   (placeholders) is committed.
 
+## Encryption-at-rest tradeoffs (plaintext vs encrypted fields)
+
+Sensitive health data is AES-256-GCM-encrypted at the application layer with **key versioning**
+(`HEALTH_DATA_ENCRYPTION_KEY`, optional `…_V2` for rotation; legacy 3-part ciphertext still reads).
+Encrypted blobs: `Profile.sensitiveEnc`, `FamilyMember.sensitiveEnc`, `VitalLog.valueEnc`,
+`Medication.detailsEnc`, `ChatMessage.content`, `WeeklyCheckin.measurementsEnc`, and
+`PeriodLog.detailsEnc`.
+
+A few fields are deliberately kept **plaintext** because the engines must query/order by them and a
+value alone is low-sensitivity in isolation:
+
+- **`PeriodLog.startDate` / `endDate`** — the cycle-phase math and ordering need to filter and sort
+  by date; a bare date isn't identifying on its own. The *sensitive* per-period detail (symptoms,
+  flow, mood, notes) lives encrypted in **`PeriodLog.detailsEnc`** and is decrypted in memory only
+  when explicitly requested — never touched by the (date-only) cycle computation.
+- **`VitalLog.type` / `measuredAt`** and **`Medication.type` / `active`** — needed for
+  series/filtering; the actual readings and medicine names/doses are in the encrypted blob.
+- **`WeeklyCheckin` subjective 1–5 ratings** (mood/stress/sleep) — coarse, non-identifying scalars
+  used for trend math; the weigh-in/measurements are encrypted.
+
 ## Data subject controls
 
 - **Export my data** and **delete account** (cascade + audit) are supported endpoints.

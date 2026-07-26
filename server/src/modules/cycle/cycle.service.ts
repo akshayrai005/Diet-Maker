@@ -1,15 +1,30 @@
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/error';
+import { encryptJson, decryptJson } from '../../lib/crypto';
 import { requireCompleteProfile } from '../profile/profile.service';
 import { ageFromDob } from '../nutrition/calc.service';
 import { computeCycle, cycleGuidance, analyzeCycleHealth } from './cycle';
 
 const DAY_MS = 86_400_000;
 
-/** Logs a period start (and optional end). Returns the created row. */
-export async function logPeriod(userId: string, startDate: Date, endDate?: Date) {
+/** Sensitive per-period detail — encrypted at rest; never used by the (date-only) cycle math. */
+export interface PeriodDetails {
+  symptoms?: string[];
+  flow?: 'light' | 'medium' | 'heavy';
+  mood?: number; // 1..5
+  notes?: string;
+}
+
+/** Logs a period start (and optional end + encrypted symptom/flow/mood/notes). */
+export async function logPeriod(userId: string, startDate: Date, endDate?: Date, details?: PeriodDetails) {
+  const hasDetails = details && (details.symptoms?.length || details.flow || details.mood != null || details.notes);
   return prisma.periodLog.create({
-    data: { userId, startDate, endDate: endDate ?? null },
+    data: {
+      userId,
+      startDate,
+      endDate: endDate ?? null,
+      detailsEnc: hasDetails ? encryptJson(details) : null,
+    },
   });
 }
 

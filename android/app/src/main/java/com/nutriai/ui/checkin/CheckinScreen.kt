@@ -66,6 +66,7 @@ data class CheckinState(
     val submitting: Boolean = false,
     val checkins: List<CheckinDto> = emptyList(),
     val message: String? = null,
+    val redFlagMessage: String? = null,
 )
 
 @HiltViewModel
@@ -100,6 +101,12 @@ class CheckinViewModel @Inject constructor(
     ) {
         _state.value = _state.value.copy(submitting = true, message = null)
         viewModelScope.launch {
+            // Red-flag safety net on the free-text note — surfaced alongside, never blocking the save.
+            notes?.trim()?.ifBlank { null }?.let { note ->
+                repository.checkRedFlags(note).getOrNull()?.let { rf ->
+                    if (rf.urgent) _state.value = _state.value.copy(redFlagMessage = rf.message)
+                }
+            }
             val r = repository.createCheckin(
                 CheckinRequest(
                     weightKg = weightKg,
@@ -121,6 +128,8 @@ class CheckinViewModel @Inject constructor(
             }
         }
     }
+
+    fun clearRedFlag() { _state.value = _state.value.copy(redFlagMessage = null) }
 }
 
 @Composable
@@ -129,6 +138,10 @@ fun CheckinScreen(
     viewModel: CheckinViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    state.redFlagMessage?.let { msg ->
+        com.nutriai.ui.safety.RedFlagDialog(message = msg, onDismiss = { viewModel.clearRedFlag() })
+    }
 
     var weight by remember { mutableStateOf("") }
     var waist by remember { mutableStateOf("") }

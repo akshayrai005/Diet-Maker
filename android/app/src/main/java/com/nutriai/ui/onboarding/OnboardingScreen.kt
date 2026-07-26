@@ -101,6 +101,7 @@ private val DAYS: List<Pair<Int?, String>> = listOf(
     3 to "Wednesday", 4 to "Thursday", 5 to "Friday", 6 to "Saturday",
 )
 private val CONDITIONS = listOf("diabetes", "hypertension", "kidney_disease", "thyroid", "pcos", "heart_disease", "fatty_liver", "gout")
+private val FAMILY_HISTORY = listOf("diabetes", "heart_disease", "hypertension", "stroke", "cancer", "thyroid")
 private val FREQ = listOf("no" to "No", "occasional" to "Occasionally", "regular" to "Regularly")
 private val CONTRA = listOf(
     "none" to "None",
@@ -134,6 +135,7 @@ fun OnboardingScreen(
     var goal by remember { mutableStateOf("lose") }
     var diet by remember { mutableStateOf("nonveg") }
     val conditions = remember { mutableStateListOf<String>() }
+    val familyHistory = remember { mutableStateListOf<String>() }
     var fastDay by remember { mutableStateOf<Int?>(null) }
     var exLocation by remember { mutableStateOf("home") }
     var bodyGoal by remember { mutableStateOf("fatloss") }
@@ -161,6 +163,7 @@ fun OnboardingScreen(
             fitnessLevel = s.fitnessLevel ?: fitnessLevel
             intensity = s.intensityPreference ?: intensity
             conditions.clear(); conditions.addAll(s.conditions)
+            familyHistory.clear(); familyHistory.addAll(s.familyHistory)
             fastDay = s.fastDayOfWeek
             exLocation = s.exerciseLocation ?: exLocation
             bodyGoal = s.bodyGoal ?: bodyGoal
@@ -200,6 +203,7 @@ fun OnboardingScreen(
                         currentWeightKg = w,
                         targetWeightKg = t,
                         conditions = conditions.toList(),
+                        familyHistory = familyHistory.toList(),
                         fastDayOfWeek = fastDay,
                         exerciseLocation = exLocation,
                         bodyGoal = bodyGoal,
@@ -274,6 +278,13 @@ fun OnboardingScreen(
                 3 -> {
                     Label("Conditions (optional)")
                     MultiChoiceChips(CONDITIONS, conditions)
+                    Label("Family history (optional)")
+                    Text(
+                        "Conditions that run in your close family — helps us flag risks earlier.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    MultiChoiceChips(FAMILY_HISTORY, familyHistory)
                     Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
                     Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
                     Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }

@@ -49,6 +49,7 @@ private val MORE_ITEMS = listOf(
     MoreItem("coach", "💬", "AI Coach", "Chat with your coach"),
     MoreItem("discipline", "✅", "Discipline", "Daily habits, streaks & adherence"),
     MoreItem("vitals", "🩺", "Vitals & labs", "BP, glucose, cholesterol & trends"),
+    MoreItem("medications", "💊", "Medicines & supplements", "Track doses & get reminders"),
     MoreItem("checkin", "⚖️", "Weekly check-in", "Log weight & measurements"),
     MoreItem("body", "📸", "Body Check", "Progress photos + AI body-fat"),
     MoreItem("barcode", "📷", "Scan barcode", "Camera food lookup"),
@@ -79,6 +80,7 @@ fun MoreScreen(
                 "coach" -> com.nutriai.ui.coach.CoachScreen(Modifier.fillMaxSize())
                 "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())
                 "vitals" -> com.nutriai.ui.vitals.VitalsScreen(Modifier.fillMaxSize())
+                "medications" -> com.nutriai.ui.medications.MedicationsScreen(Modifier.fillMaxSize())
                 "checkin" -> CheckinScreen(Modifier.fillMaxSize())
                 "body" -> BodyScreen(Modifier.fillMaxSize())
                 "barcode" -> BarcodeScreen(Modifier.fillMaxSize())

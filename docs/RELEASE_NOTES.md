@@ -1,7 +1,29 @@
-# Kaizen — Release Notes (Build-Bible pass)
+# Kaizen — Release Notes
 
 _Small Habits. Big Results._ Everything below is deterministic and runs at zero paid-API cost
 (`AI_PROVIDER=rules`); no metric or prediction comes from an LLM.
+
+## Health-Depth pass (latest)
+
+- **Vitals & labs as a time-series** — log BP, resting HR, glucose, HbA1c, lipids, TSH, vitamin D,
+  ferritin, hemoglobin, weight, waist; see per-metric **trend charts** and **guideline-cited
+  educational bands** (ACC/AHA, ADA, NCEP ATP III, ATA…). Readings encrypted at rest; the risk
+  engine now sharpens off your latest labs. Not a diagnosis — always defers to a doctor.
+- **Medications & supplements** — track what you take, optional **dose reminders** (local, quiet-hours
+  aware), adherence, and a standing "Kaizen doesn't check drug interactions — ask your pharmacist"
+  note. Encrypted at rest.
+- **Deficiency → food fixes** — a real low nutrient now suggests **specific foods** that fit your
+  diet, allergies and budget (e.g. low iron → spinach, rajma, dates).
+- **Mood / stress / sleep check-in** — a gentle Mind-pillar entry that trends over time and, only on
+  *sustained* low mood, gently suggests talking to someone. Never a diagnosis.
+- **Richer risk + a red-flag safety net** — family history + smoking sharpen risk; serious symptom
+  text (chest pain, stroke signs, self-harm…) triggers a calm "seek urgent care" escalation that
+  never reassures or diagnoses.
+- **Mind is now a first-class 5th tab.**
+- **Security** — Redis-backed rate limiting with automatic in-memory fallback + stricter AI/report
+  throttling; PeriodLog symptom/flow/mood/notes encrypted (dates stay indexed for the cycle math).
+
+## Build-Bible pass
 
 ## Highlights this pass
 

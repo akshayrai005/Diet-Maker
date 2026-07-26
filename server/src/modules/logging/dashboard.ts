@@ -129,6 +129,8 @@ export interface MicronutrientBlock {
   targets: MicronutrientTargetView[];
   /** Actionable, food-source tips for the biggest computed gaps. */
   tips: string[];
+  /** Specific diet-compatible foods per real deficiency (respects diet/allergies/budget). */
+  foodFixes?: { key: string; label: string; foods: string[]; note: string }[];
 }
 
 /** Assembles the dashboard payload. Pure — the service just feeds it fetched data. */

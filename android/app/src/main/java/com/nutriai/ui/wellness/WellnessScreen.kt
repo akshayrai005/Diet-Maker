@@ -129,6 +129,9 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
     ) {
         item { Hero() }
 
+        // Mind pillar — daily mood / stress / sleep check-in with a supportive insight.
+        item { com.nutriai.ui.mind.MoodCheckinCard() }
+
         state.toast?.let { msg ->
             item {
                 Card(

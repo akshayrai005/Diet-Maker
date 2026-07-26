@@ -263,6 +263,42 @@ interface NutriApi {
     @GET("vitals/summary")
     suspend fun vitalsSummary(): com.nutriai.data.remote.dto.VitalsSummaryResponse
 
+    // ---- Medications & supplements ----
+    @GET("medications")
+    suspend fun medications(): com.nutriai.data.remote.dto.MedicationsEnvelope
+
+    @POST("medications")
+    suspend fun createMedication(@Body body: com.nutriai.data.remote.dto.MedicationRequest): com.nutriai.data.remote.dto.MedicationEnvelope
+
+    @PUT("medications/{id}")
+    suspend fun updateMedication(
+        @Path("id") id: String,
+        @Body body: com.nutriai.data.remote.dto.MedicationRequest,
+    ): com.nutriai.data.remote.dto.MedicationEnvelope
+
+    @retrofit2.http.PATCH("medications/{id}/active")
+    suspend fun setMedicationActive(
+        @Path("id") id: String,
+        @Body body: com.nutriai.data.remote.dto.MedicationActiveRequest,
+    ): retrofit2.Response<Unit>
+
+    @retrofit2.http.DELETE("medications/{id}")
+    suspend fun deleteMedication(@Path("id") id: String): retrofit2.Response<Unit>
+
+    @POST("medications/{id}/log")
+    suspend fun logMedication(@Path("id") id: String): retrofit2.Response<Unit>
+
+    // ---- Mood / stress / sleep check-in ----
+    @POST("checkins/mood")
+    suspend fun createMoodCheckin(@Body body: com.nutriai.data.remote.dto.MoodCheckinRequest): com.nutriai.data.remote.dto.MoodCheckinEnvelope
+
+    @GET("checkins/mood")
+    suspend fun moodCheckins(): com.nutriai.data.remote.dto.MoodSeriesResponse
+
+    // ---- Red-flag safety net ----
+    @POST("safety/red-flags")
+    suspend fun redFlags(@Body body: com.nutriai.data.remote.dto.RedFlagRequest): com.nutriai.data.remote.dto.RedFlagResponse
+
     // ---- Account ----
     @GET("auth/me")
     suspend fun me(): com.nutriai.data.remote.dto.MeResponse

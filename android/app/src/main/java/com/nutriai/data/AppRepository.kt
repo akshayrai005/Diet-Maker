@@ -349,6 +349,56 @@ class AppRepository @Inject constructor(
     suspend fun vitalsSummary(): Result<com.nutriai.data.remote.dto.VitalsSummaryResponse> =
         runCatching { api.vitalsSummary() }
 
+    // ---- Medications & supplements ----
+    suspend fun medications(): Result<com.nutriai.data.remote.dto.MedicationsEnvelope> =
+        runCatching { api.medications() }
+
+    suspend fun createMedication(body: com.nutriai.data.remote.dto.MedicationRequest): Result<com.nutriai.data.remote.dto.MedicationDto> =
+        runCatching { api.createMedication(body).medication }
+
+    suspend fun updateMedication(id: String, body: com.nutriai.data.remote.dto.MedicationRequest): Result<com.nutriai.data.remote.dto.MedicationDto> =
+        runCatching { api.updateMedication(id, body).medication }
+
+    suspend fun setMedicationActive(id: String, active: Boolean): Result<Unit> = runCatching {
+        val res = api.setMedicationActive(id, com.nutriai.data.remote.dto.MedicationActiveRequest(active))
+        if (!res.isSuccessful) error("Couldn't update")
+        Unit
+    }
+
+    suspend fun deleteMedication(id: String): Result<Unit> = runCatching {
+        val res = api.deleteMedication(id)
+        if (!res.isSuccessful) error("Couldn't delete")
+        Unit
+    }
+
+    suspend fun logMedication(id: String): Result<Unit> = runCatching {
+        val res = api.logMedication(id)
+        if (!res.isSuccessful) error("Couldn't log")
+        Unit
+    }
+
+    // ---- Mood / stress / sleep check-in ----
+    suspend fun saveMoodCheckin(
+        mood: Int? = null,
+        stress: Int? = null,
+        sleepQuality: Int? = null,
+        notes: String? = null,
+    ): Result<Unit> = runCatching {
+        api.createMoodCheckin(
+            com.nutriai.data.remote.dto.MoodCheckinRequest(
+                mood = mood, stress = stress, sleepQuality = sleepQuality, notes = notes,
+            ),
+        )
+        Unit
+    }
+
+    suspend fun moodCheckins(): Result<com.nutriai.data.remote.dto.MoodSeriesResponse> =
+        runCatching { api.moodCheckins() }
+
+    // ---- Red-flag safety net ----
+    suspend fun checkRedFlags(text: String): Result<com.nutriai.data.remote.dto.RedFlagResponse> =
+        runCatching { api.redFlags(com.nutriai.data.remote.dto.RedFlagRequest(text)) }
+
     suspend fun deleteAccount(): Result<Unit> = runCatching { api.deleteAccount() }
 
     suspend fun me(): Result<com.nutriai.data.remote.dto.PublicUser> = runCatching { api.me().user }

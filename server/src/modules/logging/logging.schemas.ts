@@ -48,10 +48,22 @@ export const checkinSchema = z.object({
   energy: z.number().int().min(1).max(5).optional(),
   sleepHours: z.number().min(0).max(24).optional(),
   mood: z.number().int().min(1).max(5).optional(),
+  stress: z.number().int().min(1).max(5).optional(),
+  sleepQuality: z.number().int().min(1).max(5).optional(),
   pain: z.number().int().min(1).max(5).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+/** A quick Mind-pillar check-in — mood/stress/sleep-quality only, no weigh-in required. */
+export const moodCheckinSchema = z.object({
+  date: z.string().datetime().optional(),
+  mood: z.number().int().min(1).max(5).optional(),
+  stress: z.number().int().min(1).max(5).optional(),
+  sleepQuality: z.number().int().min(1).max(5).optional(),
   notes: z.string().max(500).optional(),
 });
 
 export type FoodLogBody = z.infer<typeof foodLogSchema>;
 export type WaterLogBody = z.infer<typeof waterLogSchema>;
 export type CheckinBody = z.infer<typeof checkinSchema>;
+export type MoodCheckinBody = z.infer<typeof moodCheckinSchema>;

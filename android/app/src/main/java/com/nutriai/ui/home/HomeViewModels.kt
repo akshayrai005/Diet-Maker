@@ -215,7 +215,11 @@ class PlanViewModel @Inject constructor(
 // ---- Chat ----
 data class ChatMessage(val fromUser: Boolean, val text: String)
 
-data class ChatState(val messages: List<ChatMessage> = emptyList(), val sending: Boolean = false)
+data class ChatState(
+    val messages: List<ChatMessage> = emptyList(),
+    val sending: Boolean = false,
+    val redFlagMessage: String? = null,
+)
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -242,13 +246,21 @@ class ChatViewModel @Inject constructor(
     fun send(text: String) {
         if (text.isBlank()) return
         val history = _state.value.messages + ChatMessage(true, text)
-        _state.value = ChatState(messages = history, sending = true)
+        _state.value = _state.value.copy(messages = history, sending = true)
+        // Red-flag safety net — runs alongside the normal reply, never suppresses it.
+        viewModelScope.launch {
+            repository.checkRedFlags(text).getOrNull()?.let { rf ->
+                if (rf.urgent) _state.value = _state.value.copy(redFlagMessage = rf.message)
+            }
+        }
         viewModelScope.launch {
             val r = repository.chat(text)
             val reply = r.getOrNull()?.reply ?: (r.exceptionOrNull()?.message ?: "Sorry, I couldn't answer that.")
-            _state.value = ChatState(messages = history + ChatMessage(false, reply), sending = false)
+            _state.value = _state.value.copy(messages = history + ChatMessage(false, reply), sending = false)
         }
     }
+
+    fun clearRedFlag() { _state.value = _state.value.copy(redFlagMessage = null) }
 }
 
 // ---- Food logging ----

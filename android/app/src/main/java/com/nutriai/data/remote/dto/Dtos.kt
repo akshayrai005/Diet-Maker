@@ -74,6 +74,9 @@ data class SensitiveData(
     val smoking: String? = null,
     val alcohol: String? = null,
     val contraception: String? = null,
+    // Phase 4: family history of chronic conditions (diabetes, heart_disease, hypertension,
+    // stroke, cancer, thyroid). Optional/additive — older payloads simply omit it.
+    val familyHistory: List<String> = emptyList(),
 )
 
 // ---- Workout / exercise plan ----
@@ -277,6 +280,15 @@ data class MicronutrientTarget(
     val low: Boolean = false,
 )
 
+/** A deficiency → food-source fix suggestion (may be empty/absent on older payloads). */
+@Serializable
+data class FoodFix(
+    val key: String = "",
+    val label: String = "",
+    val foods: List<String> = emptyList(),
+    val note: String = "",
+)
+
 @Serializable
 data class Micronutrients(
     val available: Boolean = false,
@@ -284,6 +296,7 @@ data class Micronutrients(
     val coveragePct: Int? = null,
     val targets: List<MicronutrientTarget> = emptyList(),
     val tips: List<String> = emptyList(),
+    val foodFixes: List<FoodFix> = emptyList(),
 )
 
 @Serializable
@@ -1003,4 +1016,93 @@ data class LogVitalRequest(
 data class LogVitalResponse(
     val point: VitalPoint = VitalPoint(),
     val classification: VitalClassification? = null,
+)
+
+// ---- Medications & supplements ----
+@Serializable
+data class MedicationDto(
+    val id: String = "",
+    val type: String = "med", // "med" | "supplement"
+    val active: Boolean = true,
+    val name: String = "",
+    val dose: String? = null,
+    val times: List<String> = emptyList(), // "HH:mm"
+    val notes: String? = null,
+    val takenToday: Int = 0,
+    val createdAt: String = "",
+)
+
+@Serializable
+data class MedicationsEnvelope(
+    val medications: List<MedicationDto> = emptyList(),
+    val disclaimer: String = "",
+)
+
+@Serializable
+data class MedicationEnvelope(val medication: MedicationDto = MedicationDto())
+
+@Serializable
+data class MedicationRequest(
+    val type: String,
+    val name: String,
+    val dose: String? = null,
+    val times: List<String>? = null,
+    val notes: String? = null,
+    val active: Boolean? = null,
+)
+
+@Serializable
+data class MedicationActiveRequest(val active: Boolean)
+
+// ---- Mood / stress / sleep check-in (Mind pillar) ----
+@Serializable
+data class MoodCheckinRequest(
+    val date: String? = null,
+    val mood: Int? = null,
+    val stress: Int? = null,
+    val sleepQuality: Int? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class MoodPoint(
+    val date: String = "",
+    val mood: Int? = null,
+    val stress: Int? = null,
+    val sleepQuality: Int? = null,
+)
+
+@Serializable
+data class MoodCheckinEnvelope(val checkin: MoodPoint = MoodPoint())
+
+@Serializable
+data class MoodInsightDto(
+    val entryCount: Int = 0,
+    val avgMood: Double? = null,
+    val avgStress: Double? = null,
+    val avgSleepQuality: Double? = null,
+    val direction: String = "",
+    val message: String = "",
+    val professionalNudge: Boolean = false,
+    val disclaimer: String = "",
+)
+
+@Serializable
+data class MoodSeriesResponse(
+    val series: List<MoodPoint> = emptyList(),
+    val insight: MoodInsightDto = MoodInsightDto(),
+)
+
+// ---- Red-flag safety net (free-text symptom triage) ----
+@Serializable
+data class RedFlagRequest(val text: String)
+
+@Serializable
+data class RedFlagMatch(val id: String = "", val label: String = "")
+
+@Serializable
+data class RedFlagResponse(
+    val urgent: Boolean = false,
+    val matched: List<RedFlagMatch> = emptyList(),
+    val message: String = "",
 )

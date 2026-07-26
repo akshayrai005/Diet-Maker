@@ -80,9 +80,13 @@ export const sensitiveSchema = z.object({
   fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
   /** How hard the user wants to push the workout (safety-capped for minors / medical). */
   intensityPreference: z.enum(['easy', 'standard', 'hard', 'beast']).optional(),
-  /** Lifestyle factors used for menstrual-health and general guidance. */
+  /** Lifestyle factors used for menstrual-health and general guidance + risk stratification. */
   smoking: z.enum(['no', 'occasional', 'regular']).optional(),
   alcohol: z.enum(['no', 'occasional', 'regular']).optional(),
+  /** Family history of major conditions — sharpens (never diagnoses) cardiometabolic risk. */
+  familyHistory: z
+    .array(z.enum(['diabetes', 'heart_disease', 'hypertension', 'stroke', 'cancer', 'thyroid']))
+    .optional(),
   /** Contraceptive method — prevents false pregnancy/irregularity alarms for hormonal methods. */
   contraception: z.enum(['none', 'pill', 'hormonal_iud', 'implant', 'injection', 'other']).optional(),
 });

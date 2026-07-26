@@ -67,6 +67,28 @@ fun MicronutrientsCard(m: Micronutrients, modifier: Modifier = Modifier) {
                 Text("• $tip", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
+            // Deficiency → food fixes: for each low nutrient, concrete foods to eat more of.
+            m.foodFixes.filter { it.foods.isNotEmpty() }.forEach { fix ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        "Low on ${fix.label} → try: ${fix.foods.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (fix.note.isNotBlank()) {
+                        Text(fix.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
             if (noData.isNotEmpty()) {
                 Text(
                     "No data yet: ${noData.joinToString(", ") { it.label }}",

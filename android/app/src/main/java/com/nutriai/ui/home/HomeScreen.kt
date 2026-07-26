@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +58,8 @@ private val TABS = listOf(
     TabItem("home", "Home", Icons.Filled.Home),
     TabItem("diet", "Diet", Icons.Filled.Restaurant),
     TabItem("move", "Move", Icons.Filled.FitnessCenter),
+    // Mind is a first-class destination reflecting its 25% weight (mood check-in + yoga + meditation).
+    TabItem("mind", "Mind", Icons.Filled.SelfImprovement),
     TabItem("me", "Me", Icons.Filled.Person),
 )
 
@@ -144,6 +147,7 @@ fun HomeScreen(
             }
             composable("diet") { com.nutriai.ui.diet.DietScreen(Modifier.fillMaxSize()) }
             composable("move") { com.nutriai.ui.move.MoveScreen(Modifier.fillMaxSize()) }
+            composable("mind") { com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize()) }
             composable("me") {
                 MoreScreen(
                     Modifier.fillMaxSize(),

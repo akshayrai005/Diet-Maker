@@ -56,3 +56,33 @@ trend of [] -> "Add at least two readings to see a trend."
 
 **Result: Phase 1 acceptance met** — vitals/labs persist as an encrypted time-series with trend
 charts + cited educational bands; the risk engine uses the new labs; nothing diagnoses.
+
+---
+
+## Phases 2–6 — engine evidence (real function output)
+
+```
+PRIYA (veg, budget) low iron + B12 →
+  Iron: Spinach (palak), Rajma, Dates, Pumpkin seeds | B12: Milk/curd, Fortified cereals/yeast
+  (veg-only, budget-first ordering; no meat/fish suggested)
+MEERA sustained low mood [2,2,1] → professionalNudge=true, supportive (non-diagnostic) message
+RAHUL types "crushing chest pain" → red-flag urgent=true → "Possible heart attack" → seek-care escalation
+RAHUL (regular smoker + family history + overweight) risk → obesity, smoking, family_history
+```
+
+- **Phase 2 (meds):** Rahul adds a BP med with a morning time → a per-(med,time) HIGH-channel
+  reminder is scheduled (reuses the clock-anchored re-arm pattern), cancels on toggle-off/delete;
+  the pharmacist/doctor "no interaction checking" disclaimer is shown prominently. ✅
+- **Phase 3 (deficiency→food + mood):** each real deficiency yields specific diet/allergen/budget-
+  compatible foods; mood/stress/sleep check-in persists, trends, and raises a gentle professional
+  nudge ONLY on sustained low mood (3 consecutive ≤2), never on a single bad day. ✅
+- **Phase 4 (richer risk + red-flag):** family history + smoking feed risk stratification (family
+  history only surfaces alongside another signal, never a lone alarm); the red-flag net escalates
+  serious symptom text to "seek urgent care" and never reassures or diagnoses. ✅
+- **Phase 6 (security):** AI/report endpoints throttled separately (40/15min) on a Redis-backed
+  limiter with automatic in-memory fallback; PeriodLog symptom/flow/mood/notes encrypted while the
+  date-only cycle math still works. ✅
+
+> Method caveat unchanged: behavioural acceptance verified against the deterministic engine (the
+> source of truth the UI renders) + Android compile via CI; on-device visual/UX QA is the remaining
+> real-user loop (needs a physical debug build — the one part that can't run in this environment).

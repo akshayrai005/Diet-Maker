@@ -1,30 +1,44 @@
 # Kaizen — Honest Self-Rating
 
-_As of the Build-Bible pass (phases 0–7, 9 complete + CI-green; phase 8 partial; phase 10 = this doc + the human-QA loop you run on a device). Rated 1–10 with justification and the top gaps to reach 9.8._
+_Updated after the **Health-Depth pass** (vitals/labs time-series, medication tracking, deficiency→food
+loop, mood/stress/sleep check-in, richer risk + red-flag safety net, Redis + PeriodLog security, Mind
+first-class). Rated 1–10 with justification and the top gaps to reach 9.8._
 
 ## Per-pillar
 
 | Area | Score | Why | Top gap to 9+ |
 |---|---|---|---|
-| **Diet (60%)** | 8.5 | 22-nutrient panel vs RDA with **honest no-data** (never a fake deficiency), budget/pantry-aware plans, cited DRI/ICMR-NIN values, guardrails intact. | Micronutrient intake is a *category estimate*, not per-food lab data; `dietStrictness` doesn't yet flex macro bands; pantry is a tag list, not a rich picker. |
-| **Exercise (part of 25%)** | 8.5 | Scales Beginner→Beast with real volume/rest/split changes, **safety caps** for under-18/medical, auto level-up/ease-down, per-exercise form cues, tap-to-log + progressive overload. | Exercise library is template-based (no per-user movement swaps yet); form cues are short text (zero-cost constraint — no video). |
-| **Mind (part of 25%)** | 8 | Logged + streaked yoga/meditation/breathing, time+mood suggestion, difficulty range (2-min → 20-min), guided breathing with a11y. | Yoga flows have "mark done" but not a per-pose guided timer like meditations. |
-| **Discipline (15%)** | 8 | Habits with per-habit streaks, explainable adherence score, custom create/delete, non-punitive missed-day recovery, evening review. | `disciplineMode` (Gentle/Standard/Hardcore) not yet wired to expectations. |
-| **Coach intelligence** | 8.5 | Deterministic 0–100 rating + A–F, renormalised on missing data, coach-voice narrative, honest next-month prediction, **intake-vs-scale disagreement flag**; nothing from an LLM. | A dedicated full-screen "Your Analysis" (beyond the Home card + HTML report) would sharpen it. |
-| **Reminders** | 7 | Workout pre-alert at the user's set time (10-min lead), HIGH heads-up channel, quiet hours, hourly hydration, **survives reboot** (BOOT_COMPLETED). | **Step-aware walk nudge** (Health Connect reads in a worker) not built — device-critical, needs on-device verification. |
-| **Security/privacy** | 8 | Encrypted `Profile.sensitiveEnc` + now `ChatMessage`, **key-versioning** for rotation, soft-delete + restore + scheduled purge, guardrails + disclaimers everywhere. | Redis rate-limit not wired (in-memory stands); `PeriodLog` dates left plaintext (the cycle engine queries them — encrypting breaks it). |
-| **UX / accessibility** | 6.5 | Kaizen rebrand (real splash art + logo), pastel theme + accent/theme picker, a11y on every **new** screen, honest empty states. | **Phase 8 is the main gap**: onboarding is still one screen (not a multi-step wizard w/ plan-preview), older screens not a11y-retrofitted, no downloadable Google font, no shared design-token components. |
+| **Diet (60%)** | 8.7 | 22-nutrient panel vs RDA with honest no-data; **deficiency → specific diet/allergen/budget-compatible foods** (cited); budget/pantry-aware plans; guardrails intact. | Intake is a category estimate, not per-food lab data; `dietStrictness` still doesn't flex macro bands. |
+| **Exercise** | 8.5 | Beginner→Beast scaling with real volume/rest/split, under-18/medical safety caps, auto level-change, form cues, tap-to-log + overload. | Template library (no per-user movement swaps); text-only cues (zero-cost). |
+| **Mind** | 8.3 | Now a **first-class 5th tab**; logged yoga/meditation/breathing + **mood/stress/sleep check-in** with a supportive, non-diagnostic trend insight and a gentle professional nudge on sustained low mood. | Yoga flows still "mark done", not per-pose guided timer; mood insight not yet fed into plan adaptation. |
+| **Discipline** | 8 | Per-habit streaks, explainable adherence, custom habits, non-punitive recovery, evening review. | `disciplineMode` not wired to expectations. |
+| **Health tracking (NEW)** | 8.5 | **Vitals & labs as an encrypted time-series** — 13 metrics, trend charts, guideline-cited educational bands (ACC/AHA, ADA, NCEP, ATA…); **medication/supplement tracking** with dose reminders + interaction disclaimer; risk engine sharpened by real labs. | On-device visual QA of the new screens pending; medication adherence % not yet surfaced on Home. |
+| **Coach / safety** | 8.7 | Deterministic rating + narrative; risk now uses **HbA1c + lipids + TSH + family history + smoking**; **conservative red-flag net** escalates serious symptoms to "seek care" (never diagnoses/reassures); nothing numeric from an LLM. | A dedicated full-screen analysis; red-flag net is intentionally small/standard. |
+| **Reminders** | 8 | Workout pre-alert, HIGH heads-up channel, quiet hours, hydration, **step-aware walk nudge**, **per-med dose reminders**, survives reboot. | Walk/med reminders need on-device firing verification. |
+| **Security/privacy** | 8.7 | Key-versioned encryption across profile/chat/**vitals/meds/period-details**; **Redis rate-limit with in-memory fallback + stricter AI/report throttle**; soft-delete + purge; tradeoffs documented in SECURITY.md. | Redis path unexercised without a Redis instance (fallback is what runs on free tier). |
+| **UX / accessibility** | 7 | Rebrand + white login, a11y on every **new** screen, loading skeletons, honest empty states, Mind promoted. | **Biggest remaining gap:** exhaustive TalkBack/48dp retrofit of all ~40 older screens, an offline-bundled warm font (needs the font binary — deferred), and full design-token/component unification + dark-mode audit. |
 
-## Whole app: **8.0 / 10**
+## Whole app: **8.6 / 10**
 
-Rock-solid where it counts — deterministic, explainable, honest, kind, zero-cost, and now broad across all four pillars with real scaling and safety. It loses points on **visual polish/onboarding delight (Phase 8)** and **device-verified reminders (walk nudge)**, plus the **real-user QA loop (Phase 10)** which by definition needs 5 humans on real devices.
+The health depth added this pass is the real jump: it now tracks vitals/labs as trends with cited
+educational bands, captures medications with reminders, closes the deficiency→food loop, listens to
+mood, stratifies risk off real labs + family history, and has a conservative emergency safety net —
+all deterministic, cited, encrypted, and non-diagnostic. It still loses points on **exhaustive
+accessibility + the offline font + design-token polish** and, by definition, on the **real-user QA
+loop** which needs 5 humans on physical devices.
 
-## The path to 9.8 (honest)
-1. **Phase 8 design pass** — multi-step onboarding wizard with a plan-preview payoff; downloadable warm font + larger type scale; full TalkBack/48dp retrofit of older screens; shared components + dark-mode audit.
-2. **Walk nudge** — Health Connect step-aware reminder, verified firing on a device.
-3. **Redis rate-limit** + AI/report endpoint throttling.
-4. **Phase 10 loop** — put it in front of 5 real people, watch them use it unaided, fix the top 10 trip-ups. This last loop is what turns 8.0 into 9.8; it cannot be self-declared.
+## The path to 9.8 (honest, remaining)
+1. **Full accessibility sweep** of the ~40 older screens (contentDescription/48dp/font-scale/TalkBack),
+   **offline-bundled font** (once a licensed .ttf is added to `res/font/`), and shared design-token
+   components + a dark-mode audit of every screen. _(Phase 5 partially done: Mind is first-class,
+   new screens are a11y-clean; the exhaustive retrofit + font binary remain.)_
+2. **On-device verification** of the new screens + walk/med reminders firing.
+3. **Real-user loop** — 5 people (student, worker, gym-goer, health-flag user, older/less-techy),
+   watched unaided through onboard → plan → log → coach → vitals → reminder → dark mode + large font
+   + TalkBack; fix the top ~10 trip-ups. This last loop is what turns 8.6 into 9.8 — it cannot be
+   self-declared.
 
 ## Verification state
-- `cd server && npm run build` → 0 errors. `npx vitest run` → **331 tests / 35 files** green. (`npm test` is watch mode.)
-- Android `assembleDebug` green on CI through phase 7; phase 9 is server-only.
+- `cd server && npm ci && npx prisma generate && npm run build` → **0 errors**.
+- `npx vitest run` → **387 tests / 40 files** green (`npm test` is watch mode — don't use in CI).
+- Android `assembleDebug` verified green on CI (akshayrai005). Migrations are additive; no secrets committed.

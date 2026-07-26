@@ -33,6 +33,9 @@ export async function getRiskAssessment(
     triglycerides: labs.triglycerides,
     tsh: labs.tsh,
     conditions: sensitive.conditions,
+    familyHistory: (sensitive as { familyHistory?: string[] }).familyHistory,
+    smoking: (sensitive as { smoking?: 'no' | 'occasional' | 'regular' }).smoking,
+    alcohol: (sensitive as { alcohol?: 'no' | 'occasional' | 'regular' }).alcohol,
     sleepHours: extra?.sleepHours,
     hydrationPct: extra?.hydrationPct,
   });

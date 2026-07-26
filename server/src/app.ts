@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import { randomUUID } from 'node:crypto';
 import { corsOrigins } from './lib/env';
 import { errorHandler, notFound } from './middleware/error';
-import { createRateLimit } from './middleware/rateLimit';
+import { createRateLimit, createDistributedRateLimit } from './middleware/rateLimit';
 import { healthRouter, API_VERSION } from './modules/health/health.routes';
 import { authRouter } from './modules/auth/auth.routes';
 import { profileRouter } from './modules/profile/profile.routes';
@@ -27,6 +27,8 @@ import { coachRouter } from './modules/coach/coach.routes';
 import { disciplineRouter } from './modules/discipline/discipline.routes';
 import { remindersRouter } from './modules/reminders/reminders.routes';
 import { vitalsRouter } from './modules/vitals/vitals.routes';
+import { medicationsRouter } from './modules/medications/medications.routes';
+import { safetyRouter } from './modules/safety/safety.routes';
 
 /**
  * Builds the Express app. Kept free of `listen()` so tests can import it directly
@@ -56,8 +58,11 @@ export function createApp(): Express {
   app.use('/', healthRouter);
 
   // Global + stricter auth rate limits.
-  const globalLimit = createRateLimit({ windowMs: 15 * 60_000, max: 600 });
+  // Global limit is Redis-backed when REDIS_URL is set (shared across instances), else in-memory.
+  const globalLimit = createDistributedRateLimit({ windowMs: 15 * 60_000, max: 600 });
   const authLimit = createRateLimit({ windowMs: 15 * 60_000, max: 30, keyPrefix: 'auth:' });
+  // AI + report endpoints are far more expensive → throttled separately and much more strictly.
+  const aiLimit = createDistributedRateLimit({ windowMs: 15 * 60_000, max: 40, keyPrefix: 'ai:' });
 
   const api = express.Router();
   api.use(globalLimit);
@@ -68,23 +73,25 @@ export function createApp(): Express {
   api.use('/', profileRouter);
   api.use('/', planRouter);
   api.use('/', loggingRouter);
-  api.use('/', chatRouter);
-  api.use('/', reportsRouter);
+  api.use('/', aiLimit, chatRouter);
+  api.use('/', aiLimit, reportsRouter);
   api.use('/', accountRouter);
   api.use('/', familyRouter);
   api.use('/', exerciseRouter);
   api.use('/', guidanceRouter);
   api.use('/', cycleRouter);
   api.use('/', wellnessRouter);
-  api.use('/', visionRouter);
-  api.use('/', recipeRouter);
+  api.use('/', aiLimit, visionRouter);
+  api.use('/', aiLimit, recipeRouter);
   api.use('/', savedFoodRouter);
   api.use('/', riskRouter);
   api.use('/', ratingRouter);
-  api.use('/', coachRouter);
+  api.use('/', aiLimit, coachRouter);
   api.use('/', disciplineRouter);
   api.use('/', remindersRouter);
   api.use('/', vitalsRouter);
+  api.use('/', medicationsRouter);
+  api.use('/', safetyRouter);
   app.use('/api/v1', api);
 
   app.use(notFound);

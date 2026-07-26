@@ -83,4 +83,19 @@ describe('assessRisks', () => {
     expect(ids(assessRisks({ ...base, tsh: 2.0 }))).not.toContain('high_tsh');
     expect(ids(assessRisks({ ...base, tsh: 6.0, conditions: ['thyroid'] }))).not.toContain('high_tsh');
   });
+
+  it('flags regular smoking as its own high risk', () => {
+    expect(byId(assessRisks({ ...base, smoking: 'regular' }), 'smoking')?.level).toBe('high');
+    expect(ids(assessRisks({ ...base, smoking: 'no' }))).not.toContain('smoking');
+    expect(ids(assessRisks({ ...base, smoking: 'occasional' }))).not.toContain('smoking');
+  });
+
+  it('family history only surfaces alongside another cardiometabolic signal (no lone alarm)', () => {
+    // healthy profile + family history alone → no family_history finding
+    expect(ids(assessRisks({ ...base, familyHistory: ['diabetes'] }))).not.toContain('family_history');
+    // with an actual signal (overweight) it adds context
+    const r = assessRisks({ ...base, bmi: 26, familyHistory: ['heart_disease', 'diabetes'] });
+    expect(byId(r, 'family_history')?.level).toBe('moderate');
+    expect(byId(r, 'family_history')?.why).toMatch(/heart disease/);
+  });
 });

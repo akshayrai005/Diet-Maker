@@ -51,6 +51,12 @@ export interface RiskInput {
   hydrationPct?: number;
   /** Already-declared conditions (skip a risk we'd otherwise infer). */
   conditions?: string[];
+  /** Family history of major conditions (diabetes, heart_disease, hypertension, stroke, cancer, thyroid). */
+  familyHistory?: string[];
+  /** Smoking status. */
+  smoking?: 'no' | 'occasional' | 'regular';
+  /** Alcohol use. */
+  alcohol?: 'no' | 'occasional' | 'regular';
 }
 
 export interface RiskAssessment {
@@ -285,6 +291,39 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       recommendation: 'Front-load water earlier in the day; keep a bottle in sight.',
       nextAction: 'Have a glass of water now.',
     });
+  }
+
+  // --- Smoking (its own strong, independent risk) ---
+  if (input.smoking === 'regular') {
+    findings.push({
+      id: 'smoking',
+      label: 'Smoking raises your risk',
+      level: 'high',
+      why: 'Regular smoking is a leading cause of heart disease, stroke and cancer — it multiplies every other risk here.',
+      recommendation: 'Quitting is the single highest-impact thing you can do; support and nicotine replacement double success rates.',
+      nextAction: 'Ask a doctor or a quit-line about a stop-smoking plan.',
+    });
+  }
+
+  // --- Family history amplifies cardiometabolic risk (never a diagnosis on its own) ---
+  const fh = input.familyHistory ?? [];
+  const cardiometabolicFh = fh.filter((h) => ['diabetes', 'heart_disease', 'hypertension', 'stroke'].includes(h));
+  if (cardiometabolicFh.length > 0) {
+    // Only surface as context if there's at least one other cardiometabolic signal, so it sharpens
+    // rather than alarms out of nowhere.
+    const hasSignal = findings.some((f) =>
+      ['obesity', 'overweight', 'central_obesity', 'hypertension', 'prediabetes', 'diabetes', 'prediabetes_hba1c', 'diabetes_hba1c', 'high_ldl', 'high_triglycerides', 'low_hdl', 'smoking'].includes(f.id),
+    );
+    if (hasSignal) {
+      findings.push({
+        id: 'family_history',
+        label: 'Family history adds context',
+        level: 'moderate',
+        why: `You noted a family history of ${cardiometabolicFh.join(', ').replace(/_/g, ' ')}. That raises your baseline cardiometabolic risk alongside the signals above.`,
+        recommendation: 'It makes the lifestyle steps above matter more — and earlier, regular screening worthwhile.',
+        nextAction: 'Mention your family history to your doctor so screening can start at the right age.',
+      });
+    }
   }
 
   const rawScore = findings.reduce((s, f) => s + LEVEL_SCORE[f.level], 0);
