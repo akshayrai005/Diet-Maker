@@ -25,9 +25,12 @@ android/captures/
 android/.idea/
 android/local.properties
 *.iml
+.kotlin/
+android/.kotlin/
 
 # ---- OS / editors ----
 .DS_Store
 Thumbs.db
 .vscode/
+.idea/
 *.log
