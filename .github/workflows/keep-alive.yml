@@ -1,21 +1,22 @@
 name: Keep Render Backend Alive
 
+# IMPORTANT: the scheduled ping is DISABLED on purpose.
+# On Render's FREE tier a 5-minute ping keeps the service awake 24/7, which prevents the idle
+# spin-down that conserves your monthly free hours — that's what exhausts the free quota and gets
+# the service suspended. The Android splash already warms the backend on launch, so this cron is
+# both harmful and redundant. Re-enable a `schedule` trigger here ONLY on a paid instance.
 on:
-  schedule:
-    # every ~5 minutes (GitHub may delay scheduled runs under load; that's fine —
-    # Render's free tier only sleeps after ~15 min idle).
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+  workflow_dispatch: # manual only
 
 jobs:
   ping:
-    name: Ping NutriAI backend
+    name: Ping Kaizen backend
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
         run: |
-          echo "Pinging diet-maker-xja0.onrender.com/health ..."
-          STATUS=$(curl -o /dev/null -s -m 60 -w "%{http_code}" https://diet-maker-xja0.onrender.com/health)
+          echo "Pinging diet-maker-qry6.onrender.com/health ..."
+          STATUS=$(curl -o /dev/null -s -m 60 -w "%{http_code}" https://diet-maker-qry6.onrender.com/health)
           echo "Response status: $STATUS"
           if [ "$STATUS" -eq 200 ]; then
             echo "Server is alive!"

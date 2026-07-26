@@ -46,6 +46,6 @@ jobs:
           distribution: temurin
           java-version: 17
       - name: Provide local.properties
-        run: echo "API_BASE_URL=https://diet-maker-xja0.onrender.com/api/v1" > local.properties
+        run: echo "API_BASE_URL=https://diet-maker-qry6.onrender.com/api/v1" > local.properties
       - uses: gradle/actions/setup-gradle@v3
       - run: ./gradlew assembleDebug --no-daemon

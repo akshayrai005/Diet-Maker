@@ -15,7 +15,7 @@ val localProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 val apiBaseUrl: String =
-    (localProps.getProperty("API_BASE_URL") ?: "https://diet-maker-xja0.onrender.com/api/v1")
+    (localProps.getProperty("API_BASE_URL") ?: "https://diet-maker-qry6.onrender.com/api/v1")
 
 android {
     namespace = "com.nutriai"
