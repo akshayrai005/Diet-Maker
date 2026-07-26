@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { requireCompleteProfile } from '../profile/profile.service';
 import { computeCalcResult, type CalcResult } from './calcResult';
 import { physiqueNutrition, type PhysiqueGoal } from '../exercise/physique';
+import { goalTimeline } from '../../calc/goalTimeline';
 import type { ActivityLevel, Goal } from '../../calc/types';
 import type { Condition } from '../../guardrails';
 
@@ -24,9 +25,29 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
   const s = sensitive as { physiqueGoal?: PhysiqueGoal; conditions?: string[] };
   const weightLossBlocked =
     (s.conditions ?? []).some((c) => ['pregnancy', 'breastfeeding', 'cancer'].includes(c));
-  const effectiveGoal: Goal = s.physiqueGoal
+  let effectiveGoal: Goal = s.physiqueGoal
     ? physiqueNutrition(s.physiqueGoal, { isMinor: ageYears < 18, weightLossBlocked }).mappedGoal
     : (profile.goal as Goal);
+
+  // A chosen "reach target by N weeks" timeline drives a SAFE, clamped weekly rate — and takes
+  // precedence for the calorie direction (concrete intent), so picking a timeline changes the target.
+  const tw = (sensitive as { targetTimeframeWeeks?: number }).targetTimeframeWeeks;
+  let desiredWeeklyLossKg = sensitive.desiredWeeklyLossKg;
+  if (tw && sensitive.targetWeightKg) {
+    const timeline = goalTimeline({
+      currentWeightKg: sensitive.currentWeightKg,
+      targetWeightKg: sensitive.targetWeightKg,
+      desiredWeeks: tw,
+      isMinor: ageYears < 18,
+      weightLossBlocked,
+    });
+    if (!timeline.blocked && timeline.direction === 'lose') {
+      effectiveGoal = 'lose';
+      desiredWeeklyLossKg = timeline.desiredWeeklyLossKg;
+    } else if (!timeline.blocked && timeline.direction === 'gain') {
+      effectiveGoal = 'gain';
+    }
+  }
 
   const result = computeCalcResult({
     heightCm: profile.heightCm,
@@ -38,7 +59,7 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     goal: effectiveGoal,
     waistCm: sensitive.waistCm,
     conditions: sensitive.conditions as Condition[],
-    desiredWeeklyLossKg: sensitive.desiredWeeklyLossKg,
+    desiredWeeklyLossKg,
     clinicianOverride: sensitive.clinicianOverride,
     reducedMobility: profile.reducedMobility,
     climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,

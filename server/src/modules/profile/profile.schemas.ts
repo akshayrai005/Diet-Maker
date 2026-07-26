@@ -63,6 +63,8 @@ export const sensitiveSchema = z.object({
   conditions: z.array(z.enum(CONDITIONS)).default([]),
   allergies: z.array(z.string().max(60)).default([]),
   desiredWeeklyLossKg: z.number().positive().max(3).optional(),
+  /** "Reach target weight in N weeks" — drives a SAFE, clamped calorie target (goalTimeline). */
+  targetTimeframeWeeks: z.number().int().min(1).max(260).optional(),
   clinicianOverride: z.boolean().optional(),
   /** Optional weekly fasting day: 0=Sun .. 6=Sat. That day gets a light plan. */
   fastDayOfWeek: z.number().int().min(0).max(6).optional(),
@@ -121,6 +123,8 @@ export const calcPreviewSchema = z.object({
   waistCm: z.number().positive().max(300).optional(),
   conditions: z.array(z.enum(CONDITIONS)).default([]),
   desiredWeeklyLossKg: z.number().positive().max(3).optional(),
+  /** "Reach target weight in N weeks" — drives a SAFE, clamped calorie target (goalTimeline). */
+  targetTimeframeWeeks: z.number().int().min(1).max(260).optional(),
   clinicianOverride: z.boolean().optional(),
   reducedMobility: z.boolean().optional(),
 });

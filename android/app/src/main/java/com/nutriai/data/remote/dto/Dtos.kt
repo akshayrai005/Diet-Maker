@@ -82,6 +82,37 @@ data class SensitiveData(
     // priorityMuscles ⊆ shoulders, back, chest, arms, legs, glutes, core (max 4).
     val physiqueGoal: String? = null,
     val priorityMuscles: List<String> = emptyList(),
+    // Goal-timeline: how fast the user wants to reach targetWeightKg, in weeks (1–260).
+    // Optional/additive — the server clamps to a safe pace and older payloads simply omit it.
+    val targetTimeframeWeeks: Int? = null,
+)
+
+// ---- Goal timeline (safe-pace preview) ----
+@Serializable
+data class GoalTimelineRequest(
+    val targetWeightKg: Double,
+    val desiredWeeks: Int,
+)
+
+/**
+ * Server's safe-pace assessment for reaching [GoalTimelineRequest.targetWeightKg] in the requested
+ * time. All fields are defaulted so a partial/older payload still decodes. `direction` is one of
+ * "lose" | "gain" | "maintain"; when `blocked` is true the client shows only `message`.
+ */
+@Serializable
+data class GoalTimeline(
+    val direction: String = "maintain",
+    val totalChangeKg: Double = 0.0,
+    val requestedWeeklyRateKg: Double = 0.0,
+    val safeWeeklyRateKg: Double = 0.0,
+    val clamped: Boolean = false,
+    val realisticWeeks: Int = 0,
+    val realisticMonths: Double = 0.0,
+    val desiredWeeklyLossKg: Double = 0.0,
+    val dailyKcalDelta: Int = 0,
+    val blocked: Boolean = false,
+    val message: String = "",
+    val disclaimer: String = "",
 )
 
 // ---- Workout / exercise plan ----

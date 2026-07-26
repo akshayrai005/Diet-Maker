@@ -1,5 +1,6 @@
 package com.nutriai.ui.onboarding
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -97,6 +98,13 @@ private val ACTIVITY = listOf(
     "veryactive" to "Very active",
 )
 private val GOAL = listOf("lose" to "Lose weight", "maintain" to "Maintain", "gain" to "Gain muscle")
+// Timeframe options as (months, label). Months → weeks uses month × 4.345 (avg weeks/month), rounded.
+private val TIMEFRAMES: List<Pair<Int, String>> = listOf(
+    1 to "1 month", 2 to "2 months", 3 to "3 months", 6 to "6 months", 12 to "12 months",
+)
+
+/** Average-length month → whole weeks (month × 4.345, rounded): 1→4, 2→9, 3→13, 6→26, 12→52. */
+private fun monthsToWeeks(months: Int): Int = Math.round(months * 4.345).toInt()
 private val DIET = listOf(
     "veg" to "Vegetarian", "eggetarian" to "Eggetarian", "nonveg" to "Non-veg",
     "vegan" to "Vegan", "jain" to "Jain", "keto" to "Keto", "highprotein" to "High-protein",
@@ -149,6 +157,7 @@ fun OnboardingScreen(
     var intensity by remember { mutableStateOf("standard") }
     var activity by remember { mutableStateOf("moderate") }
     var goal by remember { mutableStateOf("lose") }
+    var timeframeWeeks by remember { mutableStateOf<Int?>(null) }
     var diet by remember { mutableStateOf("nonveg") }
     val conditions = remember { mutableStateListOf<String>() }
     val familyHistory = remember { mutableStateListOf<String>() }
@@ -191,6 +200,21 @@ fun OnboardingScreen(
             contraception = s.contraception ?: contraception
             physiqueGoal = s.physiqueGoal
             priorityMuscles.clear(); priorityMuscles.addAll(s.priorityMuscles.take(MAX_PRIORITY_MUSCLES))
+            timeframeWeeks = s.targetTimeframeWeeks ?: timeframeWeeks
+        }
+    }
+
+    // Live, debounced safe-pace preview: whenever a valid target + timeframe are set, ask the server.
+    // Keying on both values restarts the effect (cancelling the pending delay) so we only fire once
+    // the user pauses; the ViewModel additionally cancels any in-flight request.
+    LaunchedEffect(target, timeframeWeeks) {
+        val t = target.toDoubleOrNull()
+        val w = timeframeWeeks
+        if (t != null && w != null) {
+            kotlinx.coroutines.delay(450)
+            viewModel.previewTimeline(t, w)
+        } else {
+            viewModel.clearTimeline()
         }
     }
     val age = remember(dob) { ageFromDob(dob) }
@@ -239,6 +263,7 @@ fun OnboardingScreen(
                         contraception = if (sex == "female") contraception else null,
                         physiqueGoal = physiqueGoal,
                         priorityMuscles = priorityMuscles.toList(),
+                        targetTimeframeWeeks = timeframeWeeks,
                     ),
                 ),
                 onDone,
@@ -285,6 +310,19 @@ fun OnboardingScreen(
                 }
                 1 -> {
                     Dropdown("Goal", GOAL, goal) { goal = it }
+
+                    Label("Timeframe")
+                    Text(
+                        "How soon would you like to reach your target weight? We'll pace it safely — " +
+                            "picking a shorter time won't rush your body past what's healthy.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
+                    if (state.timeline != null) {
+                        TimelinePreviewCard(state.timeline!!)
+                    }
+
                     Dropdown("Diet", DIET, diet) { diet = it }
                     Dropdown("Activity level", ACTIVITY, activity) { activity = it }
                     Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
@@ -551,6 +589,97 @@ private fun PriorityMusclesChips(options: List<String>, selected: MutableList<St
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .semantics { contentDescription = if (isSel) "$display, selected" else display },
+            )
+        }
+    }
+}
+
+/** Single-select timeframe chips (1/2/3/6/12 months). Emits the chosen months converted to weeks. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TimeframeChips(selectedWeeks: Int?, onSelect: (Int) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TIMEFRAMES.forEach { (months, label) ->
+            val weeks = monthsToWeeks(months)
+            val isSel = selectedWeeks == weeks
+            FilterChip(
+                selected = isSel,
+                onClick = { onSelect(weeks) },
+                label = { Text(label) },
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        contentDescription = if (isSel) "$label, selected timeframe" else "$label timeframe"
+                    },
+            )
+        }
+    }
+}
+
+/**
+ * Body-neutral preview of the server's safe-pace assessment. Encouraging, never shaming.
+ * When [timeline] is blocked we show only the message (no date/kcal) in a calm tertiary tone; a
+ * clamped-but-fine plan reads as a supportive "here's a sustainable pace". Disclaimer always shows.
+ */
+@Composable
+private fun TimelinePreviewCard(timeline: com.nutriai.data.remote.dto.GoalTimeline) {
+    val scheme = MaterialTheme.colorScheme
+    val blocked = timeline.blocked
+    val container = if (blocked) scheme.tertiaryContainer else scheme.secondaryContainer
+    val onContainer = if (blocked) scheme.onTertiaryContainer else scheme.onSecondaryContainer
+
+    // Realistic target date = today + the server's realistic weeks.
+    val monthYear = remember(timeline.realisticWeeks) {
+        java.time.LocalDate.now()
+            .plusWeeks(timeline.realisticWeeks.toLong())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy"))
+    }
+    val kcal = kotlin.math.abs(timeline.dailyKcalDelta)
+    val kcalWord = if (timeline.dailyKcalDelta > 0) "deficit" else "surplus"
+
+    val describe = buildString {
+        append(timeline.message)
+        if (!blocked) {
+            append(" On track for around ").append(monthYear).append('.')
+            if (timeline.dailyKcalDelta != 0) {
+                append(" About ").append(kcal).append(" kilocalories per day ").append(kcalWord).append('.')
+            }
+        }
+        if (timeline.disclaimer.isNotBlank()) append(' ').append(timeline.disclaimer)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(container)
+            .heightIn(min = 48.dp)
+            .padding(16.dp)
+            .semantics { contentDescription = describe },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (timeline.message.isNotBlank()) {
+            Text(timeline.message, style = MaterialTheme.typography.bodyMedium, color = onContainer)
+        }
+        if (!blocked) {
+            Text(
+                "On track for around $monthYear.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = onContainer,
+            )
+            if (timeline.dailyKcalDelta != 0) {
+                Text(
+                    "≈ $kcal kcal/day $kcalWord",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onContainer,
+                )
+            }
+        }
+        if (timeline.disclaimer.isNotBlank()) {
+            Text(
+                timeline.disclaimer,
+                style = MaterialTheme.typography.labelSmall,
+                color = onContainer.copy(alpha = 0.75f),
             )
         }
     }

@@ -1,12 +1,19 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { getProfile, upsertProfile } from './profile.service';
+import { getProfile, upsertProfile, requireCompleteProfile } from './profile.service';
 import { profileUpsertSchema, calcPreviewSchema } from './profile.schemas';
 import { computeCalcResult } from '../nutrition/calcResult';
-import { computeAndSaveForUser, latestCalcResult } from '../nutrition/calc.service';
+import { computeAndSaveForUser, latestCalcResult, ageFromDob } from '../nutrition/calc.service';
+import { goalTimeline } from '../../calc/goalTimeline';
 
 export const profileRouter = Router();
+
+const goalTimelineSchema = z.object({
+  targetWeightKg: z.number().positive().max(500),
+  desiredWeeks: z.number().int().min(1).max(260),
+});
 
 profileRouter.get(
   '/profile',
@@ -43,6 +50,27 @@ profileRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const result = await latestCalcResult(req.user!.id);
     res.json({ result });
+  }),
+);
+
+/** Live preview of a goal timeline for the user's current weight — safe, clamped; nothing stored. */
+profileRouter.post(
+  '/goal-timeline',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const body = goalTimelineSchema.parse(req.body);
+    const { profile, sensitive } = await requireCompleteProfile(req.user!.id);
+    void profile;
+    const weightLossBlocked = (sensitive.conditions ?? []).some((c) => ['pregnancy', 'breastfeeding', 'cancer'].includes(c));
+    res.json(
+      goalTimeline({
+        currentWeightKg: sensitive.currentWeightKg,
+        targetWeightKg: body.targetWeightKg,
+        desiredWeeks: body.desiredWeeks,
+        isMinor: ageFromDob(sensitive.dob) < 18,
+        weightLossBlocked,
+      }),
+    );
   }),
 );
 

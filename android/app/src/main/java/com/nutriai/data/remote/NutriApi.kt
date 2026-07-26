@@ -53,6 +53,11 @@ interface NutriApi {
     @PUT("profile")
     suspend fun putProfile(@Body body: ProfileUpsertRequest): ProfileEnvelope
 
+    @POST("goal-timeline")
+    suspend fun goalTimeline(
+        @Body body: com.nutriai.data.remote.dto.GoalTimelineRequest,
+    ): com.nutriai.data.remote.dto.GoalTimeline
+
     @POST("calc")
     suspend fun computeCalc(): CalcEnvelope
 
