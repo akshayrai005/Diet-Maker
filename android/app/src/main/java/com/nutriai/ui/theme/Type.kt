@@ -12,7 +12,7 @@ import com.nutriai.R
  * tighter tracking on large text, and a touch MORE size + line-height on body/label text so screens
  * feel roomier and warmer rather than cramped.
  *
- * Font: **Nunito** (SIL Open Font License) — a warm, rounded humanist family — is BUNDLED locally in
+ * Font: **Nunito** (SIL Open Font License) - a warm, rounded humanist family - is BUNDLED locally in
  * `res/font/` (latin subset, ~150 KB total). No runtime download / downloadable-font provider, so it
  * renders fully offline. It falls back to the system font automatically for any missing glyph. Sizes
  * are in sp, so everything still scales with the user's font-size accessibility setting.
@@ -56,7 +56,7 @@ val NutriTypography = Default.copy(
     titleLarge = Default.titleLarge.copy(fontWeight = FontWeight.Bold),
     titleMedium = Default.titleMedium.copy(fontWeight = FontWeight.SemiBold),
     titleSmall = Default.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-    // Roomier body/label text — a little larger with more line height for comfortable reading.
+    // Roomier body/label text - a little larger with more line height for comfortable reading.
     bodyLarge = Default.bodyLarge.copy(fontSize = 16.5.sp, lineHeight = 25.sp),
     bodyMedium = Default.bodyMedium.copy(fontSize = 14.5.sp, lineHeight = 21.sp),
     bodySmall = Default.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 17.sp),

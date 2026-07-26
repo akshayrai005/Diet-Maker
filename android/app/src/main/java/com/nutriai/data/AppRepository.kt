@@ -154,7 +154,7 @@ class AppRepository @Inject constructor(
      */
     suspend fun warmup(): Boolean {
         val root = com.nutriai.BuildConfig.API_BASE_URL.substringBefore("/api/v1")
-        // Gentle poll — the first ping triggers the cold boot; a few light retries catch when it's up.
+        // Gentle poll - the first ping triggers the cold boot; a few light retries catch when it's up.
         repeat(6) {
             val up = runCatching { api.ping("$root/health").isSuccessful }.getOrDefault(false)
             if (up) return true

@@ -25,7 +25,7 @@ export interface CalcProfileInput {
   desiredWeeklyLossKg?: number;
   clinicianOverride?: boolean;
   reducedMobility?: boolean;
-  /** Local climate — adapts the hydration target (hot climates need more). */
+  /** Local climate - adapts the hydration target (hot climates need more). */
   climate?: Climate;
 }
 
@@ -52,7 +52,7 @@ export interface CalcResult {
   flags: Flag[];
 }
 
-/** A free, deterministic "how you'll look" forecast — projected weight/BMI over time. */
+/** A free, deterministic "how you'll look" forecast - projected weight/BMI over time. */
 export interface ProjectionPoint {
   label: string;
   weeks: number;
@@ -122,7 +122,7 @@ export function computeCalcResult(input: CalcProfileInput): CalcResult {
   });
 
   // Scale protein to CURRENT weight (preserves lean mass in a deficit), but for obesity cap it
-  // at an adjusted body weight — ideal-max + 25% of the excess — so we don't over-dose protein
+  // at an adjusted body weight - ideal-max + 25% of the excess - so we don't over-dose protein
   // from fat mass. At or below a healthy weight, current weight is used directly.
   const idealMaxKg = anthro.idealWeight.maxKg;
   const proteinRefWeightKg =

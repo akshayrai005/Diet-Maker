@@ -44,7 +44,7 @@ export async function deleteExercise(userId: string, id: string) {
   if (res.count === 0) throw new HttpError(404, 'Exercise log not found');
 }
 
-/** Most recent performed set per exercise — progression hints ("last time: 40 kg × 8"). */
+/** Most recent performed set per exercise - progression hints ("last time: 40 kg × 8"). */
 export async function lastPerformance(
   userId: string,
 ): Promise<Record<string, { weightKg: number | null; reps: number | null; sets: number | null; performedAt: string }>> {

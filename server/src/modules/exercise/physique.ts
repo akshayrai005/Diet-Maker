@@ -2,7 +2,7 @@ import type { Goal } from '../../calc/types';
 import type { WeeklyWorkout } from './exercise.types';
 
 /**
- * Physique / aesthetic goals — deterministic, safety-first. A physique goal maps to a base calorie
+ * Physique / aesthetic goals - deterministic, safety-first. A physique goal maps to a base calorie
  * Goal (routed through the existing guardrail engine, so floors/caps/minor-blocks still apply) and a
  * protein hint, and priority muscle groups add extra training volume WITHIN the level's set caps.
  * Never an aggressive cut for minors or the medically weight-loss-blocked. Body-neutral. Pure & tested.
@@ -13,7 +13,7 @@ export type PhysiqueGoal = 'recomp' | 'lean_bulk' | 'cut' | 'maintain';
 export interface PhysiqueNutrition {
   /** The base Goal fed to the safe calorie engine. */
   mappedGoal: Goal;
-  /** Suggested protein (g per kg bodyweight) — higher when preserving muscle in a deficit. */
+  /** Suggested protein (g per kg bodyweight) - higher when preserving muscle in a deficit. */
   proteinPerKgHint: number;
   note: string;
   /** True if the requested physique goal was downgraded for safety (e.g. a minor's cut). */
@@ -93,7 +93,7 @@ export function applyMusclePriority(plan: WeeklyWorkout, priorities: string[] | 
   });
 
   if (!boosted) return plan;
-  const extra = `Prioritising ${prio.join(', ')} — a little extra volume there, kept within safe limits.`;
+  const extra = `Prioritising ${prio.join(', ')} - a little extra volume there, kept within safe limits.`;
   return { ...plan, days, note: plan.note ? `${plan.note} ${extra}` : extra };
 }
 

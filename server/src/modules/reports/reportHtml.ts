@@ -41,11 +41,11 @@ function derive(r: WeeklyReport, spanDays: number): Extras {
   const scoreWord = score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : score >= 55 ? 'Fair' : 'Needs work';
 
   const insights: Extras['insights'] = [];
-  if (pTarget > 0 && proteinAvg >= pTarget * 0.95) insights.push({ kind: 'good', text: `Protein is on point — averaging <b>${Math.round(proteinAvg)} g/day</b> against a ${Math.round(pTarget)} g goal. That preserves muscle while you lose fat.` });
-  else if (pTarget > 0) insights.push({ kind: 'warn', text: `Protein is a bit low — averaging <b>${Math.round(proteinAvg)} g/day</b> vs a ${Math.round(pTarget)} g goal. Add dal, curd or eggs.` });
-  if (wTarget > 0 && waterAvg < wTarget * 0.8) insights.push({ kind: 'water', text: `Hydration is below target — <b>${(waterAvg / 1000).toFixed(1)} L/day</b> vs ${(wTarget / 1000).toFixed(1)} L. Front-load water earlier in the day.` });
-  else if (wTarget > 0) insights.push({ kind: 'good', text: `Good hydration — averaging <b>${(waterAvg / 1000).toFixed(1)} L/day</b>.` });
-  if (r.weightDeltaKg != null && r.weightDeltaKg < 0) insights.push({ kind: 'good', text: `Weight is trending down <b>${Math.abs(r.weightDeltaKg)} kg</b> — a steady, safe pace.` });
+  if (pTarget > 0 && proteinAvg >= pTarget * 0.95) insights.push({ kind: 'good', text: `Protein is on point - averaging <b>${Math.round(proteinAvg)} g/day</b> against a ${Math.round(pTarget)} g goal. That preserves muscle while you lose fat.` });
+  else if (pTarget > 0) insights.push({ kind: 'warn', text: `Protein is a bit low - averaging <b>${Math.round(proteinAvg)} g/day</b> vs a ${Math.round(pTarget)} g goal. Add dal, curd or eggs.` });
+  if (wTarget > 0 && waterAvg < wTarget * 0.8) insights.push({ kind: 'water', text: `Hydration is below target - <b>${(waterAvg / 1000).toFixed(1)} L/day</b> vs ${(wTarget / 1000).toFixed(1)} L. Front-load water earlier in the day.` });
+  else if (wTarget > 0) insights.push({ kind: 'good', text: `Good hydration - averaging <b>${(waterAvg / 1000).toFixed(1)} L/day</b>.` });
+  if (r.weightDeltaKg != null && r.weightDeltaKg < 0) insights.push({ kind: 'good', text: `Weight is trending down <b>${Math.abs(r.weightDeltaKg)} kg</b> - a steady, safe pace.` });
   const overDays = target > 0 ? r.days.filter((d) => d.kcal > target * 1.15).length : 0;
   if (overDays > 0) insights.push({ kind: 'warn', text: `You went well over target on <b>${overDays} day${overDays > 1 ? 's' : ''}</b>. Pre-planning those days protects your deficit.` });
 
@@ -252,11 +252,11 @@ ${opts.analysis ? analysisSection(opts.analysis) : ''}
 <section><div class="sh"><h2>How you're doing</h2><span class="hint">${esc(opts.label).toLowerCase()}</span></div>
 <div class="hero"><div class="card score-card">${ring(x.score, 'var(--accent)')}<div class="verdict">${x.scoreWord}</div></div>
 <div class="grid g3" style="align-content:start">
-<div class="card metric"><div class="lab"><span class="dot" style="background:var(--accent)"></span>Calories</div><div class="v num">${r.avgKcal != null ? n(r.avgKcal) : '—'}<small>${target ? ' /' + n(target) : ''}</small></div><div class="foot">avg/day${r.adherencePct != null ? ' · ' + r.adherencePct + '% of target' : ''}</div></div>
+<div class="card metric"><div class="lab"><span class="dot" style="background:var(--accent)"></span>Calories</div><div class="v num">${r.avgKcal != null ? n(r.avgKcal) : '-'}<small>${target ? ' /' + n(target) : ''}</small></div><div class="foot">avg/day${r.adherencePct != null ? ' · ' + r.adherencePct + '% of target' : ''}</div></div>
 <div class="card metric"><div class="lab"><span class="dot" style="background:var(--good)"></span>Protein</div><div class="v num">${Math.round(x.proteinAvg)}<small>${pT ? ' /' + Math.round(pT) + ' g' : ' g'}</small></div><div class="foot">avg/day</div></div>
 <div class="card metric"><div class="lab"><span class="dot" style="background:var(--water)"></span>Water</div><div class="v num">${x.waterAvgL.toFixed(1)}<small>${wT ? ' /' + (wT / 1000).toFixed(1) + ' L' : ' L'}</small></div><div class="foot">avg/day</div></div>
-<div class="card metric"><div class="lab"><span class="dot" style="background:var(--good)"></span>Weight</div><div class="v num">${r.latestWeightKg ?? '—'}<small> kg</small></div><div class="foot">${r.weightDeltaKg != null ? (r.weightDeltaKg > 0 ? '+' : '') + r.weightDeltaKg + ' kg' : 'no check-in yet'}</div></div>
-<div class="card metric"><div class="lab"><span class="dot" style="background:var(--accent)"></span>BMI</div><div class="v num">${r.bmi ?? '—'}</div><div class="foot">Asian cut-off</div></div>
+<div class="card metric"><div class="lab"><span class="dot" style="background:var(--good)"></span>Weight</div><div class="v num">${r.latestWeightKg ?? '-'}<small> kg</small></div><div class="foot">${r.weightDeltaKg != null ? (r.weightDeltaKg > 0 ? '+' : '') + r.weightDeltaKg + ' kg' : 'no check-in yet'}</div></div>
+<div class="card metric"><div class="lab"><span class="dot" style="background:var(--accent)"></span>BMI</div><div class="v num">${r.bmi ?? '-'}</div><div class="foot">Asian cut-off</div></div>
 <div class="card metric"><div class="lab"><span class="dot" style="background:var(--warn)"></span>Days logged</div><div class="v num">${r.allTime?.daysLogged ?? r.days.length}</div><div class="foot">${r.days.length} in this period</div></div>
 </div></div></section>
 
@@ -270,16 +270,16 @@ ${meals ? `<section style="break-before:page"><div class="sh"><h2>Meal breakdown
 
 ${p ? `<section><div class="sh"><h2>AI trend analysis</h2><span class="hint">a range, not a promise</span></div>
 <div class="card pred"><div class="l"><div class="eyebrow" style="font-size:10px">Estimated weight · 4 weeks</div>
-<div class="rng num" style="margin-top:5px">${p.projectedWeightKg != null ? (p.projectedWeightKg - 0.6).toFixed(1) + '–' + (p.projectedWeightKg + 0.6).toFixed(1) : '—'}<small> kg</small></div>
+<div class="rng num" style="margin-top:5px">${p.projectedWeightKg != null ? (p.projectedWeightKg - 0.6).toFixed(1) + '-' + (p.projectedWeightKg + 0.6).toFixed(1) : '-'}<small> kg</small></div>
 <div class="conf"><span class="cb"><i class="${r.days.length >= 5 ? 'on' : ''}"></i><i class="${r.days.length >= 5 ? 'on' : ''}"></i><i></i></span> ${r.days.length >= 5 ? 'Medium' : 'Low'} confidence · ${r.days.length} days logged</div></div>
 <div class="r"><div class="eyebrow" style="font-size:10px;margin-bottom:7px">Assumptions</div><ul class="assume">
 <li>Daily balance <b>${p.dailyBalanceKcal > 0 ? '+' : ''}${p.dailyBalanceKcal} kcal</b></li>
 <li>Maintenance (TDEE) <b>${n(p.maintenanceKcal)}</b></li>
 <li>Avg intake <b>${n(p.avgDailyIntake)}</b></li>
 <li>~7,700 kcal ≈ <b>1 kg</b></li></ul>
-<p class="disc">${esc(p.note)} Estimate only — not a medical prediction.</p></div></div></section>` : ''}
+<p class="disc">${esc(p.note)} Estimate only - not a medical prediction.</p></div></div></section>` : ''}
 
-<footer><b style="color:var(--muted)">Educational summary, not a medical diagnosis.</b> Generated by NutriAI from your logged data — designed to be shared with your doctor, dietitian or coach. Figures reflect the days you logged.</footer>
+<footer><b style="color:var(--muted)">Educational summary, not a medical diagnosis.</b> Generated by NutriAI from your logged data - designed to be shared with your doctor, dietitian or coach. Figures reflect the days you logged.</footer>
 
 </div></body></html>`;
 }

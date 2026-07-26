@@ -10,16 +10,16 @@ export interface MacroInput {
   currentWeightKg: number;
   /**
    * Weight (kg) protein is scaled against. Should be the CURRENT weight (or an
-   * obesity-adjusted body weight) so protein preserves lean mass during a deficit —
+   * obesity-adjusted body weight) so protein preserves lean mass during a deficit -
    * scaling to a lower target weight under-doses protein exactly when muscle is at
    * risk. Falls back to targetWeightKg when omitted (legacy behaviour).
    */
   proteinRefWeightKg?: number;
-  /** Protein g/kg (1.6–2.2 typical; guardrails may lower for CKD). */
+  /** Protein g/kg (1.6-2.2 typical; guardrails may lower for CKD). */
   proteinPerKg?: number;
   /** Minimum fat g/kg (default 0.6). Fat is also floored at 20% of kcal. */
   fatPerKgMin?: number;
-  /** Water ml/kg (30–35 typical). */
+  /** Water ml/kg (30-35 typical). */
   waterPerKg?: number;
 }
 
@@ -52,7 +52,7 @@ export function computeMacros(input: MacroInput): MacroTargets {
   // ~130 g/day; we reserve a conservative 60 g floor and trim FAT (the flex macro, down to its
   // weight-based floor) to make room when protein + fat would otherwise eat the whole budget.
   const MIN_CARB_G = 60;
-  // Protein scales to the reference weight (current / obesity-adjusted), NOT the target — this
+  // Protein scales to the reference weight (current / obesity-adjusted), NOT the target - this
   // preserves lean mass during a calorie deficit. Fat floor still tracks target weight.
   const proteinG = round(proteinPerKg * proteinRefWeightKg, 0);
   const fatFloorG = round(fatPerKgMin * targetWeightKg, 0);

@@ -14,7 +14,7 @@ function goalToBody(goal: string | null | undefined): BodyGoal {
 }
 
 /**
- * The user's current base weekly workout (no period adaptation — that only softens intensity, not
+ * The user's current base weekly workout (no period adaptation - that only softens intensity, not
  * which days are training vs rest). Returns null when the profile isn't complete. Shared by the
  * rating engine (scheduled-day count) and the coach brief (is today a rest day?).
  */

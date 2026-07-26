@@ -24,15 +24,15 @@ enum class ReminderGroup(val label: String, val subtitle: String) {
 /** The fixed catalog of reminders per group. Deterministic, zero-cost, all local. */
 object ReminderCatalog {
     fun jobs(group: ReminderGroup): List<ReminderJob> = when (group) {
-        // Meal windows: breakfast 8–10, lunch 12:30–2, dinner by 7–8:30 → remind at the window start.
+        // Meal windows: breakfast 8-10, lunch 12:30-2, dinner by 7-8:30 → remind at the window start.
         ReminderGroup.MEALS -> listOf(
-            ReminderJob("meal_breakfast", 8, 0, "🍳 Breakfast (8–10 am)", "Fuel up and log your breakfast.", tab = 2),
-            ReminderJob("meal_lunch", 12, 30, "🍽️ Lunch (12:30–2 pm)", "Time for lunch — log it to stay on target.", tab = 2),
-            ReminderJob("meal_dinner", 19, 0, "🌙 Dinner (7–8:30 pm)", "Aim to finish dinner by 8:30. Log your meal.", tab = 2),
+            ReminderJob("meal_breakfast", 8, 0, "🍳 Breakfast (8-10 am)", "Fuel up and log your breakfast.", tab = 2),
+            ReminderJob("meal_lunch", 12, 30, "🍽️ Lunch (12:30-2 pm)", "Time for lunch - log it to stay on target.", tab = 2),
+            ReminderJob("meal_dinner", 19, 0, "🌙 Dinner (7-8:30 pm)", "Aim to finish dinner by 8:30. Log your meal.", tab = 2),
         )
-        // Hydration nudges through waking hours (quiet hours 22:00–07:00 suppress any that land late).
+        // Hydration nudges through waking hours (quiet hours 22:00-07:00 suppress any that land late).
         ReminderGroup.WATER -> listOf(9, 11, 13, 15, 17, 19).map { h ->
-            ReminderJob("water_$h", h, 0, "💧 Hydration check", "Time for a glass of water — log it.", tab = 0)
+            ReminderJob("water_$h", h, 0, "💧 Hydration check", "Time for a glass of water - log it.", tab = 0)
         }
         ReminderGroup.WORKOUT -> listOf(workoutJob(18, 0))
         ReminderGroup.WEIGH_IN -> listOf(
@@ -42,7 +42,7 @@ object ReminderCatalog {
 
     const val WORKOUT_KEY = "workout_prealert"
 
-    /** The workout pre-alert job — fires 10 minutes before the given workout time (wraps past midnight). */
+    /** The workout pre-alert job - fires 10 minutes before the given workout time (wraps past midnight). */
     fun workoutJob(hour: Int, minute: Int): ReminderJob {
         var m = minute - 10
         var h = hour
@@ -50,7 +50,7 @@ object ReminderCatalog {
         return ReminderJob(
             WORKOUT_KEY, h, m,
             "🏋️ Get set for exercise",
-            "Your workout is in 10 minutes — tap to open today's plan.",
+            "Your workout is in 10 minutes - tap to open today's plan.",
             tab = 1,
         )
     }

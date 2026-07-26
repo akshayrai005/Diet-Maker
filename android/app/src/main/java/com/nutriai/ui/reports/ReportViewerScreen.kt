@@ -114,7 +114,7 @@ fun ReportViewerScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // (Back is provided by the parent "← Me" header — no duplicate here.)
+            // (Back is provided by the parent "← Me" header - no duplicate here.)
             // Range dropdown: Weekly / Monthly
             var rangeOpen by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = rangeOpen, onExpandedChange = { rangeOpen = it }, modifier = Modifier.weight(1f)) {

@@ -59,15 +59,15 @@ export function computeAdaptation(input: AdaptationInput): Adaptation {
       status: 'adjust_behaviour',
       message:
         overBy > 0
-          ? `You're averaging ${avg} kcal — about ${overBy} over your ${targetKcal} target. Tighten portions or swap high-calorie items before we change the plan.`
-          : `You're averaging ${avg} kcal — about ${Math.abs(overBy)} under your ${targetKcal} target. Under-eating stalls progress; add a protein-rich snack.`,
+          ? `You're averaging ${avg} kcal - about ${overBy} over your ${targetKcal} target. Tighten portions or swap high-calorie items before we change the plan.`
+          : `You're averaging ${avg} kcal - about ${Math.abs(overBy)} under your ${targetKcal} target. Under-eating stalls progress; add a protein-rich snack.`,
       suggestedKcalDelta: 0,
       avgLoggedKcal: avg,
       weeklyWeightChangeKg: weekly,
     };
   }
 
-  // Intake is close to target — judge by the scale.
+  // Intake is close to target - judge by the scale.
   if (weekly !== null) {
     if (goal === 'lose' && weekly >= -0.05) {
       return {
@@ -91,7 +91,7 @@ export function computeAdaptation(input: AdaptationInput): Adaptation {
 
   return {
     status: 'on_track',
-    message: `Nicely on track — averaging ${avg} kcal against a ${targetKcal} target${weekly !== null ? `, weight moving ${weekly} kg/wk` : ''}. Keep it up!`,
+    message: `Nicely on track - averaging ${avg} kcal against a ${targetKcal} target${weekly !== null ? `, weight moving ${weekly} kg/wk` : ''}. Keep it up!`,
     suggestedKcalDelta: 0,
     avgLoggedKcal: avg,
     weeklyWeightChangeKg: weekly,

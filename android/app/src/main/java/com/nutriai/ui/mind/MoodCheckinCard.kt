@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Mood / stress / sleep check-in (Mind pillar). A gentle 1–5 self-report with an
+// Mood / stress / sleep check-in (Mind pillar). A gentle 1-5 self-report with an
 // optional note; the server returns a supportive insight + trend. Free text is run
 // through the red-flag safety net before saving.
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ class MoodViewModel @Inject constructor(
     fun submit(mood: Int?, stress: Int?, sleepQuality: Int?, notes: String?) {
         _state.value = _state.value.copy(submitting = true)
         viewModelScope.launch {
-            // Red-flag safety net on any free-text note — surfaced alongside, never blocking the save.
+            // Red-flag safety net on any free-text note - surfaced alongside, never blocking the save.
             val note = notes?.trim()?.ifBlank { null }
             if (note != null) {
                 repository.checkRedFlags(note).getOrNull()?.let { rf ->
@@ -95,9 +95,9 @@ class MoodViewModel @Inject constructor(
             }
             val r = repository.saveMoodCheckin(mood = mood, stress = stress, sleepQuality = sleepQuality, notes = note)
             _state.value = if (r.isSuccess) {
-                _state.value.copy(submitting = false, toast = "Saved — thanks for checking in")
+                _state.value.copy(submitting = false, toast = "Saved - thanks for checking in")
             } else {
-                _state.value.copy(submitting = false, toast = "Couldn't save — try again")
+                _state.value.copy(submitting = false, toast = "Couldn't save - try again")
             }
             if (r.isSuccess) load()
         }

@@ -12,14 +12,14 @@ export const MAX_DEFICIT_PCT = 0.25;
 /** Calorie floors below which we won't cut unless a clinician authorises it. */
 export const CALORIE_FLOOR = { female: 1200, male: 1500 } as const;
 
-/** Extra calories for pregnancy / breastfeeding (simplified, 2nd–3rd trimester style). */
+/** Extra calories for pregnancy / breastfeeding (simplified, 2nd-3rd trimester style). */
 const PREGNANCY_KCAL = 340;
 const BREASTFEEDING_KCAL = 450;
 
 const DISCLAIMER: Flag = {
   code: 'DISCLAIMER',
   severity: 'info',
-  message: 'Educational guidance, not medical advice — consult a professional.',
+  message: 'Educational guidance, not medical advice - consult a professional.',
 };
 
 function has(conditions: Condition[], c: Condition): boolean {
@@ -29,7 +29,7 @@ function has(conditions: Condition[], c: Condition): boolean {
 /**
  * The single safety gate. Takes raw goal + TDEE + conditions and returns a
  * safety-adjusted calorie/macro target plus the flags that must be surfaced.
- * Deterministic and fully unit-tested — never delegated to an LLM.
+ * Deterministic and fully unit-tested - never delegated to an LLM.
  */
 export function applyGuardrails(input: GuardrailInput): GuardrailResult {
   const {
@@ -50,7 +50,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
   const pregnant = has(conditions, 'pregnancy');
   const breastfeeding = has(conditions, 'breastfeeding');
 
-  // Target BMI (needs height) — used to refuse an underweight goal.
+  // Target BMI (needs height) - used to refuse an underweight goal.
   const targetBmi =
     input.heightCm && input.heightCm > 0
       ? input.targetWeightKg / (input.heightCm / 100) ** 2
@@ -68,24 +68,24 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'UNDERWEIGHT_NO_LOSS',
       severity: 'critical',
       message: currentlyUnderweight
-        ? 'Your BMI is already in the underweight range, so a weight-loss plan is not safe — this plan targets healthy maintenance instead. If you feel a strong need to lose weight, please talk to a doctor.'
+        ? 'Your BMI is already in the underweight range, so a weight-loss plan is not safe - this plan targets healthy maintenance instead. If you feel a strong need to lose weight, please talk to a doctor.'
         : 'Your target weight is in the underweight range (BMI < 18.5). For safety this plan targets a healthy weight, not that goal. If losing to that weight matters to you, please discuss it with a doctor first.',
     });
   } else if (targetUnderweight) {
     flags.push({
       code: 'TARGET_UNDERWEIGHT',
       severity: 'warning',
-      message: 'Your target weight is below the healthy range (BMI < 18.5) — consider aiming for a weight in the healthy band, and check with a professional.',
+      message: 'Your target weight is below the healthy range (BMI < 18.5) - consider aiming for a weight in the healthy band, and check with a professional.',
     });
   }
 
-  // Cancer: often needs to prevent weight loss (cachexia) — do not plan a deficit.
+  // Cancer: often needs to prevent weight loss (cachexia) - do not plan a deficit.
   if (has(conditions, 'cancer') && input.goal === 'lose') {
     weightLossBlocked = true;
     flags.push({
       code: 'CANCER_NO_DEFICIT',
       severity: 'critical',
-      message: 'With a cancer diagnosis, unplanned weight loss can be harmful — this plan avoids a calorie deficit. Your intake should be guided by your oncology team / dietitian.',
+      message: 'With a cancer diagnosis, unplanned weight loss can be harmful - this plan avoids a calorie deficit. Your intake should be guided by your oncology team / dietitian.',
     });
   }
   if (pregnant || breastfeeding) {
@@ -94,8 +94,8 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'NO_DEFICIT_PREGNANCY',
       severity: 'critical',
       message: pregnant
-        ? 'Weight-loss diets are not appropriate during pregnancy — calories increased instead.'
-        : 'Weight-loss diets are not appropriate while breastfeeding — calories increased instead.',
+        ? 'Weight-loss diets are not appropriate during pregnancy - calories increased instead.'
+        : 'Weight-loss diets are not appropriate while breastfeeding - calories increased instead.',
     });
   }
   if (isMinor) {
@@ -104,7 +104,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'MINOR_GROWTH',
       severity: ageYears < 15 ? 'critical' : 'warning',
       message:
-        'Under-18: these calorie/macro numbers use adult formulas and are NOT valid for a growing child or teen — please use a paediatrician and growth charts for real targets. This plan supports healthy growth, never weight loss.',
+        'Under-18: these calorie/macro numbers use adult formulas and are NOT valid for a growing child or teen - please use a paediatrician and growth charts for real targets. This plan supports healthy growth, never weight loss.',
     });
   }
 
@@ -181,7 +181,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
     flags.push({
       code: 'MUSCLE_PROTEIN',
       severity: 'info',
-      message: 'Muscle-building goal: protein raised to ~2.0 g/kg. Pair with resistance training 3–5×/week.',
+      message: 'Muscle-building goal: protein raised to ~2.0 g/kg. Pair with resistance training 3-5×/week.',
     });
   }
 
@@ -200,7 +200,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'CKD_PROTEIN_LOWERED',
       severity: 'critical',
       message:
-        'Kidney disease: this plan uses ~0.7 g/kg protein, which suits non-dialysis CKD. If you are on DIALYSIS you need MORE protein (~1.0–1.2 g/kg) — do not follow this protein target; your renal dietitian/nephrologist must set it. Potassium, phosphorus and fluid are also restricted per your doctor.',
+        'Kidney disease: this plan uses ~0.7 g/kg protein, which suits non-dialysis CKD. If you are on DIALYSIS you need MORE protein (~1.0-1.2 g/kg) - do not follow this protein target; your renal dietitian/nephrologist must set it. Potassium, phosphorus and fluid are also restricted per your doctor.',
     });
   }
 
@@ -209,7 +209,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'DIABETES_LOWGI',
       severity: 'warning',
       message:
-        'Diabetes: low-GI carbs across meals, higher fibre. If you take insulin or a sulfonylurea, a calorie deficit + fewer carbs can cause LOW blood sugar — check your levels and adjust medication doses with your doctor before cutting intake.',
+        'Diabetes: low-GI carbs across meals, higher fibre. If you take insulin or a sulfonylurea, a calorie deficit + fewer carbs can cause LOW blood sugar - check your levels and adjust medication doses with your doctor before cutting intake.',
     });
   }
 
@@ -219,7 +219,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'FLUID_RESTRICTION',
       severity: 'warning',
       message:
-        'The water target shown is a general guide. With kidney disease or heart failure you may be on a FLUID RESTRICTION — follow the daily fluid limit your doctor gave you, not this number.',
+        'The water target shown is a general guide. With kidney disease or heart failure you may be on a FLUID RESTRICTION - follow the daily fluid limit your doctor gave you, not this number.',
     });
   }
 
@@ -228,7 +228,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
     flags.push({
       code: 'HTN_SODIUM',
       severity: 'warning',
-      message: 'Hypertension: DASH-style plan, sodium limited to ~1500–2000 mg/day.',
+      message: 'Hypertension: DASH-style plan, sodium limited to ~1500-2000 mg/day.',
     });
   }
 
@@ -274,22 +274,22 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
     });
   }
 
-  // ---- Drug–nutrient interactions ----
+  // ---- Drug-nutrient interactions ----
   // We don't store your exact prescriptions, so these are phrased conditionally by the
-  // medicines commonly used for each condition. They never change your numbers — they warn
+  // medicines commonly used for each condition. They never change your numbers - they warn
   // about foods that can blunt or dangerously amplify a drug. Always confirm with your doctor.
   if (has(conditions, 'heart_disease')) {
     flags.push({
       code: 'DRUG_WARFARIN_VITK',
       severity: 'warning',
       message:
-        'If you take warfarin (a blood thinner): keep your vitamin-K intake STEADY. Big swings in leafy greens (spinach, methi, kale, broccoli) change how the drug works. Don’t suddenly load up or cut them out — keep portions consistent and tell your doctor before big diet changes.',
+        'If you take warfarin (a blood thinner): keep your vitamin-K intake STEADY. Big swings in leafy greens (spinach, methi, kale, broccoli) change how the drug works. Don’t suddenly load up or cut them out - keep portions consistent and tell your doctor before big diet changes.',
     });
     flags.push({
       code: 'DRUG_STATIN_GRAPEFRUIT',
       severity: 'info',
       message:
-        'If you take a statin or some BP tablets (e.g. amlodipine): avoid grapefruit / grapefruit juice — it can raise the drug level in your blood.',
+        'If you take a statin or some BP tablets (e.g. amlodipine): avoid grapefruit / grapefruit juice - it can raise the drug level in your blood.',
     });
   }
 
@@ -298,7 +298,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'DRUG_POTASSIUM_SUBSTITUTE',
       severity: 'warning',
       message:
-        'If you take an ACE inhibitor/ARB (…pril or …sartan) or a potassium-sparing diuretic: do NOT use “low-sodium” salt substitutes — they replace sodium with potassium and can push your potassium dangerously high. Use herbs/spices to cut salt instead.',
+        'If you take an ACE inhibitor/ARB (…pril or …sartan) or a potassium-sparing diuretic: do NOT use “low-sodium” salt substitutes - they replace sodium with potassium and can push your potassium dangerously high. Use herbs/spices to cut salt instead.',
     });
   }
 
@@ -316,7 +316,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
       code: 'DRUG_LEVOTHYROXINE_TIMING',
       severity: 'warning',
       message:
-        'If you take levothyroxine (thyroid tablet): take it on an empty stomach and wait ~30–60 min before eating. Keep it 4 hours apart from calcium, iron, milk, soya and high-fibre meals, and don’t take it with coffee — all of these block its absorption.',
+        'If you take levothyroxine (thyroid tablet): take it on an empty stomach and wait ~30-60 min before eating. Keep it 4 hours apart from calcium, iron, milk, soya and high-fibre meals, and don’t take it with coffee - all of these block its absorption.',
     });
   }
 

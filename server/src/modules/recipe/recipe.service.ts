@@ -21,7 +21,7 @@ export async function getRecipe(foodName: string, foodId?: string): Promise<Reci
     const prompt = [
       `Give a simple, healthy home recipe for "${foodName}" (Indian home-style where relevant).`,
       'Respond ONLY as JSON: {"title":string,"timeMin":number,"servings":number,"ingredients":string[],"steps":string[]}.',
-      'Keep 5–9 concise steps and realistic ingredient quantities for the servings.',
+      'Keep 5-9 concise steps and realistic ingredient quantities for the servings.',
     ].join(' ');
     const r = await llmTextJson(prompt);
     if (r) {
@@ -60,7 +60,7 @@ function basicRecipe(foodName: string, foodId?: string): Recipe {
     ],
     source: 'basic',
     note: llmAvailable()
-      ? 'Quick guide shown — the AI was busy just now (the free server may be waking up). Tap 📖 again in a moment for full steps.'
-      : 'A quick guide — set an AI provider key (Groq or Gemini) on the server for full step-by-step recipes.',
+      ? 'Quick guide shown - the AI was busy just now (the free server may be waking up). Tap 📖 again in a moment for full steps.'
+      : 'A quick guide - set an AI provider key (Groq or Gemini) on the server for full step-by-step recipes.',
   };
 }

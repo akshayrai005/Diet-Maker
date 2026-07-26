@@ -114,7 +114,7 @@ private val BODY_GOAL = listOf("fatloss" to "Fat loss", "athletic" to "Athletic 
 // Training split: value → plain-language, body-neutral label. null = auto (server picks from goal).
 private val TRAINING_SPLIT: List<Pair<String?, String>> = listOf(
     null to "Auto (based on my goal)",
-    "body_part" to "Body-part split — Chest / Back / Shoulders / Arms / Legs",
+    "body_part" to "Body-part split - Chest / Back / Shoulders / Arms / Legs",
     "push_pull_legs" to "Push / Pull / Legs",
     "upper_lower" to "Upper / Lower",
     "full_body" to "Full-body (3 days/week)",
@@ -315,7 +315,7 @@ fun OnboardingScreen(
                     }
                     Dropdown("Sex for health calculations", SEX, sex) { sex = it }
                     Text(
-                        "We ask sex separately only because BMR and body-fat formulas need it — it doesn't change how we address you.",
+                        "We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -325,7 +325,7 @@ fun OnboardingScreen(
 
                     Label("Timeframe")
                     Text(
-                        "How soon would you like to reach your target weight? We'll pace it safely — " +
+                        "How soon would you like to reach your target weight? We'll pace it safely - " +
                             "picking a shorter time won't rush your body past what's healthy.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -356,7 +356,7 @@ fun OnboardingScreen(
                     Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
                     Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
                     Text(
-                        "Harder isn't always better — pick what you can keep up with. We cap intensity for safety.",
+                        "Harder isn't always better - pick what you can keep up with. We cap intensity for safety.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -367,7 +367,7 @@ fun OnboardingScreen(
                     MultiChoiceChips(CONDITIONS, conditions)
                     Label("Family history (optional)")
                     Text(
-                        "Conditions that run in your close family — helps us flag risks earlier.",
+                        "Conditions that run in your close family - helps us flag risks earlier.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -381,14 +381,14 @@ fun OnboardingScreen(
 
                     Label("Physique goal (optional)")
                     Text(
-                        "What would you like your training to work towards? This only tunes your targets — every option is healthy.",
+                        "What would you like your training to work towards? This only tunes your targets - every option is healthy.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
                     if (isMinor) {
                         Text(
-                            "Because you're under 18, we'll keep this safe for your age — no aggressive cutting.",
+                            "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -396,7 +396,7 @@ fun OnboardingScreen(
 
                     Label("Muscles you'd like to bring up (optional)")
                     Text(
-                        "Pick up to $MAX_PRIORITY_MUSCLES — we'll add a little extra volume there.",
+                        "Pick up to $MAX_PRIORITY_MUSCLES - we'll add a little extra volume there.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -405,7 +405,7 @@ fun OnboardingScreen(
                 else -> {
                     Text("You're all set 🎉", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     Text(
-                        "We'll build your personalised plan across Diet, Movement, Mind and Discipline — with safe, explainable targets. Small habits, big results.",
+                        "We'll build your personalised plan across Diet, Movement, Mind and Discipline - with safe, explainable targets. Small habits, big results.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(

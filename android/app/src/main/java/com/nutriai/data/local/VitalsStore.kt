@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 private val Context.vitalsStore by preferencesDataStore(name = "vitals")
 
-/** Manually-entered vitals — used when a watch/band doesn't sync to Health Connect. */
+/** Manually-entered vitals - used when a watch/band doesn't sync to Health Connect. */
 data class ManualVitals(
     val heartRate: Int? = null,
     /** Self-rated stress, 1 (calm) … 5 (very stressed). */

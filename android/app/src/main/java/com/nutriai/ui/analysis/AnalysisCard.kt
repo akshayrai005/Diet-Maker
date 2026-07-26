@@ -31,7 +31,7 @@ import com.nutriai.data.remote.dto.CoachBrief
 import com.nutriai.data.remote.dto.RatingResult
 
 /**
- * "Your Analysis" — the server-computed health rating (ring + per-pillar bars) plus today's
+ * "Your Analysis" - the server-computed health rating (ring + per-pillar bars) plus today's
  * deterministic coach brief. Read-only; no number is computed on the client.
  */
 @Composable
@@ -55,7 +55,7 @@ fun AnalysisCard(rating: RatingResult?, coach: CoachBrief?, modifier: Modifier =
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Your health rating", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                         Text(
-                            r.biggestLever.message.ifBlank { "Start by logging your meals — your rating builds as you go." },
+                            r.biggestLever.message.ifBlank { "Start by logging your meals - your rating builds as you go." },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -74,7 +74,7 @@ fun AnalysisCard(rating: RatingResult?, coach: CoachBrief?, modifier: Modifier =
                             }
                         }
                     }
-                    // Per-pillar bars — full width so the value never crosses the card edge.
+                    // Per-pillar bars - full width so the value never crosses the card edge.
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(9.dp)) {
                         r.pillars.forEach { p -> PillarBar(label = p.label, score = p.score.toInt()) }
                     }

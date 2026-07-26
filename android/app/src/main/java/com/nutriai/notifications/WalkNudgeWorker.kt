@@ -19,7 +19,7 @@ import java.util.Calendar
  * Step-aware walk nudge. Runs periodically (~90 min via WorkManager); if the user hasn't moved
  * meaningfully since the last check during waking hours, it suggests a short walk. Skips silently
  * when they DID move, when it's outside waking hours, or when Health Connect / step permission is
- * unavailable — so it never nags.
+ * unavailable - so it never nags.
  */
 class WalkNudgeWorker(
     context: Context,
@@ -30,7 +30,7 @@ class WalkNudgeWorker(
         val prefs = ReminderPrefs(applicationContext)
         if (!prefs.isWalkEnabled()) return Result.success()
 
-        // Waking hours only (8:00–20:59).
+        // Waking hours only (8:00-20:59).
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         if (hour < 8 || hour >= 21) return Result.success()
 
@@ -45,7 +45,7 @@ class WalkNudgeWorker(
         if (current < last) return Result.success()
 
         val moved = current - last
-        if (moved >= MOVED_THRESHOLD_STEPS) return Result.success() // they moved — no nudge
+        if (moved >= MOVED_THRESHOLD_STEPS) return Result.success() // they moved - no nudge
 
         // Android 13+ runtime permission.
         val canNotify = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -64,7 +64,7 @@ class WalkNudgeWorker(
             openIntent,
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
-        val text = "You've been still for a while — please go for a walk for at least 5 minutes."
+        val text = "You've been still for a while - please go for a walk for at least 5 minutes."
         val notification = NotificationCompat.Builder(applicationContext, ReminderWorker.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("🚶 Time to move")

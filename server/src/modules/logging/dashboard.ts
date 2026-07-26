@@ -60,7 +60,7 @@ export function sumTotals(entries: LoggedNutrition[]): NutritionTotals {
 }
 
 /**
- * Consecutive-day logging streak ending today (or yesterday — a streak stays alive until a
+ * Consecutive-day logging streak ending today (or yesterday - a streak stays alive until a
  * full day is missed). `dayKeys` is any collection of 'YYYY-MM-DD' with at least one log.
  */
 export function computeStreak(dayKeys: Iterable<string>, todayKey: string): number {
@@ -133,7 +133,7 @@ export interface MicronutrientBlock {
   foodFixes?: { key: string; label: string; foods: string[]; note: string }[];
 }
 
-/** Assembles the dashboard payload. Pure — the service just feeds it fetched data. */
+/** Assembles the dashboard payload. Pure - the service just feeds it fetched data. */
 export function buildDashboard(input: DashboardInput) {
   const { targets, todayTotals, waterTodayMl } = input;
   const pct = (have: number, target: number) =>

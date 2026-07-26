@@ -20,7 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
- * The Diet pillar (60%) — plan, food log and grocery under one tab via a segmented switcher,
+ * The Diet pillar (60%) - plan, food log and grocery under one tab via a segmented switcher,
  * so nothing is buried and everything diet-related is one tap from the tab root.
  */
 @Composable

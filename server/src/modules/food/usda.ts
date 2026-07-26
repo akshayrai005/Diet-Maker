@@ -34,7 +34,7 @@ function round(n: number, dp = 1): number {
 
 /**
  * Searches USDA FoodData Central. Requires USDA_FDC_API_KEY; returns [] when the key is
- * unset or on any error (graceful — the app still works without USDA). Values are per 100 g.
+ * unset or on any error (graceful - the app still works without USDA). Values are per 100 g.
  */
 export async function searchUsda(query: string, limit = 15): Promise<FoodSearchItem[]> {
   const key = env.USDA_FDC_API_KEY;

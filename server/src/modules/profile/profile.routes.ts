@@ -53,7 +53,7 @@ profileRouter.get(
   }),
 );
 
-/** Live preview of a goal timeline for the user's current weight — safe, clamped; nothing stored. */
+/** Live preview of a goal timeline for the user's current weight - safe, clamped; nothing stored. */
 profileRouter.post(
   '/goal-timeline',
   requireAuth,
@@ -74,7 +74,7 @@ profileRouter.post(
   }),
 );
 
-/** Unauthenticated onboarding preview — pure calc, nothing stored. */
+/** Unauthenticated onboarding preview - pure calc, nothing stored. */
 profileRouter.post(
   '/calc/preview',
   asyncHandler(async (req, res) => {

@@ -9,7 +9,7 @@ export const cycleRouter = Router();
 const periodSchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  // Sensitive detail — encrypted at rest, never used by the date-only cycle math.
+  // Sensitive detail - encrypted at rest, never used by the date-only cycle math.
   symptoms: z.array(z.string().max(40)).max(20).optional(),
   flow: z.enum(['light', 'medium', 'heavy']).optional(),
   mood: z.number().int().min(1).max(5).optional(),
@@ -32,7 +32,7 @@ cycleRouter.post(
   }),
 );
 
-/** Mark the current (ongoing) period as ended today — enables duration analysis. */
+/** Mark the current (ongoing) period as ended today - enables duration analysis. */
 cycleRouter.post(
   '/cycle/end',
   requireAuth,

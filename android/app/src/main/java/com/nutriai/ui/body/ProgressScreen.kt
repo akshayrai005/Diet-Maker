@@ -86,14 +86,14 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Progress & body — physique tracking. Log body measurements, watch per-metric
+// Progress & body - physique tracking. Log body measurements, watch per-metric
 // trends, and keep a private progress-photo timeline whose images NEVER leave
 // the phone (only a filename is recorded on the server). Body-neutral, encouraging
-// copy — no "ideal" targets. Body-fat is hidden entirely for minors.
+// copy - no "ideal" targets. Body-fat is hidden entirely for minors.
 // ---------------------------------------------------------------------------
 
 private const val DEFAULT_DISCLAIMER =
-    "For your own tracking only — not a medical or fitness assessment, and never a measure of your worth."
+    "For your own tracking only - not a medical or fitness assessment, and never a measure of your worth."
 
 private const val CONSENT_LINE =
     "Photos stay private on your phone and are never uploaded."
@@ -203,7 +203,7 @@ class ProgressViewModel @Inject constructor(
                 )
                 loadSeries()
             } else {
-                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save — try again")
+                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save - try again")
             }
         }
     }
@@ -235,9 +235,9 @@ class ProgressViewModel @Inject constructor(
                 _state.value = _state.value.copy(toast = "Photo added")
                 loadPhotos()
             } else {
-                // Metadata failed — don't leave an orphan file on disk.
+                // Metadata failed - don't leave an orphan file on disk.
                 withContext(Dispatchers.IO) { ImageUtil.deleteProgressPhoto(context, ref) }
-                _state.value = _state.value.copy(toast = "Couldn't add photo — try again")
+                _state.value = _state.value.copy(toast = "Couldn't add photo - try again")
             }
         }
     }
@@ -278,7 +278,7 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
     var compareSelection by remember { mutableStateOf<List<String>>(emptyList()) }
     var pendingDelete by remember { mutableStateOf<BodyPhotoDto?>(null) }
 
-    // Image pickers — gallery + camera. Captured/picked bytes are copied to private storage.
+    // Image pickers - gallery + camera. Captured/picked bytes are copied to private storage.
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) viewModel.onImagePicked(uri)
@@ -361,7 +361,7 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             )
         }
 
-        // Disclaimer — shown prominently near the top.
+        // Disclaimer - shown prominently near the top.
         item { DisclaimerCard(series?.disclaimer?.ifBlank { DEFAULT_DISCLAIMER } ?: DEFAULT_DISCLAIMER) }
 
         state.toast?.let { msg ->
@@ -411,7 +411,7 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
         }
 
         if (series != null) {
-            // Body-fat card — hidden entirely for minors.
+            // Body-fat card - hidden entirely for minors.
             if (!isMinor) {
                 series.latestBodyFat?.let { bf ->
                     item { BodyFatCard(pct = bf.pct, band = bf.band) }
@@ -658,7 +658,7 @@ private fun MetricChartCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Trends", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-            // Metric selector — horizontally scrollable chips.
+            // Metric selector - horizontally scrollable chips.
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -691,7 +691,7 @@ private fun MetricChartCard(
     }
 }
 
-/** Simple Compose Canvas line chart — same math as VitalsScreen's VitalLineChart. */
+/** Simple Compose Canvas line chart - same math as VitalsScreen's VitalLineChart. */
 @Composable
 private fun BodyLineChart(values: List<Double>, lineColor: Color, metricLabel: String) {
     val minV = values.min()
@@ -796,7 +796,7 @@ private fun ConsentCard(savingPhoto: Boolean, onAgree: () -> Unit) {
             Button(
                 onClick = onAgree,
                 enabled = !savingPhoto,
-                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "I understand — enable private progress photos" },
+                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "I understand - enable private progress photos" },
             ) { Text("Got it") }
         }
     }

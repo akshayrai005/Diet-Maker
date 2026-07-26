@@ -53,7 +53,7 @@ export async function register(input: RegisterInput) {
   if (existing) {
     if (existing.deletedAt) {
       // The email belongs to a SELF-deleted account still in its grace window. Signing up again with
-      // it is an explicit "I want a fresh account" — so hard-delete the old one (cascades all its
+      // it is an explicit "I want a fresh account" - so hard-delete the old one (cascades all its
       // data) and continue, instead of blocking the user with their own deletion.
       await prisma.user.delete({ where: { id: existing.id } });
     } else {
@@ -119,7 +119,7 @@ export async function verifyIdentity(email: string, dob: string): Promise<boolea
  * Self-service password reset gated by email + date of birth. Re-verifies server-side (never
  * trusts a client "verified" flag), sets the new password, and revokes every existing session
  * for safety. Note: knowledge-based (email + DOB) verification is convenient but weaker than an
- * emailed one-time link — swap to that once an email provider is configured.
+ * emailed one-time link - swap to that once an email provider is configured.
  */
 export async function resetPassword(email: string, dob: string, newPassword: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });

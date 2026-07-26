@@ -281,7 +281,7 @@ private fun AuthScaffold(
             }
 
             Text(
-                "Educational guidance, not medical advice — consult a professional.",
+                "Educational guidance, not medical advice - consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

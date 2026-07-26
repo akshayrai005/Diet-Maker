@@ -189,7 +189,7 @@ private fun DashboardTab(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Delete account?") },
-            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind — just log back in within a week to restore it. After that it's permanent.") },
+            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind - just log back in within a week to restore it. After that it's permanent.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
@@ -229,7 +229,7 @@ private fun DashboardTab(
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }
                 } else {
-                    // Health Connect not installed — send them to the Play Store.
+                    // Health Connect not installed - send them to the Play Store.
                     runCatching {
                         context.startActivity(
                             android.content.Intent(

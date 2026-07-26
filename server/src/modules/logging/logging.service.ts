@@ -20,27 +20,27 @@ import { localDayKey } from '../../lib/tz';
 
 /** Food-source guidance for each nutrient's deficiency (IFCT-informed, educational). */
 const DEFICIENCY_TIPS: Record<MicronutrientKey, string> = {
-  ironMg: 'Add iron — spinach, dal, roasted chana, or a little jaggery.',
-  calciumMg: 'Add calcium — milk, curd, paneer, ragi, or sesame.',
+  ironMg: 'Add iron - spinach, dal, roasted chana, or a little jaggery.',
+  calciumMg: 'Add calcium - milk, curd, paneer, ragi, or sesame.',
   vitaminB12Mcg: 'B12 comes from dairy, egg and fish; strict vegans may need a supplement.',
-  vitaminDMcg: 'Vitamin D — some morning sun, fortified milk, or egg yolk.',
-  folateMcg: 'Folate — leafy greens, dals, and citrus fruit.',
-  potassiumMg: 'Potassium — banana, coconut water, spinach, or beans.',
-  magnesiumMg: 'Magnesium — nuts, whole grains, dals, and dark greens.',
-  vitaminAMcg: 'Vitamin A — carrot, pumpkin, dark greens, milk, and egg.',
-  vitaminCMg: 'Vitamin C — amla, guava, citrus, capsicum, and tomato.',
-  vitaminEMg: 'Vitamin E — almonds, peanuts, sunflower seeds, and oils.',
-  vitaminKMcg: 'Vitamin K — spinach, methi, and other dark leafy greens.',
-  vitaminB1Mg: 'Thiamin (B1) — whole grains, dals, peanuts, and millets.',
-  vitaminB2Mg: 'Riboflavin (B2) — milk, curd, egg, and green leaves.',
-  vitaminB3Mg: 'Niacin (B3) — chicken, fish, peanuts, and whole grains.',
-  vitaminB6Mg: 'Vitamin B6 — chicken, fish, banana, and chana.',
-  zincMg: 'Zinc — meat, seeds, nuts, and whole grains.',
-  seleniumMcg: 'Selenium — fish, egg, whole wheat, and seeds.',
-  iodineMcg: 'Iodine — iodised salt, fish, egg, and dairy.',
-  phosphorusMg: 'Phosphorus — dairy, dals, nuts, and whole grains.',
-  copperMcg: 'Copper — nuts, seeds, whole grains, and dals.',
-  manganeseMg: 'Manganese — whole grains, nuts, and leafy greens.',
+  vitaminDMcg: 'Vitamin D - some morning sun, fortified milk, or egg yolk.',
+  folateMcg: 'Folate - leafy greens, dals, and citrus fruit.',
+  potassiumMg: 'Potassium - banana, coconut water, spinach, or beans.',
+  magnesiumMg: 'Magnesium - nuts, whole grains, dals, and dark greens.',
+  vitaminAMcg: 'Vitamin A - carrot, pumpkin, dark greens, milk, and egg.',
+  vitaminCMg: 'Vitamin C - amla, guava, citrus, capsicum, and tomato.',
+  vitaminEMg: 'Vitamin E - almonds, peanuts, sunflower seeds, and oils.',
+  vitaminKMcg: 'Vitamin K - spinach, methi, and other dark leafy greens.',
+  vitaminB1Mg: 'Thiamin (B1) - whole grains, dals, peanuts, and millets.',
+  vitaminB2Mg: 'Riboflavin (B2) - milk, curd, egg, and green leaves.',
+  vitaminB3Mg: 'Niacin (B3) - chicken, fish, peanuts, and whole grains.',
+  vitaminB6Mg: 'Vitamin B6 - chicken, fish, banana, and chana.',
+  zincMg: 'Zinc - meat, seeds, nuts, and whole grains.',
+  seleniumMcg: 'Selenium - fish, egg, whole wheat, and seeds.',
+  iodineMcg: 'Iodine - iodised salt, fish, egg, and dairy.',
+  phosphorusMg: 'Phosphorus - dairy, dals, nuts, and whole grains.',
+  copperMcg: 'Copper - nuts, seeds, whole grains, and dals.',
+  manganeseMg: 'Manganese - whole grains, nuts, and leafy greens.',
 };
 
 /** Whole years between an ISO date-of-birth and now. */
@@ -86,7 +86,7 @@ function micronutrientBlock(
   });
   return {
     available: true,
-    note: 'Estimated from today’s logged foods — educational, not lab-measured.',
+    note: 'Estimated from today’s logged foods - educational, not lab-measured.',
     coveragePct: assessment.coveragePct,
     targets: keys.map((key) => {
       const n = byKey.get(key);

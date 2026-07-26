@@ -44,7 +44,7 @@ function loadEnv(): Env {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
       .join('\n');
-    // Do not print values — only which keys are wrong.
+    // Do not print values - only which keys are wrong.
     throw new Error(`Invalid environment configuration:\n${issues}`);
   }
   return parsed.data;

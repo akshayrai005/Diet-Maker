@@ -42,7 +42,7 @@ authRouter.post(
   }),
 );
 
-// Forgot password — step 1: verify identity (email + date of birth).
+// Forgot password - step 1: verify identity (email + date of birth).
 authRouter.post(
   '/forgot-password/verify',
   asyncHandler(async (req, res) => {
@@ -52,7 +52,7 @@ authRouter.post(
   }),
 );
 
-// Forgot password — step 2: set a new password (re-verifies email + DOB server-side).
+// Forgot password - step 2: set a new password (re-verifies email + DOB server-side).
 authRouter.post(
   '/reset-password',
   asyncHandler(async (req, res) => {

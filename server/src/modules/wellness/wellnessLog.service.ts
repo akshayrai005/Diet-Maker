@@ -6,7 +6,7 @@ import { wellnessKcal, type WellnessType } from '../../calc/activityCalories';
 import { computeStreak } from '../logging/dashboard';
 import { localDayKey } from '../../lib/tz';
 
-/** Resolve a content id to its canonical type / name / duration — the server never trusts the
+/** Resolve a content id to its canonical type / name / duration - the server never trusts the
  * client for these, so calories and streaks stay authoritative. */
 function resolveContent(refId: string): { type: WellnessType; refName: string; durationMin: number } | null {
   const { yoga, meditation } = getWellness();

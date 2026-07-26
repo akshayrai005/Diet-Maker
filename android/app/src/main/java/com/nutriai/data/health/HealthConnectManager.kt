@@ -18,7 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Reads steps, heart rate and sleep from Health Connect — the hub that fitness bands and
+ * Reads steps, heart rate and sleep from Health Connect - the hub that fitness bands and
  * smartwatches (Fastrack, boAt, Noise, Wear OS, Fitbit-via-Health-Connect, etc.) sync into.
  * Fully optional and free: every call degrades to null/0 when Health Connect is unavailable,
  * the metric isn't synced, or the read permission hasn't been granted.
@@ -67,7 +67,7 @@ class HealthConnectManager @Inject constructor(
         }
     }
 
-    /** Most recent heart-rate reading (bpm) in the last 24h — e.g. synced from a watch. */
+    /** Most recent heart-rate reading (bpm) in the last 24h - e.g. synced from a watch. */
     suspend fun readLatestHeartRate(): Int? {
         val client = clientOrNull() ?: return null
         if (!granted(heartPermissions)) return null

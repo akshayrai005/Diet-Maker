@@ -1,7 +1,7 @@
 /**
  * Conservative red-flag safety net. For a small, well-defined set of serious symptom patterns a
  * user might type, this returns a clear "seek urgent care" escalation. It is NOT triage or
- * diagnosis: it ONLY ever escalates to "get medical help now" — it never reassures, never rules
+ * diagnosis: it ONLY ever escalates to "get medical help now" - it never reassures, never rules
  * anything out, and never names a specific condition as confirmed. Pure & unit-tested.
  */
 
@@ -14,7 +14,7 @@ export interface RedFlag {
 }
 
 // Deliberately short, standard, high-specificity. Better to miss a vague phrasing than to fire on
-// everyday words — every entry here is unambiguously emergency-associated.
+// everyday words - every entry here is unambiguously emergency-associated.
 export const RED_FLAGS: RedFlag[] = [
   {
     id: 'cardiac',
@@ -60,14 +60,14 @@ export interface RedFlagResult {
 }
 
 const EMERGENCY_MESSAGE =
-  'This may be a medical emergency. Please contact your local emergency number or get to the nearest emergency department now. If you can, ask someone nearby to help. Kaizen can’t assess this — it’s important to get real medical help right away.';
+  'This may be a medical emergency. Please contact your local emergency number or get to the nearest emergency department now. If you can, ask someone nearby to help. Kaizen can’t assess this - it’s important to get real medical help right away.';
 
 const SELF_HARM_MESSAGE =
-  'It sounds like you’re going through something incredibly hard, and you deserve support right now. Please reach out to a local crisis line or emergency services, or talk to someone you trust. You don’t have to face this alone — please contact a mental-health professional or crisis service today.';
+  'It sounds like you’re going through something incredibly hard, and you deserve support right now. Please reach out to a local crisis line or emergency services, or talk to someone you trust. You don’t have to face this alone - please contact a mental-health professional or crisis service today.';
 
 /**
  * Scan free text for red-flag patterns. Returns urgent=true with an escalation message if any match.
- * Never returns "you're fine" — a non-match simply means no red flag was detected here.
+ * Never returns "you're fine" - a non-match simply means no red flag was detected here.
  */
 export function checkRedFlags(text: string): RedFlagResult {
   const hay = ` ${text.toLowerCase().replace(/\s+/g, ' ')} `;

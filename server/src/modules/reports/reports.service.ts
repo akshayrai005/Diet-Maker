@@ -176,7 +176,7 @@ export async function getWeeklyReport(
 
 /**
  * Renders an in-app HTML report over a consolidated span: `count` weeks or months back from now.
- * count is clamped to 1–12. Returns a self-contained HTML string.
+ * count is clamped to 1-12. Returns a self-contained HTML string.
  */
 export async function getReportView(
   userId: string,
@@ -201,7 +201,7 @@ export async function getReportView(
   try {
     analysis = toReportAnalysis(await getAnalysis(userId, 0, now));
   } catch {
-    // Incomplete profile / no rating yet — render the report without the analysis header.
+    // Incomplete profile / no rating yet - render the report without the analysis header.
   }
   return renderReportHtml(report, { label, analysis });
 }

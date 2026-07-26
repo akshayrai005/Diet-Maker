@@ -63,7 +63,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Vitals & Labs — track blood pressure, resting HR, weight, waist and 9 blood
+// Vitals & Labs - track blood pressure, resting HR, weight, waist and 9 blood
 // labs; each reading gets an educational band + guideline citation from the
 // server. Not medical advice. Mirrors the cycle/discipline/wellness features.
 // ---------------------------------------------------------------------------
@@ -104,9 +104,9 @@ private fun formatNum(v: Double): String =
 
 private fun displayValue(type: String, point: VitalPoint): String =
     if (type == "bloodPressure") {
-        "${point.systolic ?: "–"}/${point.diastolic ?: "–"}"
+        "${point.systolic ?: "-"}/${point.diastolic ?: "-"}"
     } else {
-        point.value?.let { formatNum(it) } ?: "–"
+        point.value?.let { formatNum(it) } ?: "-"
     }
 
 /** Numeric series for the trend chart. BP charts systolic; every other metric charts value. */
@@ -117,7 +117,7 @@ private fun numericPoints(series: VitalSeries): List<Double> =
 
 /**
  * Severity → colour. Routed through MaterialTheme.colorScheme where a slot exists; amber/orange
- * have no theme slot so they are named constants. The chip never relies on colour alone — the
+ * have no theme slot so they are named constants. The chip never relies on colour alone - the
  * band text is always shown alongside.
  */
 @Composable
@@ -218,7 +218,7 @@ class VitalsViewModel @Inject constructor(
                 loadSeries(type)
                 loadSummary()
             } else {
-                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save — try again")
+                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save - try again")
             }
         }
     }
@@ -570,7 +570,7 @@ private fun VitalDetail(
                 }
             }
 
-            // Past readings (newest first — server returns oldest→newest for the chart).
+            // Past readings (newest first - server returns oldest→newest for the chart).
             if (series.points.isNotEmpty()) {
                 item { SectionLabel("Past readings") }
                 val past = series.points.reversed()
@@ -765,7 +765,7 @@ private fun AddReadingDialog(
 }
 
 // ---------------------------------------------------------------------------
-// Compact Home card — surfaces the 2–3 most important logged metrics.
+// Compact Home card - surfaces the 2-3 most important logged metrics.
 // ---------------------------------------------------------------------------
 
 private val HOME_PRIORITY = listOf("bloodPressure", "fastingGlucose", "hba1c", "restingHr")
@@ -795,7 +795,7 @@ fun HomeVitalsCard(
             }
             if (picks.isEmpty()) {
                 Text(
-                    "Track your vitals — blood pressure, glucose, cholesterol and more.",
+                    "Track your vitals - blood pressure, glucose, cholesterol and more.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

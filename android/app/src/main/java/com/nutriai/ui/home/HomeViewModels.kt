@@ -29,7 +29,7 @@ data class DashboardState(
     val riskFindings: List<com.nutriai.data.remote.dto.RiskFinding> = emptyList(),
     val weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
     val weekKcalTarget: Double? = null,
-    val maintenanceKcal: Double? = null, // TDEE — what the body burns/day
+    val maintenanceKcal: Double? = null, // TDEE - what the body burns/day
     val coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     val rating: com.nutriai.data.remote.dto.RatingResult? = null,
     val error: String? = null,
@@ -70,7 +70,7 @@ class DashboardViewModel @Inject constructor(
             val available = healthConnect.isAvailable()
             val perm = if (available) healthConnect.hasStepPermission() else false
             val steps = if (perm) healthConnect.readTodaySteps() else 0L
-            // Watch vitals (heart rate + sleep) — null unless a band/watch syncs them to Health Connect.
+            // Watch vitals (heart rate + sleep) - null unless a band/watch syncs them to Health Connect.
             val hr = if (available) healthConnect.readLatestHeartRate() else null
             val sleep = if (available) healthConnect.readLastSleepHours() else null
             _state.value = _state.value.copy(
@@ -83,7 +83,7 @@ class DashboardViewModel @Inject constructor(
             )
             // Re-run the risk engine WITH device sleep + today's hydration so poor-sleep /
             // low-hydration signals appear alongside the profile-based ones. Only send hydration
-            // in the afternoon+ — being "behind" on water first thing in the morning is normal,
+            // in the afternoon+ - being "behind" on water first thing in the morning is normal,
             // so flagging it right after waking up is a false alarm.
             val afternoon = java.time.LocalTime.now().hour >= 14
             val hydrationPct = if (afternoon) _state.value.dashboard?.water?.percent else null
@@ -105,7 +105,7 @@ class DashboardViewModel @Inject constructor(
                 _state.value.copy(loading = false, error = r.exceptionOrNull()?.message ?: "Failed to load")
             }
         }
-        // Safety/medical advisories (guardrail flags) — shown as a card on the dashboard.
+        // Safety/medical advisories (guardrail flags) - shown as a card on the dashboard.
         // Drop the generic DISCLAIMER (already in the footer) so the card only appears
         // when there's a real condition/medication note to show.
         viewModelScope.launch {
@@ -247,7 +247,7 @@ class ChatViewModel @Inject constructor(
         if (text.isBlank()) return
         val history = _state.value.messages + ChatMessage(true, text)
         _state.value = _state.value.copy(messages = history, sending = true)
-        // Red-flag safety net — runs alongside the normal reply, never suppresses it.
+        // Red-flag safety net - runs alongside the normal reply, never suppresses it.
         viewModelScope.launch {
             repository.checkRedFlags(text).getOrNull()?.let { rf ->
                 if (rf.urgent) _state.value = _state.value.copy(redFlagMessage = rf.message)

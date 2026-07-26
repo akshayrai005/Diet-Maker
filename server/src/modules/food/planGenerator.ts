@@ -86,7 +86,7 @@ function meal(slot: MealSlot, items: MealItem[]): Meal {
   };
 }
 
-/** Foods that suit a light slot (snack/mid-morning/bedtime) — not a heavy curry or meat. */
+/** Foods that suit a light slot (snack/mid-morning/bedtime) - not a heavy curry or meat. */
 const LIGHT_SLOT_TAGS = new Set([
   'fruit',
   'beverage',
@@ -137,7 +137,7 @@ function buildPlate(
 
   // 1) one staple grain
   add(pickFrom(grains.length ? grains : candidates, seed), veggies.length && proteins.length ? 0.45 : 0.55);
-  // 2) a dal/protein — strictly NON-grain so we never end up with two grains
+  // 2) a dal/protein - strictly NON-grain so we never end up with two grains
   const proteinPool = proteins.length ? proteins : nonGrain(candidates);
   if (proteinPool.length) add(pickFrom(proteinPool, seed + 1), veggies.length ? 0.35 : 0.45);
   // 3) a vegetable when available
@@ -205,7 +205,7 @@ export function buildSwapMeal(
   const avoid = new Set(avoidIds);
 
   // Main meals get a proper plate (staple + dal/protein + veg), avoiding the swapped-out foods
-  // so the dish actually changes — and never producing two grains.
+  // so the dish actually changes - and never producing two grains.
   if (MAIN_SLOTS.includes(slot) && candidates.length > 1) {
     const items = buildPlate(candidates, eligible, kcalTarget, slotSeed, (f) => avoid.has(f.id));
     return meal(slot, items);
@@ -341,11 +341,11 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 /**
  * Deterministic `rules` meal-plan generator. Given targets, the food DB and preferences,
  * it produces a rotating multi-day plan honouring diet type, allergies and conditions.
- * No LLM, no randomness — the same inputs always yield the same plan.
+ * No LLM, no randomness - the same inputs always yield the same plan.
  */
 /**
  * Orders foods by a deterministic preference score (lower = preferred): locale match, pantry-on-hand,
- * and budget (prefer cheaper `costTier` when the budget is tight). PURE — buildDay picks from the
+ * and budget (prefer cheaper `costTier` when the budget is tight). PURE - buildDay picks from the
  * front of this list, so these signals steer selection without touching the macro-fitting logic.
  */
 export function orderByPreference(foods: FoodItem[], prefs: PlanPreferences): FoodItem[] {

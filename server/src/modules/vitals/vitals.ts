@@ -3,7 +3,7 @@ import type { Sex } from '../../calc/types';
 /**
  * Deterministic, non-diagnostic classification of health vitals & lab values into plain-language
  * status bands, each citing the guideline it uses. This is education, NOT diagnosis: a band never
- * names a disease as present, and every result defers to a clinician. Pure & fully unit-tested —
+ * names a disease as present, and every result defers to a clinician. Pure & fully unit-tested -
  * never delegated to an LLM.
  */
 
@@ -47,7 +47,7 @@ export interface VitalClassification {
 }
 
 export const VITAL_DISCLAIMER =
-  'Educational status band from the number you entered — not a diagnosis. Lab reference ranges vary by lab and person; confirm anything concerning with your doctor.';
+  'Educational status band from the number you entered - not a diagnosis. Lab reference ranges vary by lab and person; confirm anything concerning with your doctor.';
 
 /** Canonical unit per type (what the UI shows / stores). */
 export const VITAL_UNIT: Record<VitalType, string> = {
@@ -142,17 +142,17 @@ export function classifyVital(
         return c('Stage 1 hypertension', 'elevated', 'Above target. Reduce salt/processed food, add potassium-rich veg and daily walks; recheck over a week.', 'ACC/AHA 2017');
       if (s >= 120)
         return c('Elevated', 'watch', 'Slightly above ideal. Lifestyle habits now keep it from rising.', 'ACC/AHA 2017');
-      return c('Normal', 'normal', 'A healthy blood pressure — keep it up.', 'ACC/AHA 2017');
+      return c('Normal', 'normal', 'A healthy blood pressure - keep it up.', 'ACC/AHA 2017');
     }
     case 'restingHr': {
-      if (v > 100) return c('Elevated (tachycardia range)', 'elevated', 'Above the typical 60–100 resting range. Check caffeine, hydration, sleep, stress; regular cardio lowers it. Mention persistent highs to a doctor.', 'AHA');
-      if (v < 60) return c('Low (bradycardia range)', 'watch', 'Below 60 is common and healthy in fit people; only a concern with dizziness/fatigue — then see a doctor.', 'AHA');
-      return c('Normal', 'normal', 'Within the healthy 60–100 resting range.', 'AHA');
+      if (v > 100) return c('Elevated (tachycardia range)', 'elevated', 'Above the typical 60-100 resting range. Check caffeine, hydration, sleep, stress; regular cardio lowers it. Mention persistent highs to a doctor.', 'AHA');
+      if (v < 60) return c('Low (bradycardia range)', 'watch', 'Below 60 is common and healthy in fit people; only a concern with dizziness/fatigue - then see a doctor.', 'AHA');
+      return c('Normal', 'normal', 'Within the healthy 60-100 resting range.', 'AHA');
     }
     case 'fastingGlucose': {
       if (v >= 126) return c('Diabetes range', 'high', 'In the diabetes range on this reading. A doctor confirms with a repeat test / HbA1c. Low-GI carbs, fibre and post-meal walks help.', 'ADA 2024');
-      if (v >= 100) return c('Prediabetes range', 'elevated', 'Prediabetes range. Losing 5–7% body weight and daily activity can reverse this stage.', 'ADA 2024');
-      if (v < 70) return c('Low', 'watch', 'Below 70 can mean hypoglycaemia, especially on diabetes medication — treat with fast carbs and discuss with your doctor.', 'ADA 2024');
+      if (v >= 100) return c('Prediabetes range', 'elevated', 'Prediabetes range. Losing 5-7% body weight and daily activity can reverse this stage.', 'ADA 2024');
+      if (v < 70) return c('Low', 'watch', 'Below 70 can mean hypoglycaemia, especially on diabetes medication - treat with fast carbs and discuss with your doctor.', 'ADA 2024');
       return c('Normal', 'normal', 'A healthy fasting glucose.', 'ADA 2024');
     }
     case 'hba1c': {
@@ -169,36 +169,36 @@ export function classifyVital(
     }
     case 'hdl': {
       const low = female ? 50 : 40;
-      if (v < low) return c('Low (less protective)', 'elevated', `Below ${low} mg/dL. HDL is protective — regular exercise, healthy fats and not smoking raise it.`, 'NCEP ATP III');
+      if (v < low) return c('Low (less protective)', 'elevated', `Below ${low} mg/dL. HDL is protective - regular exercise, healthy fats and not smoking raise it.`, 'NCEP ATP III');
       if (v >= 60) return c('Protective', 'normal', 'A protective HDL level (≥60 is favourable).', 'NCEP ATP III');
       return c('Acceptable', 'normal', 'An acceptable HDL level.', 'NCEP ATP III');
     }
     case 'triglycerides': {
-      if (v >= 500) return c('Very high', 'high', 'Very high — a doctor should review. Cut refined carbs/alcohol/sugary drinks; add omega-3 and activity.', 'NCEP ATP III');
+      if (v >= 500) return c('Very high', 'high', 'Very high - a doctor should review. Cut refined carbs/alcohol/sugary drinks; add omega-3 and activity.', 'NCEP ATP III');
       if (v >= 200) return c('High', 'elevated', 'High triglycerides. Reduce refined carbs and alcohol; more activity helps.', 'NCEP ATP III');
       if (v >= 150) return c('Borderline high', 'watch', 'Borderline. Watch sugary drinks and refined carbs.', 'NCEP ATP III');
       return c('Normal', 'normal', 'A healthy triglyceride level.', 'NCEP ATP III');
     }
     case 'tsh': {
-      if (v > 4.0) return c('Above range (possible underactive thyroid)', 'elevated', 'Above the usual 0.4–4.0 range — can suggest an underactive thyroid. A doctor interprets TSH with symptoms and other thyroid tests.', 'ATA');
-      if (v < 0.4) return c('Below range (possible overactive thyroid)', 'elevated', 'Below the usual range — can suggest an overactive thyroid. Discuss with your doctor.', 'ATA');
+      if (v > 4.0) return c('Above range (possible underactive thyroid)', 'elevated', 'Above the usual 0.4-4.0 range - can suggest an underactive thyroid. A doctor interprets TSH with symptoms and other thyroid tests.', 'ATA');
+      if (v < 0.4) return c('Below range (possible overactive thyroid)', 'elevated', 'Below the usual range - can suggest an overactive thyroid. Discuss with your doctor.', 'ATA');
       return c('Normal', 'normal', 'Within the usual thyroid reference range.', 'ATA');
     }
     case 'vitaminD': {
       if (v < 20) return c('Deficient', 'elevated', 'Deficiency range. Sunlight, D-rich/fortified foods and a doctor-advised supplement help.', 'Endocrine Society');
       if (v < 30) return c('Insufficient', 'watch', 'Insufficient. A modest top-up usually gets you into range.', 'Endocrine Society');
-      if (v > 100) return c('High', 'elevated', 'Unusually high — avoid over-supplementing and check with a doctor.', 'Endocrine Society');
+      if (v > 100) return c('High', 'elevated', 'Unusually high - avoid over-supplementing and check with a doctor.', 'Endocrine Society');
       return c('Sufficient', 'normal', 'A sufficient vitamin D level.', 'Endocrine Society');
     }
     case 'ferritin': {
-      if (v < 30) return c('Low (low iron stores)', 'elevated', 'Low iron stores — common cause of fatigue. Iron-rich foods with vitamin C help; a doctor can check for a cause.', 'WHO');
-      if (v > 300) return c('High', 'watch', 'Above the usual range — can rise with inflammation; discuss with a doctor.', 'WHO');
+      if (v < 30) return c('Low (low iron stores)', 'elevated', 'Low iron stores - common cause of fatigue. Iron-rich foods with vitamin C help; a doctor can check for a cause.', 'WHO');
+      if (v > 300) return c('High', 'watch', 'Above the usual range - can rise with inflammation; discuss with a doctor.', 'WHO');
       return c('Normal', 'normal', 'Healthy iron stores.', 'WHO');
     }
     case 'hemoglobin': {
       const low = female ? 12 : 13;
-      if (v < low) return c('Low (anaemia range)', 'elevated', `Below ${low} g/dL suggests anaemia — iron/B12/folate-rich foods help; a doctor can find the cause.`, 'WHO');
-      if (v > (female ? 15.5 : 17)) return c('High', 'watch', 'Above the usual range — discuss with a doctor (hydration, altitude and other factors matter).', 'WHO');
+      if (v < low) return c('Low (anaemia range)', 'elevated', `Below ${low} g/dL suggests anaemia - iron/B12/folate-rich foods help; a doctor can find the cause.`, 'WHO');
+      if (v > (female ? 15.5 : 17)) return c('High', 'watch', 'Above the usual range - discuss with a doctor (hydration, altitude and other factors matter).', 'WHO');
       return c('Normal', 'normal', 'A healthy hemoglobin level.', 'WHO');
     }
     case 'waist': {
@@ -207,8 +207,8 @@ export function classifyVital(
       return c('Healthy range', 'normal', 'Within a healthy waist range.', 'IDF (Asian)');
     }
     case 'weight':
-      // Weight has no universal "band" without height/goal — the app tracks its trend instead.
-      return c('Logged', 'normal', 'Tracked for your weight trend.', '—');
+      // Weight has no universal "band" without height/goal - the app tracks its trend instead.
+      return c('Logged', 'normal', 'Tracked for your weight trend.', '-');
   }
 }
 

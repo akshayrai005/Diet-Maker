@@ -46,7 +46,7 @@ class ReminderWorker(
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
 
-        // Quiet hours (22:00–06:59): suppress gentle hydration nudges so they never wake anyone.
+        // Quiet hours (22:00-06:59): suppress gentle hydration nudges so they never wake anyone.
         // User-set workout pre-alerts, meals and weigh-in still fire as scheduled.
         val jobKey = inputData.getString(KEY_JOB_KEY).orEmpty()
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)

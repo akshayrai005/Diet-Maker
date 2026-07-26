@@ -61,9 +61,9 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
     const target = r.targets?.dailyKcal ?? 0;
     statCards(doc, [
       ['Avg calories/day', `${Math.round(consumed)}`, GREEN],
-      ['Daily target', target ? `${Math.round(target)}` : '—', INK],
-      ['Adherence', r.adherencePct != null ? `${r.adherencePct}%` : '—', r.adherencePct != null && r.adherencePct <= 110 ? GREEN : AMBER],
-      ['BMI', r.bmi != null ? `${r.bmi}` : '—', INK],
+      ['Daily target', target ? `${Math.round(target)}` : '-', INK],
+      ['Adherence', r.adherencePct != null ? `${r.adherencePct}%` : '-', r.adherencePct != null && r.adherencePct <= 110 ? GREEN : AMBER],
+      ['BMI', r.bmi != null ? `${r.bmi}` : '-', INK],
     ]);
 
     doc.font('Helvetica').fontSize(10).fillColor(GREY);
@@ -82,7 +82,7 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
     } else {
       r.days.forEach((d, i) => {
         ensure(22);
-        const status = target > 0 ? (d.kcal <= target * 1.1 ? 'On target' : 'Over') : '—';
+        const status = target > 0 ? (d.kcal <= target * 1.1 ? 'On target' : 'Over') : '-';
         const statusColor = status === 'On target' ? GREEN : status === 'Over' ? AMBER : GREY;
         row(doc, [d.date, String(d.kcal), String(d.proteinG), status], [150, 110, 110, 125], i, [INK, INK, INK, statusColor]);
       });
@@ -92,15 +92,15 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
     // Totals + body maximum (TDEE).
     statCards(doc, [
       ['Total intake (7d)', `${r.totalIntakeKcal}`, GREEN],
-      ['Total target (7d)', r.totalTargetKcal != null ? `${r.totalTargetKcal}` : '—', INK],
-      ['Body max/day (TDEE)', r.maintenanceKcal != null ? `${Math.round(r.maintenanceKcal)}` : '—', AMBER],
+      ['Total target (7d)', r.totalTargetKcal != null ? `${r.totalTargetKcal}` : '-', INK],
+      ['Body max/day (TDEE)', r.maintenanceKcal != null ? `${Math.round(r.maintenanceKcal)}` : '-', AMBER],
     ]);
 
     // AI energy-balance prediction.
     if (r.prediction) predictionBox(doc, r.prediction);
     doc.moveDown(1);
 
-    // ---- What you ate — ONE fully-gridded table (Date / Meal / Item / Qty / kcal) ----
+    // ---- What you ate - ONE fully-gridded table (Date / Meal / Item / Qty / kcal) ----
     if (r.entries.length) {
       ensure(120);
       sectionHeader(doc, 'What you ate (last 7 days)');
@@ -241,7 +241,7 @@ function predictionBox(doc: PDFKit.PDFDocument, p: import('./report').Prediction
   const h = 62;
   doc.roundedRect(PAGE_LEFT, y, CONTENT_W, h, 8).fill('#FFF7ED');
   doc.fillColor(AMBER).font('Helvetica-Bold').fontSize(11).text('AI weight prediction  ·  next month', PAGE_LEFT + 12, y + 10);
-  const weight = p.projectedWeightKg != null ? `${p.projectedWeightKg} kg` : '—';
+  const weight = p.projectedWeightKg != null ? `${p.projectedWeightKg} kg` : '-';
   const delta = p.projectedMonthlyDeltaKg;
   const deltaStr = `${delta > 0 ? '+' : ''}${delta} kg/month`;
   const deltaColor = delta < 0 ? GREEN : delta > 0 ? AMBER : GREY;

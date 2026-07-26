@@ -93,11 +93,11 @@ export async function generateAndSavePlan(
 
   const foods = await prisma.food.findMany();
   if (foods.length === 0) {
-    throw new HttpError(503, 'Food database is empty — run the seed');
+    throw new HttpError(503, 'Food database is empty - run the seed');
   }
 
   // The plan targets your daily calorie goal directly, so the meal plan always adds up to the
-  // goal shown on the dashboard. (Automatic week-to-week carry-over was removed — it silently
+  // goal shown on the dashboard. (Automatic week-to-week carry-over was removed - it silently
   // reduced the plan below the goal, so the diet total disagreed with the dashboard and read
   // as a bug. Intentional changes still flow through the coach recommendation below.)
   targets.carryOverKcal = 0;
@@ -139,7 +139,7 @@ export async function swapMeal(userId: string, dayIndex: number, slot: MealSlot)
     where: { userId },
     orderBy: { createdAt: 'desc' },
   });
-  if (!planRow) throw new HttpError(404, 'No plan yet — generate one first');
+  if (!planRow) throw new HttpError(404, 'No plan yet - generate one first');
 
   const days = planRow.days as unknown as DayPlan[];
   const targets = planRow.targets as unknown as PlanTargets;

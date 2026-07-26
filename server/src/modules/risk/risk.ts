@@ -3,10 +3,10 @@ import type { Sex } from '../../calc/types';
 /**
  * Deterministic, non-diagnostic health-risk engine. Turns already-collected profile + check-in
  * numbers (waist, BMI, blood pressure, fasting glucose, resting HR, sleep, hydration) into
- * plain-language risk flags — each with WHY, a recommendation and a concrete next action.
+ * plain-language risk flags - each with WHY, a recommendation and a concrete next action.
  *
  * This is education, not diagnosis: it never names a disease as present, only "higher risk", and
- * always defers to a clinician. Pure & fully unit-tested — never delegated to an LLM.
+ * always defers to a clinician. Pure & fully unit-tested - never delegated to an LLM.
  */
 
 export type RiskLevel = 'low' | 'moderate' | 'high';
@@ -15,7 +15,7 @@ export interface RiskFinding {
   id: string;
   label: string;
   level: RiskLevel;
-  /** Why we flagged it — the specific numbers involved. */
+  /** Why we flagged it - the specific numbers involved. */
   why: string;
   /** What generally helps. */
   recommendation: string;
@@ -35,7 +35,7 @@ export interface RiskInput {
   bloodSugar?: number;
   /** Resting heart rate (bpm). */
   restingHr?: number;
-  /** HbA1c (%) — 3-month average glucose. */
+  /** HbA1c (%) - 3-month average glucose. */
   hba1c?: number;
   /** LDL cholesterol (mg/dL). */
   ldl?: number;
@@ -43,11 +43,11 @@ export interface RiskInput {
   hdl?: number;
   /** Triglycerides (mg/dL). */
   triglycerides?: number;
-  /** TSH (mIU/L) — thyroid. */
+  /** TSH (mIU/L) - thyroid. */
   tsh?: number;
   /** Last night's sleep (hours). */
   sleepHours?: number;
-  /** Today's hydration as a % of target (0–100). */
+  /** Today's hydration as a % of target (0-100). */
   hydrationPct?: number;
   /** Already-declared conditions (skip a risk we'd otherwise infer). */
   conditions?: string[];
@@ -61,13 +61,13 @@ export interface RiskInput {
 
 export interface RiskAssessment {
   findings: RiskFinding[];
-  /** Overall 0–100 (higher = more flags / more severe). Coarse, for a summary badge. */
+  /** Overall 0-100 (higher = more flags / more severe). Coarse, for a summary badge. */
   overallScore: number;
   disclaimer: string;
 }
 
 const DISCLAIMER =
-  'These are educational risk signals from the numbers you entered — not a diagnosis. Confirm anything concerning with a doctor and a proper blood test.';
+  'These are educational risk signals from the numbers you entered - not a diagnosis. Confirm anything concerning with a doctor and a proper blood test.';
 
 const has = (conds: string[] | undefined, c: string) => (conds ?? []).includes(c);
 
@@ -87,7 +87,7 @@ const LEVEL_SCORE: Record<RiskLevel, number> = { low: 0, moderate: 1, high: 2 };
 export function assessRisks(input: RiskInput): RiskAssessment {
   const findings: RiskFinding[] = [];
 
-  // --- Central obesity (waist-to-height ratio) — the strongest simple cardiometabolic signal ---
+  // --- Central obesity (waist-to-height ratio) - the strongest simple cardiometabolic signal ---
   if (input.waistCm && input.heightCm > 0) {
     const whtr = input.waistCm / input.heightCm;
     if (whtr >= 0.6) {
@@ -97,14 +97,14 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         level: 'high',
         why: `Your waist-to-height ratio is ${whtr.toFixed(2)} (waist ${input.waistCm} cm). Above 0.6 signals a lot of visceral fat.`,
         recommendation: 'A modest calorie deficit, more fibre and daily movement shrink waist fat fastest.',
-        nextAction: 'Aim to keep your waist under half your height — track it monthly.',
+        nextAction: 'Aim to keep your waist under half your height - track it monthly.',
       });
     } else if (whtr >= 0.5) {
       findings.push({
         id: 'central_obesity',
         label: 'Waist creeping up',
         level: 'moderate',
-        why: `Your waist-to-height ratio is ${whtr.toFixed(2)} — over the 0.5 "keep waist under half your height" line.`,
+        why: `Your waist-to-height ratio is ${whtr.toFixed(2)} - over the 0.5 "keep waist under half your height" line.`,
         recommendation: 'Prioritise protein + fibre, cut refined carbs, and add a daily walk.',
         nextAction: `Re-measure your waist in 4 weeks and aim for under ${Math.round(input.heightCm / 2)} cm.`,
       });
@@ -118,7 +118,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       label: 'Obesity range (Asian BMI)',
       level: 'high',
       why: `Your BMI is ${input.bmi}. For South-Asian bodies, ≥ 25 is the obesity threshold (risk rises earlier than the global 30).`,
-      recommendation: 'A steady 0.25–0.5 kg/week loss with strength training protects muscle while cutting fat.',
+      recommendation: 'A steady 0.25-0.5 kg/week loss with strength training protects muscle while cutting fat.',
       nextAction: 'Follow your calorie target and re-check weight weekly.',
     });
   } else if (input.bmi >= 23) {
@@ -126,7 +126,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       id: 'overweight',
       label: 'Overweight range (Asian BMI)',
       level: 'moderate',
-      why: `Your BMI is ${input.bmi}. For South-Asians, 23–25 is already "overweight".`,
+      why: `Your BMI is ${input.bmi}. For South-Asians, 23-25 is already "overweight".`,
       recommendation: 'Small, sustainable changes now prevent the slide into higher risk.',
       nextAction: 'Hold a light deficit and keep protein high.',
     });
@@ -141,8 +141,8 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         label: 'High blood pressure',
         level: 'high',
         why: `Your reading ${bp.systolic}/${bp.diastolic} mmHg is in the hypertension range (≥ 140/90).`,
-        recommendation: 'Cut salt to ~1500–2000 mg/day (DASH pattern), limit alcohol, move daily.',
-        nextAction: 'Get your BP confirmed by a doctor — a single high reading needs verifying.',
+        recommendation: 'Cut salt to ~1500-2000 mg/day (DASH pattern), limit alcohol, move daily.',
+        nextAction: 'Get your BP confirmed by a doctor - a single high reading needs verifying.',
       });
     } else if (bp.systolic >= 130 || bp.diastolic >= 80) {
       findings.push({
@@ -172,21 +172,21 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         id: 'prediabetes',
         label: 'Prediabetes range',
         level: 'moderate',
-        why: `Your fasting glucose ${input.bloodSugar} mg/dL is in the prediabetes range (100–125).`,
-        recommendation: 'Losing 5–7% of body weight and daily activity can reverse this stage.',
+        why: `Your fasting glucose ${input.bloodSugar} mg/dL is in the prediabetes range (100-125).`,
+        recommendation: 'Losing 5-7% of body weight and daily activity can reverse this stage.',
         nextAction: 'Swap refined carbs for whole grains and walk 10 min after meals.',
       });
     }
   }
 
-  // --- HbA1c (3-month glucose) — sharper than a single fasting reading ---
+  // --- HbA1c (3-month glucose) - sharper than a single fasting reading ---
   if (input.hba1c && !has(input.conditions, 'diabetes')) {
     if (input.hba1c >= 6.5) {
       findings.push({
         id: 'diabetes_hba1c',
         label: 'HbA1c in diabetes range',
         level: 'high',
-        why: `Your HbA1c ${input.hba1c}% is in the diabetes range (≥ 6.5%) — that's your average glucose over ~3 months.`,
+        why: `Your HbA1c ${input.hba1c}% is in the diabetes range (≥ 6.5%) - that's your average glucose over ~3 months.`,
         recommendation: 'Low-GI carbs, more fibre, weight loss and post-meal walks lower HbA1c over months.',
         nextAction: 'See a doctor to confirm and plan management.',
       });
@@ -195,8 +195,8 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         id: 'prediabetes_hba1c',
         label: 'HbA1c in prediabetes range',
         level: 'moderate',
-        why: `Your HbA1c ${input.hba1c}% is in the prediabetes range (5.7–6.4%).`,
-        recommendation: 'Losing 5–7% of body weight and daily activity can bring it back to normal.',
+        why: `Your HbA1c ${input.hba1c}% is in the prediabetes range (5.7-6.4%).`,
+        recommendation: 'Losing 5-7% of body weight and daily activity can bring it back to normal.',
         nextAction: 'Cut refined carbs and add a daily walk; recheck in 3 months.',
       });
     }
@@ -241,7 +241,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         id: 'high_tsh',
         label: 'TSH above range',
         level: 'moderate',
-        why: `Your TSH ${input.tsh} mIU/L is above the usual 0.4–4.0 range — this can suggest an underactive thyroid.`,
+        why: `Your TSH ${input.tsh} mIU/L is above the usual 0.4-4.0 range - this can suggest an underactive thyroid.`,
         recommendation: 'A doctor interprets TSH alongside symptoms and other thyroid tests.',
         nextAction: 'Ask your doctor whether a full thyroid panel is warranted.',
       });
@@ -250,7 +250,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         id: 'low_tsh',
         label: 'TSH below range',
         level: 'moderate',
-        why: `Your TSH ${input.tsh} mIU/L is below the usual 0.4–4.0 range — this can suggest an overactive thyroid.`,
+        why: `Your TSH ${input.tsh} mIU/L is below the usual 0.4-4.0 range - this can suggest an overactive thyroid.`,
         recommendation: 'A doctor interprets TSH alongside symptoms and other thyroid tests.',
         nextAction: 'Discuss the result with your doctor.',
       });
@@ -263,7 +263,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       id: 'high_resting_hr',
       label: 'Elevated resting heart rate',
       level: 'moderate',
-      why: `Your resting heart rate is ${input.restingHr} bpm (a healthy adult range is ~60–100).`,
+      why: `Your resting heart rate is ${input.restingHr} bpm (a healthy adult range is ~60-100).`,
       recommendation: 'Regular cardio lowers resting HR; also check hydration, caffeine, sleep and stress.',
       nextAction: 'If it stays above 100 at rest, mention it to a doctor.',
     });
@@ -276,7 +276,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       label: 'Short sleep',
       level: input.sleepHours < 5.5 ? 'high' : 'moderate',
       why: `You logged ${input.sleepHours}h. Under ~7h raises appetite, blood sugar and blood pressure.`,
-      recommendation: 'Aim for 7–8h; keep a consistent bedtime and cut screens/caffeine late.',
+      recommendation: 'Aim for 7-8h; keep a consistent bedtime and cut screens/caffeine late.',
       nextAction: 'Set a wind-down reminder 30 min before bed tonight.',
     });
   }
@@ -299,7 +299,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
       id: 'smoking',
       label: 'Smoking raises your risk',
       level: 'high',
-      why: 'Regular smoking is a leading cause of heart disease, stroke and cancer — it multiplies every other risk here.',
+      why: 'Regular smoking is a leading cause of heart disease, stroke and cancer - it multiplies every other risk here.',
       recommendation: 'Quitting is the single highest-impact thing you can do; support and nicotine replacement double success rates.',
       nextAction: 'Ask a doctor or a quit-line about a stop-smoking plan.',
     });
@@ -320,7 +320,7 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         label: 'Family history adds context',
         level: 'moderate',
         why: `You noted a family history of ${cardiometabolicFh.join(', ').replace(/_/g, ' ')}. That raises your baseline cardiometabolic risk alongside the signals above.`,
-        recommendation: 'It makes the lifestyle steps above matter more — and earlier, regular screening worthwhile.',
+        recommendation: 'It makes the lifestyle steps above matter more - and earlier, regular screening worthwhile.',
         nextAction: 'Mention your family history to your doctor so screening can start at the right age.',
       });
     }

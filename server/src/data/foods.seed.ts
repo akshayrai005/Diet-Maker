@@ -1,7 +1,7 @@
 import { FoodItem } from '../modules/food/food.types';
 
 /**
- * Seed food set — common Indian + global foods with approximate per-100g values
+ * Seed food set - common Indian + global foods with approximate per-100g values
  * (USDA / IFCT-style). Not exhaustive; the ETL can expand this from USDA FDC later.
  * Tags drive condition guardrails (e.g. 'high-sugar', 'high-sodium', 'onion').
  */
@@ -64,7 +64,7 @@ export const SEED_FOODS: FoodItem[] = [
   { id: 'egg-white-omelette', name: 'Egg white omelette', locale: 'global', category: 'egg', mealSlots: ['breakfast', 'eveningsnack'], kcal: 52, proteinG: 11, carbG: 1, fatG: 0.2, fiberG: 0, sugarG: 0.5, sodiumMg: 160, typicalServingG: 120, costTier: 1, tags: ['high-protein', 'lean', 'onion'], allergens: ['egg'] },
   { id: 'grilled-salmon', name: 'Grilled salmon', locale: 'global', category: 'nonveg', mealSlots: ['lunch', 'dinner'], kcal: 208, proteinG: 20, carbG: 0, fatG: 13, fiberG: 0, sugarG: 0, sodiumMg: 59, typicalServingG: 120, costTier: 3, tags: ['high-protein', 'omega3', 'high-purine'], allergens: ['fish'] },
   { id: 'greek-yogurt', name: 'Greek yogurt (plain)', locale: 'global', category: 'vegetarian', mealSlots: ['breakfast', 'midmorning', 'eveningsnack'], kcal: 59, proteinG: 10, carbG: 3.6, fatG: 0.4, fiberG: 0, sugarG: 3.2, sodiumMg: 36, typicalServingG: 150, costTier: 2, tags: ['dairy', 'high-protein', 'probiotic'], allergens: ['milk'] },
-  { id: 'cucumber-salad', name: 'Cucumber–tomato salad', locale: 'IN', category: 'vegan', mealSlots: ['lunch', 'dinner', 'eveningsnack'], kcal: 25, proteinG: 1, carbG: 5, fatG: 0.2, fiberG: 1.5, sugarG: 3, sodiumMg: 8, typicalServingG: 150, costTier: 1, tags: ['vegetable', 'high-fiber'], allergens: [] },
+  { id: 'cucumber-salad', name: 'Cucumber-tomato salad', locale: 'IN', category: 'vegan', mealSlots: ['lunch', 'dinner', 'eveningsnack'], kcal: 25, proteinG: 1, carbG: 5, fatG: 0.2, fiberG: 1.5, sugarG: 3, sodiumMg: 8, typicalServingG: 150, costTier: 1, tags: ['vegetable', 'high-fiber'], allergens: [] },
   { id: 'orange', name: 'Orange', locale: 'global', category: 'vegan', mealSlots: ['midmorning', 'eveningsnack'], kcal: 47, proteinG: 0.9, carbG: 12, fatG: 0.1, fiberG: 2.4, sugarG: 9, sodiumMg: 0, glycemicIndex: 43, typicalServingG: 130, costTier: 1, tags: ['fruit', 'high-fiber'], allergens: [] },
   { id: 'guava', name: 'Guava', locale: 'IN', category: 'vegan', mealSlots: ['midmorning', 'eveningsnack'], kcal: 68, proteinG: 2.6, carbG: 14, fatG: 1, fiberG: 5.4, sugarG: 9, sodiumMg: 2, glycemicIndex: 12, typicalServingG: 100, costTier: 1, tags: ['fruit', 'high-fiber'], allergens: [] },
   { id: 'walnuts', name: 'Walnuts', locale: 'global', category: 'vegan', mealSlots: ['wakeup', 'eveningsnack'], kcal: 654, proteinG: 15, carbG: 14, fatG: 65, fiberG: 6.7, sugarG: 2.6, sodiumMg: 2, typicalServingG: 15, costTier: 3, tags: ['nuts', 'healthy-fat', 'omega3'], allergens: ['tree_nut'] },

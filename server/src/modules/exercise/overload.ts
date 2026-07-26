@@ -1,10 +1,10 @@
 /**
- * Progressive-overload engine — PURE and deterministic.
+ * Progressive-overload engine - PURE and deterministic.
  *
  * Given a flat history of logged sets, it recommends the next session per
  * exercise using capped, explainable rules (double-progression + a periodic
  * deload). There is NO database, no I/O, no `Date.now()`, no `Math.random()`
- * and no LLM here — the same inputs always yield the same output. `Date` is
+ * and no LLM here - the same inputs always yield the same output. `Date` is
  * used ONLY to parse the caller-supplied ISO date strings, which is a pure,
  * deterministic transformation of the input.
  *
@@ -51,7 +51,7 @@ const DEFAULT_REPS = 8; // conservative fallback when reps weren't logged
 const DEFAULT_SETS = 3; // conservative fallback when sets weren't logged
 const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
-/** Nearest 0.5 kg — keeps suggestions on a realistic plate grid. */
+/** Nearest 0.5 kg - keeps suggestions on a realistic plate grid. */
 function roundToHalf(x: number): number {
   return Math.round(x * 2) / 2;
 }
@@ -86,7 +86,7 @@ function describe(s: LoggedSet): string {
 function didRegress(recent: LoggedSet, prev: LoggedSet): boolean {
   const recentW = recent.weightKg ?? 0;
   const prevW = prev.weightKg ?? 0;
-  if (recentW > prevW) return false; // added load — treat as a progression attempt
+  if (recentW > prevW) return false; // added load - treat as a progression attempt
   const recentReps = recent.reps ?? 0;
   const prevReps = prev.reps ?? 0;
   const recentSets = recent.sets ?? 0;
@@ -113,7 +113,7 @@ function recommendForExercise(
   const weeksElapsed = Math.floor((toMs(recent.date) - toMs(sorted[0]!.date)) / MS_PER_WEEK);
   const deloadDue = weeksElapsed >= deloadEveryWeeks && weeksElapsed % deloadEveryWeeks === 0;
 
-  // 1) Scheduled deload — overrides progression/hold.
+  // 1) Scheduled deload - overrides progression/hold.
   if (deloadDue) {
     const reps = clampReps(baseReps * DELOAD_FACTOR);
     const weight = baseWeight === null ? null : roundToHalf(baseWeight * DELOAD_FACTOR);
@@ -130,7 +130,7 @@ function recommendForExercise(
     };
   }
 
-  // 2) Missed last session (regressed vs the prior) — hold the load.
+  // 2) Missed last session (regressed vs the prior) - hold the load.
   if (prev !== undefined && didRegress(recent, prev)) {
     return {
       exerciseName: name,
@@ -140,11 +140,11 @@ function recommendForExercise(
       deload: false,
       rationale:
         `Last session (${describe(recent)}) fell short of the prior (${describe(prev)}). ` +
-        `Holding at ${describe(recent)} — nail every rep before adding load.`,
+        `Holding at ${describe(recent)} - nail every rep before adding load.`,
     };
   }
 
-  // 3) Hit all reps/sets (or a first single session) — ONE small increment.
+  // 3) Hit all reps/sets (or a first single session) - ONE small increment.
   if (bodyweight) {
     const reps = clampReps(baseReps + REP_INCREMENT);
     return {
@@ -154,7 +154,7 @@ function recommendForExercise(
       suggestedSets: baseSets,
       deload: false,
       rationale:
-        `Bodyweight — completed ${baseSets}×${baseReps}. No load to add, so add 1 rep to ` +
+        `Bodyweight - completed ${baseSets}×${baseReps}. No load to add, so add 1 rep to ` +
         `${baseSets}×${reps}; reps carry the overload.`,
     };
   }
@@ -167,7 +167,7 @@ function recommendForExercise(
     suggestedSets: baseSets,
     deload: false,
     rationale:
-      `Hit all ${baseSets}×${baseReps} at ${baseWeight} kg — one small step: +${WEIGHT_INCREMENT_KG} kg ` +
+      `Hit all ${baseSets}×${baseReps} at ${baseWeight} kg - one small step: +${WEIGHT_INCREMENT_KG} kg ` +
       `to ${weight} kg, reps unchanged.`,
   };
 }
@@ -213,7 +213,7 @@ export function recommendNextSession(
 }
 
 /**
- * Coarse progressive-overload TREND across a history of logged sets — PURE.
+ * Coarse progressive-overload TREND across a history of logged sets - PURE.
  *
  * Per exercise, compares the earliest vs the latest session by a single metric
  * (top weight for weighted lifts, else top reps for bodyweight) and votes
@@ -272,7 +272,7 @@ const MIN_SESSIONS_TO_SUSTAIN = 2;
 /** This many regressed exercises counts as "repeated misses". */
 const REPEATED_MISS_COUNT = 2;
 
-/** Distinct calendar days present in the history — one "session" per day. */
+/** Distinct calendar days present in the history - one "session" per day. */
 function distinctSessionCount(history: LoggedSet[]): number {
   const days = new Set<number>();
   for (const s of history) {
@@ -283,7 +283,7 @@ function distinctSessionCount(history: LoggedSet[]): number {
 }
 
 /**
- * Suggest promoting / demoting the user's fitness LEVEL from their logged history — PURE.
+ * Suggest promoting / demoting the user's fitness LEVEL from their logged history - PURE.
  *
  * The metric per exercise is top weight (or top reps for bodyweight), earliest vs
  * latest session. Votes are tallied across exercises, plus a count of exercises whose
@@ -341,7 +341,7 @@ export function suggestLevelChange(
     if (didRegress(sorted[sorted.length - 1]!, sorted[sorted.length - 2]!)) misses += 1;
   }
 
-  // PROMOTE — consistent progression over enough sessions.
+  // PROMOTE - consistent progression over enough sessions.
   if (
     currentLevel !== 'advanced' &&
     sessions >= minToPromote &&
@@ -351,12 +351,12 @@ export function suggestLevelChange(
     return {
       direction: 'up',
       reason:
-        `Progressing consistently — ${up} exercise(s) up vs ${down} down across ` +
+        `Progressing consistently - ${up} exercise(s) up vs ${down} down across ` +
         `${sessions} sessions with no regressions. Ready to level up.`,
     };
   }
 
-  // DEMOTE — struggling, stagnating, or too little to sustain the level.
+  // DEMOTE - struggling, stagnating, or too little to sustain the level.
   if (currentLevel !== 'beginner') {
     if (down > up) {
       return {
@@ -368,7 +368,7 @@ export function suggestLevelChange(
       return {
         direction: 'down',
         reason:
-          `Only ${sessions} logged session(s) — too little to sustain this level. ` +
+          `Only ${sessions} logged session(s) - too little to sustain this level. ` +
           `Ease down and build consistency.`,
       };
     }
@@ -380,12 +380,12 @@ export function suggestLevelChange(
     }
   }
 
-  // HOLD — steady, or already at a boundary level.
+  // HOLD - steady, or already at a boundary level.
   const reason =
     currentLevel === 'advanced' && up > down
-      ? 'Already at the advanced level — keep progressing where you are.'
+      ? 'Already at the advanced level - keep progressing where you are.'
       : currentLevel === 'beginner' && (down > up || sessions < MIN_SESSIONS_TO_SUSTAIN)
-        ? 'Already at the beginner level — hold and build consistency before easing further.'
-        : 'Steady — keep training at your current level.';
+        ? 'Already at the beginner level - hold and build consistency before easing further.'
+        : 'Steady - keep training at your current level.';
   return { direction: 'hold', reason };
 }

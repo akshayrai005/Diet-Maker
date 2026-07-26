@@ -7,7 +7,7 @@ import { assessRisks, type RiskAssessment } from './risk';
 /**
  * Runs the deterministic health-risk engine over the user's stored profile numbers
  * (waist, BP, fasting glucose, resting HR) plus their computed BMI AND their latest logged
- * lab/vital time-series (HbA1c, lipid panel, TSH — and fresher BP/glucose/HR override the profile
+ * lab/vital time-series (HbA1c, lipid panel, TSH - and fresher BP/glucose/HR override the profile
  * snapshot). Sleep/hydration are optional and passed in from the client (Health Connect / water %).
  */
 export async function getRiskAssessment(

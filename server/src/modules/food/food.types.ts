@@ -1,4 +1,4 @@
-// Pure food + meal-plan types. No I/O — the generator operates on plain arrays so it is
+// Pure food + meal-plan types. No I/O - the generator operates on plain arrays so it is
 // fully unit-testable without a database.
 
 export type FoodCategory = 'vegan' | 'vegetarian' | 'egg' | 'nonveg';
@@ -64,7 +64,7 @@ export interface PlanTargets {
   sodiumMaxMg?: number;
   /** Daily kcal adjustment applied to compensate for last week (carry-over). */
   carryOverKcal?: number;
-  /** Generator version this plan was built with — lets the client auto-refresh stale plans. */
+  /** Generator version this plan was built with - lets the client auto-refresh stale plans. */
   planVersion?: number;
 }
 
@@ -76,7 +76,7 @@ export interface PlanPreferences {
   monthlyBudget?: number;
   /** Budget bias for food selection: 'low' prefers costTier 1, 'medium' ≤2, 'flexible' no bias. */
   budgetTier?: 'low' | 'medium' | 'flexible';
-  /** Foods/tags the user already has — floated to the front so plans use what's on hand. */
+  /** Foods/tags the user already has - floated to the front so plans use what's on hand. */
   pantryTags?: string[];
   /** Macro-band strictness: 'relaxed' widens the acceptable bands, 'strict' narrows them. */
   strictness?: 'relaxed' | 'standard' | 'strict';

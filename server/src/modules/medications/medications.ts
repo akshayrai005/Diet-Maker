@@ -1,5 +1,5 @@
 /**
- * Pure helpers for medication/supplement tracking. Kaizen tracks what you take and can remind you —
+ * Pure helpers for medication/supplement tracking. Kaizen tracks what you take and can remind you -
  * it deliberately does NOT check drug interactions or give dosing advice; that's for a pharmacist
  * or doctor. This module holds only deterministic, unit-tested helpers (no diagnosis, no LLM).
  */

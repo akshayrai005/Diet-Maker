@@ -37,8 +37,8 @@ private val NUTRIENT_INFO: Map<String, Pair<String, String>> = mapOf(
     "ironMg" to ("Carries oxygen in your blood; low iron causes tiredness and low focus." to "Spinach, rajma, dates, roasted chana, pumpkin seeds; pair with vitamin-C foods to absorb more."),
     "calciumMg" to ("Builds and maintains strong bones and teeth." to "Milk, curd, paneer, ragi, sesame (til), tofu."),
     "vitaminB12Mcg" to ("Keeps nerves and red blood cells healthy; common gap on plant-based diets." to "Milk, curd, paneer, eggs, fish; fortified cereals / nutritional yeast for vegans."),
-    "vitaminDMcg" to ("Helps absorb calcium and supports mood and immunity." to "15–20 min sunlight, fortified milk, egg yolk, mushrooms, fatty fish."),
-    "folateMcg" to ("Supports cell growth — especially important before/during pregnancy." to "Spinach & greens, chana, beetroot, oranges."),
+    "vitaminDMcg" to ("Helps absorb calcium and supports mood and immunity." to "15-20 min sunlight, fortified milk, egg yolk, mushrooms, fatty fish."),
+    "folateMcg" to ("Supports cell growth - especially important before/during pregnancy." to "Spinach & greens, chana, beetroot, oranges."),
     "potassiumMg" to ("Balances fluids and helps keep blood pressure healthy." to "Banana, coconut water, sweet potato, spinach."),
     "magnesiumMg" to ("Supports muscles, nerves, sleep and energy." to "Almonds, whole grains (bajra, oats), banana, dark chocolate."),
     "zincMg" to ("Supports immunity, healing and taste." to "Chana & legumes, pumpkin seeds, cashews, eggs."),
@@ -77,7 +77,7 @@ fun MicronutrientsCard(m: Micronutrients, modifier: Modifier = Modifier) {
                     Text(why, style = MaterialTheme.typography.bodySmall)
                     Text("Good sources", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelLarge)
                     Text(sources, style = MaterialTheme.typography.bodySmall)
-                    Text("Educational guidance — reference ranges vary; confirm concerns with a doctor.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Educational guidance - reference ranges vary; confirm concerns with a doctor.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
         )

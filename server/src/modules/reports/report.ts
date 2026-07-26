@@ -33,7 +33,7 @@ export interface AllTimeStats {
 /** Data-driven next-month weight prediction from actual energy balance. */
 export interface Prediction {
   avgDailyIntake: number;
-  maintenanceKcal: number; // TDEE — what the body burns/day (its "max" to hold weight)
+  maintenanceKcal: number; // TDEE - what the body burns/day (its "max" to hold weight)
   dailyBalanceKcal: number; // intake − maintenance (negative = deficit)
   projectedMonthlyDeltaKg: number;
   projectedWeightKg: number | null;
@@ -70,8 +70,8 @@ export function predictNextMonth(input: {
     : balance < 0
       ? 'Based on your logged intake staying below what your body burns.'
       : balance > 0
-        ? 'Your logged intake is currently at/above maintenance — a small gain is likely.'
-        : 'Your intake is right at maintenance — weight is holding steady.';
+        ? 'Your logged intake is currently at/above maintenance - a small gain is likely.'
+        : 'Your intake is right at maintenance - weight is holding steady.';
   return {
     avgDailyIntake: Math.round(avgDailyIntake),
     maintenanceKcal,
@@ -100,7 +100,7 @@ export interface WeeklyReport {
   totalIntakeKcal: number;
   /** Daily target × logged days. */
   totalTargetKcal: number | null;
-  /** TDEE — the body's daily "max" to hold weight. */
+  /** TDEE - the body's daily "max" to hold weight. */
   maintenanceKcal: number | null;
   prediction: Prediction | null;
   disclaimer: string;
@@ -108,7 +108,7 @@ export interface WeeklyReport {
 
 export interface BuildReportInput {
   name: string;
-  generatedAt: string; // ISO — passed in so the builder stays pure/deterministic
+  generatedAt: string; // ISO - passed in so the builder stays pure/deterministic
   targets: { dailyKcal: number; proteinG: number; waterMl: number } | null;
   bmi: number | null;
   latestWeightKg: number | null;

@@ -22,21 +22,21 @@ export function habitStreak(doneDayKeys: string[], todayKey: string): number {
 }
 
 /**
- * A gentle, non-punitive nudge when a streak has just broken — encouraging a fresh start rather
+ * A gentle, non-punitive nudge when a streak has just broken - encouraging a fresh start rather
  * than shaming the miss. Returns null when there's nothing to recover. PURE.
  */
 export function recoveryNudge(title: string, brokenStreakLength: number): string | null {
   if (brokenStreakLength <= 0) return null;
   if (brokenStreakLength >= 7) {
-    return `Your ${brokenStreakLength}-day “${title}” streak paused — that was a strong run. One tick today starts the next one.`;
+    return `Your ${brokenStreakLength}-day “${title}” streak paused - that was a strong run. One tick today starts the next one.`;
   }
-  return `“${title}” slipped a day — no problem. Check it off today and you’re right back on track.`;
+  return `“${title}” slipped a day - no problem. Check it off today and you’re right back on track.`;
 }
 
 /** A simple, encouraging evening review line from how many of today's habits are done. PURE. */
 export function eveningReview(done: number, total: number): string {
   if (total === 0) return 'Add a habit to start building your daily wins.';
-  if (done >= total) return `All ${total} habits done today — that’s a clean sweep. 🎉`;
-  if (done === 0) return `${total} habits still open — even one tick is momentum. You’ve got time.`;
-  return `${done} of ${total} done — a solid day. ${total - done} to go if you can.`;
+  if (done >= total) return `All ${total} habits done today - that’s a clean sweep. 🎉`;
+  if (done === 0) return `${total} habits still open - even one tick is momentum. You’ve got time.`;
+  return `${done} of ${total} done - a solid day. ${total - done} to go if you can.`;
 }

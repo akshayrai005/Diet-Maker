@@ -8,7 +8,7 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 /**
- * Generates soft, calming breathing tones on the fly (pure sine waves) — no audio files, no
+ * Generates soft, calming breathing tones on the fly (pure sine waves) - no audio files, no
  * network, works fully offline. Used by the meditation session so inhale/hold/exhale each get a
  * gentle chime that glides in pitch. Cheap: a short PCM buffer per phase, played once.
  */

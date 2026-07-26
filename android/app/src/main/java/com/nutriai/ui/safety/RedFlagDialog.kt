@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Calm-but-unmissable escalation shown when the red-flag safety net flags free text as urgent.
  * Styled with the error container colour and an "important" heading. It never suppresses the user's
- * original action — it is surfaced alongside it — so the only action here is to acknowledge.
+ * original action - it is surfaced alongside it - so the only action here is to acknowledge.
  */
 @Composable
 fun RedFlagDialog(message: String, onDismiss: () -> Unit) {
@@ -27,7 +27,7 @@ fun RedFlagDialog(message: String, onDismiss: () -> Unit) {
         textContentColor = MaterialTheme.colorScheme.onErrorContainer,
         title = {
             Text(
-                "Important — please read",
+                "Important - please read",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.semantics { contentDescription = "Important health notice" },

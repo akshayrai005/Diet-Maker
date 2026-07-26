@@ -6,11 +6,11 @@ import { round } from './anthropometry';
  *
  * RDA values are adult reference intakes from the US National Academies (DRI) / ICMR-NIN 2020
  * for the Indian population where they differ; chosen conservatively and cited per value below.
- * These are educational targets, not a prescription — deficiency needs a blood test to confirm.
+ * These are educational targets, not a prescription - deficiency needs a blood test to confirm.
  *
  * HONEST "no data" handling: intake is a partial map where a `null`/`undefined` value means the
  * nutrient was not estimated from any logged food. Such nutrients are never flagged deficient and
- * never counted in coverage — silence is not a zero.
+ * never counted in coverage - silence is not a zero.
  */
 export interface Micronutrients {
   // --- Minerals & vitamins tracked from Phase 1 ---

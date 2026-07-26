@@ -5,7 +5,7 @@ import { answer, type ChatReply } from './chat.engine';
 import { getAiProvider } from '../../ai';
 
 const DISCLAIMER =
-  'This is educational guidance, not medical advice — please consult a professional.';
+  'This is educational guidance, not medical advice - please consult a professional.';
 
 /** Chat content is encrypted at rest. Legacy plaintext rows (pre-encryption) are returned as-is. */
 function decryptChatContent(stored: string): string {
@@ -96,7 +96,7 @@ export async function chat(userId: string, message: string, firstName?: string):
     : null;
 
   // Try the pluggable LLM provider first (if configured). Numbers/targets always come
-  // from the deterministic calc above — the LLM never supplies them. On null/empty or
+  // from the deterministic calc above - the LLM never supplies them. On null/empty or
   // any failure, fall back to the deterministic rules engine exactly as before.
   const provider = getAiProvider();
   let reply: ChatReply | null = null;

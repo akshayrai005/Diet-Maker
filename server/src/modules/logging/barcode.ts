@@ -24,7 +24,7 @@ function num(v: unknown): number {
 
 /**
  * Looks up a barcode via Open Food Facts (free, no key). Degrades gracefully:
- * 404 when the product is unknown, 502 when OFF is unreachable — never crashes.
+ * 404 when the product is unknown, 502 when OFF is unreachable - never crashes.
  */
 export async function lookupBarcode(code: string): Promise<BarcodeFood> {
   const url = `${OFF_URL}/${encodeURIComponent(code)}.json?fields=product_name,nutriments`;
@@ -37,7 +37,7 @@ export async function lookupBarcode(code: string): Promise<BarcodeFood> {
     if (!res.ok) throw new Error(`OFF ${res.status}`);
     json = (await res.json()) as typeof json;
   } catch {
-    throw new HttpError(502, 'Barcode service unavailable — try again or enter manually');
+    throw new HttpError(502, 'Barcode service unavailable - try again or enter manually');
   }
 
   if (json.status !== 1 || !json.product) {

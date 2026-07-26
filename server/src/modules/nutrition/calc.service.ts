@@ -19,7 +19,7 @@ export function ageFromDob(dobISO: string, now: Date = new Date()): number {
 export async function computeAndSaveForUser(userId: string): Promise<CalcResult> {
   const { profile, sensitive } = await requireCompleteProfile(userId);
 
-  // A physique goal (recomp/lean_bulk/cut/maintain) refines the base goal — but only via the SAFE
+  // A physique goal (recomp/lean_bulk/cut/maintain) refines the base goal - but only via the SAFE
   // calorie engine below (floors/caps/minor & medical blocks still apply). A minor's "cut" downgrades.
   const ageYears = ageFromDob(sensitive.dob);
   const s = sensitive as { physiqueGoal?: PhysiqueGoal; conditions?: string[] };
@@ -29,7 +29,7 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     ? physiqueNutrition(s.physiqueGoal, { isMinor: ageYears < 18, weightLossBlocked }).mappedGoal
     : (profile.goal as Goal);
 
-  // A chosen "reach target by N weeks" timeline drives a SAFE, clamped weekly rate — and takes
+  // A chosen "reach target by N weeks" timeline drives a SAFE, clamped weekly rate - and takes
   // precedence for the calorie direction (concrete intent), so picking a timeline changes the target.
   const tw = (sensitive as { targetTimeframeWeeks?: number }).targetTimeframeWeeks;
   let desiredWeeklyLossKg = sensitive.desiredWeeklyLossKg;

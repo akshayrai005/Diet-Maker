@@ -54,7 +54,7 @@ export const checkinSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-/** A quick Mind-pillar check-in — mood/stress/sleep-quality only, no weigh-in required. */
+/** A quick Mind-pillar check-in - mood/stress/sleep-quality only, no weigh-in required. */
 export const moodCheckinSchema = z.object({
   date: z.string().datetime().optional(),
   mood: z.number().int().min(1).max(5).optional(),

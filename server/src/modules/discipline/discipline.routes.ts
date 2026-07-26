@@ -30,7 +30,7 @@ disciplineRouter.delete(
   }),
 );
 
-/** Discipline dashboard — real adherence score + per-habit streaks + evening review + nudges. */
+/** Discipline dashboard - real adherence score + per-habit streaks + evening review + nudges. */
 disciplineRouter.get(
   '/discipline/today',
   requireAuth,

@@ -9,19 +9,19 @@ export interface RatingAggregateInput {
   target: { dailyKcal: number; proteinG: number; waterMl: number } | null;
   /** One entry per day in the window that had ANY food log. */
   dietDays: { kcal: number; proteinG: number; waterMl: number }[];
-  /** Days in the look-back window (typically 7) — the denominator for logging consistency. */
+  /** Days in the look-back window (typically 7) - the denominator for logging consistency. */
   daysInWindow: number;
   workoutsCompleted: number;
   workoutsScheduled: number;
   overloadTrend: 'up' | 'flat' | 'down';
   loggingStreakDays: number;
-  /** Today's discipline/adherence score (0–100), or null if nothing was known today. */
+  /** Today's discipline/adherence score (0-100), or null if nothing was known today. */
   todayAdherence: number | null;
 }
 
 const clampPct = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
-/** Per-day calorie closeness: full credit within 90–110% of target, tapering to 0 far away. */
+/** Per-day calorie closeness: full credit within 90-110% of target, tapering to 0 far away. */
 function calorieCloseness(kcal: number, targetKcal: number): number {
   if (targetKcal <= 0) return 0;
   const ratio = kcal / targetKcal;
@@ -49,7 +49,7 @@ export function aggregateRatingInputs(a: RatingAggregateInput): RatingInput {
   }
 
   // ---- Exercise ----
-  // Only counts once the user has actually completed a workout — a brand-new user who merely HAS a
+  // Only counts once the user has actually completed a workout - a brand-new user who merely HAS a
   // plan (scheduled > 0, completed 0) shouldn't be scored/shamed before they've done anything.
   if (a.workoutsCompleted > 0) {
     input.exercise = {

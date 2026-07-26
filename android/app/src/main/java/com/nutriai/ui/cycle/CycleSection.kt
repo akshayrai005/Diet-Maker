@@ -143,9 +143,9 @@ fun CycleSection(modifier: Modifier = Modifier, viewModel: CycleViewModel = hilt
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     ) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Your period is due around now — has it started?", style = MaterialTheme.typography.bodyMedium)
+                            Text("Your period is due around now - has it started?", style = MaterialTheme.typography.bodyMedium)
                             Button(onClick = { viewModel.logPeriod(0) }, enabled = !state.submitting) {
-                                Text("Yes — log today")
+                                Text("Yes - log today")
                             }
                         }
                     }

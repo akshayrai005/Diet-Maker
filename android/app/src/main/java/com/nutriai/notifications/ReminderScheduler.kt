@@ -14,11 +14,11 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Schedules local reminder notifications via WorkManager — 100% on-device, no push service.
+ * Schedules local reminder notifications via WorkManager - 100% on-device, no push service.
  *
  * Each reminder is a ONE-TIME job whose initial delay lands on the next occurrence of its target
  * local time; when it fires, [ReminderWorker] re-enqueues the next occurrence. This is deliberate:
- * a PeriodicWorkRequest cannot hit an exact clock time — after its first run it drifts every 24h
+ * a PeriodicWorkRequest cannot hit an exact clock time - after its first run it drifts every 24h
  * and Doze can defer it by hours, which made a 12:30 reminder fire at random times. Re-computing
  * the next occurrence on each fire keeps every nudge anchored to its clock time.
  */
@@ -46,7 +46,7 @@ class ReminderScheduler @Inject constructor(
             ReminderCatalog.jobs(group)
         }
         // REPLACE: re-anchor to the next occurrence and cleanly migrate any stale periodic job
-        // from an older app version. It never fires early — the delay is always to a future time.
+        // from an older app version. It never fires early - the delay is always to a future time.
         jobs.forEach { enqueue(context, it, ExistingWorkPolicy.REPLACE) }
     }
 
@@ -56,7 +56,7 @@ class ReminderScheduler @Inject constructor(
 
     /**
      * Step-aware walk nudge. Unlike the clock-anchored reminders this is genuinely periodic
-     * (~90 min), because it only reacts to Health Connect step deltas — exact timing doesn't matter,
+     * (~90 min), because it only reacts to Health Connect step deltas - exact timing doesn't matter,
      * and the worker itself gates on waking hours + movement so it never nags.
      */
     fun scheduleWalkNudge() {

@@ -6,8 +6,8 @@ const MODEL = 'llama-3.3-70b-versatile';
 const TIMEOUT_MS = 12_000;
 
 /**
- * Groq (OpenAI-compatible) chat provider. Returns `null` on any problem — missing key,
- * timeout, network error, non-2xx response, or an unparsable body — so the caller can
+ * Groq (OpenAI-compatible) chat provider. Returns `null` on any problem - missing key,
+ * timeout, network error, non-2xx response, or an unparsable body - so the caller can
  * fall back to the deterministic rules engine. Never throws.
  */
 export const groqProvider: AiProvider = {

@@ -1,25 +1,25 @@
 /**
  * Deterministic OVERALL HEALTH RATING engine.
  *
- * Correlates the three behavioural pillars a user actually controls — Diet, Exercise and
- * Discipline — into a single explainable 0–100 score with a letter grade and one coaching
+ * Correlates the three behavioural pillars a user actually controls - Diet, Exercise and
+ * Discipline - into a single explainable 0-100 score with a letter grade and one coaching
  * "biggest lever". Product weighting is fixed: Diet 60%, Exercise 25%, Discipline 15%.
  *
  * PURE: no DB, no I/O, no Date.now(), no randomness, no LLM. Every number in the output is
  * derived from the inputs by a fixed formula, so the same input always yields the same result.
  * When a pillar has no data at all it is dropped and the remaining weights are renormalised, so
- * the overall still spans a true 0–100 rather than being dragged down by "missing = zero".
+ * the overall still spans a true 0-100 rather than being dragged down by "missing = zero".
  */
 
 export interface RatingInput {
   diet?: {
-    /** Logged calories as a % of target (0–100 = closer to target is better). */
+    /** Logged calories as a % of target (0-100 = closer to target is better). */
     calorieAdherencePct?: number;
-    /** Days protein target was hit, as a % (0–100). */
+    /** Days protein target was hit, as a % (0-100). */
     proteinHitPct?: number;
-    /** Micronutrient coverage as a % of RDA (0–100). */
+    /** Micronutrient coverage as a % of RDA (0-100). */
     micronutrientCoveragePct?: number;
-    /** Water intake as a % of goal (0–100). */
+    /** Water intake as a % of goal (0-100). */
     waterPct?: number;
   };
   exercise?: {
@@ -27,15 +27,15 @@ export interface RatingInput {
     workoutsScheduled?: number;
     /** Progressive-overload direction over the period. */
     overloadTrend?: 'up' | 'flat' | 'down';
-    /** Session consistency as a % (0–100). */
+    /** Session consistency as a % (0-100). */
     consistencyPct?: number;
   };
   discipline?: {
-    /** Overall plan-adherence score (0–100). */
+    /** Overall plan-adherence score (0-100). */
     adherenceScore?: number;
     /** Current habit streak in days (mapped to quality against a 30-day horizon). */
     habitStreakDays?: number;
-    /** How consistently the user logs, as a % (0–100). */
+    /** How consistently the user logs, as a % (0-100). */
     loggingConsistencyPct?: number;
   };
 }
@@ -48,16 +48,16 @@ export interface PillarResult {
   label: string;
   /** Product weight of this pillar in the overall (before renormalisation). */
   weight: number;
-  /** Explainable 0–100 sub-score; 0 when the pillar has no data. */
+  /** Explainable 0-100 sub-score; 0 when the pillar has no data. */
   score: number;
   /** Raw inputs echoed back for transparency (null where the user gave nothing). */
   inputs: Record<string, number | string | null>;
 }
 
 export interface RatingResult {
-  overall: number; // 0–100
+  overall: number; // 0-100
   grade: Grade;
-  /** False for a brand-new user with nothing logged yet — clients should show an encouraging
+  /** False for a brand-new user with nothing logged yet - clients should show an encouraging
    *  "start logging" state rather than a (shaming) 0 / F rating. */
   hasData: boolean;
   pillars: PillarResult[];
@@ -80,7 +80,7 @@ const PILLAR_LABEL: Record<PillarKey, string> = {
 const clamp0to100 = (n: number): number => Math.max(0, Math.min(100, n));
 const round = (n: number): number => Math.round(n * 10) / 10;
 
-/** A single explainable component of a pillar: a sub-weight and a 0–100 quality (null = absent). */
+/** A single explainable component of a pillar: a sub-weight and a 0-100 quality (null = absent). */
 interface Component {
   weight: number;
   quality: number | null;
@@ -95,7 +95,7 @@ function scoreComponents(components: Component[]): { score: number; hasData: boo
   return { score: round(weighted / totalWeight), hasData: true };
 }
 
-/** Maps the overload trend to a 0–100 quality (more progression = better). */
+/** Maps the overload trend to a 0-100 quality (more progression = better). */
 function overloadQuality(trend?: 'up' | 'flat' | 'down'): number | null {
   if (trend == null) return null;
   return trend === 'up' ? 100 : trend === 'flat' ? 50 : 0;
@@ -245,7 +245,7 @@ export function computeRating(input: RatingInput): RatingResult {
       : 0;
 
   // Biggest lever: among pillars WITH data, the one whose renormalised weight × remaining gap
-  // (100 − score) is largest — the single pillar improving which raises `overall` the most.
+  // (100 − score) is largest - the single pillar improving which raises `overall` the most.
   let biggestLever: { pillar: PillarKey; message: string };
   if (withData.length > 0) {
     let best = withData[0]!;
@@ -265,7 +265,7 @@ export function computeRating(input: RatingInput): RatingResult {
     biggestLever = {
       pillar: 'diet',
       message:
-        'No pillar data yet. Start by logging your meals — Diet is 60% of your health rating and the best place to begin.',
+        'No pillar data yet. Start by logging your meals - Diet is 60% of your health rating and the best place to begin.',
     };
   }
 

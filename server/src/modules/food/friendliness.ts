@@ -1,8 +1,8 @@
 import type { FoodItem, MealItem } from './food.types';
 
 /**
- * Condition-friendliness scores (0–100, higher = friendlier) for a food or a whole meal.
- * Pure and deterministic — derived from fields the food DB already has (GI, sugar, sodium,
+ * Condition-friendliness scores (0-100, higher = friendlier) for a food or a whole meal.
+ * Pure and deterministic - derived from fields the food DB already has (GI, sugar, sodium,
  * fibre, and tags like high-satfat/fried/refined/fermented/probiotic). No LLM, no new data.
  *
  * These are gentle dietary-pattern signals, not medical scoring.

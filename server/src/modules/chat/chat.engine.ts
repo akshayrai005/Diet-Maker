@@ -22,7 +22,7 @@ export interface ChatReply {
   sources: string[];
 }
 
-const DISCLAIMER = 'This is educational guidance, not medical advice — please consult a professional.';
+const DISCLAIMER = 'This is educational guidance, not medical advice - please consult a professional.';
 
 function withDisclaimer(text: string): string {
   return `${text}\n\n${DISCLAIMER}`;
@@ -48,19 +48,19 @@ function assessFood(food: FoodItem, conditions: string[]): string {
     cautions.push('it is relatively high in sodium, so watch the quantity');
   }
   if (has(conditions, 'heart_disease') && tags.includes('high-satfat')) {
-    cautions.push('it is high in saturated fat — keep it occasional');
+    cautions.push('it is high in saturated fat - keep it occasional');
   }
   if (has(conditions, 'gout') && tags.includes('high-purine')) {
-    cautions.push('it is high in purines, which can aggravate gout — limit it');
+    cautions.push('it is high in purines, which can aggravate gout - limit it');
   }
   if (has(conditions, 'kidney_disease') && (tags.includes('high-potassium') || tags.includes('high-phosphorus'))) {
-    cautions.push('it is high in potassium/phosphorus — check with your care team about the amount');
+    cautions.push('it is high in potassium/phosphorus - check with your care team about the amount');
   }
 
   const serving = `A typical serving is about ${food.typicalServingG} g (~${Math.round((food.kcal * food.typicalServingG) / 100)} kcal, ${Math.round((food.proteinG * food.typicalServingG) / 100)} g protein).`;
 
   if (cautions.length > 0) {
-    return `${food.name}: yes, in moderation — but ${cautions.join('; ')}. ${serving}`;
+    return `${food.name}: yes, in moderation - but ${cautions.join('; ')}. ${serving}`;
   }
   return `${food.name}: yes, that fits a balanced plan. ${serving}`;
 }
@@ -113,7 +113,7 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
     const w = ctx.targets?.waterMl;
     return {
       intent: 'water',
-      reply: withDisclaimer(w ? `Aim for about ${w} ml of water a day (roughly ${(w / 250).toFixed(1)} glasses). Spread it across the day and more around exercise.` : 'Aim for roughly 30–35 ml of water per kg of body weight per day. Complete your profile for a personalised target.'),
+      reply: withDisclaimer(w ? `Aim for about ${w} ml of water a day (roughly ${(w / 250).toFixed(1)} glasses). Spread it across the day and more around exercise.` : 'Aim for roughly 30-35 ml of water per kg of body weight per day. Complete your profile for a personalised target.'),
       sources: [],
     };
   }
@@ -124,7 +124,7 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
     }
     return {
       intent: 'targets',
-      reply: withDisclaimer(`Your daily targets are about ${ctx.targets.dailyKcal} kcal and ${ctx.targets.proteinG} g of protein. Hit the protein first — it protects muscle and keeps you full.`),
+      reply: withDisclaimer(`Your daily targets are about ${ctx.targets.dailyKcal} kcal and ${ctx.targets.proteinG} g of protein. Hit the protein first - it protects muscle and keeps you full.`),
       sources: [],
     };
   }

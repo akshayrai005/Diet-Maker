@@ -22,7 +22,7 @@ fun friendlyAuthError(t: Throwable?): String = when (t) {
             409 -> "An account with this email already exists. Try logging in instead."
             401 -> "Incorrect email or password. Please try again."
             400 -> serverMsg ?: "Please check your details and try again."
-            429 -> "Too many attempts — please wait a minute and try again."
+            429 -> "Too many attempts - please wait a minute and try again."
             in 500..599 -> "The server is waking up (the free server can take ~30s on first open). Please try again in a moment."
             else -> serverMsg ?: "Something went wrong. Please try again."
         }
@@ -71,7 +71,7 @@ class AuthViewModel @Inject constructor(
 
     fun resetForgot() { _forgot.value = ForgotState() }
 
-    /** Step 1 — verify the account by email + date of birth (yyyy-MM-dd). */
+    /** Step 1 - verify the account by email + date of birth (yyyy-MM-dd). */
     fun verifyIdentity(email: String, dob: String) {
         _forgot.value = ForgotState(loading = true)
         viewModelScope.launch {
@@ -84,7 +84,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    /** Step 2 — set the new password (server re-verifies email + DOB). */
+    /** Step 2 - set the new password (server re-verifies email + DOB). */
     fun resetPassword(email: String, dob: String, newPassword: String, onDone: () -> Unit) {
         _forgot.value = _forgot.value.copy(loading = true, error = null)
         viewModelScope.launch {

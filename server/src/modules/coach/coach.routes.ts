@@ -20,7 +20,7 @@ coachRouter.get(
       prisma.user.findUnique({ where: { id: req.user!.id }, select: { firstName: true } }),
     ]);
 
-    // Local hour for the greeting — pure input to the templated brief.
+    // Local hour for the greeting - pure input to the templated brief.
     const localHour = new Date(now.getTime() + offsetMin * 60_000).getUTCHours();
     const calorieRemaining = ctx.target ? Math.round(ctx.target.dailyKcal - ctx.today.kcal) : null;
 

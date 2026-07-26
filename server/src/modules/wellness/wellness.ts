@@ -1,6 +1,6 @@
 /**
  * Mind & body content: guided yoga flows and meditation/breathing sessions. Static,
- * deterministic, zero-cost (text + timing only — no audio/video hosting). Educational.
+ * deterministic, zero-cost (text + timing only - no audio/video hosting). Educational.
  */
 
 export interface YogaPose {
@@ -36,7 +36,7 @@ const YOGA: YogaFlow[] = [
     durationMin: 12,
     level: 'all',
     poses: [
-      { name: 'Cat–Cow', hold: '6 breaths', cue: 'Arch and round with your breath to warm the spine.' },
+      { name: 'Cat-Cow', hold: '6 breaths', cue: 'Arch and round with your breath to warm the spine.' },
       { name: 'Downward Dog', hold: '5 breaths', cue: 'Press hips up and back, pedal the heels.' },
       { name: 'Sun Salutation A', hold: '3 rounds', cue: 'Flow with the breath, one movement per inhale/exhale.' },
       { name: 'Warrior I (each side)', hold: '5 breaths', cue: 'Front knee over ankle, arms reaching up.' },
@@ -61,12 +61,12 @@ const YOGA: YogaFlow[] = [
   {
     id: 'desk-reset',
     name: 'Desk Reset',
-    focus: 'Undo sitting — neck, shoulders, hips',
+    focus: 'Undo sitting - neck, shoulders, hips',
     durationMin: 7,
     level: 'all',
     poses: [
       { name: 'Neck rolls', hold: '5 each way', cue: 'Slow half-circles; never crank the neck back.' },
-      { name: 'Seated Cat–Cow', hold: '6 breaths', cue: 'Move the spine right there in your chair.' },
+      { name: 'Seated Cat-Cow', hold: '6 breaths', cue: 'Move the spine right there in your chair.' },
       { name: 'Seated Spinal Twist (each side)', hold: '5 breaths', cue: 'Lengthen up on the inhale, twist on the exhale.' },
       { name: 'Standing Forward Fold', hold: '6 breaths', cue: 'Release the low back and hamstrings.' },
       { name: 'Low Lunge hip opener (each side)', hold: '6 breaths', cue: 'Sink the hips to open the front of the leg.' },
@@ -80,7 +80,7 @@ const YOGA: YogaFlow[] = [
     level: 'beginner',
     poses: [
       { name: "Child's Pose", hold: '8 breaths', cue: 'Knees wide, breathe into the lower back.' },
-      { name: 'Cat–Cow', hold: '6 breaths', cue: 'Soft, slow spinal waves.' },
+      { name: 'Cat-Cow', hold: '6 breaths', cue: 'Soft, slow spinal waves.' },
       { name: 'Reclining Bound Angle', hold: '2 min', cue: 'Soles together, knees fall open, fully supported.' },
       { name: 'Supine Twist (each side)', hold: '6 breaths', cue: 'Gently wring out the belly and low back.' },
       { name: 'Legs-Up-the-Wall', hold: '3 min', cue: 'Eases bloating and calms the system.' },
@@ -93,7 +93,7 @@ const YOGA: YogaFlow[] = [
     durationMin: 15,
     level: 'intermediate',
     poses: [
-      { name: 'Sun Salutation B', hold: '3 rounds', cue: 'Chair, lunge, plank, updog, downdog — flowing.' },
+      { name: 'Sun Salutation B', hold: '3 rounds', cue: 'Chair, lunge, plank, updog, downdog - flowing.' },
       { name: 'Plank', hold: '45s', cue: 'Straight line head to heels, brace the belly.' },
       { name: 'Side Plank (each side)', hold: '30s', cue: 'Stack the shoulders, lift the hips.' },
       { name: 'Boat Pose', hold: '5 breaths ×3', cue: 'Lift the chest, long spine, don’t collapse.' },
@@ -113,7 +113,7 @@ const YOGA: YogaFlow[] = [
       { name: 'Chair → Twisted Chair (each side)', hold: '5 breaths', cue: 'Sit low, hook the elbow, keep knees level.' },
       { name: 'Crow Pose (or knees-on-arms prep)', hold: '3 tries', cue: 'Gaze forward, squeeze the knees, lean in slowly.' },
       { name: 'Wheel or Bridge', hold: '5 breaths ×2', cue: 'Open the front body; stop if the low back pinches.' },
-      { name: 'Savasana', hold: '3 min', cue: 'Earn the rest — let everything go.' },
+      { name: 'Savasana', hold: '3 min', cue: 'Earn the rest - let everything go.' },
     ],
   },
 ];
@@ -143,7 +143,7 @@ const MEDITATION: Meditation[] = [
       'Inhale quietly through the nose for 4 counts.',
       'Hold the breath for 7 counts.',
       'Exhale fully through the mouth for 8 counts.',
-      'Repeat for 4–8 rounds; let each exhale relax you deeper.',
+      'Repeat for 4-8 rounds; let each exhale relax you deeper.',
     ],
     pattern: { inhaleSec: 4, hold1Sec: 7, exhaleSec: 8, hold2Sec: 0 },
   },
@@ -154,7 +154,7 @@ const MEDITATION: Meditation[] = [
     durationMin: 3,
     steps: [
       'Take one big sigh out to signal "safe" to your body.',
-      'Breathe in for 4, out slowly for 6 — a longer exhale calms the nerves.',
+      'Breathe in for 4, out slowly for 6 - a longer exhale calms the nerves.',
       'Name 5 things you can see, 4 you can hear, 3 you can feel.',
       'Return to the slow breath for a few more rounds.',
     ],
@@ -168,7 +168,7 @@ const MEDITATION: Meditation[] = [
     steps: [
       'Lie down comfortably and let the breath be natural.',
       'Bring attention to the top of your head; notice any sensation without judging.',
-      'Slowly move down — face, neck, shoulders, arms, chest, belly, hips, legs, feet.',
+      'Slowly move down - face, neck, shoulders, arms, chest, belly, hips, legs, feet.',
       'Soften each area on the exhale as you pass through it.',
       'Rest for a few breaths feeling the whole body at once.',
     ],
@@ -180,7 +180,7 @@ const MEDITATION: Meditation[] = [
     durationMin: 4,
     steps: [
       'Sit comfortably and take three slow breaths.',
-      'Bring to mind one person you are grateful for — picture them clearly.',
+      'Bring to mind one person you are grateful for - picture them clearly.',
       'Bring to mind one thing about your body or health you are grateful for.',
       'Set one simple intention for the day.',
       'Breathe it in, then gently begin your morning.',
@@ -194,7 +194,7 @@ const MEDITATION: Meditation[] = [
     steps: [
       'Wherever you are, let the shoulders drop.',
       'Breathe in through the nose for 4.',
-      'Breathe out slowly for 6 — the long exhale is what calms you.',
+      'Breathe out slowly for 6 - the long exhale is what calms you.',
       'Repeat for a handful of rounds, then carry on.',
     ],
     pattern: { inhaleSec: 4, hold1Sec: 0, exhaleSec: 6, hold2Sec: 0 },
@@ -207,7 +207,7 @@ const MEDITATION: Meditation[] = [
     steps: [
       'Lie down warm and comfortable; let the body feel heavy.',
       'Set a gentle intention for the practice.',
-      'Slowly move attention through the body — right side, left side, front, back.',
+      'Slowly move attention through the body - right side, left side, front, back.',
       'Notice the natural breath without changing it.',
       'Rest in stillness between waking and sleep for several minutes.',
       'Gently deepen the breath and return when you are ready.',
@@ -220,7 +220,7 @@ export function getWellness(): { yoga: YogaFlow[]; meditation: Meditation[] } {
 }
 
 export interface SuggestNowInput {
-  /** Local hour 0–23, passed in so this stays pure/deterministic. */
+  /** Local hour 0-23, passed in so this stays pure/deterministic. */
   hour: number;
   mood?: number | null; // 1 (low) .. 5 (great)
   energy?: number | null; // 1 (drained) .. 5 (buzzing)
@@ -235,7 +235,7 @@ export interface NowSuggestion {
 
 /**
  * Picks a specific flow + meditation for *right now* from the time of day and how the user feels
- * (mood / energy / last night's sleep). Pure & deterministic — the caller passes the local hour.
+ * (mood / energy / last night's sleep). Pure & deterministic - the caller passes the local hour.
  */
 export function suggestNow(input: SuggestNowInput): NowSuggestion {
   const { hour } = input;
@@ -255,7 +255,7 @@ export function suggestNow(input: SuggestNowInput): NowSuggestion {
   if (night) {
     yogaId = 'wind-down';
     medId = '478-sleep';
-    reasons.push('it’s late — wind down for sleep');
+    reasons.push('it’s late - wind down for sleep');
   } else if (low) {
     yogaId = 'wind-down';
     medId = 'stress-reset';
@@ -289,7 +289,7 @@ export function suggestNow(input: SuggestNowInput): NowSuggestion {
   return {
     yoga: byId(YOGA, yogaId) ?? YOGA[0] ?? null,
     meditation: byId(MEDITATION, medId) ?? MEDITATION[0] ?? null,
-    reason: `For right now — ${reasons[0] ?? 'a balanced session'}.`,
+    reason: `For right now - ${reasons[0] ?? 'a balanced session'}.`,
   };
 }
 
@@ -309,8 +309,8 @@ export interface RecommendInput {
 const byId = <T extends { id: string }>(list: T[], id: string): T | undefined => list.find((x) => x.id === id);
 
 /**
- * Picks the day's yoga flow + meditation from the whole picture — cycle phase, today's mood
- * and lifestyle — so the mind-body plan matches how the user actually is. Pure & deterministic.
+ * Picks the day's yoga flow + meditation from the whole picture - cycle phase, today's mood
+ * and lifestyle - so the mind-body plan matches how the user actually is. Pure & deterministic.
  */
 export function recommendWellness(input: RecommendInput): WellnessRecommendation {
   const { phase, mood, activityLevel } = input;
@@ -353,7 +353,7 @@ export function recommendWellness(input: RecommendInput): WellnessRecommendation
 
   const reason =
     reasons.length > 0
-      ? `Today's session — ${reasons.slice(0, 2).join(', ')}.`
+      ? `Today's session - ${reasons.slice(0, 2).join(', ')}.`
       : "Today's session to keep you balanced.";
 
   return {

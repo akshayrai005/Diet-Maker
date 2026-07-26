@@ -1,7 +1,7 @@
 /**
  * Menstrual-cycle phase engine. Pure and deterministic. Given the last period start and
  * today, it estimates the current phase and returns phase-specific diet, exercise and yoga
- * guidance. Educational only — not a contraceptive or diagnostic tool.
+ * guidance. Educational only - not a contraceptive or diagnostic tool.
  */
 
 export type CyclePhase = 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
@@ -21,28 +21,28 @@ export interface CycleGuidance {
   yogaTips: string[];
   /** Smart swaps for the cravings that spike before and during the period. */
   cravingTips: string[];
-  /** Premenstrual-syndrome (PMS) management — shown in the pre-period (luteal) phase. */
+  /** Premenstrual-syndrome (PMS) management - shown in the pre-period (luteal) phase. */
   pmsTips: string[];
 }
 
-/** PMS ruleset — evidence-based management for the luteal (pre-period) phase. */
+/** PMS ruleset - evidence-based management for the luteal (pre-period) phase. */
 const PMS_TIPS: string[] = [
-  'PMS in the week or so before your period is normal — mood swings, bloating, cramps, tender breasts, fatigue and irritability come from the natural hormone drop.',
+  'PMS in the week or so before your period is normal - mood swings, bloating, cramps, tender breasts, fatigue and irritability come from the natural hormone drop.',
   'Calcium + vitamin D (dairy/fortified foods, leafy greens, sunlight) and magnesium (nuts, seeds, dark chocolate) are the best-evidenced nutrients for easing PMS.',
   'Vitamin B6 (banana, potato, chickpeas, fish) can help with mood and irritability.',
   'Cut back on salt (bloating), sugar and caffeine (mood/anxiety) and alcohol this week.',
-  'Regular aerobic exercise, 7–9h sleep and stress relief (yoga, slow breathing) measurably reduce PMS.',
-  'If symptoms are severe enough to disrupt your life (intense depression, anxiety or anger), that may be PMDD — please see a doctor.',
+  'Regular aerobic exercise, 7-9h sleep and stress relief (yoga, slow breathing) measurably reduce PMS.',
+  'If symptoms are severe enough to disrupt your life (intense depression, anxiety or anger), that may be PMDD - please see a doctor.',
 ];
 
-/** Craving-buster swaps — shared by the phases where PMS/period cravings hit hardest. */
+/** Craving-buster swaps - shared by the phases where PMS/period cravings hit hardest. */
 const CRAVING_TIPS: string[] = [
-  'Craving chocolate? It is often a magnesium dip — have 1–2 squares of 70%+ dark chocolate, or cocoa in warm milk, with a few nuts.',
+  'Craving chocolate? It is often a magnesium dip - have 1-2 squares of 70%+ dark chocolate, or cocoa in warm milk, with a few nuts.',
   'Craving sweets? Reach for fruit (banana, dates, berries), curd with honey, or dates stuffed with peanut butter before packaged sugar.',
   'Craving salty & crunchy? Roasted chana, makhana, air-popped popcorn, roasted seeds or cucumber with chaat masala beat chips.',
-  'Craving carbs? Your body wants serotonin — whole-grain toast, oats or sweet potato steady mood far better than maida/sugar.',
-  'Prevent the crash: eat protein + fibre at regular times so blood sugar never dips low enough to trigger a binge. Water first — thirst mimics hunger.',
-  'Do not over-restrict — one planned treat prevents an unplanned binge. Magnesium (pumpkin seeds, dark chocolate, banana) helps too.',
+  'Craving carbs? Your body wants serotonin - whole-grain toast, oats or sweet potato steady mood far better than maida/sugar.',
+  'Prevent the crash: eat protein + fibre at regular times so blood sugar never dips low enough to trigger a binge. Water first - thirst mimics hunger.',
+  'Do not over-restrict - one planned treat prevents an unplanned binge. Magnesium (pumpkin seeds, dark chocolate, banana) helps too.',
 ];
 
 const DAY_MS = 86_400_000;
@@ -95,11 +95,11 @@ const GUIDANCE: Record<CyclePhase, CycleGuidance> = {
     dietTips: [
       'Replace lost iron: leafy greens, dates, jaggery, legumes, and (if non-veg) red meat or liver.',
       'Pair iron with vitamin C (lemon, amla, citrus, tomato) to absorb it better.',
-      'Magnesium eases cramps — dark chocolate, banana, nuts, seeds; ginger/turmeric are anti-inflammatory.',
+      'Magnesium eases cramps - dark chocolate, banana, nuts, seeds; ginger/turmeric are anti-inflammatory.',
       'Favour warm, cooked, easy-to-digest meals; cut excess salt and caffeine to reduce bloating.',
     ],
     exerciseTips: [
-      'Energy is naturally low — keep it gentle: walking, light yoga, stretching, mobility.',
+      'Energy is naturally low - keep it gentle: walking, light yoga, stretching, mobility.',
       'Skip max-effort sessions; if you feel good, light strength is fine. Rest is productive here.',
     ],
     yogaTips: [
@@ -110,14 +110,14 @@ const GUIDANCE: Record<CyclePhase, CycleGuidance> = {
     pmsTips: [],
   },
   follicular: {
-    summary: 'Post-period: energy climbing — the best window to push.',
+    summary: 'Post-period: energy climbing - the best window to push.',
     dietTips: [
-      'Rising energy — lean protein, complex carbs and fresh produce fuel training well.',
+      'Rising energy - lean protein, complex carbs and fresh produce fuel training well.',
       'Add fermented foods (curd, idli, kimchi) and light, fibre-rich meals.',
       'A great phase to lean into your fat-loss or performance goal if you have one.',
     ],
     exerciseTips: [
-      'Estrogen and energy are rising — ideal for strength training, HIIT and trying harder/new workouts.',
+      'Estrogen and energy are rising - ideal for strength training, HIIT and trying harder/new workouts.',
       'Push progressive overload now: add reps or load while recovery is strong.',
     ],
     yogaTips: ['Energising flow: Sun Salutations, Warrior I/II, Triangle, gentle backbends.'],
@@ -125,13 +125,13 @@ const GUIDANCE: Record<CyclePhase, CycleGuidance> = {
     pmsTips: [],
   },
   ovulation: {
-    summary: 'Ovulation: peak strength — go for your best efforts.',
+    summary: 'Ovulation: peak strength - go for your best efforts.',
     dietTips: [
-      'Peak energy — antioxidants (berries, colourful veg), fibre and anti-inflammatory foods.',
+      'Peak energy - antioxidants (berries, colourful veg), fibre and anti-inflammatory foods.',
       'Support with magnesium and zinc (seeds, nuts, whole grains).',
     ],
     exerciseTips: [
-      'Peak strength and power — a great time for PRs, heavy lifts and hard HIIT.',
+      'Peak strength and power - a great time for PRs, heavy lifts and hard HIIT.',
       'Warm up thoroughly: joints are a little laxer mid-cycle, so protect your knees on jumps/heavy squats.',
     ],
     yogaTips: ['Dynamic, heat-building flow: Sun Salutation B, standing balances, twists.'],
@@ -141,13 +141,13 @@ const GUIDANCE: Record<CyclePhase, CycleGuidance> = {
   luteal: {
     summary: 'Pre-period: steady the mood, ease off intensity toward the end.',
     dietTips: [
-      'Cravings & PMS are hormonal — complex carbs (whole grains, sweet potato, oats) steady mood better than sugar.',
+      'Cravings & PMS are hormonal - complex carbs (whole grains, sweet potato, oats) steady mood better than sugar.',
       'Magnesium + calcium (greens, dairy/fortified, seeds) and vitamin B6 may reduce PMS symptoms.',
       'Cut back on salt, sugar and caffeine late in this phase to limit bloating and mood swings.',
-      'A slightly higher appetite is normal — metabolism ticks up; eat to satisfaction with protein + fibre.',
+      'A slightly higher appetite is normal - metabolism ticks up; eat to satisfaction with protein + fibre.',
     ],
     exerciseTips: [
-      'Energy dips as your period nears — moderate strength and steady cardio early, easing to walking/yoga later.',
+      'Energy dips as your period nears - moderate strength and steady cardio early, easing to walking/yoga later.',
       "Don't judge yourself on lower performance now; it's physiology, not lost progress.",
     ],
     yogaTips: [
@@ -195,7 +195,7 @@ export interface CycleHealthInput {
 
 /** Symptoms that always mean "see a doctor" even if cycle length looks regular. */
 const RED_FLAGS: string[] = [
-  'A late period when pregnancy is possible — take a home pregnancy test first.',
+  'A late period when pregnancy is possible - take a home pregnancy test first.',
   'Very heavy bleeding (soaking a pad/tampon every hour, or large clots).',
   'Bleeding between periods, after sex, or any bleeding after menopause.',
   'Severe pain that stops your normal activities or is not helped by usual painkillers.',
@@ -203,7 +203,7 @@ const RED_FLAGS: string[] = [
 ];
 
 const HEALTH_DISCLAIMER =
-  'Educational only — not a diagnosis. See a gynaecologist for periods that are very short/long, painful, heavy, irregular or missed, especially with other symptoms.';
+  'Educational only - not a diagnosis. See a gynaecologist for periods that are very short/long, painful, heavy, irregular or missed, especially with other symptoms.';
 
 /** Flags common menstrual-health concerns and returns doctor-style (educational) advice. */
 export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
@@ -249,7 +249,7 @@ export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
       findings.push({
         issue: `Very short period (${minLen} day${minLen === 1 ? '' : 's'})`,
         possibleCauses:
-          'Low estrogen, stress, rapid weight loss/low body fat, over-exercising, PCOS or thyroid. Light spotting can also be early-pregnancy implantation bleeding rather than a real period — if pregnancy is possible, test.',
+          'Low estrogen, stress, rapid weight loss/low body fat, over-exercising, PCOS or thyroid. Light spotting can also be early-pregnancy implantation bleeding rather than a real period - if pregnancy is possible, test.',
         severity: teen ? 'watch' : 'concern',
       });
     }
@@ -257,7 +257,7 @@ export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
       findings.push({
         issue: `Long period (${maxLen} days)`,
         possibleCauses:
-          'Hormonal imbalance, fibroids or polyps, thyroid, or a bleeding disorder. Long/heavy bleeding also risks iron-deficiency anaemia — worth a ferritin/Hb check.',
+          'Hormonal imbalance, fibroids or polyps, thyroid, or a bleeding disorder. Long/heavy bleeding also risks iron-deficiency anaemia - worth a ferritin/Hb check.',
         severity: 'concern',
       });
     }
@@ -288,7 +288,7 @@ export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
     if (avgCycleLength > 35) {
       findings.push({
         issue: `Long cycles (avg ${avgCycleLength} days)`,
-        possibleCauses: 'Infrequent ovulation — commonly PCOS or thyroid, sometimes high stress or low body weight.',
+        possibleCauses: 'Infrequent ovulation - commonly PCOS or thyroid, sometimes high stress or low body weight.',
         severity: teen ? 'watch' : 'concern',
       });
     }
@@ -298,7 +298,7 @@ export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
   if (hormonalNoBleed) {
     findings.push({
       issue: 'On hormonal contraception',
-      possibleCauses: 'With an injection, hormonal IUD or implant, lighter, irregular or absent periods are normal and expected — cycle-length analysis is skipped. New heavy or persistent bleeding is still worth mentioning to your doctor.',
+      possibleCauses: 'With an injection, hormonal IUD or implant, lighter, irregular or absent periods are normal and expected - cycle-length analysis is skipped. New heavy or persistent bleeding is still worth mentioning to your doctor.',
       severity: 'watch',
     });
   }
@@ -323,9 +323,9 @@ export function analyzeCycleHealth(input: CycleHealthInput): CycleHealth {
   const status: CycleHealth['status'] = findings.length === 0 ? 'ok' : hasConcern ? 'concern' : 'watch';
   const headline =
     status === 'ok'
-      ? "Nothing stands out in your cycle length so far — but this only checks timing, not symptoms. See the red flags below."
+      ? "Nothing stands out in your cycle length so far - but this only checks timing, not symptoms. See the red flags below."
       : status === 'concern'
-        ? 'A few things are worth getting checked — see the notes below.'
+        ? 'A few things are worth getting checked - see the notes below.'
         : 'Mostly fine, with a couple of things to keep an eye on.';
 
   return {
@@ -348,23 +348,23 @@ function buildHealthAdvice(findings: CycleFinding[], smoking?: string, alcohol?:
   const diet = [
     'Eat iron-rich foods (leafy greens, dates, legumes, jaggery, or lean red meat) with vitamin C to prevent anaemia from monthly blood loss.',
     'Add omega-3 (walnuts, flax, fatty fish) and magnesium (nuts, seeds, dark chocolate, banana) to ease cramps and mood.',
-    'Eat regular, balanced meals — skipping meals and very low-calorie dieting can disrupt your cycle.',
+    'Eat regular, balanced meals - skipping meals and very low-calorie dieting can disrupt your cycle.',
   ];
   if (irregularish) {
     diet.push('For irregular/PCOS-type cycles: favour low-GI carbs (millets, oats, legumes) and limit sugar and refined carbs to steady insulin.');
   }
   const sleep = [
-    'Aim for 7–9 hours on a consistent schedule — poor or irregular sleep disrupts the hormones that run your cycle.',
+    'Aim for 7-9 hours on a consistent schedule - poor or irregular sleep disrupts the hormones that run your cycle.',
   ];
   const lifestyle = [
-    'Manage stress with yoga, breathing or meditation — chronic stress is a common cause of late or missed periods.',
+    'Manage stress with yoga, breathing or meditation - chronic stress is a common cause of late or missed periods.',
     'Keep a stable, healthy body weight; both very low and rapidly rising weight can disturb periods.',
   ];
   if (smoking === 'regular' || smoking === 'occasional') lifestyle.push('Cutting down or quitting smoking improves cramps, regularity and long-term fertility.');
-  if (alcohol === 'regular') lifestyle.push('Keep alcohol occasional — frequent drinking can throw off cycle-regulating hormones.');
+  if (alcohol === 'regular') lifestyle.push('Keep alcohol occasional - frequent drinking can throw off cycle-regulating hormones.');
   const exercise = [
     'Regular moderate exercise + some strength training supports hormonal balance.',
-    'Avoid excessive over-training and very low body fat — they can lighten, delay or stop periods.',
+    'Avoid excessive over-training and very low body fat - they can lighten, delay or stop periods.',
     'Gentle yoga in the days before your period helps with cramps and mood.',
   ];
   return { diet, sleep, lifestyle, exercise };

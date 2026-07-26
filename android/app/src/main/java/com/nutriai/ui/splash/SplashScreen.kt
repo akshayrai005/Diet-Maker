@@ -91,7 +91,7 @@ fun SplashScreen(onFinished: () -> Unit, viewModel: SplashViewModel = hiltViewMo
     Box(Modifier.fillMaxSize().background(Color.White)) {
         Image(
             painter = painterResource(R.drawable.splash_kaizen),
-            contentDescription = "Kaizen — Small Habits. Big Results.",
+            contentDescription = "Kaizen - Small Habits. Big Results.",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().alpha(fade),
         )

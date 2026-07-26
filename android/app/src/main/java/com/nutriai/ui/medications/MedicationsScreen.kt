@@ -56,13 +56,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Medications & supplements — track what you take, log a dose ("Taken"), and get
+// Medications & supplements - track what you take, log a dose ("Taken"), and get
 // local daily dose reminders at each time. Not a drug-interaction checker; the
 // server disclaimer is surfaced prominently. Mirrors the vitals/cycle features.
 // ---------------------------------------------------------------------------
 
 private const val DEFAULT_DISCLAIMER =
-    "Kaizen doesn't check drug interactions — confirm anything you take with your pharmacist or doctor."
+    "Kaizen doesn't check drug interactions - confirm anything you take with your pharmacist or doctor."
 
 data class MedsUiState(
     val loading: Boolean = true,
@@ -112,7 +112,7 @@ class MedicationsViewModel @Inject constructor(
                 else medReminderScheduler.cancelMed(med.id)
                 load()
             } else {
-                _state.value = _state.value.copy(toast = "Couldn't update — try again")
+                _state.value = _state.value.copy(toast = "Couldn't update - try again")
             }
         }
     }
@@ -123,7 +123,7 @@ class MedicationsViewModel @Inject constructor(
             _state.value = if (r.isSuccess) {
                 _state.value.copy(toast = "Logged ${med.name}")
             } else {
-                _state.value.copy(toast = "Couldn't log — try again")
+                _state.value.copy(toast = "Couldn't log - try again")
             }
             if (r.isSuccess) load()
         }
@@ -139,7 +139,7 @@ class MedicationsViewModel @Inject constructor(
                 _state.value = _state.value.copy(submitting = false, toast = "Saved")
                 load()
             } else {
-                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save — try again")
+                _state.value = _state.value.copy(submitting = false, toast = "Couldn't save - try again")
             }
         }
     }
@@ -152,7 +152,7 @@ class MedicationsViewModel @Inject constructor(
                 _state.value = _state.value.copy(toast = "Removed ${med.name}")
                 load()
             } else {
-                _state.value = _state.value.copy(toast = "Couldn't remove — try again")
+                _state.value = _state.value.copy(toast = "Couldn't remove - try again")
             }
         }
     }
@@ -218,7 +218,7 @@ fun MedicationsScreen(
             }
         }
 
-        // Disclaimer — shown prominently near the top.
+        // Disclaimer - shown prominently near the top.
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -415,7 +415,7 @@ private fun MedicationDialog(
 
                 Text("Reminder times", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 if (times.isEmpty()) {
-                    Text("No times yet — add one to get a daily reminder.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("No times yet - add one to get a daily reminder.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     times.forEach { t ->

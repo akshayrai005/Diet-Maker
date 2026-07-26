@@ -84,7 +84,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Delete account?") },
-            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind — just log back in within a week to restore it. After that it's permanent.") },
+            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind - just log back in within a week to restore it. After that it's permanent.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
@@ -171,7 +171,7 @@ fun SettingsScreen(
             ) {
                 Text("Kaizen v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    "Educational guidance, not medical advice — consult a professional.",
+                    "Educational guidance, not medical advice - consult a professional.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -364,7 +364,7 @@ private fun WalkNudgeCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
                 Column(Modifier.weight(1f).padding(end = 12.dp)) {
                     Text("Remind me to move", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        "Uses Health Connect steps — if you've been sitting still during the day, a gentle nudge suggests a 5-minute walk. Needs step access; stays quiet at night.",
+                        "Uses Health Connect steps - if you've been sitting still during the day, a gentle nudge suggests a 5-minute walk. Needs step access; stays quiet at night.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

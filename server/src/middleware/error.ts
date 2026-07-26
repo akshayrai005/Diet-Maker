@@ -20,7 +20,7 @@ export function notFound(_req: Request, res: Response): void {
   res.status(404).json({ error: 'Not Found' });
 }
 
-/** Central error handler — must have 4 args for Express to treat it as such. */
+/** Central error handler - must have 4 args for Express to treat it as such. */
 export function errorHandler(
   err: unknown,
   _req: Request,

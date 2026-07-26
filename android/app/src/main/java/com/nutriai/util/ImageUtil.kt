@@ -40,7 +40,7 @@ object ImageUtil {
         return baos.toByteArray()
     }
 
-    /** Deletes any photos saved by older versions — we no longer store body photos. */
+    /** Deletes any photos saved by older versions - we no longer store body photos. */
     fun clearProgress(context: Context) {
         runCatching {
             File(context.filesDir, "progress").deleteRecursively()
@@ -56,7 +56,7 @@ object ImageUtil {
     }
 
     // -----------------------------------------------------------------------
-    // Progress-photo gallery — physique tracking. Images stay in app-private
+    // Progress-photo gallery - physique tracking. Images stay in app-private
     // internal storage and are NEVER uploaded; only a filename (localRef) is
     // recorded on the server. Kept in its own folder ("body_progress") so it is
     // NOT touched by clearProgress(), which wipes the legacy "progress" folder.

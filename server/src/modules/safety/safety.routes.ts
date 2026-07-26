@@ -10,7 +10,7 @@ const bodySchema = z.object({ text: z.string().max(2000) });
 
 /**
  * Conservative red-flag check on free text a user entered (e.g. a symptom in coach/check-in).
- * Only ever escalates to "seek urgent care" — never reassures or diagnoses.
+ * Only ever escalates to "seek urgent care" - never reassures or diagnoses.
  */
 safetyRouter.post(
   '/safety/red-flags',

@@ -2,7 +2,7 @@ import { ACTIVITY_FACTORS, ActivityLevel, Anthropometrics, EnergyResult } from '
 import { round } from './anthropometry';
 
 /**
- * Basal Metabolic Rate — Mifflin-St Jeor:
+ * Basal Metabolic Rate - Mifflin-St Jeor:
  *   male:   10*W + 6.25*H − 5*A + 5
  *   female: 10*W + 6.25*H − 5*A − 161
  * (W kg, H cm, A years)

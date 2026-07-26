@@ -2,11 +2,11 @@ package com.nutriai.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ---- Kaizen pastel palette — matches the splash: soft green · coral · lavender · blue ----
+// ---- Kaizen pastel palette - matches the splash: soft green · coral · lavender · blue ----
 // The Brand* names are kept for source compatibility with existing screens; their VALUES are
 // retuned to the softer Kaizen identity, so the whole app shifts to pastel without a per-screen
 // refactor. (The full "route everything through MaterialTheme.colorScheme" pass is Phase 6.)
-val BrandGreen = Color(0xFF4CB08A)        // primary — Kaizen leaf green (soft, still legible on white)
+val BrandGreen = Color(0xFF4CB08A)        // primary - Kaizen leaf green (soft, still legible on white)
 val BrandGreenDark = Color(0xFF3E9B78)
 val BrandGreenDeep = Color(0xFF2E7D5B)    // gradient base / deep green text
 val BrandGreenLight = Color(0xFF8FD6B4)   // pastel light green (dark-theme primary / gradient top)

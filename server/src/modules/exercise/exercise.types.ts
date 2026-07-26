@@ -4,9 +4,9 @@ export type BodyGoal = 'fatloss' | 'athletic' | 'muscular';
 /** User-selectable training split (overrides the goal-derived program when set). */
 export type TrainingSplit = 'full_body' | 'push_pull_legs' | 'upper_lower' | 'body_part' | 'fat_loss';
 
-/** Self-reported training experience — scales volume and progression ceilings. */
+/** Self-reported training experience - scales volume and progression ceilings. */
 export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
-/** How hard the user wants to push — scales sets/volume (capped by safety). */
+/** How hard the user wants to push - scales sets/volume (capped by safety). */
 export type IntensityPreference = 'easy' | 'standard' | 'hard' | 'beast';
 
 /** Progressive-overload hint for the next session, derived from the user's logged history. */
@@ -44,7 +44,7 @@ export interface WorkoutDay {
   /** Dynamic warm-up movements done before the main work. */
   warmup?: ExerciseItem[];
   exercises: ExerciseItem[];
-  /** Dedicated core / abs block (2–3 movements), its own labeled section. */
+  /** Dedicated core / abs block (2-3 movements), its own labeled section. */
   core?: ExerciseItem[];
   /** A cardio / conditioning element (steady-state, or HIIT at high intensity). */
   cardio?: ExerciseItem;

@@ -1,16 +1,16 @@
 /**
  * Deterministic daily DISCIPLINE / adherence score. Turns a day's already-collected numbers
  * (food logged vs target, water, protein, workout, wellness, sleep, check-in) into a single
- * 0–100 "how well did I stick to the plan today" score — with an explainable point breakdown
- * per component and 1–2 encouraging next steps for the biggest misses.
+ * 0-100 "how well did I stick to the plan today" score - with an explainable point breakdown
+ * per component and 1-2 encouraging next steps for the biggest misses.
  *
  * Design rules:
  *  - Pure & deterministic: no DB, no I/O, no Date.now, no random, no LLM.
  *  - NEVER penalise missing data. A component with no data is EXCLUDED from the denominator
- *    (renormalised over only what we know) — it is not scored as a zero.
+ *    (renormalised over only what we know) - it is not scored as a zero.
  *  - Food-logged-vs-target carries the largest weight.
  *  - Workout only counts when it was actually scheduled; otherwise it's excluded entirely.
- *  - topActions surfaces the 1–2 biggest gaps as positive, actionable nudges.
+ *  - topActions surfaces the 1-2 biggest gaps as positive, actionable nudges.
  */
 
 export interface AdherenceInput {
@@ -32,17 +32,17 @@ export interface AdherenceComponent {
   label: string;
   /** Points earned for this component (0..maxPoints). */
   points: number;
-  /** The component's weight — its maximum possible points. */
+  /** The component's weight - its maximum possible points. */
   maxPoints: number;
   /** Plain-language explanation of how the points were earned. */
   detail: string;
 }
 
 export interface AdherenceResult {
-  /** Overall 0–100, normalised over only the components that had data. */
+  /** Overall 0-100, normalised over only the components that had data. */
   score: number;
   components: AdherenceComponent[];
-  /** 1–2 biggest misses phrased as encouraging next steps. */
+  /** 1-2 biggest misses phrased as encouraging next steps. */
   topActions: string[];
 }
 
@@ -73,7 +73,7 @@ const isNum = (n: unknown): n is number => typeof n === 'number' && isFinite(n);
 function targetFraction(actual: number, target: number): number {
   if (target <= 0) return 0;
   const ratio = actual / target;
-  // Ideal band: 90–110% of target = full credit.
+  // Ideal band: 90-110% of target = full credit.
   if (ratio >= 0.9 && ratio <= 1.1) return 1;
   if (ratio < 0.9) {
     // Under target: credit scales from 0 (nothing logged) up to 1 at 90%.
@@ -85,7 +85,7 @@ function targetFraction(actual: number, target: number): number {
 }
 
 /**
- * Sleep credit: 7–9h is ideal (full credit). Outside that, partial credit that tapers with
+ * Sleep credit: 7-9h is ideal (full credit). Outside that, partial credit that tapers with
  * distance from the nearest edge of the ideal band, floored at 0.
  */
 function sleepFraction(hours: number): number {
@@ -170,8 +170,8 @@ export function computeAdherence(input: AdherenceInput): AdherenceResult {
       maxPoints: WEIGHTS.sleep,
       detail:
         frac === 1
-          ? `You slept ${input.sleepHours}h — right in the ideal 7–9h range.`
-          : `You slept ${input.sleepHours}h — outside the ideal 7–9h range.`,
+          ? `You slept ${input.sleepHours}h - right in the ideal 7-9h range.`
+          : `You slept ${input.sleepHours}h - outside the ideal 7-9h range.`,
     });
   }
 
@@ -192,14 +192,14 @@ export function computeAdherence(input: AdherenceInput): AdherenceResult {
   const totalPoints = components.reduce((s, c) => s + c.points, 0);
   const score = totalMax > 0 ? round((totalPoints / totalMax) * 100, 0) : 0;
 
-  // --- topActions: 1–2 biggest gaps (by absolute points missed), as encouraging nudges ---
+  // --- topActions: 1-2 biggest gaps (by absolute points missed), as encouraging nudges ---
   const NUDGE: Record<string, string> = {
-    food: 'Log the rest of your meals to close in on your calorie target — every entry counts.',
+    food: 'Log the rest of your meals to close in on your calorie target - every entry counts.',
     water: 'Grab a glass of water now; a few more through the day will top up your hydration goal.',
     protein: 'Add a protein-rich snack (dal, eggs, curd or a shake) to reach your protein target.',
-    workout: 'Your workout is still open — even a short session ticks it off and lifts your score.',
+    workout: 'Your workout is still open - even a short session ticks it off and lifts your score.',
     wellness: 'Take 5 minutes for some breathing or a stretch to complete your wellness activity.',
-    sleep: 'Aim for a 7–9h window tonight — an earlier wind-down will help you land in range.',
+    sleep: 'Aim for a 7-9h window tonight - an earlier wind-down will help you land in range.',
     checkin: 'A quick daily check-in keeps your streak alive and rounds out today.',
   };
 

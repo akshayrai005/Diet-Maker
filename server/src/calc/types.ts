@@ -1,4 +1,4 @@
-// Pure calc types. No I/O, no framework imports — safe to unit test in isolation.
+// Pure calc types. No I/O, no framework imports - safe to unit test in isolation.
 
 export type Sex = 'male' | 'female';
 

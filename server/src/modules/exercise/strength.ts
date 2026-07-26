@@ -1,12 +1,12 @@
 import type { ExerciseItem } from './exercise.types';
 
 /**
- * Strength math + exercise substitutions — deterministic, unit-tested. Estimated 1RM uses the Epley
+ * Strength math + exercise substitutions - deterministic, unit-tested. Estimated 1RM uses the Epley
  * formula (valid for low reps); substitutions offer equipment-free / injury-friendly alternatives.
  * Educational, never a prescription to lift a specific load; form + safety cues still apply.
  */
 
-/** Epley estimated 1-rep max. Valid for 1–12 reps; returns null for invalid/out-of-range input. */
+/** Epley estimated 1-rep max. Valid for 1-12 reps; returns null for invalid/out-of-range input. */
 export function estimate1RM(weightKg: number, reps: number): number | null {
   if (![weightKg, reps].every((v) => typeof v === 'number' && isFinite(v)) || weightKg <= 0 || reps < 1) return null;
   if (reps > 12) return null; // Epley loses accuracy past ~12 reps

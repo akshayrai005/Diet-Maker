@@ -25,7 +25,7 @@ const BLOCK_LETTERS = ['A', 'B', 'C'];
 
 /**
  * PROGRAMS[key] = array of mesocycle BLOCKS; each block is one full week of day-templates.
- * We advance one block every 4 weeks so the same muscles get fresh exercises — this drives
+ * We advance one block every 4 weeks so the same muscles get fresh exercises - this drives
  * continued growth and stops the body adapting/plateauing.
  */
 const PROGRAMS: Record<string, DayTemplate[][]> = {
@@ -40,7 +40,7 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
       { focus: 'Triceps & Core', exercises: [s('Close-grip bench press', 4, '10'), s('Rope pushdown', 4, '12-15'), s('Overhead extension', 3, '12'), s('Bench dips', 3, '15'), m('Plank', 3, '60s')] },
       { focus: 'Legs & Abs', exercises: [s('Back squat', 4, '8-10'), s('Leg press', 3, '12'), s('Romanian deadlift', 3, '10'), s('Leg curl', 3, '12'), s('Standing calf raise', 4, '15'), s('Hanging leg raise', 3, '15')] },
     ],
-    // Block B (weeks 5-8) — new angles/variations
+    // Block B (weeks 5-8) - new angles/variations
     [
       { focus: 'Chest', exercises: [s('Incline barbell press', 4, '8-10'), s('Flat dumbbell press', 4, '10-12'), s('Pec-deck fly', 3, '15'), s('Decline press', 3, '10'), s('Cable crossover', 3, '15')] },
       { focus: 'Back', exercises: [s('Pull-ups (weighted)', 4, '8'), s('T-bar row', 4, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Back extension', 3, '15')] },
@@ -171,17 +171,17 @@ export interface WorkoutOptions {
   startDate?: Date;
   today?: Date;
   days?: number;
-  /** Training experience — scales volume and progression ceilings. Defaults to 'intermediate'. */
+  /** Training experience - scales volume and progression ceilings. Defaults to 'intermediate'. */
   fitnessLevel?: FitnessLevel;
-  /** How hard to push — scales sets/volume. Defaults to 'standard'. Safety-capped below. */
+  /** How hard to push - scales sets/volume. Defaults to 'standard'. Safety-capped below. */
   intensity?: IntensityPreference;
-  /** Under-18 lifter — SAFETY cap: forces hard/beast down to standard. */
+  /** Under-18 lifter - SAFETY cap: forces hard/beast down to standard. */
   under18?: boolean;
-  /** Medical caution (any flagged condition / reduced mobility) — SAFETY cap, same effect. */
+  /** Medical caution (any flagged condition / reduced mobility) - SAFETY cap, same effect. */
   medicalCaution?: boolean;
-  /** Priority muscle groups to bring up — extra volume within the level's set caps. */
+  /** Priority muscle groups to bring up - extra volume within the level's set caps. */
   priorityMuscles?: string[];
-  /** User-selected training split — overrides the goal-derived program when set. */
+  /** User-selected training split - overrides the goal-derived program when set. */
   split?: TrainingSplit;
 }
 
@@ -228,7 +228,7 @@ export interface IntensityCapOptions {
 }
 
 /**
- * SAFETY gate over the requested intensity — PURE.
+ * SAFETY gate over the requested intensity - PURE.
  *
  * When the lifter is under 18 OR has a medical caution flag, we clamp the two
  * top gears (`hard` and `beast`) down to `standard`. `easy`/`standard` pass
@@ -334,7 +334,7 @@ function restGuidance(level: FitnessLevel, intensity: IntensityPreference): stri
 
 /**
  * PURE post-processing scale: rebuilds every day/exercise (no shared refs mutated)
- * so that fitness LEVEL and (already-capped) INTENSITY meaningfully change the plan —
+ * so that fitness LEVEL and (already-capped) INTENSITY meaningfully change the plan -
  * sets, exercise volume, a level-gated finisher, form cues, and rest guidance.
  */
 function applyScaling(
@@ -427,9 +427,9 @@ export function generateWeeklyWorkout(
   const blockLabel = program.length > 1 ? `Month ${block + 1} · Block ${BLOCK_LETTERS[block] ?? block + 1}` : 'Program';
   const note =
     program.length > 1
-      ? `${blockLabel} — exercises rotate every 4 weeks so your muscles keep growing and never fully adapt.`
+      ? `${blockLabel} - exercises rotate every 4 weeks so your muscles keep growing and never fully adapt.`
       : location === 'none'
-        ? 'No equipment needed — bodyweight only.'
+        ? 'No equipment needed - bodyweight only.'
         : options.restDayOfWeek === undefined
           ? '7-day plan (no fixed rest day).'
           : '6 training days + 1 rest day. Progress by adding reps or load each week.';
@@ -477,7 +477,7 @@ function cooldownFor(focus: string): ExerciseItem[] {
   return [w('Full-body forward fold + child’s pose', '2 × 30s'), w('Standing quad stretch', '2 × 30s'), breathe];
 }
 
-/** A cardio/conditioning element — steady-state by default; HIIT only for hard/beast & no medical caution. */
+/** A cardio/conditioning element - steady-state by default; HIIT only for hard/beast & no medical caution. */
 function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): ExerciseItem {
   const allowHiit = !medicalCaution && (intensity === 'hard' || intensity === 'beast');
   if (allowHiit) {
@@ -487,7 +487,7 @@ function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): Ex
 }
 
 /**
- * Dedicated core/abs block for every training day — a plank hold + a dynamic ab move + an
+ * Dedicated core/abs block for every training day - a plank hold + a dynamic ab move + an
  * anti-rotation / lower-ab move, scaled by level. `gentle` (medical caution / reduced mobility)
  * swaps in low-impact, back-friendly options. Core counts as strength; substitutions attach later.
  */

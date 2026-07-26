@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Lightweight shimmer skeletons — pure Compose, no external library. Shown while a screen's first
+ * Lightweight shimmer skeletons - pure Compose, no external library. Shown while a screen's first
  * load is in flight so the layout doesn't pop in from blank. Announced to TalkBack as "Loading".
  */
 @Composable
@@ -68,7 +68,7 @@ fun SkeletonBlock(
     ) {}
 }
 
-/** A card-shaped skeleton with a few lines — a generic stand-in for a loading content card. */
+/** A card-shaped skeleton with a few lines - a generic stand-in for a loading content card. */
 @Composable
 fun SkeletonCard(
     modifier: Modifier = Modifier,

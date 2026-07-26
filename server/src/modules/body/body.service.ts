@@ -10,7 +10,7 @@ import type { SensitiveData } from '../profile/profile.schemas';
 import { navyBodyFatPct, waistHipRatio, bodyFatBand, type WhrResult } from './bodyComposition';
 
 const DISCLAIMER =
-  'This is a rough estimate for motivation only — not a medical or DEXA measurement. Body composition is best tracked as a trend over time.';
+  'This is a rough estimate for motivation only - not a medical or DEXA measurement. Body composition is best tracked as a trend over time.';
 
 export interface BodyAssessment {
   available: boolean; // vision provider configured
@@ -38,7 +38,7 @@ function bfCategory(pct: number, sex: string): string {
 
 /**
  * Deterministic body-fat estimate from height/weight/age/sex (Deurenberg). Always available,
- * zero-cost — used as the fallback whenever photo AI is unavailable or can't read the image.
+ * zero-cost - used as the fallback whenever photo AI is unavailable or can't read the image.
  */
 function formulaAssessment(
   bfPct: number,
@@ -87,7 +87,7 @@ export async function assessBodyFromPhoto(
     where: { userId },
     orderBy: { createdAt: 'desc' },
   });
-  // Deterministic body-fat estimate (Deurenberg) — always computable, and the fallback when
+  // Deterministic body-fat estimate (Deurenberg) - always computable, and the fallback when
   // photo AI is down. Prefer the persisted snapshot; else compute from current stats.
   const formulaEstimatePct =
     (snapshot?.result as { bodyFatEstimate?: number } | undefined)?.bodyFatEstimate ??
@@ -108,7 +108,7 @@ export async function assessBodyFromPhoto(
     formulaEstimatePct != null ? `A formula (BMI-based) estimate is about ${formulaEstimatePct}% body fat.` : '',
     'Give a VISUAL body-fat estimate as a RANGE. Be kind and factual; never comment on attractiveness.',
     'Respond ONLY as JSON with keys: bodyFatLow (number), bodyFatHigh (number), category (one of "lean","fit","average","higher"), notes (1-2 short sentences on visible muscle definition and where fat is stored), confidence ("low" or "medium").',
-    'If no clear human body is visible, return bodyFatLow 0, bodyFatHigh 0, notes "No clear body photo detected — try a well-lit, front-facing photo.".',
+    'If no clear human body is visible, return bodyFatLow 0, bodyFatHigh 0, notes "No clear body photo detected - try a well-lit, front-facing photo.".',
   ]
     .filter(Boolean)
     .join(' ');
@@ -176,7 +176,7 @@ async function bio(userId: string): Promise<ProfileBio> {
 }
 
 const BODY_DISCLAIMER =
-  'Body-fat % is a tape-measure ESTIMATE (US-Navy method, ±3–4%), not a lab measurement. Track the trend, not the exact number, and be kind to yourself.';
+  'Body-fat % is a tape-measure ESTIMATE (US-Navy method, ±3-4%), not a lab measurement. Track the trend, not the exact number, and be kind to yourself.';
 
 /** Store a measurement snapshot; derive Navy body-fat for adults with neck+waist(+hip). */
 export async function logBodyMetric(userId: string, input: BodyMetricInput): Promise<{ point: BodyPoint; whr: WhrResult | null }> {

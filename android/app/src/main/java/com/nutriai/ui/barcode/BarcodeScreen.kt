@@ -101,7 +101,7 @@ class BarcodeViewModel @Inject constructor(
         _state.value = _state.value.copy(slot = s)
     }
 
-    /** Called by the camera when a barcode is detected — guarded against repeats. */
+    /** Called by the camera when a barcode is detected - guarded against repeats. */
     fun onScanned(code: String) {
         val digits = code.filter { it.isDigit() }
         val st = _state.value
@@ -402,7 +402,7 @@ private fun ScanHeader() {
 
 /**
  * CameraX preview + ML Kit barcode analysis via [LifecycleCameraController] (the high-level
- * camera-view API — avoids the ProcessCameraProvider ListenableFuture entirely).
+ * camera-view API - avoids the ProcessCameraProvider ListenableFuture entirely).
  * Calls [onBarcode] with the first detected value.
  */
 @androidx.annotation.OptIn(ExperimentalGetImage::class)

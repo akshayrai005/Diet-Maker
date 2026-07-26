@@ -50,7 +50,7 @@ vitalsRouter.get(
   }),
 );
 
-/** Latest reading + band for every metric the user has logged — for the overview/Home. */
+/** Latest reading + band for every metric the user has logged - for the overview/Home. */
 vitalsRouter.get(
   '/vitals/summary',
   requireAuth,

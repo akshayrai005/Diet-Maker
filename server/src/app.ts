@@ -38,7 +38,7 @@ import { bodyRouter } from './modules/body/body.routes';
 export function createApp(): Express {
   const app = express();
 
-  // Behind Render's proxy — trust it so req.ip is the real client for rate limiting.
+  // Behind Render's proxy - trust it so req.ip is the real client for rate limiting.
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.use(helmet());
@@ -55,7 +55,7 @@ export function createApp(): Express {
   app.use(express.json({ limit: '6mb' }));
   app.use(express.urlencoded({ extended: true }));
 
-  // Liveness/readiness at the root (Render + pingers hit /health) — not rate limited.
+  // Liveness/readiness at the root (Render + pingers hit /health) - not rate limited.
   app.use('/', healthRouter);
 
   // Global + stricter auth rate limits.
@@ -68,8 +68,8 @@ export function createApp(): Express {
   const api = express.Router();
   api.use(globalLimit);
   // Apply the STRICTER AI limit ONLY to the expensive AI/report paths. (Mounting it via
-  // `api.use('/', aiLimit, router)` previously applied it to EVERY request — a `/` mount path runs
-  // for all routes — which throttled the whole API to 40/15min and 429'd normal usage.)
+  // `api.use('/', aiLimit, router)` previously applied it to EVERY request - a `/` mount path runs
+  // for all routes - which throttled the whole API to 40/15min and 429'd normal usage.)
   api.use(['/chat', '/report', '/coach', '/recipe', '/body/assess-photo', '/foods/photo'], aiLimit);
   api.get('/', (_req: Request, res: Response) => {
     res.json({ name: 'nutriai-api', version: API_VERSION });

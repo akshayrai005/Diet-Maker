@@ -4,7 +4,7 @@ import type { Micronutrients } from '../calc/micronutrients';
  * MEASURED micronutrients per 100 g of the food AS SEEDED (cooked/prepared where the seed is), keyed
  * by the seed food `id`. Values are from ICMR-NIN "Indian Food Composition Tables 2017/2020" and
  * USDA FoodData Central, rounded to sensible precision. Only nutrients a food is a meaningful source
- * of are filled; anything omitted stays NULL (unknown) — never 0, so it can never become a false
+ * of are filled; anything omitted stays NULL (unknown) - never 0, so it can never become a false
  * deficiency. Cooked-dish values are diluted for water/oil vs the raw ingredient.
  *
  * Sources: ICMR-NIN IFCT 2017; USDA FDC (fdc.nal.usda.gov). Educational, not lab-personalised.

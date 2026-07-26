@@ -22,7 +22,7 @@ export function bmi(weightKg: number, heightCm: number): number {
 
 /**
  * BMI category. Defaults to the WHO Asian / Indian cut-offs (overweight ≥23,
- * obese ≥25) because this app's population is South-Asian — the standard
+ * obese ≥25) because this app's population is South-Asian - the standard
  * international 25/30 thresholds understate cardiometabolic risk for Indians,
  * who develop diabetes and heart disease at lower BMIs. Pass `asian = false`
  * for the international 25/30 bands.

@@ -3,7 +3,7 @@ import { decryptJson } from '../../lib/crypto';
 import type { SensitiveData } from '../profile/profile.schemas';
 
 /**
- * The user's best-known current body weight in kg — most recent weekly check-in first, then the
+ * The user's best-known current body weight in kg - most recent weekly check-in first, then the
  * onboarding profile weight. Returns null when nothing is known (callers fall back to a neutral
  * default). Reads only encrypted-at-rest fields and decrypts them here.
  */

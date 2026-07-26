@@ -1,7 +1,7 @@
 /**
  * Pluggable chat-AI provider abstraction. A provider turns a user message plus the
  * deterministic diet context into an LLM reply, or returns `null` to signal
- * "I can't answer — fall back to the rules engine". Providers MUST NEVER throw.
+ * "I can't answer - fall back to the rules engine". Providers MUST NEVER throw.
  */
 
 export interface AiChatContext {
@@ -28,7 +28,7 @@ export function buildSystemPrompt(ctx: AiChatContext): string {
   const lines: string[] = [
     'You are NutriAI, a friendly, practical diet coach.',
     'Give concise, actionable diet and nutrition guidance in plain language.',
-    'Keep answers short — a few sentences at most.',
+    'Keep answers short - a few sentences at most.',
   ];
 
   if (ctx.targets) {
@@ -40,7 +40,7 @@ export function buildSystemPrompt(ctx: AiChatContext): string {
   } else {
     lines.push(
       'The user has no calculated targets yet. Do not state any specific calorie or ' +
-        'protein numbers — suggest they complete their profile and run the calculator.',
+        'protein numbers - suggest they complete their profile and run the calculator.',
     );
   }
 

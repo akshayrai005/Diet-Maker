@@ -7,8 +7,8 @@ const e = (name: string, sets: number, reps: string, type: ExerciseItem['type'])
 
 /** Gentle recovery session used on period days (low-impact + restorative). */
 const GENTLE: ExerciseItem[] = [
-  e('Easy walk', 1, '20–30 min', 'cardio'),
-  e('Cat–Cow', 2, '8 breaths', 'mobility'),
+  e('Easy walk', 1, '20-30 min', 'cardio'),
+  e('Cat-Cow', 2, '8 breaths', 'mobility'),
   e("Child's pose", 1, '2 min', 'mobility'),
   e('Reclining twist (each side)', 1, '6 breaths', 'mobility'),
   e('Legs-up-the-wall', 1, '3 min', 'mobility'),
@@ -46,7 +46,7 @@ export function adaptWorkoutToCycle(plan: WeeklyWorkout, periodStarts: Date[], p
     return {
       ...d,
       label: base ? `${base} · Period` : 'Period',
-      focus: '🌸 Period — gentle recovery',
+      focus: '🌸 Period - gentle recovery',
       exercises: GENTLE,
     };
   });

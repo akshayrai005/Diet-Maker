@@ -101,7 +101,7 @@ class CheckinViewModel @Inject constructor(
     ) {
         _state.value = _state.value.copy(submitting = true, message = null)
         viewModelScope.launch {
-            // Red-flag safety net on the free-text note — surfaced alongside, never blocking the save.
+            // Red-flag safety net on the free-text note - surfaced alongside, never blocking the save.
             notes?.trim()?.ifBlank { null }?.let { note ->
                 repository.checkRedFlags(note).getOrNull()?.let { rf ->
                     if (rf.urgent) _state.value = _state.value.copy(redFlagMessage = rf.message)
@@ -322,7 +322,7 @@ private fun CheckinHeader() {
                     color = Color.White,
                 )
                 Text(
-                    "Track your progress — small steps, steady wins.",
+                    "Track your progress - small steps, steady wins.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.9f),
                 )
@@ -564,15 +564,15 @@ private fun PastCheckinCard(c: CheckinDto) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    c.measurements?.weightKg?.let { "$it kg" } ?: "—",
+                    c.measurements?.weightKg?.let { "$it kg" } ?: "-",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = BrandGreenDeep,
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricPill("⚡ Energy", c.energy?.toString() ?: "—")
-                MetricPill("😊 Mood", c.mood?.toString() ?: "—")
+                MetricPill("⚡ Energy", c.energy?.toString() ?: "-")
+                MetricPill("😊 Mood", c.mood?.toString() ?: "-")
                 c.measurements?.waistCm?.let { MetricPill("📏 Waist", "$it cm") }
             }
         }

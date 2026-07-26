@@ -5,7 +5,7 @@ const TIMEOUT_MS = 20_000;
 
 /**
  * Sends an image + prompt to Gemini and returns parsed JSON, or null on any problem
- * (missing key, timeout, non-2xx, unparsable). Never throws. The image is NOT persisted —
+ * (missing key, timeout, non-2xx, unparsable). Never throws. The image is NOT persisted -
  * it is forwarded to Gemini for this single request only.
  */
 export async function geminiVisionJson(

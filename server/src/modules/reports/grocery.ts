@@ -32,7 +32,7 @@ export interface GroceryResult {
 
 /**
  * Turns the week's meal plan into a RAW-INGREDIENT shopping list grouped by aisle/category
- * (flour, potato, onion…) — not a list of cooked dishes. `meals` counts how many meals use
+ * (flour, potato, onion…) - not a list of cooked dishes. `meals` counts how many meals use
  * each ingredient so you know roughly how much to buy. Pure.
  */
 export function buildGroceryList(days: DayPlan[], foods: FoodItem[]): GroceryResult {

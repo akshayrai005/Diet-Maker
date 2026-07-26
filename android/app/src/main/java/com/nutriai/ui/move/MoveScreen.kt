@@ -25,7 +25,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +59,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * The Move pillar — mirrors the Diet tab's segmented switcher so everything active lives under one
+ * The Move pillar - mirrors the Diet tab's segmented switcher so everything active lives under one
  * tab: [Exercise | Meditation | Log]. Meditation reuses the mind-&-body content; Log shows what
  * you actually did, with the calories it burned.
  */
@@ -125,11 +124,16 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         }
     }
 
-    /** Log a performed set, then reload the plan so the next-session suggestion updates. */
-    fun logSet(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?) {
+    /**
+     * Log what you actually did for ANY item - weighted set, bodyweight reps/sets, or a timed piece
+     * (duration). The server computes a MET/strength-based calorie burn from whatever's provided, so
+     * it feeds the same burnedTodayKcal / net-calorie picture (the calorie TARGET is never inflated -
+     * burn is a separate signal). Reloads the plan so the next-session suggestion updates.
+     */
+    fun logEntry(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?, durationMin: Int?) {
         viewModelScope.launch {
             val r = repository.logExercise(
-                ExerciseLogRequest(exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets),
+                ExerciseLogRequest(exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets, durationMin = durationMin),
             )
             if (r.isSuccess) {
                 val kcal = r.getOrNull()?.kcal ?: 0
@@ -137,32 +141,11 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                 _state.value = _state.value.copy(
                     plan = env?.plan ?: _state.value.plan,
                     levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
-                    toast = "Logged $name · ~$kcal kcal 🔥",
+                    toast = "Logged $name - ~$kcal kcal 🔥",
                     sessionKcal = _state.value.sessionKcal + kcal,
                 )
             } else {
-                _state.value = _state.value.copy(toast = "Couldn't log — try again")
-            }
-        }
-    }
-
-    /**
-     * Log a warm-up / cardio / cool-down item as "done". Timed items estimate minutes from their
-     * reps string ("3 min", "45s", "2 × 30s", "15-20 min"); the server computes a MET-based calorie
-     * burn from the duration, so it feeds the same burnedTodayKcal / net-calorie picture as Main —
-     * the calorie TARGET is never inflated (burn is a separate signal).
-     */
-    fun logDone(name: String, section: String, reps: String, fallbackMin: Int) {
-        val mins = estimateMinutes(reps, fallbackMin)
-        viewModelScope.launch {
-            val r = repository.logExercise(
-                ExerciseLogRequest(exerciseName = name, focus = section, durationMin = mins),
-            )
-            _state.value = if (r.isSuccess) {
-                val kcal = r.getOrNull()?.kcal ?: 0
-                _state.value.copy(toast = "Logged $name · ~$kcal kcal 🔥", sessionKcal = _state.value.sessionKcal + kcal)
-            } else {
-                _state.value.copy(toast = "Couldn't log — try again")
+                _state.value = _state.value.copy(toast = "Couldn't log - try again")
             }
         }
     }
@@ -195,11 +178,11 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
 
     logTarget?.let { ex ->
-        LogSetDialog(
+        LogExerciseDialog(
             exercise = ex,
             onDismiss = { logTarget = null },
-            onConfirm = { w, reps, sets ->
-                viewModel.logSet(ex.name, shownDay?.focus, w, reps, sets)
+            onConfirm = { w, reps, sets, dur ->
+                viewModel.logEntry(ex.name, shownDay?.focus, w, reps, sets, dur)
                 logTarget = null
             },
         )
@@ -216,7 +199,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     ) {
         item { Hero(plan) }
 
-        // Plan note (e.g. "Prioritising shoulders — a little extra volume there…") from the server.
+        // Plan note (e.g. "Prioritising shoulders - a little extra volume there…") from the server.
         plan?.note?.takeIf { it.isNotBlank() }?.let { note ->
             item {
                 Text(
@@ -317,18 +300,18 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
             val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
             if (day.rest || !hasContent) {
-                item { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Text("Rest & recovery day — light movement, stretch, hydrate.", Modifier.padding(18.dp)) } }
+                item { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Text("Rest & recovery day - light movement, stretch, hydrate.", Modifier.padding(18.dp)) } }
             } else {
                 // Warm-up.
                 if (day.warmup.isNotEmpty()) {
                     item { SessionHeader("🔥 Warm-up") }
                     items(day.warmup.size) { i ->
                         val w = day.warmup[i]
-                        ExerciseRowCard(w, "Warm-up", showDone = true, onDone = { viewModel.logDone(w.name, "Warm-up", w.reps, 2) })
+                        ExerciseRowCard(w, "Warm-up", onLog = { logTarget = w })
                     }
                 }
 
-                // Main lifts — same card, with the numbered badge + sets/reps/log/cue/swap controls.
+                // Main lifts - same card, with the numbered badge + sets/reps/log/cue/swap controls.
                 if (day.exercises.isNotEmpty()) {
                     item { SessionHeader("🏋️ Main") }
                     items(day.exercises.size) { i ->
@@ -337,26 +320,25 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                             ex = ex,
                             section = "Main",
                             index = i,
-                            showLogSet = true,
                             onLog = { logTarget = ex },
                             onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
                         )
                     }
                 }
 
-                // Core / Abs — its own labeled section, loggable.
+                // Core / Abs - its own labeled section, loggable.
                 if (day.core.isNotEmpty()) {
                     item { SessionHeader("🧱 Core & Abs") }
                     items(day.core.size) { i ->
                         val cr = day.core[i]
-                        ExerciseRowCard(cr, "Core", showDone = true, onDone = { viewModel.logDone(cr.name, "Core", cr.reps, 3) })
+                        ExerciseRowCard(cr, "Core", onLog = { logTarget = cr })
                     }
                 }
 
                 // Cardio (single item, if any).
                 day.cardio?.let { c ->
                     item { SessionHeader("🏃 Cardio") }
-                    item { ExerciseRowCard(c, "Cardio", showDone = true, onDone = { viewModel.logDone(c.name, "Cardio", c.reps, 15) }) }
+                    item { ExerciseRowCard(c, "Cardio", onLog = { logTarget = c }) }
                 }
 
                 // Cool-down.
@@ -364,7 +346,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     item { SessionHeader("🧊 Cool-down") }
                     items(day.cooldown.size) { i ->
                         val cd = day.cooldown[i]
-                        ExerciseRowCard(cd, "Cool-down", showDone = true, onDone = { viewModel.logDone(cd.name, "Cool-down", cd.reps, 2) })
+                        ExerciseRowCard(cd, "Cool-down", onLog = { logTarget = cd })
                     }
                 }
 
@@ -399,8 +381,8 @@ private fun SessionHeader(title: String) {
  * One shared card for EVERY Move section (warm-up, main, core, cardio, cool-down) so the whole tab
  * reads as a single design: same shape/padding, [ExerciseIllustration], and name + reps/target
  * styling. Section-specific controls are opt-in:
- *  - Main passes [index] (numbered badge), [showLogSet]/[onLog], and optional [onSwap].
- *  - Warm-up / core / cardio / cool-down pass [showDone]/[onDone] for the "Done → ✓ Done" action.
+ *  - Main passes [index] (numbered badge) + optional [onSwap]; every item passes [onLog], which opens
+ *    the adaptive log dialog (duration for timed pieces, reps/sets for the rest, weight only for lifts).
  * The cue and next-session target lines render only when the item carries them (i.e. Main).
  */
 @Composable
@@ -408,17 +390,13 @@ private fun ExerciseRowCard(
     ex: ExerciseItem,
     section: String,
     index: Int? = null,
-    showLogSet: Boolean = false,
     onLog: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
-    showDone: Boolean = false,
-    onDone: (() -> Unit)? = null,
 ) {
-    var done by remember(ex.name, section) { mutableStateOf(false) }
-    val repsLabel = if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps
+    val repsLabel = if (ex.sets > 1) "${ex.sets} x ${ex.reps}" else ex.reps
     Card(
         Modifier.fillMaxWidth()
-            .semantics { contentDescription = "$section: ${ex.name}, $repsLabel${if (showDone && done) ", logged" else ""}" },
+            .semantics { contentDescription = "$section: ${ex.name}, $repsLabel" },
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -462,36 +440,19 @@ private fun ExerciseRowCard(
                 )
             }
 
-            if ((showLogSet && onLog != null) || onSwap != null || (showDone && onDone != null)) {
+            if (onLog != null || onSwap != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (showLogSet && onLog != null) {
+                    if (onLog != null) {
                         TextButton(
                             onClick = onLog,
-                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a set of ${ex.name}" },
-                        ) { Text("＋ Log set") }
+                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log what you did for ${ex.name}" },
+                        ) { Text("+ Log") }
                     }
                     if (onSwap != null) {
                         TextButton(
                             onClick = onSwap,
                             modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Swap or see alternatives for ${ex.name}" },
-                        ) { Text("⇄ Swap / alternatives") }
-                    }
-                    if (showDone && onDone != null) {
-                        if (done) {
-                            Text(
-                                "✓ Done",
-                                Modifier.heightIn(min = 48.dp).padding(vertical = 14.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        } else {
-                            OutlinedButton(
-                                onClick = { done = true; onDone() },
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Mark ${ex.name} done and count its calories" },
-                            ) { Text("Done") }
-                        }
+                        ) { Text("Swap / alternatives") }
                     }
                 }
             }
@@ -508,7 +469,7 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Alternatives you can do instead — same muscle group, often equipment-free or easier on joints.",
+                    "Alternatives you can do instead - same muscle group, often equipment-free or easier on joints.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -533,41 +494,71 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
     )
 }
 
+/** Is this a TIMED movement (cardio / stretch / plank), i.e. logged by duration not reps? */
+private fun isTimed(ex: ExerciseItem): Boolean =
+    Regex("""min|\d+\s*s\b""", RegexOption.IGNORE_CASE).containsMatchIn(ex.reps)
+
+/** Does it make sense to enter a load? Only real weighted strength (not bodyweight / cardio / mobility). */
+private fun isWeighted(ex: ExerciseItem): Boolean =
+    !isTimed(ex) && ex.type == "strength" && ex.equipment != "bodyweight"
+
+/**
+ * One adaptive log dialog for EVERY item. Timed pieces (cardio, stretches, planks) log a DURATION
+ * (no weight/reps); bodyweight/core moves log reps + sets (no weight - that's the "what the weight?"
+ * fix); only real weighted lifts show the optional weight field. Everything is pre-filled with the
+ * prescribed amount so you can log fast, but edit it if you did more or fewer.
+ */
 @Composable
-private fun LogSetDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (Double?, Int?, Int?) -> Unit) {
+private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (Double?, Int?, Int?, Int?) -> Unit) {
+    val timed = isTimed(exercise)
+    val weighted = isWeighted(exercise)
     val ns = exercise.nextSession
     var weight by remember { mutableStateOf(ns?.suggestedWeightKg?.let { trimKg(it) } ?: "") }
     var reps by remember { mutableStateOf((ns?.suggestedReps ?: firstInt(exercise.reps))?.toString() ?: "") }
     var sets by remember { mutableStateOf((ns?.suggestedSets ?: exercise.sets).toString()) }
+    var minutes by remember { mutableStateOf(estimateMinutes(exercise.reps, 2).toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log · ${exercise.name}") },
+        title = { Text("Log - ${exercise.name}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = weight, onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text("Weight (kg) — optional") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (timed) {
                     OutlinedTextField(
-                        value = reps, onValueChange = { reps = it.filter { c -> c.isDigit() } },
-                        label = { Text("Reps") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
+                        value = minutes, onValueChange = { minutes = it.filter { c -> c.isDigit() } },
+                        label = { Text("Minutes") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
-                        value = sets, onValueChange = { sets = it.filter { c -> c.isDigit() } },
-                        label = { Text("Sets") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
-                    )
+                } else {
+                    if (weighted) {
+                        OutlinedTextField(
+                            value = weight, onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("Weight (kg), optional") }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = reps, onValueChange = { reps = it.filter { c -> c.isDigit() } },
+                            label = { Text("Reps") }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = sets, onValueChange = { sets = it.filter { c -> c.isDigit() } },
+                            label = { Text("Sets") }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
+                        )
+                    }
+                    // Rest timer for between sets, right where you log them.
+                    RestTimer(compact = true)
                 }
-                // Rest timer for between sets, right where you log them.
-                RestTimer(compact = true)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(weight.toDoubleOrNull(), reps.toIntOrNull(), sets.toIntOrNull()) }) { Text("Save") }
+            TextButton(onClick = {
+                if (timed) onConfirm(null, null, null, minutes.toIntOrNull())
+                else onConfirm(weight.toDoubleOrNull(), reps.toIntOrNull(), sets.toIntOrNull(), null)
+            }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

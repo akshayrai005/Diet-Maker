@@ -1,5 +1,5 @@
 /**
- * Deterministic, templated 4-pillar daily coach brief — PURE. No DB, no Date.now, no randomness,
+ * Deterministic, templated 4-pillar daily coach brief - PURE. No DB, no Date.now, no randomness,
  * no LLM. Every field is a fixed template over server-computed facts, so it works with
  * AI_PROVIDER=rules and never invents a number. An LLM layer (if enabled) may only rephrase these
  * exact facts; this templated output is always the fallback and the source of truth.
@@ -7,7 +7,7 @@
 
 export interface CoachBriefInput {
   firstName?: string | null;
-  /** Local hour 0–23, passed in so this stays pure/deterministic. */
+  /** Local hour 0-23, passed in so this stays pure/deterministic. */
   hour: number;
   overall: number;
   grade: string;
@@ -36,7 +36,7 @@ export interface CoachBrief {
   disclaimer: string;
 }
 
-const DISCLAIMER = 'Educational guidance, not medical advice — consult a professional.';
+const DISCLAIMER = 'Educational guidance, not medical advice - consult a professional.';
 
 function greetingFor(hour: number, name?: string | null): string {
   const part = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -45,25 +45,25 @@ function greetingFor(hour: number, name?: string | null): string {
 
 function dietFocusFor(remaining: number | null): string {
   if (remaining == null) return 'Log your meals to track today’s calories.';
-  if (remaining > 200) return `You have ~${remaining} kcal left today — make them count with protein + veg.`;
-  if (remaining < -200) return `You’re ~${Math.abs(remaining)} kcal over — go lighter tonight and add a glass of water.`;
-  return 'Right on target for calories — keep the balance.';
+  if (remaining > 200) return `You have ~${remaining} kcal left today - make them count with protein + veg.`;
+  if (remaining < -200) return `You’re ~${Math.abs(remaining)} kcal over - go lighter tonight and add a glass of water.`;
+  return 'Right on target for calories - keep the balance.';
 }
 
 function moveFor(input: CoachBriefInput): string {
-  if (input.rest) return 'Rest & recovery day — a light walk and some stretching is plenty.';
-  if (input.todayWorkoutDone) return 'Workout logged today — nicely done. ✓';
+  if (input.rest) return 'Rest & recovery day - a light walk and some stretching is plenty.';
+  if (input.todayWorkoutDone) return 'Workout logged today - nicely done. ✓';
   if (input.todayWorkoutScheduled) {
     return input.todayFocus
       ? `Today’s session: ${input.todayFocus}. Log your sets in Move.`
-      : 'You have a session today — log your sets in Move.';
+      : 'You have a session today - log your sets in Move.';
   }
-  return 'No session scheduled today — a brisk 10-minute walk still counts.';
+  return 'No session scheduled today - a brisk 10-minute walk still counts.';
 }
 
 function mindFor(done: boolean): string {
   return done
-    ? 'Mind session done — a good reset. ✓'
+    ? 'Mind session done - a good reset. ✓'
     : 'Take 4 minutes for box breathing in Move › Meditation.';
 }
 
@@ -73,11 +73,11 @@ function predictionFor(projection: CoachBriefInput['projection'], deltaKg: numbe
     const base = `On this track you’re heading toward ~${pick.weightKg} kg in about ${pick.weeks} weeks.`;
     if (deltaKg != null && deltaKg !== 0) {
       const dir = deltaKg < 0 ? 'down' : 'up';
-      return `${base} You’re already ${Math.abs(deltaKg)} kg ${dir} — momentum is on your side.`;
+      return `${base} You’re already ${Math.abs(deltaKg)} kg ${dir} - momentum is on your side.`;
     }
     return base;
   }
-  return 'Keep going — your trend takes a few weeks of logging to show, and it will.';
+  return 'Keep going - your trend takes a few weeks of logging to show, and it will.';
 }
 
 export function buildCoachBrief(input: CoachBriefInput): CoachBrief {
@@ -90,7 +90,7 @@ export function buildCoachBrief(input: CoachBriefInput): CoachBrief {
     mindNudge: mindFor(input.todayWellnessDone),
     disciplineActions: actions.length > 0 ? actions : ['Keep logging today to build your streak.'],
     streak: input.streakDays > 0
-      ? `🔥 ${input.streakDays}-day logging streak — keep it alive.`
+      ? `🔥 ${input.streakDays}-day logging streak - keep it alive.`
       : 'Log something today to start a streak.',
     prediction: predictionFor(input.projection, input.weightDeltaKg),
     disclaimer: DISCLAIMER,

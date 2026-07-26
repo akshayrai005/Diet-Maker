@@ -102,7 +102,7 @@ class WellnessViewModel @Inject constructor(
                 val s = r.getOrNull()
                 _state.value.copy(toast = "Logged ${s?.refName ?: "session"} · ~${s?.kcal ?: 0} kcal 🔥")
             } else {
-                _state.value.copy(toast = "Couldn't log — try again")
+                _state.value.copy(toast = "Couldn't log - try again")
             }
         }
     }
@@ -129,7 +129,7 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
     ) {
         item { Hero() }
 
-        // Mind pillar — daily mood / stress / sleep check-in with a supportive insight.
+        // Mind pillar - daily mood / stress / sleep check-in with a supportive insight.
         item { com.nutriai.ui.mind.MoodCheckinCard() }
 
         state.toast?.let { msg ->
@@ -294,7 +294,7 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
         }
     }
 
-    // Soft breathing chime — a gentle tone that rises on inhale, holds steady, falls on exhale.
+    // Soft breathing chime - a gentle tone that rises on inhale, holds steady, falls on exhale.
     // Generated on the fly (offline, no audio files). Independent of the voice cues.
     var tonesOn by remember { mutableStateOf(true) }
     val tonePlayer = remember { com.nutriai.util.BreathTonePlayer() }

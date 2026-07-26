@@ -7,7 +7,7 @@ import { computeCycle, cycleGuidance, analyzeCycleHealth } from './cycle';
 
 const DAY_MS = 86_400_000;
 
-/** Sensitive per-period detail — encrypted at rest; never used by the (date-only) cycle math. */
+/** Sensitive per-period detail - encrypted at rest; never used by the (date-only) cycle math. */
 export interface PeriodDetails {
   symptoms?: string[];
   flow?: 'light' | 'medium' | 'heavy';
@@ -34,7 +34,7 @@ export async function endLatestPeriod(userId: string, when: Date = new Date()) {
     where: { userId, endDate: null },
     orderBy: { startDate: 'desc' },
   });
-  if (!open) throw new HttpError(400, 'No ongoing period to end — log a start first.');
+  if (!open) throw new HttpError(400, 'No ongoing period to end - log a start first.');
   return prisma.periodLog.update({ where: { id: open.id }, data: { endDate: when } });
 }
 

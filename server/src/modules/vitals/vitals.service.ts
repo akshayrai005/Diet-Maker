@@ -39,7 +39,7 @@ export interface VitalSeries {
   disclaimer: string;
 }
 
-/** Reads the user's biological sex for sex-specific bands — undefined if profile incomplete. */
+/** Reads the user's biological sex for sex-specific bands - undefined if profile incomplete. */
 async function readSex(userId: string): Promise<Sex | undefined> {
   const profile = await prisma.profile.findUnique({ where: { userId }, select: { sensitiveEnc: true } });
   if (!profile?.sensitiveEnc) return undefined;
@@ -137,7 +137,7 @@ export interface VitalSummaryItem {
   classification: VitalClassification | null;
 }
 
-/** Latest reading + band per metric that has any data — for the Home/vitals overview. */
+/** Latest reading + band per metric that has any data - for the Home/vitals overview. */
 export async function getVitalsSummary(userId: string): Promise<{ items: VitalSummaryItem[]; disclaimer: string }> {
   const rows = await prisma.vitalLog.findMany({
     where: { userId },
@@ -158,7 +158,7 @@ export async function getVitalsSummary(userId: string): Promise<{ items: VitalSu
   return { items, disclaimer: VITAL_DISCLAIMER };
 }
 
-/** Latest lab/vital values fed into the risk engine (never throws — missing = undefined). */
+/** Latest lab/vital values fed into the risk engine (never throws - missing = undefined). */
 export async function getLatestVitalsForRisk(userId: string): Promise<{
   bloodPressure?: string;
   restingHr?: number;

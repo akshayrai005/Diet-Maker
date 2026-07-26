@@ -2,7 +2,7 @@ import type { ActivityLevel } from './types';
 
 /**
  * Deterministic daily hydration target (ml) adapting to body weight, activity and climate.
- * Base ~33 ml/kg, plus activity and hot-climate top-ups. Educational only — people on a medical
+ * Base ~33 ml/kg, plus activity and hot-climate top-ups. Educational only - people on a medical
  * FLUID RESTRICTION (kidney/heart) must follow their doctor's limit, not this (guardrails flag that).
  * Pure & unit-tested.
  */
@@ -23,7 +23,7 @@ const CLIMATE_BONUS_ML: Record<Climate, number> = {
   hot: 600,
 };
 
-/** Adaptive target, clamped to a sane 1500–5000 ml range. */
+/** Adaptive target, clamped to a sane 1500-5000 ml range. */
 export function hydrationTargetMl(
   weightKg: number,
   activity: ActivityLevel = 'moderate',

@@ -227,17 +227,17 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     HeroStat(
-                        value = report.targets?.dailyKcal?.let { "${it.toInt()}" } ?: "—",
+                        value = report.targets?.dailyKcal?.let { "${it.toInt()}" } ?: "-",
                         unit = "kcal target",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
-                        value = report.targets?.proteinG?.let { "${it.toInt()}" } ?: "—",
+                        value = report.targets?.proteinG?.let { "${it.toInt()}" } ?: "-",
                         unit = "g protein",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
-                        value = report.adherencePct?.let { "${it.toInt()}%" } ?: "—",
+                        value = report.adherencePct?.let { "${it.toInt()}%" } ?: "-",
                         unit = "adherence",
                         modifier = Modifier.weight(1f),
                     )
@@ -248,12 +248,12 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     HeroStat(
-                        value = report.bmi?.let { String.format("%.1f", it) } ?: "—",
+                        value = report.bmi?.let { String.format("%.1f", it) } ?: "-",
                         unit = "BMI",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
-                        value = report.latestWeightKg?.let { "$it" } ?: "—",
+                        value = report.latestWeightKg?.let { "$it" } ?: "-",
                         unit = "kg now",
                         modifier = Modifier.weight(1f),
                     )
@@ -261,7 +261,7 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                         value = report.weightDeltaKg?.let { d ->
                             val sign = if (d > 0) "+" else ""
                             "$sign$d"
-                        } ?: "—",
+                        } ?: "-",
                         unit = "kg change",
                         modifier = Modifier.weight(1f),
                     )

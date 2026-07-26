@@ -63,7 +63,7 @@ import com.nutriai.ui.theme.BrandLime
 import java.time.LocalTime
 
 // ---------------------------------------------------------------------------
-// Premium redesigned dashboard for NutriAI — Apple Health / WHOOP inspired.
+// Premium redesigned dashboard for NutriAI - Apple Health / WHOOP inspired.
 // One self-contained file. Uses only Foundation / Material3 / Canvas.
 // ---------------------------------------------------------------------------
 
@@ -106,12 +106,12 @@ fun PremiumDashboard(
         // 1. Hero
         item { HeroCard(greetingName = greetingName, streakDays = d.streakDays) }
 
-        // 1a. Your Analysis — server-computed health rating + today's coach brief.
+        // 1a. Your Analysis - server-computed health rating + today's coach brief.
         if (rating != null || coach != null) {
             item { com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach) }
         }
 
-        // 1b. AI Coach — proactive, deterministic morning insights from today's data.
+        // 1b. AI Coach - proactive, deterministic morning insights from today's data.
         item { CoachCard(name = greetingName, dashboard = d, sleepHours = sleepHours, steps = steps) }
 
         // 2. Calorie ring
@@ -140,10 +140,10 @@ fun PremiumDashboard(
             item { GoalMonitorCard(days = weekDays, target = weekKcalTarget) }
         }
 
-        // 4. Steps (Health Connect) — above hydration
+        // 4. Steps (Health Connect) - above hydration
         item { StepsCard(steps = steps, stepsKcal = stepsKcal, hasPermission = stepsPermission, available = stepsAvailable, onConnect = onConnectSteps) }
 
-        // 4b. Vitals — reads heart rate & sleep from Health Connect (fed by Google Fit / your band).
+        // 4b. Vitals - reads heart rate & sleep from Health Connect (fed by Google Fit / your band).
         item {
             VitalsCard(
                 heartRate = heartRate,
@@ -156,7 +156,7 @@ fun PremiumDashboard(
             )
         }
 
-        // 4c. Vitals & labs — compact summary of key logged metrics (BP, glucose, HbA1c, resting HR).
+        // 4c. Vitals & labs - compact summary of key logged metrics (BP, glucose, HbA1c, resting HR).
         item { com.nutriai.ui.vitals.HomeVitalsCard(onOpenVitals = onOpenVitals) }
 
         // 5. Hydration
@@ -173,7 +173,7 @@ fun PremiumDashboard(
         // 7. Footer: disclaimer only (Log out + Delete account live in Settings)
         item {
             Text(
-                "Educational guidance, not medical advice — consult a professional.",
+                "Educational guidance, not medical advice - consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -191,7 +191,7 @@ fun PremiumDashboard(
 private fun HeroCard(greetingName: String?, streakDays: Int) {
     val hour = LocalTime.now().hour
     val (greeting, motivation) = when {
-        hour < 12 -> "Good morning" to "Fuel your body right — today is yours to own."
+        hour < 12 -> "Good morning" to "Fuel your body right - today is yours to own."
         hour < 17 -> "Good afternoon" to "Keep the momentum going. Every choice counts."
         else -> "Good evening" to "Wind down strong. Consistency beats perfection."
     }
@@ -248,14 +248,14 @@ private fun HeroCard(greetingName: String?, streakDays: Int) {
 }
 
 // ---------------------------------------------------------------------------
-// 1b. AI Coach card — proactive, deterministic insights
+// 1b. AI Coach card - proactive, deterministic insights
 // ---------------------------------------------------------------------------
 
 /** One coach insight: an emoji + a short, human line. */
 private data class Insight(val emoji: String, val text: String)
 
 /**
- * Builds a few proactive coach lines from today's data — deterministic, offline, zero-cost.
+ * Builds a few proactive coach lines from today's data - deterministic, offline, zero-cost.
  * Prioritised: greeting, then the most actionable signal (sleep, hydration, logging), then
  * encouragement (streak / projection).
  */
@@ -269,9 +269,9 @@ private fun buildCoachInsights(
     val out = mutableListOf<Insight>()
     val who = name?.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""
     val greeting = when {
-        hour < 12 -> Insight("☀️", "Good morning$who — here's your day.")
-        hour < 17 -> Insight("🌤️", "Good afternoon$who — keep it going.")
-        else -> Insight("🌙", "Good evening$who — let's finish strong.")
+        hour < 12 -> Insight("☀️", "Good morning$who - here's your day.")
+        hour < 17 -> Insight("🌤️", "Good afternoon$who - keep it going.")
+        else -> Insight("🌙", "Good evening$who - let's finish strong.")
     }
     out += greeting
 
@@ -280,21 +280,21 @@ private fun buildCoachInsights(
         val h = String.format(java.util.Locale.US, "%.1f", it)
         when {
             it < 6.5 -> out += Insight("😴", "You slept only ${h}h. Go easier on intensity today and hydrate more.")
-            it >= 7.5 -> out += Insight("💪", "Great ${h}h of sleep — your body's recovered for a strong day.")
-            else -> out += Insight("🛌", "${h}h sleep — aim for 7–8h tonight for better recovery.")
+            it >= 7.5 -> out += Insight("💪", "Great ${h}h of sleep - your body's recovered for a strong day.")
+            else -> out += Insight("🛌", "${h}h sleep - aim for 7-8h tonight for better recovery.")
         }
     }
 
-    // Hydration — nudge only from mid-day on (being behind first thing after waking is normal).
+    // Hydration - nudge only from mid-day on (being behind first thing after waking is normal).
     val waterPct = (dashboard.water.percent ?: 0.0)
     if (hour in 14..21 && waterPct < 55) {
-        out += Insight("💧", "You're at ${waterPct.toInt()}% of your water goal — have a glass now.")
+        out += Insight("💧", "You're at ${waterPct.toInt()}% of your water goal - have a glass now.")
     }
 
-    // Logging nudge — nothing logged yet by mid-day.
+    // Logging nudge - nothing logged yet by mid-day.
     val calPct = (dashboard.calories.percent ?: 0.0)
     if (hour in 12..22 && calPct < 15) {
-        out += Insight("🍽️", "You haven't logged much yet — tap Log to stay on track.")
+        out += Insight("🍽️", "You haven't logged much yet - tap Log to stay on track.")
     }
 
     // Projection / encouragement.
@@ -303,7 +303,7 @@ private fun buildCoachInsights(
         next?.let { out += Insight("📉", "On your current pace you're projected to reach ${it.weightKg} kg by ${it.label.lowercase()}.") }
     }
     if (dashboard.streakDays > 0) {
-        out += Insight("🔥", "${dashboard.streakDays}-day logging streak — keep it alive!")
+        out += Insight("🔥", "${dashboard.streakDays}-day logging streak - keep it alive!")
     }
     if (steps > 0) {
         out += Insight("👟", "%,d steps so far today.".format(steps))
@@ -649,7 +649,7 @@ private fun GoalMonitorCard(days: List<com.nutriai.data.remote.dto.ReportDay>, t
                         else -> BrandGreen
                     }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(if (logged) "${(day.kcal / 100).toInt() * 100}" else "—", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        Text(if (logged) "${(day.kcal / 100).toInt() * 100}" else "-", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                         Spacer(Modifier.height(2.dp))
                         // Bar lives in the leftover space between the value and the weekday label,
                         // so even a full-height (max) day still shows its label underneath.
@@ -816,7 +816,7 @@ private fun VitalsCard(
                     ) { Text("Connect Google Fit", style = MaterialTheme.typography.labelLarge) }
                 } else {
                     Text(
-                        "Connected. No recent heart rate / sleep yet — make sure Fastrack Smart has " +
+                        "Connected. No recent heart rate / sleep yet - make sure Fastrack Smart has " +
                             "Google Fit + Auto HR on, then check back after it syncs. Or tap Edit to log now.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -895,7 +895,7 @@ private fun StepsCard(steps: Long, stepsKcal: Int, hasPermission: Boolean, avail
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    if (hasPermission) "%,d".format(steps) else "—",
+                    if (hasPermission) "%,d".format(steps) else "-",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = BrandGreen,
@@ -936,7 +936,7 @@ private fun StepsCard(steps: Long, stepsKcal: Int, hasPermission: Boolean, avail
 private fun ScoresRow(dashboard: Dashboard) {
     val adherence = (dashboard.calories.percent ?: 0.0).coerceIn(0.0, 100.0).toInt()
     val hydration = (dashboard.water.percent ?: 0.0).coerceIn(0.0, 100.0).toInt()
-    val bmiText = dashboard.bmi?.let { String.format("%.1f", it) } ?: "—"
+    val bmiText = dashboard.bmi?.let { String.format("%.1f", it) } ?: "-"
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -78,7 +78,7 @@ function getRedis(): Redis | null {
       lazyConnect: false,
     });
     redisClient.on('error', () => {
-      /* swallow — the middleware falls back to in-memory per request */
+      /* swallow - the middleware falls back to in-memory per request */
     });
   } catch {
     redisClient = null;

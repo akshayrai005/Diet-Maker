@@ -79,7 +79,7 @@ data class CalendarState(
     val workoutDays: List<WorkoutDay> = emptyList(),
     val workoutBlockLabel: String? = null,
     val selectedDate: String? = null,
-    /** Most recent performed set per exercise name — progression hints. */
+    /** Most recent performed set per exercise name - progression hints. */
     val lastPerf: Map<String, LastPerformance> = emptyMap(),
     /** Exercise logs the user recorded on the selected day. */
     val selectedLogs: List<ExerciseLogDto> = emptyList(),
@@ -91,7 +91,7 @@ data class CalendarState(
     /** Yoga cool-down + breathing shown inline in the workout, like the exercises. */
     val yoga: com.nutriai.data.remote.dto.YogaFlow? = null,
     val meditation: com.nutriai.data.remote.dto.Meditation? = null,
-    /** Today's mood (1 low .. 5 great) — drives the yoga/meditation pick alongside phase + health. */
+    /** Today's mood (1 low .. 5 great) - drives the yoga/meditation pick alongside phase + health. */
     val mood: Int? = null,
     val wellnessReason: String? = null,
     /** Personalized diet + exercise guidance from conditions / sex / lifestyle. */
@@ -501,7 +501,7 @@ fun CalendarScreen(
 
         item {
             Text(
-                "Educational guidance, not medical advice — consult a professional.",
+                "Educational guidance, not medical advice - consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -648,9 +648,9 @@ private fun WorkoutWellnessCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("🧘 Yoga & meditation — part of today's routine", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("🧘 Yoga & meditation - part of today's routine", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 
-            // Mood selector — tune the session to how you feel.
+            // Mood selector - tune the session to how you feel.
             Text("How's your mood today?", style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 val faces = listOf(1 to "😣", 2 to "😕", 3 to "😐", 4 to "🙂", 5 to "😄")
@@ -672,7 +672,7 @@ private fun WorkoutWellnessCard(
             yoga?.let { flow ->
                 Text("Cool-down · ${flow.name}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 flow.poses.take(5).forEach { p ->
-                    Text("• ${p.name} — ${p.hold}", style = MaterialTheme.typography.bodySmall)
+                    Text("• ${p.name} - ${p.hold}", style = MaterialTheme.typography.bodySmall)
                 }
             }
             meditation?.let { med ->
@@ -818,7 +818,7 @@ private fun DayPill(
     isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val dayNumber = date?.substringAfterLast('-')?.trimStart('0')?.ifBlank { "0" } ?: "—"
+    val dayNumber = date?.substringAfterLast('-')?.trimStart('0')?.ifBlank { "0" } ?: "-"
     // Always show the real weekday (Mon/Tue…) from the date, not Yesterday/Today/Tomorrow.
     val weekday = date?.let {
         runCatching {
@@ -849,7 +849,7 @@ private fun DayPill(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                weekday ?: "—",
+                weekday ?: "-",
                 style = MaterialTheme.typography.labelMedium,
                 color = content,
                 maxLines = 1,

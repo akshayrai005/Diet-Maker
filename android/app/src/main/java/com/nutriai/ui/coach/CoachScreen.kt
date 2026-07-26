@@ -73,7 +73,7 @@ fun CoachScreen(
     val listState = rememberLazyListState()
     val messages = state.messages
 
-    // Red-flag safety net — surfaced alongside the coach's normal reply.
+    // Red-flag safety net - surfaced alongside the coach's normal reply.
     state.redFlagMessage?.let { msg ->
         com.nutriai.ui.safety.RedFlagDialog(message = msg, onDismiss = { viewModel.clearRedFlag() })
     }
@@ -128,7 +128,7 @@ fun CoachScreen(
         )
 
         Text(
-            "Educational guidance, not medical advice — consult a professional.",
+            "Educational guidance, not medical advice - consult a professional.",
             style = MaterialTheme.typography.labelSmall,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -140,7 +140,7 @@ fun CoachScreen(
 }
 
 // ---------------------------------------------------------------------------
-// Header — brand-gradient avatar + title/subtitle
+// Header - brand-gradient avatar + title/subtitle
 // ---------------------------------------------------------------------------
 
 @Composable

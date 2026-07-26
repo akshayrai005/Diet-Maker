@@ -57,7 +57,7 @@ fun AppRoot(startTab: Int = 0, sessionViewModel: SessionViewModel = hiltViewMode
                     navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                 },
                 onNeedsProfile = {
-                    // Logged in but no profile yet — set it up first, then land on the dashboard.
+                    // Logged in but no profile yet - set it up first, then land on the dashboard.
                     navController.navigate(Routes.ONBOARDING) { popUpTo(Routes.LOGIN) { inclusive = true } }
                 },
                 onGoToRegister = { navController.navigate(Routes.REGISTER) },

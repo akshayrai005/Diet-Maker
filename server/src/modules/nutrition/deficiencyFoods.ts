@@ -68,7 +68,7 @@ const SOURCES: Partial<Record<MicronutrientKey, FoodSource[]>> = {
     { name: 'Fish (sardines)', cls: 'fish', allergens: ['fish'], budget: 'mid' },
   ],
   vitaminDMcg: [
-    { name: 'Sunlight (15–20 min) + fortified milk', cls: 'vegetarian', allergens: ['dairy'], budget: 'low' },
+    { name: 'Sunlight (15-20 min) + fortified milk', cls: 'vegetarian', allergens: ['dairy'], budget: 'low' },
     { name: 'Egg yolk', cls: 'egg', allergens: ['egg'], budget: 'low' },
     { name: 'Mushrooms (sun-exposed)', cls: 'vegan', budget: 'low' },
     { name: 'Fatty fish (salmon)', cls: 'fish', allergens: ['fish'], budget: 'high' },

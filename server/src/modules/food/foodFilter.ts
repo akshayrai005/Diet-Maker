@@ -6,7 +6,7 @@ function categoryAllowed(dietType: string, cat: FoodItem['category']): boolean {
     case 'vegan':
       return cat === 'vegan';
     case 'veg':
-    case 'vegetarian': // alias — never let this fall through to "allow everything"
+    case 'vegetarian': // alias - never let this fall through to "allow everything"
     case 'jain':
     case 'satvik':
     case 'mediterranean': // treat as veg-leaning by default here
@@ -40,7 +40,7 @@ export function conditionAvoidTags(conditions: string[]): string[] {
     avoid.add('high-gi');
   }
   if (conditions.includes('pcos')) {
-    // PCOS is insulin-driven — treat high-GI/sugary/refined carbs like diabetes.
+    // PCOS is insulin-driven - treat high-GI/sugary/refined carbs like diabetes.
     avoid.add('high-sugar');
     avoid.add('high-gi');
     avoid.add('refined');
@@ -104,7 +104,7 @@ export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodIt
   return foods.filter((f) => {
     if (!categoryAllowed(prefs.dietType, f.category)) return false;
 
-    // Allergen exclusion — fail-closed: block if any allergy term (incl. synonyms) matches the
+    // Allergen exclusion - fail-closed: block if any allergy term (incl. synonyms) matches the
     // food's name OR any of its allergen tags, substring in either direction.
     const name = norm(f.name);
     const foodAllergens = f.allergens.map(norm);

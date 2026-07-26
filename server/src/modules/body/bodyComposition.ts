@@ -1,8 +1,8 @@
 import type { Sex } from '../../calc/types';
 
 /**
- * Deterministic body-composition estimates from tape-measure inputs — NO device needed. The US-Navy
- * circumference method gives a body-fat% ESTIMATE (clearly labelled; ±3–4% vs DEXA), and waist-to-hip
+ * Deterministic body-composition estimates from tape-measure inputs - NO device needed. The US-Navy
+ * circumference method gives a body-fat% ESTIMATE (clearly labelled; ±3-4% vs DEXA), and waist-to-hip
  * ratio gets an educational health band. Body-neutral and non-diagnostic; always defers to a doctor.
  * Pure & unit-tested. Never computed for minors (caller enforces).
  *
@@ -23,7 +23,7 @@ export interface NavyInput {
 
 /**
  * US-Navy body-fat %. Returns null when inputs are missing/invalid (e.g. waist ≤ neck, or a female
- * without hip) — never a fabricated number. Clamped to a sane 2–60% range.
+ * without hip) - never a fabricated number. Clamped to a sane 2-60% range.
  */
 export function navyBodyFatPct(input: NavyInput): number | null {
   const { sex, heightCm, neckCm, waistCm } = input;
@@ -66,7 +66,7 @@ export function waistHipRatio(sex: Sex, waistCm: number, hipCm: number): WhrResu
   const note =
     risk === 'low'
       ? 'A healthy waist-to-hip ratio.'
-      : 'A higher ratio signals more central fat. Fibre, protein and daily movement help — discuss with a doctor if concerned.';
+      : 'A higher ratio signals more central fat. Fibre, protein and daily movement help - discuss with a doctor if concerned.';
   return { ratio, risk, band, note };
 }
 
@@ -74,18 +74,18 @@ function round2(x: number) {
   return Math.round(x * 100) / 100;
 }
 
-/** Bodyfat category bands (educational, sex-specific — ACE ranges). */
+/** Bodyfat category bands (educational, sex-specific - ACE ranges). */
 export function bodyFatBand(sex: Sex, pct: number): string {
   const f = sex === 'female';
   if (f) {
-    if (pct < 12) return 'Very low — may affect health'; // hormonal/menstrual risk below essential
+    if (pct < 12) return 'Very low - may affect health'; // hormonal/menstrual risk below essential
     if (pct < 16) return 'Athlete range';
     if (pct < 21) return 'Fitness range';
     if (pct < 25) return 'Acceptable range';
     if (pct < 32) return 'Above average';
     return 'High';
   }
-  if (pct < 4) return 'Very low — may affect health';
+  if (pct < 4) return 'Very low - may affect health';
   if (pct < 8) return 'Athlete range';
   if (pct < 14) return 'Fitness range';
   if (pct < 18) return 'Acceptable range';

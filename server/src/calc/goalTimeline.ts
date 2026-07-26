@@ -5,7 +5,7 @@ import { MAX_WEEKLY_LOSS_FRACTION, KCAL_PER_KG_FAT } from '../guardrails';
  * realistic number of weeks that actually takes, and the daily calorie delta it implies. Safety is
  * non-negotiable: the loss rate is clamped to the same cap the guardrail engine uses (0.75% of body
  * weight/week), gain to a lean ~0.35%/week, and never for minors / pregnancy / medically blocked.
- * If the user's chosen timeframe demands an unsafe pace we DO NOT comply — we clamp and show the
+ * If the user's chosen timeframe demands an unsafe pace we DO NOT comply - we clamp and show the
  * realistic date with an explanation. Pure & unit-tested. Educational, not medical advice.
  */
 
@@ -68,7 +68,7 @@ export function goalTimeline(input: GoalTimelineInput): GoalTimeline {
       desiredWeeklyLossKg: 0,
       dailyKcalDelta: 0,
       blocked: false,
-      message: "You're already around your target weight — this keeps you steady.",
+      message: "You're already around your target weight - this keeps you steady.",
     };
   }
 
@@ -89,12 +89,12 @@ export function goalTimeline(input: GoalTimelineInput): GoalTimeline {
       dailyKcalDelta: 0,
       blocked: true,
       message: input.isMinor
-        ? "We don't set weight-loss timelines for under-18s — focus on healthy habits and growth. A doctor can guide safe targets."
-        : 'A weight-loss timeline is not appropriate right now — please follow the plan your doctor or dietitian gives you.',
+        ? "We don't set weight-loss timelines for under-18s - focus on healthy habits and growth. A doctor can guide safe targets."
+        : 'A weight-loss timeline is not appropriate right now - please follow the plan your doctor or dietitian gives you.',
     };
   }
 
-  // Keep the cap at full precision — rounding it could nudge the rate ABOVE the safe limit.
+  // Keep the cap at full precision - rounding it could nudge the rate ABOVE the safe limit.
   const safeMax = (losing ? MAX_WEEKLY_LOSS_FRACTION : GAIN_RATE_FRACTION) * current;
   const safeRate = Math.min(requestedRate, safeMax);
   const clamped = requestedRate > safeMax + 1e-9;

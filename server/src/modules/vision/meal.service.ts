@@ -38,7 +38,7 @@ export async function assessMealFromPhoto(
   ].join(' ');
 
   const result = await geminiVisionJson(imageBase64, mimeType, prompt);
-  if (!result) return { available: true, items: [], note: 'Could not read the photo — try a clearer, well-lit shot of the plate.' };
+  if (!result) return { available: true, items: [], note: 'Could not read the photo - try a clearer, well-lit shot of the plate.' };
 
   const rawItems = Array.isArray(result.items) ? result.items : [];
   const items: VisionFoodItem[] = rawItems
@@ -65,6 +65,6 @@ export async function assessMealFromPhoto(
   return {
     available: true,
     items,
-    note: str(result.note) || (items.length ? 'Estimates — adjust grams before logging.' : 'No food detected in the photo.'),
+    note: str(result.note) || (items.length ? 'Estimates - adjust grams before logging.' : 'No food detected in the photo.'),
   };
 }

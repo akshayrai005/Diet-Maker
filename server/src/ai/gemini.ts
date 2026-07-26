@@ -5,8 +5,8 @@ const MODEL = env.GEMINI_MODEL || 'gemini-2.0-flash';
 const TIMEOUT_MS = 12_000;
 
 /**
- * Google Gemini chat provider. Returns `null` on any problem — missing key, timeout,
- * network error, non-2xx response, or an unparsable body — so the caller can fall back
+ * Google Gemini chat provider. Returns `null` on any problem - missing key, timeout,
+ * network error, non-2xx response, or an unparsable body - so the caller can fall back
  * to the deterministic rules engine. Never throws.
  */
 export const geminiProvider: AiProvider = {

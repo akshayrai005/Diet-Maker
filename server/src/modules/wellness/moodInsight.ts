@@ -1,16 +1,16 @@
 /**
- * Deterministic mood / stress / sleep-quality insight from a series of gentle 1–5 self check-ins.
+ * Deterministic mood / stress / sleep-quality insight from a series of gentle 1-5 self check-ins.
  * This is supportive reflection, NOT a clinical assessment or diagnosis. If entries show sustained
- * low mood it surfaces a gentle, non-alarmist "consider talking to someone" nudge — it never
+ * low mood it surfaces a gentle, non-alarmist "consider talking to someone" nudge - it never
  * diagnoses depression or any condition. Pure & unit-tested; never an LLM.
  */
 
 export interface MoodEntry {
-  /** 1 (very low) – 5 (great). */
+  /** 1 (very low) - 5 (great). */
   mood?: number | null;
-  /** 1 (calm) – 5 (very stressed). */
+  /** 1 (calm) - 5 (very stressed). */
   stress?: number | null;
-  /** 1 (poor) – 5 (great). */
+  /** 1 (poor) - 5 (great). */
   sleepQuality?: number | null;
 }
 
@@ -23,7 +23,7 @@ export interface MoodInsight {
   avgSleepQuality: number | null;
   direction: MoodDirection;
   message: string;
-  /** Gentle "consider professional support" flag — sustained low mood, never a diagnosis. */
+  /** Gentle "consider professional support" flag - sustained low mood, never a diagnosis. */
   professionalNudge: boolean;
   disclaimer: string;
 }
@@ -72,9 +72,9 @@ export function moodInsight(entries: MoodEntry[]): MoodInsight {
     message = 'Add a quick mood check-in to start noticing patterns over time.';
   } else if (professionalNudge) {
     message =
-      "Your mood has felt low for a little while. That's worth being kind to yourself about — small daily walks, sunlight and reaching out to someone you trust can help, and a professional can help more.";
+      "Your mood has felt low for a little while. That's worth being kind to yourself about - small daily walks, sunlight and reaching out to someone you trust can help, and a professional can help more.";
   } else if (direction === 'improving') {
-    message = 'Your mood has been trending up lately — whatever you\'re doing, keep it going.';
+    message = 'Your mood has been trending up lately - whatever you\'re doing, keep it going.';
   } else if (direction === 'declining') {
     message = 'Your mood has dipped a bit recently. Gentle movement, better sleep and time outdoors often help.';
   } else if (avgStress != null && avgStress >= 4) {

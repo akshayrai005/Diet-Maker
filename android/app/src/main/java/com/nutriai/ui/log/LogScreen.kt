@@ -121,7 +121,7 @@ fun LogScreen(
         CustomFoodDialog(onSave = { viewModel.saveCustom(it); showCustom = false }, onDismiss = { showCustom = false })
     }
 
-    // Quantity dialog — set exact grams for THIS food before logging (accurate calories).
+    // Quantity dialog - set exact grams for THIS food before logging (accurate calories).
     pendingFood?.let { food ->
         QuantityDialog(
             food = food,
@@ -182,7 +182,7 @@ fun LogScreen(
 
         // 3c. AI-detected items from the photo
         if (state.photoItems.isNotEmpty()) {
-            item { SectionLabel("Detected in photo", "AI estimates — tap Add (adjust grams anytime)") }
+            item { SectionLabel("Detected in photo", "AI estimates - tap Add (adjust grams anytime)") }
             items(state.photoItems, key = { it.name + it.grams }) { it2 ->
                 DetectedItemCard(it2, onAdd = { viewModel.logVisionItem(it2) })
             }

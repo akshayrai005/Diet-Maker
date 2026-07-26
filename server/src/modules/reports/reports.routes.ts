@@ -9,7 +9,7 @@ import { tzOffsetMin } from '../../lib/tz';
 
 export const reportsRouter = Router();
 
-// Coach-voice narrative analysis + explainable rating — GET /report/analysis.
+// Coach-voice narrative analysis + explainable rating - GET /report/analysis.
 reportsRouter.get(
   '/report/analysis',
   requireAuth,
@@ -28,7 +28,7 @@ reportsRouter.get(
   }),
 );
 
-// In-app HTML report — GET /report/view?range=weekly|monthly&count=N  → { html }.
+// In-app HTML report - GET /report/view?range=weekly|monthly&count=N  → { html }.
 reportsRouter.get(
   '/report/view',
   requireAuth,

@@ -44,7 +44,7 @@ class MedReminderScheduler @Inject constructor(
         val previous = prefs.scheduledTimes(med.id)
         // Cancel times that are no longer part of this med.
         (previous - valid).forEach { workManager.cancelUniqueWork(keyFor(med.id, it)) }
-        // (Re)schedule current times — KEEP so an existing chain is left undisturbed.
+        // (Re)schedule current times - KEEP so an existing chain is left undisturbed.
         val dose = med.dose?.takeIf { it.isNotBlank() }
         valid.forEach { time ->
             val (h, m) = parse(time) ?: return@forEach

@@ -85,7 +85,7 @@ class BodyViewModel @Inject constructor(
     val state: StateFlow<BodyUiState> = _state.asStateFlow()
 
     init {
-        // Clean up any photos saved by older versions — nothing is stored anymore.
+        // Clean up any photos saved by older versions - nothing is stored anymore.
         viewModelScope.launch { withContext(Dispatchers.IO) { ImageUtil.clearProgress(context) } }
     }
 
@@ -172,7 +172,7 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
                             else Text("✨ Analyze with AI")
                         }
                         Text(
-                            "Not saved anywhere. The photo is used only for this analysis and then discarded — it only leaves your phone when you tap Analyze.",
+                            "Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -221,7 +221,7 @@ private fun AssessmentCard(a: BodyAssessment) {
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Text(
-                        "${trim(a.bodyFatLow)}–${trim(a.bodyFatHigh)}%",
+                        "${trim(a.bodyFatLow)}-${trim(a.bodyFatHigh)}%",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = BrandGreenDeep,

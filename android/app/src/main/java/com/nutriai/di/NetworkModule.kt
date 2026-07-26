@@ -46,7 +46,7 @@ object NetworkModule {
             .addInterceptor(authInterceptor)
             .authenticator(tokenAuthenticator) // refresh + retry on 401
             .addInterceptor(logging)
-            // Render free tier can cold-start (~30–60s); be generous on the read timeout.
+            // Render free tier can cold-start (~30-60s); be generous on the read timeout.
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(70, TimeUnit.SECONDS)
             .build()

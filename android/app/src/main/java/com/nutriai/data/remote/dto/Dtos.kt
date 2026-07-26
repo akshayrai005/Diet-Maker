@@ -75,19 +75,19 @@ data class SensitiveData(
     val alcohol: String? = null,
     val contraception: String? = null,
     // Phase 4: family history of chronic conditions (diabetes, heart_disease, hypertension,
-    // stroke, cancer, thyroid). Optional/additive — older payloads simply omit it.
+    // stroke, cancer, thyroid). Optional/additive - older payloads simply omit it.
     val familyHistory: List<String> = emptyList(),
-    // Physique/training preferences. Optional/additive — the server ignores them when absent.
+    // Physique/training preferences. Optional/additive - the server ignores them when absent.
     // physiqueGoal ∈ recomp | lean_bulk | cut | maintain (null = not specified).
     // priorityMuscles ⊆ shoulders, back, chest, arms, legs, glutes, core (max 4).
     val physiqueGoal: String? = null,
     val priorityMuscles: List<String> = emptyList(),
     // Preferred training split ∈ full_body | push_pull_legs | upper_lower | body_part | fat_loss.
-    // null = auto (server derives it from the goal). Optional/additive — older payloads omit it and
+    // null = auto (server derives it from the goal). Optional/additive - older payloads omit it and
     // the server regenerates the Move plan from this value.
     val trainingSplit: String? = null,
-    // Goal-timeline: how fast the user wants to reach targetWeightKg, in weeks (1–260).
-    // Optional/additive — the server clamps to a safe pace and older payloads simply omit it.
+    // Goal-timeline: how fast the user wants to reach targetWeightKg, in weeks (1-260).
+    // Optional/additive - the server clamps to a safe pace and older payloads simply omit it.
     val targetTimeframeWeeks: Int? = null,
 )
 
@@ -139,7 +139,7 @@ data class ExerciseItem(
     val muscleGroup: String? = null,
     val equipment: String? = null,
     val nextSession: NextSession? = null,
-    // Equipment-free / injury-friendly alternatives for this movement. Additive & defaulted —
+    // Equipment-free / injury-friendly alternatives for this movement. Additive & defaulted -
     // older payloads simply omit it (ignoreUnknownKeys is on).
     val substitutions: List<String> = emptyList(),
 )
@@ -587,7 +587,7 @@ data class BiggestLever(val pillar: String = "", val message: String = "")
 data class RatingResult(
     val overall: Int = 0,
     val grade: String = "",
-    /** False for a brand-new user with nothing logged — show encouragement, not a 0/F ring. */
+    /** False for a brand-new user with nothing logged - show encouragement, not a 0/F ring. */
     val hasData: Boolean = true,
     val pillars: List<RatingPillar> = emptyList(),
     val biggestLever: BiggestLever = BiggestLever(),
@@ -1009,7 +1009,7 @@ data class BarcodeEnvelope(val food: BarcodeFood)
 
 // ---- Vitals & labs ----
 // A single logged reading. `value` and (`systolic`,`diastolic`) are mutually exclusive per type,
-// so all three are nullable — blood pressure uses systolic/diastolic, everything else uses value.
+// so all three are nullable - blood pressure uses systolic/diastolic, everything else uses value.
 @Serializable
 data class VitalPoint(
     val id: String = "",
@@ -1178,7 +1178,7 @@ data class RedFlagResponse(
 )
 
 // ---- Progress / body (physique tracking) ----
-// A single logged set of body measurements. Every measurement is optional (nullable) — the user
+// A single logged set of body measurements. Every measurement is optional (nullable) - the user
 // may log only what they measured that day. `bodyFatPct` is hidden for minors on the client.
 @Serializable
 data class BodyPoint(

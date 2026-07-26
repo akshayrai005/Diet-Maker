@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Strength trend — estimated 1-rep-max over time, per exercise. A selector picks
+// Strength trend - estimated 1-rep-max over time, per exercise. A selector picks
 // the exercise; a Canvas line chart (same pattern as the Vitals trend chart)
 // plots its est-1RM points, with best + change stats.
 // ---------------------------------------------------------------------------

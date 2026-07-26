@@ -1,9 +1,9 @@
 /**
- * Deterministic MET-based calorie estimates for logged activity — PURE.
+ * Deterministic MET-based calorie estimates for logged activity - PURE.
  *
  * kcal = MET × bodyWeightKg × durationHours, using standard compendium MET
  * approximations. No DB, no I/O, no Date.now, no randomness. The result is an
- * educational estimate to connect movement to the calorie picture — not a
+ * educational estimate to connect movement to the calorie picture - not a
  * measured value. When body weight is unknown a neutral default is used so the
  * estimate degrades gracefully rather than returning zero.
  */
