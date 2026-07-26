@@ -54,4 +54,39 @@ object ImageUtil {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         return uri to file
     }
+
+    // -----------------------------------------------------------------------
+    // Progress-photo gallery — physique tracking. Images stay in app-private
+    // internal storage and are NEVER uploaded; only a filename (localRef) is
+    // recorded on the server. Kept in its own folder ("body_progress") so it is
+    // NOT touched by clearProgress(), which wipes the legacy "progress" folder.
+    // -----------------------------------------------------------------------
+    private const val BODY_PROGRESS_DIR = "body_progress"
+
+    fun progressPhotoDir(context: Context): File =
+        File(context.filesDir, BODY_PROGRESS_DIR).apply { if (!exists()) mkdirs() }
+
+    /** The on-device file for a given localRef (may or may not exist on this device). */
+    fun progressPhotoFile(context: Context, localRef: String): File =
+        File(progressPhotoDir(context), localRef)
+
+    /**
+     * Copies a picked/captured image into app-private storage (downscaled JPEG) and returns its
+     * localRef filename ("<uuid>.jpg"), or null if it couldn't be read/written.
+     */
+    fun saveProgressPhoto(context: Context, uri: Uri): String? {
+        val bytes = downscaledJpegBytes(context, uri, maxDim = 1080, quality = 80) ?: return null
+        val name = "${java.util.UUID.randomUUID()}.jpg"
+        return try {
+            File(progressPhotoDir(context), name).outputStream().use { it.write(bytes) }
+            name
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Removes the on-device image for a localRef. No-op if it isn't present. */
+    fun deleteProgressPhoto(context: Context, localRef: String) {
+        runCatching { progressPhotoFile(context, localRef).delete() }
+    }
 }

@@ -1106,3 +1106,96 @@ data class RedFlagResponse(
     val matched: List<RedFlagMatch> = emptyList(),
     val message: String = "",
 )
+
+// ---- Progress / body (physique tracking) ----
+// A single logged set of body measurements. Every measurement is optional (nullable) — the user
+// may log only what they measured that day. `bodyFatPct` is hidden for minors on the client.
+@Serializable
+data class BodyPoint(
+    val id: String = "",
+    val measuredAt: String = "",
+    val weightKg: Double? = null,
+    val waistCm: Double? = null,
+    val hipCm: Double? = null,
+    val chestCm: Double? = null,
+    val armCm: Double? = null,
+    val thighCm: Double? = null,
+    val neckCm: Double? = null,
+    val bodyFatPct: Double? = null,
+)
+
+/** First→last change for one measurement across the loaded range. */
+@Serializable
+data class BodyTrend(
+    val key: String = "",
+    val first: Double = 0.0,
+    val last: Double = 0.0,
+    val delta: Double = 0.0,
+)
+
+/** Waist-to-hip ratio with an educational band + note (never framed as an "ideal"). */
+@Serializable
+data class Whr(
+    val ratio: Double = 0.0,
+    val risk: String = "",
+    val band: String = "",
+    val note: String = "",
+)
+
+/** Latest body-fat percentage with its descriptive band. */
+@Serializable
+data class BodyFat(
+    val pct: Double = 0.0,
+    val band: String = "",
+)
+
+@Serializable
+data class BodySeries(
+    val points: List<BodyPoint> = emptyList(),
+    val trends: List<BodyTrend> = emptyList(),
+    val latestBodyFat: BodyFat? = null,
+    val whr: Whr? = null,
+    val isMinor: Boolean = false,
+    val disclaimer: String = "",
+)
+
+/** Response of POST body/metrics: the saved point plus a freshly derived waist-to-hip ratio. */
+@Serializable
+data class BodyMetricResponse(
+    val point: BodyPoint = BodyPoint(),
+    val whr: Whr? = null,
+)
+
+/** Progress-photo metadata. The image bytes live ON DEVICE only (referenced by `localRef`). */
+@Serializable
+data class BodyPhotoDto(
+    val id: String = "",
+    val takenAt: String = "",
+    val localRef: String = "",
+    val caption: String? = null,
+)
+
+@Serializable
+data class BodyPhotoEnvelope(val photo: BodyPhotoDto = BodyPhotoDto())
+
+@Serializable
+data class BodyPhotosEnvelope(val photos: List<BodyPhotoDto> = emptyList())
+
+@Serializable
+data class BodyMetricRequest(
+    val measuredAt: String? = null,
+    val weightKg: Double? = null,
+    val waistCm: Double? = null,
+    val hipCm: Double? = null,
+    val chestCm: Double? = null,
+    val armCm: Double? = null,
+    val thighCm: Double? = null,
+    val neckCm: Double? = null,
+    val bodyFatPct: Double? = null,
+)
+
+@Serializable
+data class BodyPhotoRequest(
+    val localRef: String,
+    val caption: String? = null,
+)

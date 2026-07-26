@@ -377,6 +377,27 @@ class AppRepository @Inject constructor(
         Unit
     }
 
+    // ---- Progress / body (physique tracking) ----
+    suspend fun logBodyMetric(
+        body: com.nutriai.data.remote.dto.BodyMetricRequest,
+    ): Result<com.nutriai.data.remote.dto.BodyMetricResponse> =
+        runCatching { api.logBodyMetric(body) }
+
+    suspend fun bodyMetrics(range: Int? = null): Result<com.nutriai.data.remote.dto.BodySeries> =
+        runCatching { api.bodyMetrics(range) }
+
+    suspend fun addBodyPhoto(localRef: String, caption: String? = null): Result<com.nutriai.data.remote.dto.BodyPhotoDto> =
+        runCatching { api.addBodyPhoto(com.nutriai.data.remote.dto.BodyPhotoRequest(localRef, caption)).photo }
+
+    suspend fun bodyPhotos(): Result<List<com.nutriai.data.remote.dto.BodyPhotoDto>> =
+        runCatching { api.bodyPhotos().photos }
+
+    suspend fun deleteBodyPhoto(id: String): Result<Unit> = runCatching {
+        val res = api.deleteBodyPhoto(id)
+        if (!res.isSuccessful) error("Couldn't delete")
+        Unit
+    }
+
     // ---- Mood / stress / sleep check-in ----
     suspend fun saveMoodCheckin(
         mood: Int? = null,

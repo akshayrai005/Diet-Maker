@@ -69,6 +69,8 @@ model User {
   vitalLogs        VitalLog[]
   medications      Medication[]
   medicationLogs   MedicationLog[]
+  bodyMetrics      BodyMetric[]
+  bodyPhotos       BodyPhoto[]
 
   @@map("users")
 }
@@ -355,6 +357,39 @@ model PeriodLog {
 
   @@index([userId, startDate])
   @@map("period_logs")
+}
+
+/// A body-measurement snapshot (physique tracking). Measurements + estimated body-fat are sensitive
+/// → AES-256-GCM-encrypted in `measurementsEnc`; only `measuredAt` is plaintext for series ordering.
+model BodyMetric {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  measuredAt      DateTime
+  /// AES-256-GCM JSON: { weightKg?, waistCm?, hipCm?, chestCm?, armCm?, thighCm?, neckCm?, bodyFatPct? }
+  measurementsEnc String
+  createdAt       DateTime @default(now())
+
+  @@index([userId, measuredAt])
+  @@map("body_metrics")
+}
+
+/// Metadata for a progress photo. The IMAGE ITSELF stays on-device (private, zero-cost, never
+/// uploaded without the optional vision key); only this non-image record lives server-side, and an
+/// optional caption is encrypted. Deleting the row + the local file removes it entirely.
+model BodyPhoto {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  takenAt    DateTime
+  /// Opaque client-side reference to the local encrypted file (no bytes stored server-side).
+  localRef   String
+  /// AES-256-GCM caption/pose note (optional).
+  captionEnc String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, takenAt])
+  @@map("body_photos")
 }
 
 /// A single logged health metric / lab as a time-series point. `type` + `measuredAt` are plaintext

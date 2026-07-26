@@ -29,6 +29,7 @@ import { remindersRouter } from './modules/reminders/reminders.routes';
 import { vitalsRouter } from './modules/vitals/vitals.routes';
 import { medicationsRouter } from './modules/medications/medications.routes';
 import { safetyRouter } from './modules/safety/safety.routes';
+import { bodyRouter } from './modules/body/body.routes';
 
 /**
  * Builds the Express app. Kept free of `listen()` so tests can import it directly
@@ -92,6 +93,7 @@ export function createApp(): Express {
   api.use('/', vitalsRouter);
   api.use('/', medicationsRouter);
   api.use('/', safetyRouter);
+  api.use('/', bodyRouter);
   app.use('/api/v1', api);
 
   app.use(notFound);

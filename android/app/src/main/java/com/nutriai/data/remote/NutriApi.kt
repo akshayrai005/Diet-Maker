@@ -288,6 +288,28 @@ interface NutriApi {
     @POST("medications/{id}/log")
     suspend fun logMedication(@Path("id") id: String): retrofit2.Response<Unit>
 
+    // ---- Progress / body (physique tracking) ----
+    @POST("body/metrics")
+    suspend fun logBodyMetric(
+        @Body body: com.nutriai.data.remote.dto.BodyMetricRequest,
+    ): com.nutriai.data.remote.dto.BodyMetricResponse
+
+    @GET("body/metrics")
+    suspend fun bodyMetrics(
+        @Query("range") range: Int? = null,
+    ): com.nutriai.data.remote.dto.BodySeries
+
+    @POST("body/photos")
+    suspend fun addBodyPhoto(
+        @Body body: com.nutriai.data.remote.dto.BodyPhotoRequest,
+    ): com.nutriai.data.remote.dto.BodyPhotoEnvelope
+
+    @GET("body/photos")
+    suspend fun bodyPhotos(): com.nutriai.data.remote.dto.BodyPhotosEnvelope
+
+    @retrofit2.http.DELETE("body/photos/{id}")
+    suspend fun deleteBodyPhoto(@Path("id") id: String): retrofit2.Response<Unit>
+
     // ---- Mood / stress / sleep check-in ----
     @POST("checkins/mood")
     suspend fun createMoodCheckin(@Body body: com.nutriai.data.remote.dto.MoodCheckinRequest): com.nutriai.data.remote.dto.MoodCheckinEnvelope
