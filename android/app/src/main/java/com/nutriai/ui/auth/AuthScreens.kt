@@ -237,16 +237,16 @@ private fun AuthScaffold(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Card(
-                modifier = Modifier.size(112.dp),
-                shape = RoundedCornerShape(26.dp),
+                modifier = Modifier.size(120.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             ) {
                 Image(
                     painter = painterResource(R.drawable.kaizen_login),
                     contentDescription = "Kaizen logo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().padding(5.dp),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().padding(8.dp),
                 )
             }
             Text(
