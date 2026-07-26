@@ -13,6 +13,7 @@ import * as logSvc from './exerciseLog.service';
 import { adaptWorkoutToCycle } from './cycleAdapt';
 import { recommendNextSession, suggestLevelChange, type LoggedSet } from './overload';
 import { ageFromDob } from '../nutrition/calc.service';
+import { strengthTrend } from './strength';
 
 export const exerciseRouter = Router();
 
@@ -152,5 +153,19 @@ exerciseRouter.delete(
   asyncHandler(async (req: AuthedRequest, res) => {
     await logSvc.deleteExercise(req.user!.id, req.params.id!);
     res.status(204).end();
+  }),
+);
+
+/** Estimated-1RM strength trend per exercise (Epley) from logged weighted sets. */
+exerciseRouter.get(
+  '/exercise/strength-trend',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const logs = await prisma.exerciseLog.findMany({
+      where: { userId: req.user!.id, weightKg: { not: null } },
+      orderBy: { performedAt: 'asc' },
+      select: { exerciseName: true, weightKg: true, reps: true, performedAt: true },
+    });
+    res.json({ trends: strengthTrend(logs) });
   }),
 );

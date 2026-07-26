@@ -28,6 +28,8 @@ export interface ExerciseItem {
   muscleGroup?: string;
   /** Equipment needed (e.g. "barbell", "bodyweight"). */
   equipment?: string;
+  /** Equipment-free / injury-friendly alternatives. */
+  substitutions?: string[];
 }
 
 export interface WorkoutDay {
@@ -36,7 +38,13 @@ export interface WorkoutDay {
   label?: string; // Today / Tomorrow / weekday
   focus: string; // "Push (Chest/Shoulders/Triceps)", "Rest & recovery"
   rest: boolean;
+  /** Dynamic warm-up movements done before the main work. */
+  warmup?: ExerciseItem[];
   exercises: ExerciseItem[];
+  /** A cardio / conditioning element (steady-state, or HIIT at high intensity). */
+  cardio?: ExerciseItem;
+  /** Mobility / stretch cool-down after the main work. */
+  cooldown?: ExerciseItem[];
 }
 
 export interface WeeklyWorkout {

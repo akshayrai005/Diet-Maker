@@ -8,6 +8,7 @@ import {
   WorkoutDay,
 } from './exercise.types';
 import { applyMusclePriority } from './physique';
+import { withSubstitutions } from './strength';
 
 const s = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'strength' });
 const c = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'cardio' });
@@ -384,5 +385,58 @@ export function generateWeeklyWorkout(
   });
   const scaled = applyScaling(base, level, intensity);
   // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
-  return applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
+  const prioritised = applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
+  // Exercise depth: warm-up + cool-down + a cardio element + per-exercise substitutions.
+  return enrichDays(prioritised, { intensity, medicalCaution: options.medicalCaution });
+}
+
+// ---- Warm-up / cool-down / cardio / substitutions (PURE) ----
+
+const w = (name: string, reps: string): ExerciseItem => ({ name, sets: 1, reps, type: 'mobility', equipment: 'bodyweight' });
+
+/** Infer the broad region a day trains from its focus text. */
+function focusRegion(focus: string): 'upper' | 'lower' | 'full' {
+  const f = focus.toLowerCase();
+  if (/(push|pull|chest|back|shoulder|arm|upper)/.test(f)) return 'upper';
+  if (/(leg|lower|glute|squat|hamstring|quad)/.test(f)) return 'lower';
+  return 'full';
+}
+
+function warmupFor(focus: string): ExerciseItem[] {
+  const region = focusRegion(focus);
+  const common = w('Light cardio (march/jog on spot)', '3 min');
+  if (region === 'upper') return [common, w('Arm circles & band pull-aparts', '2 × 15'), w('Scapular push-ups', '2 × 10'), w('Shoulder dislocates (band/towel)', '1 × 10')];
+  if (region === 'lower') return [common, w('Leg swings (front & side)', '2 × 10 each'), w('Bodyweight squats', '2 × 12'), w('Hip circles / world’s greatest stretch', '1 × 8')];
+  return [common, w('Jumping jacks', '2 × 20'), w('Bodyweight squats', '2 × 10'), w('Arm circles + hip openers', '1 × 10')];
+}
+
+function cooldownFor(focus: string): ExerciseItem[] {
+  const region = focusRegion(focus);
+  const breathe = w('Slow diaphragmatic breathing', '2 min');
+  if (region === 'upper') return [w('Chest & doorway stretch', '2 × 30s'), w('Cross-body shoulder stretch', '2 × 30s'), breathe];
+  if (region === 'lower') return [w('Standing quad & hamstring stretch', '2 × 30s'), w('Hip flexor & glute stretch', '2 × 30s'), breathe];
+  return [w('Full-body forward fold + child’s pose', '2 × 30s'), w('Standing quad stretch', '2 × 30s'), breathe];
+}
+
+/** A cardio/conditioning element — steady-state by default; HIIT only for hard/beast & no medical caution. */
+function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): ExerciseItem {
+  const allowHiit = !medicalCaution && (intensity === 'hard' || intensity === 'beast');
+  if (allowHiit) {
+    return { name: 'HIIT conditioning (e.g. 30s hard / 90s easy)', sets: 1, reps: '6 rounds', type: 'cardio', cue: 'keep form clean; stop if dizzy or in pain', muscleGroup: 'full body', equipment: 'bodyweight' };
+  }
+  return { name: 'Steady-state cardio (brisk walk/cycle)', sets: 1, reps: '15-20 min', type: 'cardio', cue: 'a pace you can hold a conversation at', muscleGroup: 'full body', equipment: 'bodyweight' };
+}
+
+function enrichDays(plan: WeeklyWorkout, opts: { intensity: IntensityPreference; medicalCaution?: boolean }): WeeklyWorkout {
+  const days: WorkoutDay[] = plan.days.map((day) => {
+    if (day.rest) return day;
+    return {
+      ...day,
+      warmup: warmupFor(day.focus),
+      exercises: day.exercises.map(withSubstitutions),
+      cardio: cardioFor(opts.intensity, opts.medicalCaution),
+      cooldown: cooldownFor(day.focus),
+    };
+  });
+  return { ...plan, days };
 }

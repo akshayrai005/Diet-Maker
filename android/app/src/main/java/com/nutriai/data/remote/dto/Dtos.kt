@@ -104,6 +104,9 @@ data class ExerciseItem(
     val muscleGroup: String? = null,
     val equipment: String? = null,
     val nextSession: NextSession? = null,
+    // Equipment-free / injury-friendly alternatives for this movement. Additive & defaulted —
+    // older payloads simply omit it (ignoreUnknownKeys is on).
+    val substitutions: List<String> = emptyList(),
 )
 
 @Serializable
@@ -114,6 +117,11 @@ data class WorkoutDay(
     val focus: String,
     val rest: Boolean = false,
     val exercises: List<ExerciseItem> = emptyList(),
+    // Session structure blocks. All additive & defaulted so older payloads keep working:
+    // warm-up and cool-down are lists; cardio (if any) is a single item.
+    val warmup: List<ExerciseItem> = emptyList(),
+    val cardio: ExerciseItem? = null,
+    val cooldown: List<ExerciseItem> = emptyList(),
 )
 
 @Serializable
@@ -132,6 +140,25 @@ data class LevelSuggestion(val direction: String = "hold", val reason: String = 
 
 @Serializable
 data class WorkoutEnvelope(val plan: WeeklyWorkout, val levelSuggestion: LevelSuggestion? = null)
+
+// ---- Strength trend (estimated 1-rep-max over time, per exercise) ----
+@Serializable
+data class StrengthPoint(
+    val date: String = "",
+    val est1RM: Double = 0.0,
+)
+
+@Serializable
+data class StrengthTrend(
+    val exerciseName: String = "",
+    val points: List<StrengthPoint> = emptyList(),
+    val best: Double = 0.0,
+    val latest: Double = 0.0,
+    val change: Double = 0.0,
+)
+
+@Serializable
+data class StrengthTrendEnvelope(val trends: List<StrengthTrend> = emptyList())
 
 // ---- Workout logging (performed sets) ----
 @Serializable

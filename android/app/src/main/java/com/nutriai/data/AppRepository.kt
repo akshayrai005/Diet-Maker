@@ -322,6 +322,10 @@ class AppRepository @Inject constructor(
     suspend fun deleteExerciseLog(id: String): Result<Unit> =
         runCatching { api.deleteExerciseLog(id) }
 
+    /** Estimated 1-rep-max over time, per exercise (from logged weighted sets). */
+    suspend fun strengthTrend(): Result<List<com.nutriai.data.remote.dto.StrengthTrend>> =
+        runCatching { api.strengthTrend().trends }
+
     // ---- Vitals & labs ----
     suspend fun logVital(
         type: String,

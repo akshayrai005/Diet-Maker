@@ -153,6 +153,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     val shownDay = selectedIdx?.let { i -> plan?.days?.getOrNull(i) } ?: today
 
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
+    var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
 
     logTarget?.let { ex ->
         LogSetDialog(
@@ -163,6 +164,10 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                 logTarget = null
             },
         )
+    }
+
+    swapTarget?.let { ex ->
+        SwapExerciseDialog(exercise = ex, onDismiss = { swapTarget = null })
     }
 
     LazyColumn(
@@ -252,14 +257,50 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         shownDay?.let { day ->
             item { Text(if (day.label == "Today") "Today · ${day.focus}" else "${day.label ?: "Day ${day.dayIndex + 1}"} · ${day.focus}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            if (day.rest || day.exercises.isEmpty()) {
+
+            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
+            if (day.rest || !hasContent) {
                 item { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Text("Rest & recovery day — light movement, stretch, hydrate.", Modifier.padding(18.dp)) } }
             } else {
-                items(day.exercises.size) { i ->
-                    ExerciseCard(index = i, ex = day.exercises[i], onLog = { logTarget = day.exercises[i] })
+                // Warm-up.
+                if (day.warmup.isNotEmpty()) {
+                    item { SessionHeader("🔥 Warm-up") }
+                    items(day.warmup.size) { i -> SecondaryExerciseRow(day.warmup[i], "Warm-up") }
                 }
+
+                // Main lifts — full cards with sets/reps/log/cue/swap.
+                if (day.exercises.isNotEmpty()) {
+                    item { SessionHeader("🏋️ Main") }
+                    items(day.exercises.size) { i ->
+                        val ex = day.exercises[i]
+                        ExerciseCard(
+                            index = i,
+                            ex = ex,
+                            onLog = { logTarget = ex },
+                            onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
+                        )
+                    }
+                }
+
+                // Cardio (single item, if any).
+                day.cardio?.let { c ->
+                    item { SessionHeader("🏃 Cardio") }
+                    item { SecondaryExerciseRow(c, "Cardio") }
+                }
+
+                // Cool-down.
+                if (day.cooldown.isNotEmpty()) {
+                    item { SessionHeader("🧊 Cool-down") }
+                    items(day.cooldown.size) { i -> SecondaryExerciseRow(day.cooldown[i], "Cool-down") }
+                }
+
+                // Rest timer between sets.
+                item { RestTimer(Modifier.padding(top = 4.dp)) }
             }
         }
+
+        // Strength trend (est-1RM over time). Own empty state + loading.
+        item { StrengthTrendSection(Modifier.padding(top = 4.dp)) }
 
         plan?.disclaimer?.takeIf { it.isNotBlank() }?.let { d ->
             item {
@@ -270,14 +311,98 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 }
 
 @Composable
-private fun ExerciseCard(index: Int, ex: ExerciseItem, onLog: () -> Unit) {
+private fun SessionHeader(title: String) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 4.dp).semantics { contentDescription = "$title section" },
+    )
+}
+
+/** Compact row for warm-up / cardio / cool-down items: illustration + name + reps. */
+@Composable
+private fun SecondaryExerciseRow(ex: ExerciseItem, section: String) {
+    Card(
+        Modifier.fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .semantics { contentDescription = "$section: ${ex.name}, ${ex.sets} sets of ${ex.reps}" },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
+            Column(Modifier.weight(1f)) {
+                Text(ex.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
+                    Text("💡 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Text(
+                if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Read-only alternatives sheet for a main exercise (equipment-free / injury-friendly). */
+@Composable
+private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Swap · ${exercise.name}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Alternatives you can do instead — same muscle group, often equipment-free or easier on joints.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                exercise.substitutions.forEach { sub ->
+                    Row(
+                        Modifier.fillMaxWidth().semantics { contentDescription = "Alternative: $sub" },
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ExerciseIllustration(muscleGroup = exercise.muscleGroup, sizeDp = 34)
+                        Text(sub, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Close") }
+        },
+    )
+}
+
+@Composable
+private fun ExerciseCard(index: Int, ex: ExerciseItem, onLog: () -> Unit, onSwap: (() -> Unit)? = null) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
                     Text("${index + 1}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
-                Text(ex.name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                // Bundled offline form diagram for the muscle group.
+                ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
+                Column(Modifier.weight(1f)) {
+                    Text(ex.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
+                        Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
                 Text(
                     "${ex.sets} × ${ex.reps}",
                     Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
@@ -308,10 +433,18 @@ private fun ExerciseCard(index: Int, ex: ExerciseItem, onLog: () -> Unit) {
                 )
             }
 
-            TextButton(
-                onClick = onLog,
-                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a set of ${ex.name}" },
-            ) { Text("＋ Log set") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = onLog,
+                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a set of ${ex.name}" },
+                ) { Text("＋ Log set") }
+                if (onSwap != null) {
+                    TextButton(
+                        onClick = onSwap,
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Swap or see alternatives for ${ex.name}" },
+                    ) { Text("⇄ Swap / alternatives") }
+                }
+            }
         }
     }
 }
@@ -345,6 +478,8 @@ private fun LogSetDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfir
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
                     )
                 }
+                // Rest timer for between sets, right where you log them.
+                RestTimer(compact = true)
             }
         },
         confirmButton = {
