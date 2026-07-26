@@ -92,6 +92,7 @@ fun PremiumDashboard(
     maintenanceKcal: Double? = null,
     coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     rating: com.nutriai.data.remote.dto.RatingResult? = null,
+    onOpenVitals: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
@@ -154,6 +155,9 @@ fun PremiumDashboard(
                 connected = stepsPermission,
             )
         }
+
+        // 4c. Vitals & labs — compact summary of key logged metrics (BP, glucose, HbA1c, resting HR).
+        item { com.nutriai.ui.vitals.HomeVitalsCard(onOpenVitals = onOpenVitals) }
 
         // 5. Hydration
         item { HydrationCard(water = d.water, onAddWater = onAddWater) }

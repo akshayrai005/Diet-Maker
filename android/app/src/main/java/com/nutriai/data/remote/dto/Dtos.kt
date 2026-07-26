@@ -923,3 +923,84 @@ data class BarcodeFood(val code: String, val name: String, val per100g: BarcodeP
 
 @Serializable
 data class BarcodeEnvelope(val food: BarcodeFood)
+
+// ---- Vitals & labs ----
+// A single logged reading. `value` and (`systolic`,`diastolic`) are mutually exclusive per type,
+// so all three are nullable — blood pressure uses systolic/diastolic, everything else uses value.
+@Serializable
+data class VitalPoint(
+    val id: String = "",
+    val measuredAt: String = "",
+    val value: Double? = null,
+    val systolic: Int? = null,
+    val diastolic: Int? = null,
+    val note: String? = null,
+)
+
+/** Educational classification for a reading (band + severity + message + guideline citation). */
+@Serializable
+data class VitalClassification(
+    val band: String = "",
+    val severity: String = "", // normal | watch | elevated | high | urgent
+    val message: String = "",
+    val guideline: String = "",
+)
+
+@Serializable
+data class VitalTrend(
+    val direction: String = "insufficient", // rising | falling | stable | insufficient
+    val change: Double = 0.0,
+    val summary: String = "",
+)
+
+/** Classification fields plus the point they describe (server's `latest` on a series). */
+@Serializable
+data class VitalLatest(
+    val band: String = "",
+    val severity: String = "",
+    val message: String = "",
+    val guideline: String = "",
+    val point: VitalPoint = VitalPoint(),
+)
+
+@Serializable
+data class VitalSeries(
+    val type: String = "",
+    val label: String = "",
+    val unit: String = "",
+    val points: List<VitalPoint> = emptyList(),
+    val trend: VitalTrend = VitalTrend(),
+    val latest: VitalLatest? = null,
+    val disclaimer: String = "",
+)
+
+@Serializable
+data class VitalSummaryItem(
+    val type: String = "",
+    val label: String = "",
+    val unit: String = "",
+    val latest: VitalPoint = VitalPoint(),
+    val classification: VitalClassification? = null,
+)
+
+@Serializable
+data class VitalsSummaryResponse(
+    val items: List<VitalSummaryItem> = emptyList(),
+    val disclaimer: String = "",
+)
+
+@Serializable
+data class LogVitalRequest(
+    val type: String,
+    val value: Double? = null,
+    val systolic: Int? = null,
+    val diastolic: Int? = null,
+    val note: String? = null,
+    val measuredAt: String? = null,
+)
+
+@Serializable
+data class LogVitalResponse(
+    val point: VitalPoint = VitalPoint(),
+    val classification: VitalClassification? = null,
+)

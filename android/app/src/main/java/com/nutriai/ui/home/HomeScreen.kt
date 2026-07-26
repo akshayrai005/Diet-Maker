@@ -129,7 +129,19 @@ fun HomeScreen(
             startDestination = "home",
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            composable("home") { DashboardTab(onLogout = onLogout, onCompleteProfile = onCompleteProfile) }
+            composable("home") {
+                DashboardTab(
+                    onLogout = onLogout,
+                    onCompleteProfile = onCompleteProfile,
+                    onOpenVitals = { navController.navigate("vitals") },
+                )
+            }
+            composable("vitals") {
+                com.nutriai.ui.vitals.VitalsScreen(
+                    modifier = Modifier.fillMaxSize(),
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable("diet") { com.nutriai.ui.diet.DietScreen(Modifier.fillMaxSize()) }
             composable("move") { com.nutriai.ui.move.MoveScreen(Modifier.fillMaxSize()) }
             composable("me") {
@@ -147,6 +159,7 @@ fun HomeScreen(
 private fun DashboardTab(
     onLogout: () -> Unit,
     onCompleteProfile: () -> Unit,
+    onOpenVitals: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -207,6 +220,7 @@ private fun DashboardTab(
             maintenanceKcal = state.maintenanceKcal,
             coach = state.coach,
             rating = state.rating,
+            onOpenVitals = onOpenVitals,
             onConnectSteps = {
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }

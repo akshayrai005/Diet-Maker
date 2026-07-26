@@ -322,6 +322,33 @@ class AppRepository @Inject constructor(
     suspend fun deleteExerciseLog(id: String): Result<Unit> =
         runCatching { api.deleteExerciseLog(id) }
 
+    // ---- Vitals & labs ----
+    suspend fun logVital(
+        type: String,
+        value: Double? = null,
+        systolic: Int? = null,
+        diastolic: Int? = null,
+        note: String? = null,
+        measuredAt: String? = null,
+    ): Result<com.nutriai.data.remote.dto.LogVitalResponse> = runCatching {
+        api.logVital(
+            com.nutriai.data.remote.dto.LogVitalRequest(
+                type = type,
+                value = value,
+                systolic = systolic,
+                diastolic = diastolic,
+                note = note,
+                measuredAt = measuredAt,
+            ),
+        )
+    }
+
+    suspend fun vitalSeries(type: String, rangeDays: Int? = null): Result<com.nutriai.data.remote.dto.VitalSeries> =
+        runCatching { api.vitalSeries(type, rangeDays) }
+
+    suspend fun vitalsSummary(): Result<com.nutriai.data.remote.dto.VitalsSummaryResponse> =
+        runCatching { api.vitalsSummary() }
+
     suspend fun deleteAccount(): Result<Unit> = runCatching { api.deleteAccount() }
 
     suspend fun me(): Result<com.nutriai.data.remote.dto.PublicUser> = runCatching { api.me().user }

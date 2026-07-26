@@ -66,6 +66,7 @@ model User {
   habits           Habit[]
   habitLogs        HabitLog[]
   reminderPrefs    ReminderPrefs?
+  vitalLogs        VitalLog[]
 
   @@map("users")
 }
@@ -322,6 +323,24 @@ model PeriodLog {
 
   @@index([userId, startDate])
   @@map("period_logs")
+}
+
+/// A single logged health metric / lab as a time-series point. `type` + `measuredAt` are plaintext
+/// (needed for series ordering + filtering; a date is low-sensitivity); the actual reading + note
+/// are AES-256-GCM-encrypted in `valueEnc` (key-versioned) since labs/vitals are sensitive.
+model VitalLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String // VitalType (validated at app layer): bloodPressure, restingHr, fastingGlucose, hba1c, ldl, hdl, triglycerides, tsh, vitaminD, ferritin, hemoglobin, weight, waist
+  unit       String
+  measuredAt DateTime
+  /// AES-256-GCM JSON: { value?, systolic?, diastolic?, note? }
+  valueEnc   String
+  createdAt  DateTime @default(now())
+
+  @@index([userId, type, measuredAt])
+  @@map("vital_logs")
 }
 
 /// Persisted coach chat so the AI has memory across sessions. Content is not medical data;

@@ -250,6 +250,19 @@ interface NutriApi {
     @retrofit2.http.DELETE("exercise-logs/{id}")
     suspend fun deleteExerciseLog(@Path("id") id: String)
 
+    // ---- Vitals & labs ----
+    @POST("vitals")
+    suspend fun logVital(@Body body: com.nutriai.data.remote.dto.LogVitalRequest): com.nutriai.data.remote.dto.LogVitalResponse
+
+    @GET("vitals")
+    suspend fun vitalSeries(
+        @Query("type") type: String,
+        @Query("range") range: Int? = null,
+    ): com.nutriai.data.remote.dto.VitalSeries
+
+    @GET("vitals/summary")
+    suspend fun vitalsSummary(): com.nutriai.data.remote.dto.VitalsSummaryResponse
+
     // ---- Account ----
     @GET("auth/me")
     suspend fun me(): com.nutriai.data.remote.dto.MeResponse

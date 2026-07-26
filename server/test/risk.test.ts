@@ -58,4 +58,29 @@ describe('assessRisks', () => {
     expect(r.findings[0].level).toBe('high');
     expect(r.overallScore).toBeGreaterThan(0);
   });
+
+  it('grades HbA1c into prediabetes / diabetes and respects declared diabetes', () => {
+    expect(byId(assessRisks({ ...base, hba1c: 6.0 }), 'prediabetes_hba1c')?.level).toBe('moderate');
+    expect(byId(assessRisks({ ...base, hba1c: 7.0 }), 'diabetes_hba1c')?.level).toBe('high');
+    expect(ids(assessRisks({ ...base, hba1c: 7.0, conditions: ['diabetes'] }))).not.toContain('diabetes_hba1c');
+    expect(ids(assessRisks({ ...base, hba1c: 5.2 }))).not.toContain('prediabetes_hba1c');
+  });
+
+  it('flags the lipid panel (LDL, triglycerides, low HDL by sex)', () => {
+    expect(byId(assessRisks({ ...base, ldl: 170 }), 'high_ldl')?.level).toBe('moderate');
+    expect(byId(assessRisks({ ...base, ldl: 195 }), 'high_ldl')?.level).toBe('high');
+    expect(byId(assessRisks({ ...base, triglycerides: 250 }), 'high_triglycerides')?.level).toBe('moderate');
+    expect(byId(assessRisks({ ...base, triglycerides: 520 }), 'high_triglycerides')?.level).toBe('high');
+    // HDL 45: fine for men, flagged for women
+    expect(ids(assessRisks({ ...base, sex: 'male', hdl: 45 }))).not.toContain('low_hdl');
+    expect(ids(assessRisks({ ...base, sex: 'female', hdl: 45 }))).toContain('low_hdl');
+  });
+
+  it('flags TSH out of range unless thyroid already declared', () => {
+    expect(byId(assessRisks({ ...base, tsh: 6.0 }), 'high_tsh')?.level).toBe('moderate');
+    expect(byId(assessRisks({ ...base, tsh: 0.2 }), 'low_tsh')?.level).toBe('moderate');
+    expect(ids(assessRisks({ ...base, tsh: 6.0 }))).not.toContain('low_tsh');
+    expect(ids(assessRisks({ ...base, tsh: 2.0 }))).not.toContain('high_tsh');
+    expect(ids(assessRisks({ ...base, tsh: 6.0, conditions: ['thyroid'] }))).not.toContain('high_tsh');
+  });
 });

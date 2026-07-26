@@ -35,6 +35,16 @@ export interface RiskInput {
   bloodSugar?: number;
   /** Resting heart rate (bpm). */
   restingHr?: number;
+  /** HbA1c (%) — 3-month average glucose. */
+  hba1c?: number;
+  /** LDL cholesterol (mg/dL). */
+  ldl?: number;
+  /** HDL cholesterol (mg/dL). */
+  hdl?: number;
+  /** Triglycerides (mg/dL). */
+  triglycerides?: number;
+  /** TSH (mIU/L) — thyroid. */
+  tsh?: number;
   /** Last night's sleep (hours). */
   sleepHours?: number;
   /** Today's hydration as a % of target (0–100). */
@@ -159,6 +169,84 @@ export function assessRisks(input: RiskInput): RiskAssessment {
         why: `Your fasting glucose ${input.bloodSugar} mg/dL is in the prediabetes range (100–125).`,
         recommendation: 'Losing 5–7% of body weight and daily activity can reverse this stage.',
         nextAction: 'Swap refined carbs for whole grains and walk 10 min after meals.',
+      });
+    }
+  }
+
+  // --- HbA1c (3-month glucose) — sharper than a single fasting reading ---
+  if (input.hba1c && !has(input.conditions, 'diabetes')) {
+    if (input.hba1c >= 6.5) {
+      findings.push({
+        id: 'diabetes_hba1c',
+        label: 'HbA1c in diabetes range',
+        level: 'high',
+        why: `Your HbA1c ${input.hba1c}% is in the diabetes range (≥ 6.5%) — that's your average glucose over ~3 months.`,
+        recommendation: 'Low-GI carbs, more fibre, weight loss and post-meal walks lower HbA1c over months.',
+        nextAction: 'See a doctor to confirm and plan management.',
+      });
+    } else if (input.hba1c >= 5.7) {
+      findings.push({
+        id: 'prediabetes_hba1c',
+        label: 'HbA1c in prediabetes range',
+        level: 'moderate',
+        why: `Your HbA1c ${input.hba1c}% is in the prediabetes range (5.7–6.4%).`,
+        recommendation: 'Losing 5–7% of body weight and daily activity can bring it back to normal.',
+        nextAction: 'Cut refined carbs and add a daily walk; recheck in 3 months.',
+      });
+    }
+  }
+
+  // --- Lipids (LDL / triglycerides / HDL) ---
+  if (input.ldl && input.ldl >= 160) {
+    findings.push({
+      id: 'high_ldl',
+      label: input.ldl >= 190 ? 'Very high LDL cholesterol' : 'High LDL cholesterol',
+      level: input.ldl >= 190 ? 'high' : 'moderate',
+      why: `Your LDL ${input.ldl} mg/dL is ${input.ldl >= 190 ? 'very high (≥ 190)' : 'high (≥ 160)'}.`,
+      recommendation: 'Cut saturated fat, add soluble fibre (oats, legumes), unsaturated fats and regular exercise.',
+      nextAction: 'Discuss your lipid panel with a doctor.',
+    });
+  }
+  if (input.triglycerides && input.triglycerides >= 200) {
+    findings.push({
+      id: 'high_triglycerides',
+      label: input.triglycerides >= 500 ? 'Very high triglycerides' : 'High triglycerides',
+      level: input.triglycerides >= 500 ? 'high' : 'moderate',
+      why: `Your triglycerides ${input.triglycerides} mg/dL are ${input.triglycerides >= 500 ? 'very high (≥ 500)' : 'high (≥ 200)'}.`,
+      recommendation: 'Reduce refined carbs, sugary drinks and alcohol; add omega-3 and activity.',
+      nextAction: 'Have a doctor review it, especially if ≥ 500.',
+    });
+  }
+  if (input.hdl != null && input.hdl < (input.sex === 'female' ? 50 : 40)) {
+    findings.push({
+      id: 'low_hdl',
+      label: 'Low HDL (protective) cholesterol',
+      level: 'moderate',
+      why: `Your HDL ${input.hdl} mg/dL is below the protective threshold (${input.sex === 'female' ? '50' : '40'} mg/dL).`,
+      recommendation: 'Regular exercise, healthy fats (nuts, olive oil, fish) and not smoking raise HDL.',
+      nextAction: 'Add 150 min/week of activity and recheck at your next panel.',
+    });
+  }
+
+  // --- Thyroid (TSH) ---
+  if (input.tsh != null && !has(input.conditions, 'thyroid')) {
+    if (input.tsh > 4.0) {
+      findings.push({
+        id: 'high_tsh',
+        label: 'TSH above range',
+        level: 'moderate',
+        why: `Your TSH ${input.tsh} mIU/L is above the usual 0.4–4.0 range — this can suggest an underactive thyroid.`,
+        recommendation: 'A doctor interprets TSH alongside symptoms and other thyroid tests.',
+        nextAction: 'Ask your doctor whether a full thyroid panel is warranted.',
+      });
+    } else if (input.tsh < 0.4) {
+      findings.push({
+        id: 'low_tsh',
+        label: 'TSH below range',
+        level: 'moderate',
+        why: `Your TSH ${input.tsh} mIU/L is below the usual 0.4–4.0 range — this can suggest an overactive thyroid.`,
+        recommendation: 'A doctor interprets TSH alongside symptoms and other thyroid tests.',
+        nextAction: 'Discuss the result with your doctor.',
       });
     }
   }
