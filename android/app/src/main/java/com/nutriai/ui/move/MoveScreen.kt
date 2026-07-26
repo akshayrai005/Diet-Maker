@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -99,6 +101,8 @@ data class MoveState(
     val levelSuggestion: com.nutriai.data.remote.dto.LevelSuggestion? = null,
     val error: String? = null,
     val toast: String? = null,
+    /** Running total of calories logged this session (warm-up + main + cardio + cool-down). */
+    val sessionKcal: Int = 0,
 )
 
 @HiltViewModel
@@ -134,6 +138,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                     plan = env?.plan ?: _state.value.plan,
                     levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
                     toast = "Logged $name · ~$kcal kcal 🔥",
+                    sessionKcal = _state.value.sessionKcal + kcal,
                 )
             } else {
                 _state.value = _state.value.copy(toast = "Couldn't log — try again")
@@ -141,7 +146,41 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         }
     }
 
+    /**
+     * Log a warm-up / cardio / cool-down item as "done". Timed items estimate minutes from their
+     * reps string ("3 min", "45s", "2 × 30s", "15-20 min"); the server computes a MET-based calorie
+     * burn from the duration, so it feeds the same burnedTodayKcal / net-calorie picture as Main —
+     * the calorie TARGET is never inflated (burn is a separate signal).
+     */
+    fun logDone(name: String, section: String, reps: String, fallbackMin: Int) {
+        val mins = estimateMinutes(reps, fallbackMin)
+        viewModelScope.launch {
+            val r = repository.logExercise(
+                ExerciseLogRequest(exerciseName = name, focus = section, durationMin = mins),
+            )
+            _state.value = if (r.isSuccess) {
+                val kcal = r.getOrNull()?.kcal ?: 0
+                _state.value.copy(toast = "Logged $name · ~$kcal kcal 🔥", sessionKcal = _state.value.sessionKcal + kcal)
+            } else {
+                _state.value.copy(toast = "Couldn't log — try again")
+            }
+        }
+    }
+
     fun clearToast() { _state.value = _state.value.copy(toast = null) }
+}
+
+/** Best-effort minutes from a reps/time string; falls back for non-timed dynamic moves. */
+internal fun estimateMinutes(reps: String, fallback: Int): Int {
+    val s = reps.lowercase()
+    Regex("""(\d+)\s*[×x]\s*(\d+)\s*s""").find(s)?.let {
+        val (k, sec) = it.destructured
+        return maxOf(1, Math.round(k.toInt() * sec.toInt() / 60.0).toInt())
+    }
+    Regex("""(\d+)\s*s\b""").find(s)?.let { return maxOf(1, Math.round(it.groupValues[1].toInt() / 60.0).toInt()) }
+    Regex("""(\d+)\s*-\s*(\d+)\s*min""").find(s)?.let { return it.groupValues[2].toInt() }
+    Regex("""(\d+)\s*min""").find(s)?.let { return it.groupValues[1].toInt() }
+    return fallback
 }
 
 @Composable
@@ -205,6 +244,24 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
+        if (state.sessionKcal > 0) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth().semantics { contentDescription = "This session: about ${state.sessionKcal} calories burned" },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                ) {
+                    Text(
+                        "🔥 This session: ~${state.sessionKcal} kcal burned (warm-up + main + cardio + cool-down)",
+                        Modifier.padding(14.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
+            }
+        }
+
         if (state.loading) {
             item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         }
@@ -265,7 +322,10 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                 // Warm-up.
                 if (day.warmup.isNotEmpty()) {
                     item { SessionHeader("🔥 Warm-up") }
-                    items(day.warmup.size) { i -> SecondaryExerciseRow(day.warmup[i], "Warm-up") }
+                    items(day.warmup.size) { i ->
+                        val w = day.warmup[i]
+                        SecondaryExerciseRow(w, "Warm-up", onDone = { viewModel.logDone(w.name, "Warm-up", w.reps, 2) })
+                    }
                 }
 
                 // Main lifts — full cards with sets/reps/log/cue/swap.
@@ -285,13 +345,16 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                 // Cardio (single item, if any).
                 day.cardio?.let { c ->
                     item { SessionHeader("🏃 Cardio") }
-                    item { SecondaryExerciseRow(c, "Cardio") }
+                    item { SecondaryExerciseRow(c, "Cardio", onDone = { viewModel.logDone(c.name, "Cardio", c.reps, 15) }) }
                 }
 
                 // Cool-down.
                 if (day.cooldown.isNotEmpty()) {
                     item { SessionHeader("🧊 Cool-down") }
-                    items(day.cooldown.size) { i -> SecondaryExerciseRow(day.cooldown[i], "Cool-down") }
+                    items(day.cooldown.size) { i ->
+                        val cd = day.cooldown[i]
+                        SecondaryExerciseRow(cd, "Cool-down", onDone = { viewModel.logDone(cd.name, "Cool-down", cd.reps, 2) })
+                    }
                 }
 
                 // Rest timer between sets.
@@ -321,13 +384,14 @@ private fun SessionHeader(title: String) {
     )
 }
 
-/** Compact row for warm-up / cardio / cool-down items: illustration + name + reps. */
+/** Compact row for warm-up / cardio / cool-down items: illustration + name + reps + "mark done". */
 @Composable
-private fun SecondaryExerciseRow(ex: ExerciseItem, section: String) {
+private fun SecondaryExerciseRow(ex: ExerciseItem, section: String, onDone: (() -> Unit)? = null) {
+    var done by remember(ex.name, section) { mutableStateOf(false) }
     Card(
         Modifier.fillMaxWidth()
             .heightIn(min = 56.dp)
-            .semantics { contentDescription = "$section: ${ex.name}, ${ex.sets} sets of ${ex.reps}" },
+            .semantics { contentDescription = "$section: ${ex.name}, ${ex.sets} sets of ${ex.reps}${if (done) ", logged" else ""}" },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
     ) {
@@ -339,16 +403,23 @@ private fun SecondaryExerciseRow(ex: ExerciseItem, section: String) {
             ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
             Column(Modifier.weight(1f)) {
                 Text(ex.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
-                    Text("💡 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (onDone != null) {
+                if (done) {
+                    Text("✓ Done", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                } else {
+                    OutlinedButton(
+                        onClick = { done = true; onDone() },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.heightIn(min = 40.dp).semantics { contentDescription = "Mark ${ex.name} done and count its calories" },
+                    ) { Text("Done") }
                 }
             }
-            Text(
-                if (ex.sets > 1) "${ex.sets} × ${ex.reps}" else ex.reps,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
