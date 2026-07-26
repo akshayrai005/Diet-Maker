@@ -2,6 +2,34 @@ import { describe, it, expect } from 'vitest';
 import { MICRONUTRIENTS_PER_100G } from '../src/data/micronutrientData';
 import { assessMicronutrients, type Micronutrients, type MicronutrientKey } from '../src/calc/micronutrients';
 import { suggestFoodsForDeficiencies } from '../src/modules/nutrition/deficiencyFoods';
+import { SEED_FOODS } from '../src/data/foods.seed';
+
+describe('micronutrient data COVERAGE (anti-regression)', () => {
+  const CORE: MicronutrientKey[] = ['ironMg', 'calciumMg', 'vitaminCMg', 'folateMcg', 'vitaminAMcg'];
+  const has = (id: string, k: MicronutrientKey) => {
+    const v = (MICRONUTRIENTS_PER_100G[id] as Partial<Micronutrients> | undefined)?.[k];
+    return typeof v === 'number';
+  };
+
+  it('≥90% of catalog foods carry at least one core nutrient', () => {
+    // Note: animal foods genuinely lack vitamin C / folate / vitamin A, so we require ≥1 core
+    // nutrient (not all five) — enforcing all five would demand dishonest zero-fill on meat/fish.
+    const withCore = SEED_FOODS.filter((f) => CORE.some((k) => has(f.id, k)));
+    const pct = withCore.length / SEED_FOODS.length;
+    expect(pct).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('≥90% of catalog foods have real breadth (≥3 nutrients populated)', () => {
+    const broad = SEED_FOODS.filter((f) => Object.keys(MICRONUTRIENTS_PER_100G[f.id] ?? {}).length >= 3);
+    expect(broad.length / SEED_FOODS.length).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('plant staples carry the plant vitamins (spot-check)', () => {
+    expect(has('orange', 'vitaminCMg')).toBe(true);
+    expect(has('palak', 'folateMcg')).toBe(true);
+    expect(has('sweet-potato', 'vitaminAMcg')).toBe(true);
+  });
+});
 
 describe('food micronutrient seed data', () => {
   it('key staples carry the nutrients they are famous for', () => {

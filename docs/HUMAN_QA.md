@@ -128,6 +128,22 @@ no invented numbers). Tests: 6 added (staple plausibility, no-data honesty, seed
   tested); food seed expanded (+12 everyday dishes, several with measured micronutrients);
   intermittent-fasting/fast-day plan handling already present.
 
+## Final Closers, Phase 1 — micronutrient coverage 15 → 62/62
+
+Filled the remaining catalog foods (ICMR-NIN 2020 / USDA FDC). Coverage-guard test enforces ≥90%.
+
+```
+CATALOG COVERAGE: 62/62 foods have micronutrient data (100%)
+PRIYA veg day  → 64% coverage, 20/21 with data; only "no data": Vitamin D (honest — nothing carried it)
+MIXED non-veg  → 60% coverage, 21/21 with data; no "no data" entries
+  deficiency tips (diet-safe): Vit D→sunlight/fortified milk | Calcium→ragi | Folate→spinach | Potassium→banana
+```
+
+✅ Nearly everything shows a real % on a normal day; genuine gaps stay `null` (never zero-filled);
+deficiency→food tips still fire and respect diet type. Animal foods keep `null` for vitamin C /
+folate / vitamin A (they genuinely lack them) — so the coverage test requires ≥1 core nutrient, not
+all five. **Phase 1 acceptance met.**
+
 ### Honest gaps (cannot run in this environment)
 - **Bundled offline font** — needs a licensed `.ttf` in `res/font/`; no font binary is fetchable
   here, so it remains deferred (the roomier system type-scale stands). Drop a Nunito/Inter `.ttf` in
