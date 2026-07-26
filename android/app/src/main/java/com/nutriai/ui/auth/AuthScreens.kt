@@ -1,7 +1,10 @@
 package com.nutriai.ui.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,8 +48,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.R
-import com.nutriai.ui.theme.BrandGradientBox
-import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.BrandGreenDeep
 
 @Composable
 fun LoginScreen(
@@ -227,7 +229,11 @@ private fun AuthScaffold(
     error: String?,
     content: @Composable () -> Unit,
 ) {
-    BrandGradientBox {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -236,38 +242,32 @@ private fun AuthScaffold(
             verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Card(
-                modifier = Modifier.size(120.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.kaizen_login),
-                    contentDescription = "Kaizen logo",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.kaizen_login),
+                contentDescription = "Kaizen logo",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(132.dp),
+            )
             Text(
                 "Kaizen",
-                color = Color.White,
+                color = BrandGreen,
                 fontSize = 42.sp,
                 fontWeight = FontWeight.Bold,
             )
             Text(
                 "Small Habits. Big Results.",
-                color = BrandGreenLight,
+                color = BrandGreenDeep,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
             )
-            Text(title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, color = Color(0xFFCFE9D9), fontSize = 13.sp)
+            Text(title, color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             ) {
                 Column(
                     Modifier.padding(20.dp),
@@ -283,7 +283,7 @@ private fun AuthScaffold(
             Text(
                 "Educational guidance, not medical advice — consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xB3FFFFFF),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
