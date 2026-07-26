@@ -227,6 +227,9 @@ class AppRepository @Inject constructor(
             FoodLogRequest(
                 mealSlot = slot,
                 grams = grams,
+                // Link local catalog foods by id so the server can estimate vitamins & minerals.
+                // USDA results have no local Food row, so leave foodId null for them.
+                foodId = if (food.source == "usda") null else food.id,
                 foodName = food.name,
                 per100g = com.nutriai.data.remote.dto.FoodLogPer100g(
                     kcal = food.kcal,
