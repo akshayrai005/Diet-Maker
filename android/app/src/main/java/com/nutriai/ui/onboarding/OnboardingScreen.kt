@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,6 +29,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -38,7 +41,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -102,6 +109,15 @@ private val DAYS: List<Pair<Int?, String>> = listOf(
 )
 private val CONDITIONS = listOf("diabetes", "hypertension", "kidney_disease", "thyroid", "pcos", "heart_disease", "fatty_liver", "gout")
 private val FAMILY_HISTORY = listOf("diabetes", "heart_disease", "hypertension", "stroke", "cancer", "thyroid")
+// Physique goal: value → (label, body-neutral, plain-language description). Never framed around appearance/shame.
+private val PHYSIQUE_GOAL: List<Pair<String, Pair<String, String>>> = listOf(
+    "recomp" to ("Recomp" to "Build muscle and lose fat at the same time (maintenance calories, high protein)."),
+    "lean_bulk" to ("Lean bulk" to "Gain muscle slowly with a slight calorie surplus."),
+    "cut" to ("Cut" to "Lose fat while keeping muscle (a safe calorie deficit)."),
+    "maintain" to ("Maintain" to "Keep your current physique."),
+)
+private val PRIORITY_MUSCLES = listOf("shoulders", "back", "chest", "arms", "legs", "glutes", "core")
+private const val MAX_PRIORITY_MUSCLES = 4
 private val FREQ = listOf("no" to "No", "occasional" to "Occasionally", "regular" to "Regularly")
 private val CONTRA = listOf(
     "none" to "None",
@@ -143,6 +159,8 @@ fun OnboardingScreen(
     var smoking by remember { mutableStateOf("no") }
     var alcohol by remember { mutableStateOf("no") }
     var contraception by remember { mutableStateOf("none") }
+    var physiqueGoal by remember { mutableStateOf<String?>(null) }
+    val priorityMuscles = remember { mutableStateListOf<String>() }
 
     LaunchedEffect(state.prefillLoaded) {
         val p = state.prefill ?: return@LaunchedEffect
@@ -171,7 +189,15 @@ fun OnboardingScreen(
             smoking = s.smoking ?: smoking
             alcohol = s.alcohol ?: alcohol
             contraception = s.contraception ?: contraception
+            physiqueGoal = s.physiqueGoal
+            priorityMuscles.clear(); priorityMuscles.addAll(s.priorityMuscles.take(MAX_PRIORITY_MUSCLES))
         }
+    }
+    val age = remember(dob) { ageFromDob(dob) }
+    val isMinor = age != null && age < 18
+    // Don't surface aggressive cutting to minors; the server also downgrades a minor's cut.
+    val physiqueOptions = remember(isMinor) {
+        if (isMinor) PHYSIQUE_GOAL.filterNot { it.first == "cut" } else PHYSIQUE_GOAL
     }
     val editing = state.prefill != null
     val canSave = height.toDoubleOrNull() != null && weight.toDoubleOrNull() != null &&
@@ -211,6 +237,8 @@ fun OnboardingScreen(
                         smoking = smoking,
                         alcohol = alcohol,
                         contraception = if (sex == "female") contraception else null,
+                        physiqueGoal = physiqueGoal,
+                        priorityMuscles = priorityMuscles.toList(),
                     ),
                 ),
                 onDone,
@@ -291,6 +319,29 @@ fun OnboardingScreen(
                     if (sex == "female") {
                         Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
                     }
+
+                    Label("Physique goal (optional)")
+                    Text(
+                        "What would you like your training to work towards? This only tunes your targets — every option is healthy.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
+                    if (isMinor) {
+                        Text(
+                            "Because you're under 18, we'll keep this safe for your age — no aggressive cutting.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Label("Muscles you'd like to bring up (optional)")
+                    Text(
+                        "Pick up to $MAX_PRIORITY_MUSCLES — we'll add a little extra volume there.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                 }
                 else -> {
                     Text("You're all set 🎉", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
@@ -435,4 +486,81 @@ private fun MultiChoiceChips(options: List<String>, selected: MutableList<String
             )
         }
     }
+}
+
+/** Single-select physique goal as radio rows with plain-language descriptions, plus a null "skip". */
+@Composable
+private fun PhysiqueGoalPicker(
+    options: List<Pair<String, Pair<String, String>>>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        options.forEach { (value, labelDesc) ->
+            PhysiqueOptionRow(
+                label = labelDesc.first,
+                desc = labelDesc.second,
+                selected = selected == value,
+                onClick = { onSelect(value) },
+            )
+        }
+        PhysiqueOptionRow(
+            label = "Not sure / skip",
+            desc = "We'll pick balanced, healthy targets for you.",
+            selected = selected == null,
+            onClick = { onSelect(null) },
+        )
+    }
+}
+
+@Composable
+private fun PhysiqueOptionRow(label: String, desc: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(vertical = 4.dp)
+            .semantics { contentDescription = "$label. $desc" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Multi-select muscle chips capped at [max]; chips past the cap are disabled until one is freed. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PriorityMusclesChips(options: List<String>, selected: MutableList<String>, max: Int) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { opt ->
+            val isSel = selected.contains(opt)
+            val atLimit = selected.size >= max
+            val display = opt.replaceFirstChar { it.uppercase() }
+            FilterChip(
+                selected = isSel,
+                enabled = isSel || !atLimit,
+                onClick = { if (isSel) selected.remove(opt) else if (!atLimit) selected.add(opt) },
+                label = { Text(display) },
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = if (isSel) "$display, selected" else display },
+            )
+        }
+    }
+}
+
+/** Age in whole years from an ISO `yyyy-MM-dd` date of birth, or null if blank/unparseable. */
+private fun ageFromDob(dob: String): Int? = try {
+    dob.trim().takeIf { it.isNotBlank() }?.let {
+        java.time.Period.between(java.time.LocalDate.parse(it), java.time.LocalDate.now()).years
+    }
+} catch (e: Exception) {
+    null
 }

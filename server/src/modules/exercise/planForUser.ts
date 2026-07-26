@@ -36,5 +36,6 @@ export async function weeklyWorkoutForUser(userId: string, offsetMin = 0): Promi
     intensity: s.intensityPreference,
     under18,
     medicalCaution,
+    priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
   });
 }

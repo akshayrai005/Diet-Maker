@@ -7,6 +7,7 @@ import {
   WeeklyWorkout,
   WorkoutDay,
 } from './exercise.types';
+import { applyMusclePriority } from './physique';
 
 const s = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'strength' });
 const c = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'cardio' });
@@ -133,6 +134,8 @@ export interface WorkoutOptions {
   under18?: boolean;
   /** Medical caution (any flagged condition / reduced mobility) — SAFETY cap, same effect. */
   medicalCaution?: boolean;
+  /** Priority muscle groups to bring up — extra volume within the level's set caps. */
+  priorityMuscles?: string[];
 }
 
 // ---- Level + intensity scaling (PURE, deterministic) ----
@@ -379,5 +382,7 @@ export function generateWeeklyWorkout(
     under18: options.under18,
     medicalCaution: options.medicalCaution,
   });
-  return applyScaling(base, level, intensity);
+  const scaled = applyScaling(base, level, intensity);
+  // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
+  return applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
 }

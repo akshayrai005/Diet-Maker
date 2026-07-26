@@ -77,6 +77,11 @@ data class SensitiveData(
     // Phase 4: family history of chronic conditions (diabetes, heart_disease, hypertension,
     // stroke, cancer, thyroid). Optional/additive — older payloads simply omit it.
     val familyHistory: List<String> = emptyList(),
+    // Physique/training preferences. Optional/additive — the server ignores them when absent.
+    // physiqueGoal ∈ recomp | lean_bulk | cut | maintain (null = not specified).
+    // priorityMuscles ⊆ shoulders, back, chest, arms, legs, glutes, core (max 4).
+    val physiqueGoal: String? = null,
+    val priorityMuscles: List<String> = emptyList(),
 )
 
 // ---- Workout / exercise plan ----

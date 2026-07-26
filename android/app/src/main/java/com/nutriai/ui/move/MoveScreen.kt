@@ -172,6 +172,21 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     ) {
         item { Hero(plan) }
 
+        // Plan note (e.g. "Prioritising shoulders — a little extra volume there…") from the server.
+        plan?.note?.takeIf { it.isNotBlank() }?.let { note ->
+            item {
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                        .semantics { contentDescription = "Plan note: $note" },
+                )
+            }
+        }
+
         state.toast?.let { msg ->
             item {
                 Card(
