@@ -56,7 +56,13 @@ class AppRepository @Inject constructor(
 
     suspend fun saveProfile(body: ProfileUpsertRequest): Result<Unit> = runCatching {
         api.putProfile(body)
-        api.computeCalc() // refresh the CalcResult snapshot
+        api.computeCalc() // refresh the CalcResult snapshot (calorie + macro targets)
+        // Regenerate the meal plan to match the new profile/targets so the Diet tab updates
+        // automatically - no manual "Regenerate week" needed. Best-effort: a plan failure must not
+        // fail the whole save. (The exercise plan already regenerates live from the profile.)
+        runCatching { api.generatePlan(mapOf("days" to 7)) }
+        // Drop stale cached copies so the next Diet/Home fetch shows the freshly-generated data.
+        runCatching { cacheDao.delete("plan"); cacheDao.delete("dashboard") }
         Unit
     }
 
