@@ -81,6 +81,11 @@ fun NutriAiTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = NutriTypography,
-        content = content,
-    )
+    ) {
+        // Make Nunito the default family even for raw Text() that sets only size/weight.
+        androidx.compose.material3.ProvideTextStyle(
+            value = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = Nunito),
+            content = content,
+        )
+    }
 }
