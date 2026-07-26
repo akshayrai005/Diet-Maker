@@ -145,7 +145,7 @@ describe('workout scaling — under-18 safety cap forces beast down', () => {
     expect(totalSets(minorBeast)).toBeLessThan(totalSets(beast));
   });
 
-  it('medical caution clamps the same way', () => {
+  it('medical caution clamps main-lift intensity to standard (core is gentler by design)', () => {
     const minorMed = generateWeeklyWorkout('muscular', 'gym', {
       startDate: start,
       fitnessLevel: 'intermediate',
@@ -157,7 +157,13 @@ describe('workout scaling — under-18 safety cap forces beast down', () => {
       fitnessLevel: 'intermediate',
       intensity: 'standard',
     });
-    expect(JSON.stringify(minorMed)).toBe(JSON.stringify(standard));
+    // Intensity clamp: the MAIN lifts (sets × reps) match the explicitly-standard plan.
+    const mains = (p: ReturnType<typeof generateWeeklyWorkout>) =>
+      p.days.map((d) => d.exercises.map((e) => `${e.name}:${e.sets}x${e.reps}`));
+    expect(mains(minorMed)).toEqual(mains(standard));
+    // Medical caution additionally gets a gentler, back-friendly core — a deliberate difference.
+    const day = minorMed.days.find((d) => !d.rest)!;
+    expect(day.core!.some((e) => /dead bug|bird dog|glute bridge/i.test(e.name))).toBe(true);
   });
 });
 

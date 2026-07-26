@@ -315,7 +315,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         shownDay?.let { day ->
             item { Text(if (day.label == "Today") "Today · ${day.focus}" else "${day.label ?: "Day ${day.dayIndex + 1}"} · ${day.focus}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
 
-            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
+            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
             if (day.rest || !hasContent) {
                 item { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Text("Rest & recovery day — light movement, stretch, hydrate.", Modifier.padding(18.dp)) } }
             } else {
@@ -339,6 +339,15 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                             onLog = { logTarget = ex },
                             onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
                         )
+                    }
+                }
+
+                // Core / Abs — its own labeled section, loggable.
+                if (day.core.isNotEmpty()) {
+                    item { SessionHeader("🧱 Core & Abs") }
+                    items(day.core.size) { i ->
+                        val cr = day.core[i]
+                        SecondaryExerciseRow(cr, "Core", onDone = { viewModel.logDone(cr.name, "Core", cr.reps, 3) })
                     }
                 }
 

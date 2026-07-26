@@ -386,8 +386,8 @@ export function generateWeeklyWorkout(
   const scaled = applyScaling(base, level, intensity);
   // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
   const prioritised = applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
-  // Exercise depth: warm-up + cool-down + a cardio element + per-exercise substitutions.
-  return enrichDays(prioritised, { intensity, medicalCaution: options.medicalCaution });
+  // Exercise depth: warm-up + core/abs + cool-down + a cardio element + per-exercise substitutions.
+  return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution });
 }
 
 // ---- Warm-up / cool-down / cardio / substitutions (PURE) ----
@@ -427,13 +427,35 @@ function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): Ex
   return { name: 'Steady-state cardio (brisk walk/cycle)', sets: 1, reps: '15-20 min', type: 'cardio', cue: 'a pace you can hold a conversation at', muscleGroup: 'full body', equipment: 'bodyweight' };
 }
 
-function enrichDays(plan: WeeklyWorkout, opts: { intensity: IntensityPreference; medicalCaution?: boolean }): WeeklyWorkout {
+/**
+ * Dedicated core/abs block for every training day — a plank hold + a dynamic ab move + an
+ * anti-rotation / lower-ab move, scaled by level. `gentle` (medical caution / reduced mobility)
+ * swaps in low-impact, back-friendly options. Core counts as strength; substitutions attach later.
+ */
+function coreFor(level: FitnessLevel, gentle: boolean): ExerciseItem[] {
+  const core = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' });
+  if (gentle) {
+    return [core('Dead bug (slow, controlled)', 2, '8 each side'), core('Glute bridge', 2, '12'), core('Bird dog (anti-rotation)', 2, '8 each side')];
+  }
+  switch (level) {
+    case 'beginner':
+      return [core('Plank', 2, '20-30s'), core('Dead bug', 2, '10 each side'), core('Glute bridge', 2, '12')];
+    case 'advanced':
+      return [core('Plank', 3, '60s'), core('Hanging/lying leg raises', 3, '12'), core('Russian twist (anti-rotation)', 3, '20'), core('Reverse crunch (lower abs)', 3, '15')];
+    default:
+      return [core('Plank', 2, '45s'), core('Bicycle crunches', 2, '15 each side'), core('Reverse crunch (lower abs)', 2, '12')];
+  }
+}
+
+function enrichDays(plan: WeeklyWorkout, opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean }): WeeklyWorkout {
+  const gentle = !!opts.medicalCaution;
   const days: WorkoutDay[] = plan.days.map((day) => {
     if (day.rest) return day;
     return {
       ...day,
       warmup: warmupFor(day.focus),
       exercises: day.exercises.map(withSubstitutions),
+      core: coreFor(opts.level, gentle).map(withSubstitutions),
       cardio: cardioFor(opts.intensity, opts.medicalCaution),
       cooldown: cooldownFor(day.focus),
     };

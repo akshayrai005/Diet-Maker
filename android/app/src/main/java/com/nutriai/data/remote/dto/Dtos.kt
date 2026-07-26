@@ -120,6 +120,7 @@ data class WorkoutDay(
     // Session structure blocks. All additive & defaulted so older payloads keep working:
     // warm-up and cool-down are lists; cardio (if any) is a single item.
     val warmup: List<ExerciseItem> = emptyList(),
+    val core: List<ExerciseItem> = emptyList(),
     val cardio: ExerciseItem? = null,
     val cooldown: List<ExerciseItem> = emptyList(),
 )

@@ -76,3 +76,34 @@ describe('workout gains warm-up, cool-down, cardio & substitutions', () => {
     expect(gentle.some((d) => /hiit/i.test(d.cardio?.name ?? ''))).toBe(false);
   });
 });
+
+describe('every routine has a visible core/abs block', () => {
+  const training = (opts = {}) => generateWeeklyWorkout('muscular', 'gym', opts).days.filter((d) => !d.rest);
+
+  it('every training day has a labeled core block with >=2 movements, all muscleGroup=core', () => {
+    for (const d of training({ fitnessLevel: 'intermediate' })) {
+      expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(2);
+      expect(d.core!.every((e) => e.muscleGroup === 'core')).toBe(true);
+      expect(d.core!.some((e) => /plank/i.test(e.name))).toBe(true); // a plank hold
+    }
+  });
+
+  it('appears across goals (full-body / fatloss too)', () => {
+    for (const goal of ['athletic', 'fatloss'] as const) {
+      const days = generateWeeklyWorkout(goal, 'home', { fitnessLevel: 'beginner' }).days.filter((d) => !d.rest);
+      expect(days.every((d) => (d.core?.length ?? 0) >= 2)).toBe(true);
+    }
+  });
+
+  it('advanced gets more core volume than beginner', () => {
+    const beg = training({ fitnessLevel: 'beginner' })[0]!.core!.length;
+    const adv = training({ fitnessLevel: 'advanced' })[0]!.core!.length;
+    expect(adv).toBeGreaterThan(beg);
+  });
+
+  it('medical caution => gentle, back-friendly core (no crunches/leg raises)', () => {
+    const core = training({ fitnessLevel: 'advanced', medicalCaution: true })[0]!.core!;
+    expect(core.some((e) => /dead bug|bird dog|glute bridge/i.test(e.name))).toBe(true);
+    expect(core.some((e) => /crunch|leg raise|russian/i.test(e.name))).toBe(false);
+  });
+});

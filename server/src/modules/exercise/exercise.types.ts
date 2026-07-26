@@ -41,6 +41,8 @@ export interface WorkoutDay {
   /** Dynamic warm-up movements done before the main work. */
   warmup?: ExerciseItem[];
   exercises: ExerciseItem[];
+  /** Dedicated core / abs block (2–3 movements), its own labeled section. */
+  core?: ExerciseItem[];
   /** A cardio / conditioning element (steady-state, or HIIT at high intensity). */
   cardio?: ExerciseItem;
   /** Mobility / stretch cool-down after the main work. */
