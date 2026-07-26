@@ -91,6 +91,8 @@ export const sensitiveSchema = z.object({
   familyHistory: z
     .array(z.enum(['diabetes', 'heart_disease', 'hypertension', 'stroke', 'cancer', 'thyroid']))
     .optional(),
+  /** Local climate — adapts the daily hydration target (hot climates need more water). */
+  climate: z.enum(['temperate', 'hot', 'cold']).optional(),
   /** Contraceptive method — prevents false pregnancy/irregularity alarms for hormonal methods. */
   contraception: z.enum(['none', 'pill', 'hormonal_iud', 'implant', 'injection', 'other']).optional(),
 });

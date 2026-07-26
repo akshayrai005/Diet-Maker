@@ -9,6 +9,7 @@ import {
   round,
 } from '../../calc';
 import { applyGuardrails, Condition, Flag } from '../../guardrails';
+import { hydrationTargetMl, type Climate } from '../../calc/hydration';
 
 /** Everything the /calc endpoint needs, in one call. */
 export interface CalcProfileInput {
@@ -24,6 +25,8 @@ export interface CalcProfileInput {
   desiredWeeklyLossKg?: number;
   clinicianOverride?: boolean;
   reducedMobility?: boolean;
+  /** Local climate — adapts the hydration target (hot climates need more). */
+  climate?: Climate;
 }
 
 export interface CalcResult {
@@ -135,6 +138,8 @@ export function computeCalcResult(input: CalcProfileInput): CalcResult {
     proteinPerKg: guard.proteinPerKg,
     fatPerKgMin: guard.fatPerKgMin,
   });
+  // Adaptive hydration: base ml/kg + activity + climate top-ups (overrides the flat macros default).
+  const adaptiveWaterMl = hydrationTargetMl(input.currentWeightKg, input.activityLevel, input.climate);
 
   return {
     bmi: anthro.bmi,
@@ -150,7 +155,7 @@ export function computeCalcResult(input: CalcProfileInput): CalcResult {
     fatG: macros.fatG,
     carbG: macros.carbG,
     fiberG: macros.fiberG,
-    waterMl: macros.waterMl,
+    waterMl: adaptiveWaterMl,
     sodiumMaxMg: guard.sodiumMaxMg,
     safeWeeklyDeltaKg: guard.safeWeeklyDeltaKg,
     requiresSupervision: guard.requiresSupervision,

@@ -108,3 +108,31 @@ food carried it) — never a fake deficiency; deficiency→food tips fire and ar
 chicken/fish/egg). Per-nutrient tap opens a "why it matters + good sources" sheet (educational copy,
 no invented numbers). Tests: 6 added (staple plausibility, no-data honesty, seeded-day coverage).
 **Phase 1 acceptance met.**
+
+---
+
+## Diet-Data pass, Phases 2–5
+
+- **Phase 2 (Look/physique):** Aisha logs measurements weekly → per-metric trends + a US-Navy
+  body-fat% estimate + waist-to-hip band; a private on-device before/after photo timeline
+  (add/compare/delete). **Sam (17) sees measurements but NO body-fat number** (guardrail); deleting a
+  photo removes the local file + metadata. Navy + WHR bands unit-tested incl. invalid inputs. ✅
+- **Phase 3 (physique goals):** Aisha picks lean_bulk + shoulders/back → a slight surplus, high
+  protein, and extra shoulder/back sets **within the level cap** (antagonists untouched); a cut gives
+  a safe deficit; **Sam's cut is downgraded to maintenance** (tested). ✅
+- **Phase 4 (exercise depth):** Rahul (no gym, 20 min) gets warm-up → main (with equipment-free
+  substitutions) → steady-state cardio → cool-down + a rest timer with haptics; Aisha sees her
+  Epley est-1RM climbing; offline Canvas form diagrams render with no network. ✅
+- **Phase 5 (diet leftovers):** hydration now adapts to weight + activity + climate
+  (e.g. 70 kg sedentary temperate = 2300 ml; +activity and +hot-climate top-ups, clamped 1.5–5 L,
+  tested); food seed expanded (+12 everyday dishes, several with measured micronutrients);
+  intermittent-fasting/fast-day plan handling already present.
+
+### Honest gaps (cannot run in this environment)
+- **Bundled offline font** — needs a licensed `.ttf` in `res/font/`; no font binary is fetchable
+  here, so it remains deferred (the roomier system type-scale stands). Drop a Nunito/Inter `.ttf` in
+  and point the type scale at it to finish this.
+- **5-person real-user QA loop** — requires 5 humans on physical debug builds; not possible in this
+  environment. Behaviour is verified against the deterministic engine (the source of truth the UI
+  renders) + Android CI compile. Empty-state sweep on the new screens is clean (Vitals, Progress,
+  Medications, Mood, Strength-trend all show helpful first-run states, no NaN).

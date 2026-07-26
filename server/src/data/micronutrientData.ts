@@ -52,4 +52,13 @@ export const MICRONUTRIENTS_PER_100G: Record<string, Partial<Micronutrients>> = 
   'soaked-almonds': { calciumMg: 269, ironMg: 3.7, magnesiumMg: 270, potassiumMg: 733, zincMg: 3.1, phosphorusMg: 481, vitaminEMg: 25.6, vitaminB2Mg: 1.1, manganeseMg: 2.2, copperMcg: 1000 },
   peanuts: { ironMg: 2.3, magnesiumMg: 168, potassiumMg: 705, zincMg: 3.3, phosphorusMg: 376, vitaminB3Mg: 12, vitaminEMg: 8.3, folateMcg: 240, copperMcg: 1140, manganeseMg: 1.9, vitaminB6Mg: 0.3 },
   tofu: { calciumMg: 350, ironMg: 2.7, magnesiumMg: 60, potassiumMg: 120, zincMg: 1.6, phosphorusMg: 190, copperMcg: 190, manganeseMg: 0.6, seleniumMcg: 9 },
+
+  // ---- Phase 5 seed expansion ----
+  'ragi-porridge': { calciumMg: 220, ironMg: 1.8, magnesiumMg: 60, potassiumMg: 120, phosphorusMg: 130, manganeseMg: 1.2 },
+  'moong-dal': { ironMg: 1.4, folateMcg: 80, magnesiumMg: 40, potassiumMg: 260, zincMg: 0.9, phosphorusMg: 90 },
+  'masoor-dal': { ironMg: 3.3, folateMcg: 180, magnesiumMg: 36, potassiumMg: 310, zincMg: 1.3, phosphorusMg: 180, copperMcg: 250 },
+  'sweet-potato': { potassiumMg: 337, vitaminAMcg: 709, vitaminCMg: 12, manganeseMg: 0.4, vitaminB6Mg: 0.2 },
+  papaya: { vitaminCMg: 60, folateMcg: 37, potassiumMg: 182, vitaminAMcg: 47 },
+  'chicken-curry': { ironMg: 1.2, vitaminB12Mcg: 0.3, vitaminB3Mg: 8, vitaminB6Mg: 0.4, phosphorusMg: 180, zincMg: 1.2, seleniumMcg: 20 },
+  'palak-paneer': { calciumMg: 300, ironMg: 2.5, magnesiumMg: 55, potassiumMg: 320, vitaminAMcg: 300, vitaminKMcg: 250, vitaminB12Mcg: 0.5 },
 };

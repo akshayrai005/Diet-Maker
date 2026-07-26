@@ -18,7 +18,19 @@ first-class). Rated 1–10 with justification and the top gaps to reach 9.8._
 | **Security/privacy** | 8.7 | Key-versioned encryption across profile/chat/**vitals/meds/period-details**; **Redis rate-limit with in-memory fallback + stricter AI/report throttle**; soft-delete + purge; tradeoffs documented in SECURITY.md. | Redis path unexercised without a Redis instance (fallback is what runs on free tier). |
 | **UX / accessibility** | 7 | Rebrand + white login, a11y on every **new** screen, loading skeletons, honest empty states, Mind promoted. | **Biggest remaining gap:** exhaustive TalkBack/48dp retrofit of all ~40 older screens, an offline-bundled warm font (needs the font binary — deferred), and full design-token/component unification + dark-mode audit. |
 
-## Whole app: **8.6 / 10**
+## Diet-Data + Look + Exercise-Depth pass (what changed)
+
+- **Diet data is real now**: the vitamins/minerals card was a shell (no Food columns) — the Food table
+  now carries measured per-100g micronutrients for staples, so it shows real coverage, and
+  deficiency→food tips actually fire. Diet → **9.0**.
+- **"Look"/physique**: measurements + Navy body-fat% trend + waist-hip + private on-device progress
+  photos; physique goals (recomp/lean_bulk/cut/maintain) shift calories/protein safely; priority
+  muscles get extra volume within caps. New **Physique** capability ≈ **8.5**.
+- **Exercise depth**: warm-up/cool-down, cardio (steady + gated HIIT), Epley 1RM trend, substitutions,
+  offline form diagrams, rest timer w/ haptics. Exercise → **9.0**.
+- **Hydration** adapts to weight/activity/climate; **seed** expanded.
+
+## Whole app: **8.9 / 10**
 
 The health depth added this pass is the real jump: it now tracks vitals/labs as trends with cited
 educational bands, captures medications with reminders, closes the deficiency→food loop, listens to
@@ -38,7 +50,14 @@ loop** which needs 5 humans on physical devices.
    + TalkBack; fix the top ~10 trip-ups. This last loop is what turns 8.6 into 9.8 — it cannot be
    self-declared.
 
+## Remaining to 9.8 (honest)
+1. **Bundled offline font** — needs a licensed `.ttf` dropped into `res/font/` (no binary fetchable
+   in the build environment); then point the type scale at it.
+2. **On-device pass** of the new screens (Vitals, Progress/body, Medications, Mind, Strength-trend) +
+   walk/med reminders firing.
+3. **5-person real-user loop** on physical devices — the last mile that can't be self-declared.
+
 ## Verification state
 - `cd server && npm ci && npx prisma generate && npm run build` → **0 errors**.
-- `npx vitest run` → **387 tests / 40 files** green (`npm test` is watch mode — don't use in CI).
+- `npx vitest run` → **428 tests / 45 files** green (`npm test` is watch mode — don't use in CI).
 - Android `assembleDebug` verified green on CI (akshayrai005). Migrations are additive; no secrets committed.

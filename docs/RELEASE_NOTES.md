@@ -3,7 +3,22 @@
 _Small Habits. Big Results._ Everything below is deterministic and runs at zero paid-API cost
 (`AI_PROVIDER=rules`); no metric or prediction comes from an LLM.
 
-## Health-Depth pass (latest)
+## Diet-Data + Look + Exercise-Depth pass (latest)
+
+- **Real micronutrient data** — the Food table now carries measured per-100g vitamins & minerals
+  (ICMR-NIN / USDA) for staples, so the vitamins & minerals card shows real %s (unknowns stay "no
+  data"); tap a nutrient for "why it matters + good sources".
+- **"Look" / physique tracking** — log body measurements and get per-metric trends, a tape-measure
+  **US-Navy body-fat% estimate**, waist-to-hip band, and a **private, on-device** progress-photo
+  timeline (before/after, never uploaded). No body-fat numbers for under-18s.
+- **Physique goals** — recomp / lean bulk / cut / maintain shift calories & protein *safely*, and
+  priority muscle groups get extra training volume within safe caps.
+- **Exercise depth** — every session now has a warm-up, a cardio element, and a cool-down; a rest
+  timer with haptics; equipment-free exercise swaps; an estimated-1RM strength trend; and offline
+  form diagrams.
+- **Diet depth** — hydration target adapts to weight, activity and climate; more everyday foods.
+
+## Health-Depth pass
 
 - **Vitals & labs as a time-series** — log BP, resting HR, glucose, HbA1c, lipids, TSH, vitamin D,
   ferritin, hemoglobin, weight, waist; see per-metric **trend charts** and **guideline-cited

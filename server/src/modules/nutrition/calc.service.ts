@@ -41,6 +41,7 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     desiredWeeklyLossKg: sensitive.desiredWeeklyLossKg,
     clinicianOverride: sensitive.clinicianOverride,
     reducedMobility: profile.reducedMobility,
+    climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,
   });
 
   await prisma.calcResultSnapshot.create({
