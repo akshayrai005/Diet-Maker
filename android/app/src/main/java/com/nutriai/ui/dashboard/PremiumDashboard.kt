@@ -803,8 +803,9 @@ private fun VitalsCard(
                     }
                 } else if (!connected) {
                     Text(
-                        "Connect Google Fit / Health Connect to auto-read your heart rate & sleep " +
-                            "(your Fastrack watch feeds Google Fit, which syncs to Health Connect).",
+                        "Grant Health Connect access to auto-read heart rate & sleep. Note: these need a " +
+                            "smartwatch or fitness band recording them — steps come from your phone, but HR & " +
+                            "sleep need a wearable. No device? You can always log them yourself with Edit.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -813,11 +814,13 @@ private fun VitalsCard(
                         shape = RoundedCornerShape(20.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    ) { Text("Connect Google Fit", style = MaterialTheme.typography.labelLarge) }
+                    ) { Text("Allow Health Connect", style = MaterialTheme.typography.labelLarge) }
                 } else {
                     Text(
-                        "Connected. No recent heart rate / sleep yet - make sure Fastrack Smart has " +
-                            "Google Fit + Auto HR on, then check back after it syncs. Or tap Edit to log now.",
+                        "No heart-rate or sleep data yet. HR & sleep need a smartwatch/band writing them to " +
+                            "Health Connect (steps come from your phone). Check that (1) Kaizen has Heart rate + " +
+                            "Sleep allowed in the Health Connect app, and (2) your wearable is syncing. " +
+                            "No wearable? Tap Edit to log them yourself.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
