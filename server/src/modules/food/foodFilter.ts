@@ -87,7 +87,7 @@ const ALLERGEN_SYNONYMS: Record<string, string[]> = {
   sesame: ['sesame', 'til', 'tahini'],
 };
 
-function expandAllergen(a: string): string[] {
+export function expandAllergen(a: string): string[] {
   const key = norm(a);
   return ALLERGEN_SYNONYMS[key] ? [key, ...ALLERGEN_SYNONYMS[key]] : [key];
 }

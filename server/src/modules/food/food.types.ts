@@ -3,6 +3,11 @@
 
 export type FoodCategory = 'vegan' | 'vegetarian' | 'egg' | 'nonveg';
 
+/** How much kitchen access a food needs to be ready to eat. Ordered least→most. */
+export type PrepLevel = 'none' | 'kettle' | 'microwave' | 'stove';
+export const PREP_LEVELS: PrepLevel[] = ['none', 'kettle', 'microwave', 'stove'];
+export const PREP_RANK: Record<PrepLevel, number> = { none: 0, kettle: 1, microwave: 2, stove: 3 };
+
 export type MealSlot =
   | 'wakeup'
   | 'breakfast'
@@ -53,6 +58,8 @@ export interface FoodItem {
   costTier: 1 | 2 | 3; // 1 cheap .. 3 pricey
   tags: string[];
   allergens: string[];
+  /** Kitchen access this food needs (assemble-only → stove). Defaults to 'stove' when unknown. */
+  prep?: PrepLevel;
 }
 
 export interface PlanTargets {
@@ -81,6 +88,12 @@ export interface PlanPreferences {
   /** Macro-band strictness: 'relaxed' widens the acceptable bands, 'strict' narrows them. */
   strictness?: 'relaxed' | 'standard' | 'strict';
   locale?: string; // bias toward this locale's foods
+  /** Kitchen access — filters out foods that need more than this to prepare (PG/hostel/travel). */
+  kitchen?: PrepLevel;
+  /** Free-text living context (e.g. 'pg', 'hostel', 'home', 'travel'); drives PG assemble-only mode. */
+  livingSituation?: string;
+  /** If set, only these food IDs may be used (what the user actually has access to). */
+  availableFoodIds?: string[];
 }
 
 export interface MealItem {
