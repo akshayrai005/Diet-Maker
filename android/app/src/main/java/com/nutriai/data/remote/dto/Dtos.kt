@@ -67,6 +67,8 @@ data class SensitiveData(
     val targetWeightKg: Double,
     val targetDate: String? = null,
     val waistCm: Double? = null,
+    val neckCm: Double? = null,
+    val hipCm: Double? = null,
     val conditions: List<String> = emptyList(),
     val allergies: List<String> = emptyList(),
     val desiredWeeklyLossKg: Double? = null,

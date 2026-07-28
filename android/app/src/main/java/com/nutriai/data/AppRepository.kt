@@ -407,6 +407,9 @@ class AppRepository @Inject constructor(
     suspend fun bodyMetrics(range: Int? = null): Result<com.nutriai.data.remote.dto.BodySeries> =
         runCatching { api.bodyMetrics(range) }
 
+    suspend fun deleteBodyMetric(id: String): Result<Unit> =
+        runCatching { api.deleteBodyMetric(id); Unit }
+
     suspend fun addBodyPhoto(localRef: String, caption: String? = null): Result<com.nutriai.data.remote.dto.BodyPhotoDto> =
         runCatching { api.addBodyPhoto(com.nutriai.data.remote.dto.BodyPhotoRequest(localRef, caption)).photo }
 

@@ -166,6 +166,9 @@ fun OnboardingScreen(
 
     var height by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf("") }
+    var waist by remember { mutableStateOf("") }
+    var neck by remember { mutableStateOf("") }
+    var hip by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var sex by remember { mutableStateOf("male") }
@@ -204,6 +207,9 @@ fun OnboardingScreen(
         p.sensitive?.let { s ->
             weight = fmt(s.currentWeightKg)
             target = fmt(s.targetWeightKg)
+            waist = s.waistCm?.let { fmt(it) } ?: waist
+            neck = s.neckCm?.let { fmt(it) } ?: neck
+            hip = s.hipCm?.let { fmt(it) } ?: hip
             dob = s.dob
             sex = s.sex.ifBlank { sex }
             gender = s.gender ?: s.sex.ifBlank { gender }
@@ -281,6 +287,9 @@ fun OnboardingScreen(
                         dob = dob.trim(),
                         currentWeightKg = w,
                         targetWeightKg = t,
+                        waistCm = waist.toDoubleOrNull(),
+                        neckCm = neck.toDoubleOrNull(),
+                        hipCm = hip.toDoubleOrNull(),
                         conditions = conditions.toList(),
                         familyHistory = familyHistory.toList(),
                         fastDayOfWeek = fastDay,
@@ -320,6 +329,14 @@ fun OnboardingScreen(
                     numberField(height, { height = it }, "Height (cm)")
                     numberField(weight, { weight = it }, "Current weight (kg)")
                     numberField(target, { target = it }, "Target weight (kg)")
+                    Text(
+                        "Body measurements (a measuring tape helps) — these let the coach see your shape, not just your weight, and focus the plan where it matters (e.g. a high waist vs chest).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    numberField(waist, { waist = it }, "Waist (cm) — at the navel")
+                    numberField(neck, { neck = it }, "Neck (cm) — optional, for body-fat %")
+                    if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) — optional, for body-fat %")
                     DobPicker(dob) { dob = it }
                     Dropdown("Gender", GENDER, gender) { gender = it }
                     if (gender == "self_describe") {

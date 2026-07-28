@@ -313,6 +313,9 @@ interface NutriApi {
         @Query("range") range: Int? = null,
     ): com.nutriai.data.remote.dto.BodySeries
 
+    @retrofit2.http.DELETE("body/metrics/{id}")
+    suspend fun deleteBodyMetric(@Path("id") id: String): retrofit2.Response<Unit>
+
     @POST("body/photos")
     suspend fun addBodyPhoto(
         @Body body: com.nutriai.data.remote.dto.BodyPhotoRequest,

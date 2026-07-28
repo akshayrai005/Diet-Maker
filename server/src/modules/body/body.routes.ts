@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { logBodyMetric, getBodyMetrics, addPhoto, listPhotos, deletePhoto } from './body.service';
+import { logBodyMetric, getBodyMetrics, deleteBodyMetric, addPhoto, listPhotos, deletePhoto } from './body.service';
 
 export const bodyRouter = Router();
 
@@ -37,6 +37,16 @@ bodyRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const { range } = rangeSchema.parse(req.query);
     res.json(await getBodyMetrics(req.user!.id, range ?? 365));
+  }),
+);
+
+/** Delete a single measurement record (e.g. a test entry). */
+bodyRouter.delete(
+  '/body/metrics/:id',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    await deleteBodyMetric(req.user!.id, req.params.id!);
+    res.status(204).end();
   }),
 );
 

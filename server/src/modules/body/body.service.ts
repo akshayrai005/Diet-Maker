@@ -242,6 +242,13 @@ function safeMeasure(payload: string): Measurements {
   }
 }
 
+/** Remove a single measurement record (e.g. a test entry logged without actually measuring). */
+export async function deleteBodyMetric(userId: string, id: string) {
+  const existing = await prisma.bodyMetric.findFirst({ where: { id, userId } });
+  if (!existing) throw new HttpError(404, 'Measurement not found');
+  await prisma.bodyMetric.delete({ where: { id } });
+}
+
 // ---- Progress photos (metadata only; the image stays on-device) ----
 
 export async function addPhoto(userId: string, localRef: string, caption?: string) {

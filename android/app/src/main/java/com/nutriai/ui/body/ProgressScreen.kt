@@ -257,6 +257,15 @@ class ProgressViewModel @Inject constructor(
         }
     }
 
+    /** Remove a measurement record (e.g. a test entry logged without measuring). */
+    fun deleteMetric(point: BodyPoint) {
+        viewModelScope.launch {
+            val r = repository.deleteBodyMetric(point.id)
+            _state.value = _state.value.copy(toast = if (r.isSuccess) "Measurement deleted" else "Couldn't delete - try again")
+            loadSeries()
+        }
+    }
+
     fun clearToast() { _state.value = _state.value.copy(toast = null) }
 }
 
@@ -440,6 +449,15 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             if (trends.isNotEmpty()) {
                 item { SectionLabel("Changes over time") }
                 items(trends.size) { i -> TrendRow(trends[i]) }
+            }
+
+            // ---- Measurement log: delete a wrong / test entry ----
+            if (series.points.isNotEmpty()) {
+                item { SectionLabel("Measurement log") }
+                val recent = series.points.reversed() // newest first
+                items(recent.size) { i ->
+                    MeasurementLogRow(point = recent[i], onDelete = { viewModel.deleteMetric(recent[i]) })
+                }
             }
         }
 
@@ -771,6 +789,46 @@ private fun TrendRow(trend: com.nutriai.data.remote.dto.BodyTrend) {
                 )
             }
             Text(deltaText, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun MeasurementLogRow(point: BodyPoint, onDelete: () -> Unit) {
+    var confirm by remember { mutableStateOf(false) }
+    val date = point.measuredAt.take(10)
+    val parts = listOfNotNull(
+        point.weightKg?.let { "${formatNum(it)} kg" },
+        point.waistCm?.let { "waist ${formatNum(it)}" },
+        point.bodyFatPct?.let { "BF ${formatNum(it)}%" },
+    )
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(date, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                if (parts.isNotEmpty()) {
+                    Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (confirm) {
+                TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { confirm = false }) { Text("Cancel") }
+            } else {
+                Text(
+                    "✕",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable { confirm = true }
+                        .semantics { contentDescription = "Delete measurement from $date" }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
     }
 }
