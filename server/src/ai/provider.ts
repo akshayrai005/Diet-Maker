@@ -4,6 +4,8 @@
  * "I can't answer - fall back to the rules engine". Providers MUST NEVER throw.
  */
 
+import type { CoachContext } from '../modules/coach/coachContext';
+
 export interface AiChatContext {
   /** Deterministic targets from the latest CalcResult snapshot. Never invented by the LLM. */
   targets: { dailyKcal: number; proteinG: number; waterMl: number } | null;
@@ -12,6 +14,8 @@ export interface AiChatContext {
   firstName?: string;
   /** Recent conversation for memory across sessions (oldest first). */
   history?: { role: 'user' | 'assistant'; content: string }[];
+  /** Whole-app snapshot (today's macros, trends, food frequency) the coach may cite verbatim. */
+  coach?: CoachContext | null;
 }
 
 export interface AiProvider {
@@ -51,8 +55,13 @@ export function buildSystemPrompt(ctx: AiChatContext): string {
     );
   }
 
+  const snapshot = buildKnowledgeBlock(ctx.coach);
+  if (snapshot) lines.push(snapshot);
+
   lines.push(
-    'NEVER invent specific calorie, macro, or nutrient numbers beyond the targets provided above.',
+    'NEVER invent specific calorie, macro, or nutrient numbers beyond the targets and the ' +
+      '"WHAT I KNOW ABOUT YOU RIGHT NOW" facts provided above. If a fact is not listed there, ' +
+      'say you do not have it logged rather than guessing.',
     'For medical questions (diagnosis, medication, symptoms), defer to a qualified professional.',
   );
 
@@ -61,4 +70,42 @@ export function buildSystemPrompt(ctx: AiChatContext): string {
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Renders the deterministic coach snapshot into a facts block the LLM may quote verbatim but must
+ * never exceed. Every number here was computed by the server. Empty domains are omitted.
+ */
+function buildKnowledgeBlock(coach: CoachContext | null | undefined): string | null {
+  if (!coach) return null;
+  const facts: string[] = [];
+
+  if (coach.today) {
+    const t = coach.today;
+    const left = t.remainingKcal != null ? `, ${t.remainingKcal} kcal remaining of ${t.targetKcal}` : '';
+    facts.push(
+      `- Today so far: ${t.kcal} kcal, ${t.proteinG} g protein, ${t.carbG} g carbs, ${t.fatG} g fat, ` +
+        `${t.fiberG} g fibre, ${t.sugarG} g sugar, ${t.sodiumMg} mg sodium, ${t.waterMl} ml water${left}. ` +
+        `Logging streak: ${t.streakDays} day(s).`,
+    );
+  }
+  if (coach.todayFoods && coach.todayFoods.length > 0) {
+    facts.push(`- Logged today: ${coach.todayFoods.map((f) => `${f.name} (${f.grams} g)`).join(', ')}.`);
+  }
+  const trend = (label: string, tr: CoachContext['week']) => {
+    if (!tr || tr.daysLogged === 0) return;
+    facts.push(`- Last ${tr.windowDays} days (${label}): logged ${tr.daysLogged} day(s), avg ${tr.avgKcal} kcal & ${tr.avgProteinG} g protein, ${tr.workoutDays} workout day(s), trend ${tr.direction}.`);
+  };
+  trend('week', coach.week);
+  trend('month', coach.month);
+  if (coach.topFoods && coach.topFoods.length > 0) {
+    const top = coach.topFoods.map((f) => `${f.name} ${f.times}×${f.unhealthy ? ' (habit to watch)' : ''}`).join(', ');
+    facts.push(`- Most-logged foods all-time: ${top}.`);
+  }
+  if (coach.deficiencies && coach.deficiencies.length > 0) {
+    facts.push(`- Micronutrients running low today: ${coach.deficiencies.join(', ')}.`);
+  }
+
+  if (facts.length === 0) return null;
+  return ['WHAT I KNOW ABOUT YOU RIGHT NOW (server-computed facts — cite these, never contradict or exceed them):', ...facts].join('\n');
 }

@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import type { FoodItem, MealSlot } from '../food/food.types';
 import { answer, type ChatReply } from './chat.engine';
+import { buildCoachContext } from '../coach/coachContext';
 import { getAiProvider } from '../../ai';
 
 const DISCLAIMER =
@@ -66,12 +67,13 @@ export async function chatHistory(userId: string, take = 40) {
   return rows.reverse().map((m) => ({ id: m.id, role: m.role, content: decryptChatContent(m.content), createdAt: m.createdAt }));
 }
 
-export async function chat(userId: string, message: string, firstName?: string): Promise<ChatReply> {
-  const [snapshot, profile, foods, historyRows] = await Promise.all([
+export async function chat(userId: string, message: string, firstName?: string, offsetMin = 0): Promise<ChatReply> {
+  const [snapshot, profile, foods, historyRows, coach] = await Promise.all([
     prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } }),
     prisma.profile.findUnique({ where: { userId } }),
     prisma.food.findMany(),
     prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 10 }),
+    buildCoachContext(userId, offsetMin).catch(() => null),
   ]);
 
   const history = historyRows
@@ -101,7 +103,7 @@ export async function chat(userId: string, message: string, firstName?: string):
   const provider = getAiProvider();
   let reply: ChatReply | null = null;
   if (provider) {
-    const llm = await provider.chatReply(message, { targets, conditions, firstName, history });
+    const llm = await provider.chatReply(message, { targets, conditions, firstName, history, coach });
     if (llm && llm.trim()) {
       reply = { intent: 'llm', reply: stripDisclaimer(llm.trim()), sources: [] };
     }
@@ -113,6 +115,7 @@ export async function chat(userId: string, message: string, firstName?: string):
       conditions,
       findFood: makeFindFood(foods.map(toFoodItem)),
       firstName,
+      coach,
     });
     reply = { ...base, reply: stripDisclaimer(base.reply) };
   }

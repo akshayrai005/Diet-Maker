@@ -18,7 +18,7 @@ chatRouter.post(
   asyncHandler(async (req: AuthedRequest, res) => {
     const { message } = chatSchema.parse(req.body);
     const me = await getMe(req.user!.id);
-    const reply = await chat(req.user!.id, message, me.firstName);
+    const reply = await chat(req.user!.id, message, me.firstName, tzOffsetMin(req));
     res.json({ reply });
   }),
 );
