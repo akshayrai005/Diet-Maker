@@ -125,6 +125,9 @@ interface NutriApi {
     @retrofit2.http.PUT("reminders/prefs")
     suspend fun putReminderPrefs(@Body body: com.nutriai.data.remote.dto.ReminderPrefsDto): com.nutriai.data.remote.dto.ReminderPrefsEnvelope
 
+    @GET("history")
+    suspend fun history(@retrofit2.http.Query("days") days: Int): com.nutriai.data.remote.dto.DailyHistory
+
     @GET("discipline/today")
     suspend fun disciplineToday(
         @retrofit2.http.Query("steps") steps: Int? = null,

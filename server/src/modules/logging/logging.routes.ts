@@ -9,6 +9,7 @@ import {
 } from './logging.schemas';
 import * as svc from './logging.service';
 import { lookupBarcode } from './barcode';
+import { getHistory } from './history';
 import { tzOffsetMin } from '../../lib/tz';
 
 export const loggingRouter = Router();
@@ -114,6 +115,17 @@ loggingRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const dashboard = await svc.getDashboard(req.user!.id, tzOffsetMin(req));
     res.json({ dashboard });
+  }),
+);
+
+// ---- History (day-by-day calories / protein / water / workout + weight series) ----
+loggingRouter.get(
+  '/history',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const days = Number(req.query.days);
+    const history = await getHistory(req.user!.id, Number.isFinite(days) ? days : 30, tzOffsetMin(req));
+    res.json(history);
   }),
 );
 

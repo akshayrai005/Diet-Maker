@@ -671,6 +671,26 @@ data class DisciplineToday(
     val nudges: List<String> = emptyList(),
 )
 
+// ---- History (day-by-day trends) ----
+@Serializable
+data class HistoryDay(
+    val date: String,
+    val kcal: Int = 0,
+    val proteinG: Int = 0,
+    val waterMl: Int = 0,
+    val workout: Boolean = false,
+)
+
+@Serializable
+data class HistoryWeight(val date: String, val weightKg: Double)
+
+@Serializable
+data class DailyHistory(
+    val windowDays: Int = 30,
+    val days: List<HistoryDay> = emptyList(),
+    val weight: List<HistoryWeight> = emptyList(),
+)
+
 @Serializable
 data class HabitToggleRequest(val done: Boolean, val date: String? = null)
 

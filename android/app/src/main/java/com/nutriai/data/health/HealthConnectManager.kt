@@ -67,6 +67,31 @@ class HealthConnectManager @Inject constructor(
         }
     }
 
+    /**
+     * Steps per day for the last `days` days, keyed by local date "YYYY-MM-DD". Empty when
+     * unavailable/denied. Powers the step-history chart (Health Connect keeps ~30 days locally).
+     */
+    suspend fun readDailySteps(days: Int): Map<String, Long> {
+        val client = clientOrNull() ?: return emptyMap()
+        if (!granted(stepPermissions)) return emptyMap()
+        return try {
+            val end = java.time.LocalDateTime.now()
+            val start = end.toLocalDate().minusDays((days - 1).toLong()).atStartOfDay()
+            val response = client.aggregateGroupByPeriod(
+                androidx.health.connect.client.request.AggregateGroupByPeriodRequest(
+                    metrics = setOf(StepsRecord.COUNT_TOTAL),
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                    timeRangeSlicer = java.time.Period.ofDays(1),
+                ),
+            )
+            response.associate { bucket ->
+                bucket.startTime.toLocalDate().toString() to (bucket.result[StepsRecord.COUNT_TOTAL] ?: 0L)
+            }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
     /** Most recent heart-rate reading (bpm) in the last 24h - e.g. synced from a watch. */
     suspend fun readLatestHeartRate(): Int? {
         val client = clientOrNull() ?: return null

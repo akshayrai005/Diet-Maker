@@ -176,6 +176,10 @@ class AppRepository @Inject constructor(
     suspend fun putReminderPrefs(prefs: com.nutriai.data.remote.dto.ReminderPrefsDto): Result<com.nutriai.data.remote.dto.ReminderPrefsDto> =
         runCatching { api.putReminderPrefs(prefs).prefs }
 
+    // ---- History (day-by-day trends) ----
+    suspend fun history(days: Int): Result<com.nutriai.data.remote.dto.DailyHistory> =
+        runCatching { api.history(days) }
+
     // ---- Discipline habits ----
     suspend fun disciplineToday(steps: Int? = null, sleepHours: Double? = null): Result<com.nutriai.data.remote.dto.DisciplineToday> =
         runCatching { api.disciplineToday(steps, sleepHours) }
