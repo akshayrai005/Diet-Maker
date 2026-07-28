@@ -73,15 +73,24 @@ describe('workout scaling — level + intensity change the plan', () => {
     expect(totalSets(mk('standard'))).toBeLessThan(totalSets(mk('beast')));
   });
 
-  it('beginner caps sets at 3 and keeps at most 5 exercises per day', () => {
+  it('beginner caps sets at 3; every day offers a 7-exercise menu to pick from', () => {
     const plan = generateWeeklyWorkout('muscular', 'gym', {
       startDate: start,
       fitnessLevel: 'beginner',
       intensity: 'beast', // even beast is held down for a beginner
     });
     for (const day of plan.days.filter((d) => !d.rest)) {
-      expect(day.exercises.length).toBeLessThanOrEqual(5);
+      // The main block is padded to a 7-exercise menu (user picks any ~5), never more.
+      const main = day.exercises.filter((e) => e.name !== 'Conditioning finisher');
+      expect(main.length).toBeLessThanOrEqual(7);
       for (const ex of day.exercises) expect(ex.sets).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('pads every training day to a 7-exercise menu (pick any ~5)', () => {
+    const plan = generateWeeklyWorkout('fatloss', 'home', { startDate: start, fitnessLevel: 'intermediate' });
+    for (const day of plan.days.filter((d) => !d.rest)) {
+      expect(day.exercises.length).toBe(7);
     }
   });
 

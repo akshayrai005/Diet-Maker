@@ -222,6 +222,67 @@ const LEVEL_MAX_EXERCISES: Record<FitnessLevel, number> = {
   advanced: Number.POSITIVE_INFINITY,
 };
 
+/** Every day's main block is padded to this many exercises, so the user can pick any ~5 to do. */
+const TARGET_MAIN_EXERCISES = 7;
+
+/**
+ * Extra exercises per muscle bucket, used to pad a short day up to TARGET_MAIN_EXERCISES. All are
+ * common, demo-friendly moves (they have GIF demos in the app). Deterministic order.
+ */
+const EXTRA_POOL: Record<string, ExerciseItem[]> = {
+  chest: [s('Push-ups', 3, '12-15'), s('Incline dumbbell press', 3, '12'), s('Cable fly', 3, '15'), s('Chest dips', 3, '10'), s('Dumbbell bench press', 3, '12')],
+  back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Face pull', 3, '15'), s('Superman', 3, '15')],
+  shoulders: [s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12')],
+  biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12')],
+  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12')],
+  legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15')],
+  core: [s('Plank', 3, '45s'), s('Russian twist', 3, '20'), s('Hanging leg raise', 3, '15'), s('Dead bug', 3, '10 each side'), s('Bicycle crunch', 3, '20')],
+  cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
+};
+
+/** Muscle buckets a focus label trains, used to pick padding exercises. */
+function bucketsForFocus(focus: string): string[] {
+  const f = focus.toLowerCase();
+  const b = new Set<string>();
+  if (/chest|push|pec/.test(f)) b.add('chest');
+  if (/back|pull|lat|row/.test(f)) b.add('back');
+  if (/shoulder|delt|press/.test(f)) b.add('shoulders');
+  if (/bicep|forearm|curl/.test(f)) b.add('biceps');
+  if (/tricep/.test(f)) b.add('triceps');
+  if (/leg|quad|glute|lower|calf|hamstring/.test(f)) b.add('legs');
+  if (/core|ab|abs/.test(f)) b.add('core');
+  if (/cardio|hiit|conditioning|full|fat|steady|circuit|metcon/.test(f)) b.add('cardio');
+  if (b.size === 0) { b.add('cardio'); b.add('core'); } // sensible default
+  return [...b];
+}
+
+/** Pad a day's main exercises up to `target`, drawing from the focus's muscle buckets. PURE. */
+function padMain(focus: string, items: ExerciseItem[], target: number): ExerciseItem[] {
+  if (items.length >= target) return items;
+  const have = new Set(items.map((i) => i.name.toLowerCase()));
+  const buckets = bucketsForFocus(focus);
+  const out = [...items];
+  // Round-robin across the focus's buckets so a multi-muscle day gets variety.
+  let added = true;
+  const cursors: Record<string, number> = {};
+  while (out.length < target && added) {
+    added = false;
+    for (const bucket of buckets) {
+      if (out.length >= target) break;
+      const pool = EXTRA_POOL[bucket] ?? [];
+      let idx = cursors[bucket] ?? 0;
+      while (idx < pool.length && have.has(pool[idx]!.name.toLowerCase())) idx++;
+      if (idx < pool.length) {
+        out.push({ ...pool[idx]! });
+        have.add(pool[idx]!.name.toLowerCase());
+        cursors[bucket] = idx + 1;
+        added = true;
+      }
+    }
+  }
+  return out;
+}
+
 export interface IntensityCapOptions {
   under18?: boolean;
   medicalCaution?: boolean;
@@ -343,7 +404,6 @@ function applyScaling(
   intensity: IntensityPreference,
 ): WeeklyWorkout {
   const factor = INTENSITY_SET_FACTOR[intensity];
-  const maxExercises = LEVEL_MAX_EXERCISES[level];
   const addFinisher = level !== 'beginner' && (level === 'advanced' || intensity === 'beast');
 
   const days: WorkoutDay[] = plan.days.map((day) => {
@@ -352,13 +412,10 @@ function applyScaling(
       return { ...day, exercises: day.exercises.map((ex) => ({ ...ex, ...annotate(ex.name) })) };
     }
 
-    let items = day.exercises.map((ex) => ({
-      ...ex,
-      ...annotate(ex.name),
-      sets: scaleSets(ex.sets, factor, level),
-    }));
-
-    if (Number.isFinite(maxExercises)) items = items.slice(0, maxExercises);
+    // Pad a SHORT day's main block up to the target so the user always has ~7 to pick 5 from.
+    // Never trims a day that already offers more (e.g. the full-body split's ~12).
+    const padded = padMain(day.focus, day.exercises, TARGET_MAIN_EXERCISES);
+    let items = padded.map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
     if (addFinisher) items = [...items, { ...FINISHER }];
 
     return { ...day, exercises: items };
