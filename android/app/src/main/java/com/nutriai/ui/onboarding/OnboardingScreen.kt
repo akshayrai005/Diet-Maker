@@ -79,6 +79,18 @@ private val STRICTNESS = listOf(
     "standard" to "Standard",
     "strict" to "Strict",
 )
+private val KITCHEN = listOf(
+    "stove" to "Full kitchen (stove/gas)",
+    "microwave" to "Microwave only",
+    "kettle" to "Electric kettle / hot water only",
+    "none" to "No cooking (assemble only)",
+)
+private val LIVING = listOf(
+    "home" to "Home",
+    "pg" to "PG / rented room",
+    "hostel" to "Hostel / mess",
+    "travel" to "Travelling",
+)
 private val FITNESS_LEVEL = listOf(
     "beginner" to "Beginner",
     "intermediate" to "Intermediate",
@@ -162,6 +174,8 @@ fun OnboardingScreen(
     var occupation by remember { mutableStateOf("desk") }
     var budgetTier by remember { mutableStateOf("medium") }
     var dietStrictness by remember { mutableStateOf("standard") }
+    var kitchen by remember { mutableStateOf("stove") }
+    var livingSituation by remember { mutableStateOf("home") }
     var fitnessLevel by remember { mutableStateOf("beginner") }
     var intensity by remember { mutableStateOf("standard") }
     var activity by remember { mutableStateOf("moderate") }
@@ -197,6 +211,8 @@ fun OnboardingScreen(
             occupation = s.occupation ?: occupation
             budgetTier = s.budgetTier ?: budgetTier
             dietStrictness = s.dietStrictness ?: dietStrictness
+            kitchen = s.kitchen ?: kitchen
+            livingSituation = s.livingSituation ?: livingSituation
             fitnessLevel = s.fitnessLevel ?: fitnessLevel
             intensity = s.intensityPreference ?: intensity
             conditions.clear(); conditions.addAll(s.conditions)
@@ -258,6 +274,8 @@ fun OnboardingScreen(
                         occupation = occupation,
                         budgetTier = budgetTier,
                         dietStrictness = dietStrictness,
+                        kitchen = kitchen,
+                        livingSituation = livingSituation,
                         fitnessLevel = fitnessLevel,
                         intensityPreference = intensity,
                         dob = dob.trim(),
@@ -340,6 +358,8 @@ fun OnboardingScreen(
                     Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
                     Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
                     Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
+                    Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it }
+                    Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
                 }
                 2 -> {
                     Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
