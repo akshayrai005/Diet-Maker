@@ -370,12 +370,20 @@ private fun CalorieRingCard(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Today's energy",
+                if (dashboard.fastingToday) "Today's energy · 🌙 Fasting day" else "Today's energy",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (dashboard.fastingToday) {
+                Text(
+                    "Lighter target today — your fasting-day plan, so eat-to-lose matches it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             if (cal.target == null) {
                 Text(

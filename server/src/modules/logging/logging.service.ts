@@ -14,6 +14,7 @@ import {
   type MicronutrientKey,
 } from '../../calc/micronutrients';
 import { estimateMicronutrientsPer100g } from '../../calc/micronutrientEstimate';
+import { FASTING_KCAL_FACTOR } from '../food/food.types';
 import type { SensitiveData } from '../profile/profile.schemas';
 import type { Sex } from '../../calc/types';
 import { localDayKey } from '../../lib/tz';
@@ -334,17 +335,32 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     prisma.profile.findUnique({ where: { userId } }),
   ]);
 
-  let micronutrients: MicronutrientBlock | undefined;
+  let sensitive: SensitiveData | undefined;
   if (profile?.sensitiveEnc) {
-    const s = decryptJson<SensitiveData>(profile.sensitiveEnc);
+    try {
+      sensitive = decryptJson<SensitiveData>(profile.sensitiveEnc);
+    } catch {
+      sensitive = undefined;
+    }
+  }
+
+  let micronutrients: MicronutrientBlock | undefined;
+  if (sensitive) {
+    const s = sensitive;
     const intake = await estimateTodayMicronutrients(todayFood);
     micronutrients = micronutrientBlock(s.sex as Sex, ageFromDob(s.dob, now), intake, {
-      dietType: (s as { dietType?: string }).dietType ?? profile.dietType,
+      dietType: (s as { dietType?: string }).dietType ?? profile?.dietType,
       allergies: (s as { allergies?: string[] }).allergies,
       // Profile budget tier is low|medium|flexible; only 'low' maps to a cheap-food preference.
       budgetTier: (s as { budgetTier?: string }).budgetTier === 'low' ? 'low' : undefined,
     });
   }
+
+  // Fasting day: today's calorie target drops to match the light fasting plan, so Home's
+  // "eat to lose" number agrees with the day's meal plan instead of showing the normal target.
+  const fastDay = (sensitive as { fastDayOfWeek?: number } | undefined)?.fastDayOfWeek;
+  const weekday = new Date(`${todayKey}T00:00:00Z`).getUTCDay();
+  const fastingToday = fastDay !== undefined && weekday === fastDay;
 
   const result = snapshot?.result as
     | {
@@ -364,10 +380,17 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     })
     .filter((p): p is WeightPoint => p !== null);
 
+  const dashTargets = result
+    ? {
+        dailyKcal: fastingToday ? Math.round(result.dailyKcal * FASTING_KCAL_FACTOR) : result.dailyKcal,
+        proteinG: result.proteinG,
+        waterMl: result.waterMl,
+      }
+    : null;
+
   return buildDashboard({
-    targets: result
-      ? { dailyKcal: result.dailyKcal, proteinG: result.proteinG, waterMl: result.waterMl }
-      : null,
+    targets: dashTargets,
+    fastingToday,
     todayTotals: sumTotals(todayFood),
     waterTodayMl: waterMl,
     logDayKeys: distinctDays.map((d) => dayKey(d.loggedAt)),

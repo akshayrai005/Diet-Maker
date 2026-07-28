@@ -339,6 +339,7 @@ data class Dashboard(
     val weight: WeightTrend,
     val projection: List<ProjectionPoint> = emptyList(),
     val micronutrients: Micronutrients? = null,
+    val fastingToday: Boolean = false,
 )
 
 @Serializable

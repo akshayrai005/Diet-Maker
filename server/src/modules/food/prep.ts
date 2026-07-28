@@ -41,7 +41,9 @@ export const PG_STAPLE_IDS = [
 
 /** True when the living situation / kitchen implies assemble-only planning. */
 export function isPgMode(opts: { livingSituation?: string; kitchen?: PrepLevel }): boolean {
-  const ls = (opts.livingSituation ?? '').toLowerCase();
-  if (ls === 'pg' || ls === 'hostel') return true;
-  return opts.kitchen === 'none' || opts.kitchen === 'kettle';
+  // Only a genuine NO-kitchen situation forces assemble-only staples. Living in a PG/hostel doesn't
+  // by itself mean you can't cook (many have a shared stove/induction), and a kettle can still make
+  // daliya/oats — so those keep normal Indian plans (roti+dal, rice+sabji) rather than dropping to
+  // curd-and-nuts. Users who truly can't cook select kitchen = 'none'.
+  return opts.kitchen === 'none';
 }

@@ -110,6 +110,8 @@ export interface DashboardInput {
   /** Calories burned today from logged exercise + wellness sessions. */
   burnedTodayKcal?: number;
   micronutrients?: MicronutrientBlock;
+  /** True when today is the user's weekly fasting day (target already reduced). */
+  fastingToday?: boolean;
 }
 
 export interface MicronutrientTargetView {
@@ -176,5 +178,6 @@ export function buildDashboard(input: DashboardInput) {
     weight: weightTrend(input.weightPoints),
     projection: input.projection ?? [],
     micronutrients: input.micronutrients ?? null,
+    fastingToday: input.fastingToday ?? false,
   };
 }

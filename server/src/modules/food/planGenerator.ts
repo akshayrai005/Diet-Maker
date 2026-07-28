@@ -6,6 +6,7 @@ import {
   MealItem,
   MealSlot,
   MEAL_SLOTS,
+  FASTING_KCAL_FACTOR,
   PlanPreferences,
   PlanTargets,
   SLOT_KCAL_WEIGHTS,
@@ -265,7 +266,7 @@ function buildDay(
       ? (['lunch', 'eveningsnack', 'dinner'] as MealSlot[])
       : MEAL_SLOTS;
 
-  const dailyKcal = fasting ? Math.round(targets.dailyKcal * 0.4) : targets.dailyKcal;
+  const dailyKcal = fasting ? Math.round(targets.dailyKcal * FASTING_KCAL_FACTOR) : targets.dailyKcal;
 
   // On a fasting day, prefer light foods (fruit, buttermilk, coconut water, khichdi).
   const pool = fasting

@@ -27,6 +27,9 @@ export const MEAL_SLOTS: MealSlot[] = [
   'bedtime',
 ];
 
+/** Fasting-day calories = this fraction of the normal daily target (light day). */
+export const FASTING_KCAL_FACTOR = 0.4;
+
 /** Fraction of daily calories per slot (sums to 1). */
 export const SLOT_KCAL_WEIGHTS: Record<MealSlot, number> = {
   wakeup: 0.05,

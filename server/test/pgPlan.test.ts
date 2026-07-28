@@ -49,12 +49,13 @@ describe('Feature 3 — PG / no-cook plans', () => {
     }
   });
 
-  // AC6: isPgMode triggers on living situation OR low kitchen access.
-  it('AC6: PG mode is detected from living situation or kitchen access', () => {
-    expect(isPgMode({ livingSituation: 'pg' })).toBe(true);
-    expect(isPgMode({ livingSituation: 'hostel' })).toBe(true);
+  // AC6: assemble-only PG mode is reserved for a genuine NO-kitchen situation — so a PG/hostel
+  // student with any way to cook still gets full Indian plans (roti+dal, rice+sabji).
+  it('AC6: PG assemble-only mode triggers only for kitchen "none"', () => {
     expect(isPgMode({ kitchen: 'none' })).toBe(true);
-    expect(isPgMode({ kitchen: 'kettle' })).toBe(true);
+    expect(isPgMode({ livingSituation: 'pg' })).toBe(false);
+    expect(isPgMode({ livingSituation: 'hostel' })).toBe(false);
+    expect(isPgMode({ kitchen: 'kettle' })).toBe(false);
     expect(isPgMode({ livingSituation: 'home', kitchen: 'stove' })).toBe(false);
   });
 
