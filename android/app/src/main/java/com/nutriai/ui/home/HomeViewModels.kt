@@ -424,11 +424,25 @@ class LogFoodViewModel @Inject constructor(
 // ---- Session (login state at the nav root) ----
 @HiltViewModel
 class SessionViewModel @Inject constructor(
-    repository: AppRepository,
+    private val repository: AppRepository,
 ) : ViewModel() {
-    val isLoggedIn: StateFlow<Boolean?> = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null).also { flow ->
+    private val _loggedIn = MutableStateFlow<Boolean?>(null)
+    val isLoggedIn: StateFlow<Boolean?> = _loggedIn.asStateFlow()
+
+    // null = still checking; true = logged in but profile incomplete → must finish onboarding first.
+    private val _needsProfile = MutableStateFlow<Boolean?>(null)
+    val needsProfile: StateFlow<Boolean?> = _needsProfile.asStateFlow()
+
+    init {
         viewModelScope.launch {
-            repository.isLoggedIn.collect { flow.value = it }
+            repository.isLoggedIn.collect { li ->
+                _loggedIn.value = li
+                _needsProfile.value = when (li) {
+                    true -> repository.getProfile().getOrNull()?.sensitive == null
+                    false -> false
+                    null -> null
+                }
+            }
         }
-    }.asStateFlow()
+    }
 }

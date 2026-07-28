@@ -34,6 +34,7 @@ private object Routes {
 @Composable
 fun AppRoot(startTab: Int = 0, sessionViewModel: SessionViewModel = hiltViewModel()) {
     val loggedIn by sessionViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val needsProfile by sessionViewModel.needsProfile.collectAsStateWithLifecycle()
 
     var splashDone by remember { mutableStateOf(false) }
     if (!splashDone) {
@@ -41,7 +42,9 @@ fun AppRoot(startTab: Int = 0, sessionViewModel: SessionViewModel = hiltViewMode
         return
     }
 
-    if (loggedIn == null) {
+    // Wait until we know both login state and (if logged in) whether the profile is complete, so a
+    // half-onboarded user is sent to finish setup instead of flashing an empty home.
+    if (loggedIn == null || (loggedIn == true && needsProfile == null)) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         return
     }
@@ -49,7 +52,11 @@ fun AppRoot(startTab: Int = 0, sessionViewModel: SessionViewModel = hiltViewMode
     val navController = rememberNavController()
     NavHost(
         navController = navController,
-        startDestination = if (loggedIn == true) Routes.HOME else Routes.LOGIN,
+        startDestination = when {
+            loggedIn != true -> Routes.LOGIN
+            needsProfile == true -> Routes.ONBOARDING
+            else -> Routes.HOME
+        },
     ) {
         composable(Routes.LOGIN) {
             LoginScreen(
