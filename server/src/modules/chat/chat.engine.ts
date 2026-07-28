@@ -1,5 +1,7 @@
-import { FoodItem } from '../food/food.types';
+import { FoodItem, type MealSlot } from '../food/food.types';
 import type { CoachContext } from '../coach/coachContext';
+import { assessFoodSuitability, rankSuitable, type FoodSituation } from '../food/suitability';
+import { PG_STAPLE_IDS } from '../food/prep';
 
 export interface ChatContext {
   targets: {
@@ -21,6 +23,12 @@ export interface ChatContext {
   firstName?: string;
   /** Whole-app snapshot the coach answers "what did I eat / how's my week" from. Null = degrade gracefully. */
   coach?: CoachContext | null;
+  /** Full food catalog — powers "what should I eat now" suggestions. */
+  foods?: FoodItem[];
+  /** User's diet pattern (veg/nonveg/…) for the suitability scorer. */
+  dietType?: string;
+  /** Meal slot for the current time of day (server-computed), used when the user doesn't name one. */
+  nowSlot?: MealSlot;
 }
 
 export interface ChatReply {
@@ -36,6 +44,9 @@ export interface ChatReply {
     | 'coach_frequency'
     | 'coach_habits'
     | 'coach_plan'
+    | 'coach_suggest'
+    | 'coach_exercise'
+    | 'coach_mind'
     | 'fallback'
     | 'llm';
   reply: string;
@@ -46,43 +57,6 @@ const DISCLAIMER = 'This is educational guidance, not medical advice - please co
 
 function withDisclaimer(text: string): string {
   return `${text}\n\n${DISCLAIMER}`;
-}
-
-const has = (arr: string[], v: string) => arr.includes(v);
-
-/** Assess a food against the user's conditions and return portion guidance. */
-function assessFood(food: FoodItem, conditions: string[]): string {
-  const cautions: string[] = [];
-  const tags = food.tags;
-
-  if (
-    has(conditions, 'diabetes') &&
-    (tags.includes('high-sugar') ||
-      tags.includes('high-gi') ||
-      food.sugarG >= 10 ||
-      (food.glycemicIndex ?? 0) >= 55)
-  ) {
-    cautions.push('it is high in sugar / glycaemic load, so keep the portion small and pair it with protein or fibre to blunt the glucose spike');
-  }
-  if ((has(conditions, 'hypertension') || has(conditions, 'heart_disease')) && (tags.includes('high-sodium') || food.sodiumMg >= 400)) {
-    cautions.push('it is relatively high in sodium, so watch the quantity');
-  }
-  if (has(conditions, 'heart_disease') && tags.includes('high-satfat')) {
-    cautions.push('it is high in saturated fat - keep it occasional');
-  }
-  if (has(conditions, 'gout') && tags.includes('high-purine')) {
-    cautions.push('it is high in purines, which can aggravate gout - limit it');
-  }
-  if (has(conditions, 'kidney_disease') && (tags.includes('high-potassium') || tags.includes('high-phosphorus'))) {
-    cautions.push('it is high in potassium/phosphorus - check with your care team about the amount');
-  }
-
-  const serving = `A typical serving is about ${food.typicalServingG} g (~${Math.round((food.kcal * food.typicalServingG) / 100)} kcal, ${Math.round((food.proteinG * food.typicalServingG) / 100)} g protein).`;
-
-  if (cautions.length > 0) {
-    return `${food.name}: yes, in moderation - but ${cautions.join('; ')}. ${serving}`;
-  }
-  return `${food.name}: yes, that fits a balanced plan. ${serving}`;
 }
 
 /** Extracts a likely food term from a "can I eat X" style question. */
@@ -145,7 +119,13 @@ function coachTrendReply(coach: CoachContext, monthly: boolean): string | null {
     tr.direction === 'slipping' ? "though your protein has been slipping lately" :
     tr.direction === 'steady' ? "holding fairly steady" :
     "though it's still early to call a trend";
-  return `Over the last ${tr.windowDays} days you logged food on ${tr.daysLogged} ${tr.daysLogged === 1 ? 'day' : 'days'}, averaging ${tr.avgKcal} kcal and ${tr.avgProteinG} g protein, with ${tr.workoutDays} workout ${tr.workoutDays === 1 ? 'day' : 'days'} — ${dir}.`;
+  // Weight change over the tracked check-ins (GAP 5) — only when we actually have it.
+  let weight = '';
+  if (coach.weightDeltaKg != null && coach.weightDeltaKg !== 0) {
+    const d = coach.weightDeltaKg;
+    weight = ` Your weight has ${d < 0 ? 'dropped' : 'gone up'} ${Math.abs(d)} kg over your check-ins${coach.weightKg != null ? ` (now ${coach.weightKg} kg)` : ''}.`;
+  }
+  return `Over the last ${tr.windowDays} days you logged food on ${tr.daysLogged} ${tr.daysLogged === 1 ? 'day' : 'days'}, averaging ${tr.avgKcal} kcal and ${tr.avgProteinG} g protein, with ${tr.workoutDays} workout ${tr.workoutDays === 1 ? 'day' : 'days'} — ${dir}.${weight}`;
 }
 
 function coachHabitsReply(coach: CoachContext): string | null {
@@ -156,6 +136,109 @@ function coachHabitsReply(coach: CoachContext): string | null {
   if (watch.length === 0) return `Your most-logged foods are ${frequent} — nothing there stands out as a habit to watch. Keep it up.`;
   const watchStr = watch.map((f) => `${f.name} (${f.times}×)`).join(', ');
   return `Your most-logged foods are ${frequent}. The ones worth watching: ${watchStr} — these carry refined/fried/high-sugar tags, so try swapping in a whole-food option a few times a week.`;
+}
+
+/**
+ * Assemble the deterministic FoodSituation the suitability scorer consumes — from the coach context
+ * (conditions, allergies, budget, kitchen, meds, cycle, deficiencies, remaining macros) + profile.
+ * PG users with no explicit available-food list fall back to the assemble-only staples.
+ */
+function buildSituation(ctx: ChatContext, slot?: MealSlot, microGaps?: string[]): FoodSituation {
+  const c = ctx.coach ?? null;
+  return {
+    dietType: ctx.dietType,
+    conditions: ctx.conditions,
+    allergies: c?.allergies ?? [],
+    budgetTier: c?.budgetTier ?? undefined,
+    pantryTags: c?.pantryTags ?? undefined,
+    kitchen: c?.kitchen ?? undefined,
+    availableFoodIds: c?.availableFoodIds ?? undefined,
+    medications: c?.medications ?? undefined,
+    cyclePhase: c?.cyclePhase ?? undefined,
+    microGaps: microGaps ?? c?.deficiencies ?? undefined,
+    slot,
+  };
+}
+
+/** Nutrient the user explicitly asked to top up, mapped to a coach-deficiency label if present. */
+function requestedNutrient(msg: string): string | null {
+  const map: Record<string, string> = {
+    iron: 'iron', calcium: 'calcium', protein: 'protein', fibre: 'fibre', fiber: 'fibre',
+    potassium: 'potassium', magnesium: 'magnesium', zinc: 'zinc', b12: 'b12', vitamin: 'vitamin',
+  };
+  for (const key of Object.keys(map)) if (msg.includes(key)) return map[key]!;
+  return null;
+}
+
+/** Slot named in the message, if any. */
+function slotFromMessage(msg: string): MealSlot | undefined {
+  if (/breakfast/.test(msg)) return 'breakfast';
+  if (/lunch/.test(msg)) return 'lunch';
+  if (/dinner/.test(msg)) return 'dinner';
+  if (/snack/.test(msg)) return 'eveningsnack';
+  if (/bed ?time|before (bed|sleep)/.test(msg)) return 'bedtime';
+  return undefined;
+}
+
+/** True for "suggest me a food" style questions (vs "can I eat X" which is a safety check). */
+function isSuggestQuestion(msg: string): boolean {
+  return (
+    /\bwhat (should|can|could) i eat\b/.test(msg) ||
+    /\bwhat to eat\b/.test(msg) ||
+    /\bwhat do i eat now\b/.test(msg) ||
+    /\b(suggest|recommend|give me|any)\b.*\b(snack|meal|food|breakfast|lunch|dinner|option|options|something|dish|idea|ideas)\b/.test(msg) ||
+    /\bsomething (to eat|for my|healthy|cheap|quick|light|filling|no-?cook)\b/.test(msg) ||
+    /\b(no-?cook|assemble-?only|without cooking)\b.*\b(option|food|meal|snack|eat)\b/.test(msg)
+  );
+}
+
+/** "What should I eat?" — 2-3 ranked, situation-appropriate picks with portion + why. */
+function coachSuggestReply(ctx: ChatContext, msg: string): string | null {
+  const foods = ctx.foods;
+  if (!foods || foods.length === 0) return null;
+  const c = ctx.coach ?? null;
+  const nutrient = requestedNutrient(msg);
+  const microGaps = nutrient ? [nutrient] : undefined;
+  const slot = slotFromMessage(msg) ?? ctx.nowSlot;
+  const situation = buildSituation(ctx, slot, microGaps);
+  // PG / hostel with no explicit pantry → suggest only assemble-only staples they can actually make.
+  if (!situation.availableFoodIds && c?.pgMode) situation.availableFoodIds = [...PG_STAPLE_IDS];
+  const picks = rankSuitable(foods, situation, { slot, limit: 3 });
+  if (picks.length === 0) {
+    return `I couldn't find a food that fits all your constraints right now. Tell me what you have on hand and I'll work from that.`;
+  }
+  const pgNote = c?.pgMode ? ` (no-cook picks — nothing here needs a stove)` : '';
+  const lines = picks.map((p) => {
+    const why = p.reasons[0] ? ` — ${p.reasons[0]}` : '';
+    return `• ${p.food.name} (~${p.portionG} g, ${p.kcalForPortion} kcal)${why}`;
+  });
+  const lead = nutrient ? `For more ${nutrient}, try${pgNote}:` : slot ? `Good ${slot} options${pgNote}:` : `Here's what fits you right now${pgNote}:`;
+  return `${lead}\n${lines.join('\n')}`;
+}
+
+/** "Did I train today / how's my training." */
+function coachExerciseReply(ctx: ChatContext): string | null {
+  const e = ctx.coach?.exercise;
+  if (!e) return null;
+  if (e.rest) return `Today is a rest day on your plan — recovery is where the gains land. ${e.weeklyWorkouts} workout${e.weeklyWorkouts === 1 ? '' : 's'} in the last 7 days.`;
+  const trendWord = e.overloadTrend === 'up' ? 'your lifts are trending up — keep adding a little each week' : e.overloadTrend === 'down' ? 'your lifts have dipped lately — check recovery and protein' : 'your lifts are holding steady';
+  if (e.todayDone) return `Yes — you trained today${e.todayFocus ? ` (${e.todayFocus})` : ''}. ${e.weeklyWorkouts} session${e.weeklyWorkouts === 1 ? '' : 's'} this week, and ${trendWord}.`;
+  if (e.todayScheduled) return `You've got a workout scheduled today${e.todayFocus ? ` — ${e.todayFocus}` : ''}, not logged yet. ${e.weeklyWorkouts} done in the last 7 days.`;
+  return `No workout scheduled today. You've trained ${e.weeklyWorkouts} time${e.weeklyWorkouts === 1 ? '' : 's'} in the last 7 days, and ${trendWord}.`;
+}
+
+/** "How's my mood / sleep / stress lately." */
+function coachMindReply(ctx: ChatContext): string | null {
+  const m = ctx.coach?.mind;
+  if (!m) return null;
+  const bits: string[] = [];
+  if (m.mood != null) bits.push(`mood ${m.mood}/5`);
+  if (m.stress != null) bits.push(`stress ${m.stress}/5`);
+  if (m.sleepQuality != null) bits.push(`sleep quality ${m.sleepQuality}/5`);
+  const latest = bits.length ? `Your latest check-in: ${bits.join(', ')}.` : '';
+  const insight = m.insight ? ` ${m.insight}` : '';
+  if (!latest && !insight) return null;
+  return `${latest}${insight}`.trim();
 }
 
 /** Prescriptive plan: what the body needs, the fat-loss target, and the full macro split. */
@@ -221,12 +304,37 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
     };
   }
 
-  // Food-safety questions.
+  // "What should I eat (now / for breakfast / for my iron / something cheap / no-cook)" — ranked,
+  // situation-aware picks. Runs before food-safety so "what should I eat" isn't read as a food name.
+  if (ctx.foods && isSuggestQuestion(msg)) {
+    const r = coachSuggestReply(ctx, msg);
+    if (r) return { intent: 'coach_suggest', reply: withDisclaimer(r), sources: [] };
+  }
+
+  // Prescriptive plan question ("how many calories/carbs/fat to lose fat", "my macro targets").
+  // Before food-safety so "…to lose fat" isn't misread as a food, and before the retrospective
+  // branches so a plan question never gets answered with today's totals. Deterministic calc targets.
+  if (ctx.targets && isPlanQuestion(msg)) {
+    return { intent: 'coach_plan', reply: withDisclaimer(coachPlanReply(ctx.targets)), sources: [] };
+  }
+
+  // Food-safety questions — now scored by the full suitability engine (conditions + allergies +
+  // budget + kitchen + medications + cycle phase + today's remaining calories).
+  const FILLER_TERMS = new Set(['now', 'something', 'anything', 'more', 'food', 'it', 'this', 'that', 'a snack', 'snack', 'to lose fat', 'to loose fat', 'to eat']);
   const term = extractFoodTerm(msg);
-  if (term) {
+  if (term && !FILLER_TERMS.has(term.toLowerCase().trim())) {
     const food = ctx.findFood(term);
     if (food) {
-      return { intent: 'food_safety', reply: withDisclaimer(assessFood(food, ctx.conditions)), sources: [food.id] };
+      const v = assessFoodSuitability(food, buildSituation(ctx));
+      const verdictWord = v.verdict === 'good' ? 'yes, that fits your plan' : v.verdict === 'moderate' ? 'yes, but in moderation' : 'best avoided for you';
+      // Drop the scorer's generic "fits your plan" placeholder — the verdict already says that.
+      const realReasons = v.reasons.filter((r) => r !== 'fits your plan');
+      const reasons = realReasons.length ? ` — ${realReasons.join('; ')}` : '';
+      const left = ctx.coach?.today?.remainingKcal;
+      const budgetNote = v.verdict !== 'avoid' && left != null && left > 0 && v.kcalForPortion > left
+        ? ` A ${v.portionG} g serving is ~${v.kcalForPortion} kcal, but you only have about ${left} kcal left today — keep it small.`
+        : ` A typical serving is about ${v.portionG} g (~${v.kcalForPortion} kcal).`;
+      return { intent: 'food_safety', reply: withDisclaimer(`${food.name}: ${verdictWord}${reasons}.${budgetNote}`), sources: [food.id] };
     }
     return {
       intent: 'food_safety',
@@ -235,15 +343,20 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
     };
   }
 
-  // Prescriptive plan question ("how many calories/carbs/fat to lose fat", "my macro targets").
-  // Must run BEFORE the retrospective "what did I log today" branches so a plan question never gets
-  // answered with today's totals. Uses the deterministic calc targets — never invented.
-  if (ctx.targets && isPlanQuestion(msg)) {
-    return { intent: 'coach_plan', reply: withDisclaimer(coachPlanReply(ctx.targets)), sources: [] };
-  }
-
   // ---- Coach whole-app context: answer from what the user actually logged ----
   if (coach) {
+    // "did I train today / how's my training / my workout"
+    if (/(did i (train|work ?out|exercise|lift)|have i (trained|worked ?out|exercised))|how('?s| is| was) my (training|workout|exercise|gym)|my (training|workout|gym) (today|this week|going)|(train|work ?out|gym) today/.test(msg)) {
+      const r = coachExerciseReply(ctx);
+      if (r) return { intent: 'coach_exercise', reply: withDisclaimer(r), sources: [] };
+    }
+
+    // "how's my mood / sleep / stress lately"
+    if (/(how('?s| is| has| have)|hows).*(mood|sleep|stress|mental|feeling)|my (mood|sleep|stress).*(lately|recently|this week|been)|am i sleeping (well|enough)/.test(msg)) {
+      const r = coachMindReply(ctx);
+      if (r) return { intent: 'coach_mind', reply: withDisclaimer(r), sources: [] };
+    }
+
     // "how many times have I eaten X" / "how often do I eat X"
     const freqMatch = msg.match(/how (?:many times|often) (?:have i |do i |did i )?(?:eat|eaten|ate|log|logged|had|have)\s+(?:some\s+|a\s+|an\s+)?([a-z\s]+?)\??$/i);
     if (freqMatch?.[1]) {
@@ -292,10 +405,11 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
       }
     }
 
-    // Catch-all for any consumption question we can answer from today's log — even vague or
-    // misspelled ("in total meal today how much cards I took"). We hold the numbers, so we answer
-    // with the full summary rather than ever letting the coach say "I don't have access".
-    if (coach.today && /(consumed|consume|intake|took|take|eaten|ate|logged|log|total)/.test(msg) && /(today|so far|meal|food|calorie|kcal|macro|carb|card|protein|fat|diet)/.test(msg)) {
+    // Catch-all for a genuine consumption QUESTION we can answer from today's log — even vague or
+    // misspelled ("in total meal today how much cards I took"). Gated on interrogative framing so a
+    // statement or preference ("I don't want to take protein") is NOT hijacked — those go to the LLM.
+    const looksLikeQuestion = /\?$|^(how|what|which|tell me|show|list|do i|did i|have i|give me|how much|how many)\b/.test(msg);
+    if (coach.today && looksLikeQuestion && /\b(consumed|consume|intake|eaten|ate|logged|log|total|took)\b/.test(msg) && /(today|so far|meal|food|calorie|kcal|macro|carb|card|protein|fat|diet)/.test(msg)) {
       const r = coachTodayReply(coach);
       if (r) return { intent: 'coach_today', reply: withDisclaimer(r), sources: [] };
     }

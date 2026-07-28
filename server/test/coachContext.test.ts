@@ -2,8 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { answer, type ChatContext } from '../src/modules/chat/chat.engine';
 import type { CoachContext } from '../src/modules/coach/coachContext';
 import type { DietTrend } from '../src/modules/logging/dietTrend';
+import type { FoodItem } from '../src/modules/food/food.types';
 
 const strip = (s: string) => s.split('This is educational guidance')[0]!.trim();
+
+const food = (over: Partial<FoodItem>): FoodItem => ({
+  id: over.id ?? 'f', name: 'Food', locale: 'IN', category: 'vegan', mealSlots: ['lunch'],
+  kcal: 150, proteinG: 8, carbG: 20, fatG: 4, fiberG: 3, sugarG: 2, sodiumMg: 50,
+  typicalServingG: 100, costTier: 1, tags: [], allergens: [], prep: 'stove', ...over,
+});
 
 const trend = (over: Partial<DietTrend>): DietTrend => ({
   windowDays: 7,
@@ -39,7 +46,23 @@ const coach: CoachContext = {
     { foodId: 'oats', name: 'Oats', times: 20, totalGrams: 1200, totalKcal: 4600, firstAt: '2026-05-01T00:00:00.000Z', lastAt: '2026-07-28T00:00:00.000Z', perWeekAvg: 1.6, unhealthy: false },
   ],
   deficiencies: ['Iron', 'Vitamin B12'],
+  kitchen: null,
+  livingSituation: null,
+  availableFoodIds: null,
+  pgMode: false,
+  conditions: [],
+  allergies: [],
+  budgetTier: null,
+  pantryTags: null,
+  exercise: { todayScheduled: true, todayDone: true, todayFocus: 'Legs', rest: false, weeklyWorkouts: 4, overloadTrend: 'up' },
+  weightKg: 74.5,
+  weightDeltaKg: -1.2,
+  mind: { mood: 4, stress: 2, sleepQuality: 3, insight: 'Your mood has held steady this week.' },
+  medications: [],
+  cyclePhase: null,
 };
+
+const mkCoach = (over: Partial<CoachContext> = {}): CoachContext => ({ ...coach, ...over });
 
 const ctx = (over: Partial<ChatContext> = {}): ChatContext => ({
   targets: { dailyKcal: 2000, proteinG: 120, waterMl: 2500 },
@@ -145,6 +168,84 @@ describe('coach answers from whole-app context (deterministic, AI_PROVIDER=rules
     it('does NOT hijack a retrospective "carbs today" question', () => {
       const r = answer('how many carbs did I take today?', planCtx);
       expect(r.intent).toBe('coach_today');
+    });
+  });
+
+  describe('advisor gaps — scorer / suggestions / exercise / mind (deterministic)', () => {
+    const CATALOG: FoodItem[] = [
+      food({ id: 'samosa', name: 'Samosa', category: 'vegan', tags: ['fried', 'refined'], prep: 'stove', mealSlots: ['eveningsnack'] }),
+      food({ id: 'curd', name: 'Curd', category: 'vegetarian', tags: ['dairy', 'probiotic'], allergens: ['milk'], prep: 'none', proteinG: 3.5, mealSlots: ['eveningsnack', 'lunch'] }),
+      food({ id: 'roasted-chana', name: 'Roasted chana', tags: ['legume', 'high-protein', 'high-iron'], prep: 'none', proteinG: 20, mealSlots: ['eveningsnack'] }),
+      food({ id: 'peanuts', name: 'Peanuts', tags: ['nuts', 'high-iron'], allergens: ['peanut'], prep: 'none', proteinG: 26, mealSlots: ['eveningsnack'] }),
+      food({ id: 'dal', name: 'Dal tadka', tags: ['legume', 'high-protein'], prep: 'stove', proteinG: 7, mealSlots: ['lunch', 'dinner'] }),
+    ];
+    const withFoods = (over: Partial<ChatContext> = {}): ChatContext => ctx({ foods: CATALOG, dietType: 'veg', ...over });
+
+    // AC1 — food_safety wired to the scorer: PG (no-cook), low budget → samosa flagged.
+    it('AC1: "can I eat samosa" for a no-cook PG user returns avoid/moderate citing the no-cook/fried issue', () => {
+      const pgCoach = mkCoach({ kitchen: 'none', livingSituation: 'pg', pgMode: true, budgetTier: 'low' });
+      const r = answer('can I eat samosa?', withFoods({ coach: pgCoach, findFood: () => CATALOG[0] }));
+      expect(r.intent).toBe('food_safety');
+      const body = strip(r.reply).toLowerCase();
+      expect(body).toMatch(/avoid|moderation/);
+      expect(body).toMatch(/cook|fried|refined/);
+    });
+
+    // AC2 — "what should I eat now" returns real ranked foods within kitchen/allergy limits.
+    it('AC2: "what should I eat now" returns ranked foods, none needing a stove for a no-cook user, none with an allergen', () => {
+      const pgCoach = mkCoach({ kitchen: 'none', pgMode: true, allergies: ['peanut'] });
+      const r = answer('what should I eat now?', withFoods({ coach: pgCoach, nowSlot: 'eveningsnack' }));
+      expect(r.intent).toBe('coach_suggest');
+      const body = strip(r.reply);
+      expect(body).not.toContain('Samosa'); // needs a stove
+      expect(body).not.toContain('Peanuts'); // allergen (fail-closed)
+      expect(body).toMatch(/Curd|chana/);
+    });
+
+    // AC3 — "something for my iron" prefers iron-rich foods.
+    it('AC3: "something for my iron" prefers iron-rich foods', () => {
+      const r = answer('suggest something for my iron', withFoods());
+      expect(r.intent).toBe('coach_suggest');
+      const body = strip(r.reply);
+      expect(body).toMatch(/chana|Peanuts/);
+      expect(body.toLowerCase()).toContain('iron');
+    });
+
+    // AC4 — hostel user's suggestions come only from PG staples.
+    it('AC4: hostel user gets suggestions only from assemble-only staples', () => {
+      const hostelCoach = mkCoach({ livingSituation: 'hostel', pgMode: true });
+      // catalog restricted by PG_STAPLE_IDS ∩ availableFoodIds; only curd/roasted-chana/peanuts qualify here
+      const r = answer('suggest a snack', withFoods({ coach: hostelCoach, nowSlot: 'eveningsnack' }));
+      expect(r.intent).toBe('coach_suggest');
+      expect(strip(r.reply)).not.toContain('Dal tadka'); // stove staple, excluded
+    });
+
+    // AC5 — exercise questions answer from the exercise block; month trend includes weight delta.
+    it('AC5: "did I train today" answers from the exercise block; "how was my month" includes weight change', () => {
+      const train = answer('did I train today?', withFoods());
+      expect(train.intent).toBe('coach_exercise');
+      expect(strip(train.reply)).toMatch(/Legs|trained/);
+      const month = answer('how was my month?', withFoods());
+      expect(month.intent).toBe('coach_trend');
+      expect(strip(month.reply)).toMatch(/1\.2 kg/);
+    });
+
+    // AC6 — allergen/medication conflicts are always avoid (fail-closed).
+    it('AC6: an allergen conflict is always avoid (fail-closed)', () => {
+      const allergicCoach = mkCoach({ allergies: ['milk'] });
+      const r = answer('can I eat curd?', withFoods({ coach: allergicCoach, findFood: () => CATALOG[1] }));
+      expect(strip(r.reply).toLowerCase()).toMatch(/avoid|allergic/);
+    });
+
+    it('mood question answers from the mind block', () => {
+      const r = answer("how's my mood lately?", withFoods());
+      expect(r.intent).toBe('coach_mind');
+      expect(strip(r.reply)).toMatch(/mood 4\/5|steady/);
+    });
+
+    it('a preference statement ("I don\'t want to take protein") is NOT hijacked by the today catch-all', () => {
+      const r = answer("I don't want to take protein, I want to lose muscle also", withFoods());
+      expect(r.intent).not.toBe('coach_today');
     });
   });
 });

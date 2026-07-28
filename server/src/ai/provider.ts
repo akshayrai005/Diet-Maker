@@ -105,6 +105,21 @@ function buildKnowledgeBlock(coach: CoachContext | null | undefined): string | n
   if (coach.deficiencies && coach.deficiencies.length > 0) {
     facts.push(`- Micronutrients running low today: ${coach.deficiencies.join(', ')}.`);
   }
+  if (coach.exercise) {
+    const e = coach.exercise;
+    const state = e.rest ? 'rest day' : e.todayDone ? `trained today${e.todayFocus ? ` (${e.todayFocus})` : ''}` : e.todayScheduled ? `workout scheduled today${e.todayFocus ? ` (${e.todayFocus})` : ''}, not yet done` : 'no workout scheduled today';
+    facts.push(`- Training: ${state}; ${e.weeklyWorkouts} session(s) in the last 7 days, lifts ${e.overloadTrend === 'up' ? 'progressing' : e.overloadTrend === 'down' ? 'dipping' : 'flat'}.`);
+  }
+  if (coach.weightDeltaKg != null && coach.weightDeltaKg !== 0) {
+    facts.push(`- Weight change over check-ins: ${coach.weightDeltaKg > 0 ? '+' : ''}${coach.weightDeltaKg} kg${coach.weightKg != null ? ` (now ${coach.weightKg} kg)` : ''}.`);
+  }
+  if (coach.mind && (coach.mind.mood != null || coach.mind.sleepQuality != null)) {
+    const m = coach.mind;
+    const parts = [m.mood != null ? `mood ${m.mood}/5` : null, m.stress != null ? `stress ${m.stress}/5` : null, m.sleepQuality != null ? `sleep ${m.sleepQuality}/5` : null].filter(Boolean);
+    if (parts.length) facts.push(`- Recent wellness: ${parts.join(', ')}.`);
+  }
+  // NOTE: medications and cycle phase are intentionally NOT included here — they drive the
+  // deterministic food scorer only and must never be echoed into the LLM prompt.
 
   if (facts.length === 0) return null;
   return ['WHAT I KNOW ABOUT YOU RIGHT NOW (server-computed facts — cite these, never contradict or exceed them):', ...facts].join('\n');

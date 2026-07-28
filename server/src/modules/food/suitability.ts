@@ -119,7 +119,7 @@ export function assessFoodSuitability(food: FoodItem, situation: FoodSituation =
     }
   }
 
-  // --- Condition cautions ---
+  // --- Condition cautions (tag-based) ---
   const avoid = new Set(conditionAvoidTags(situation.conditions ?? []).map(norm));
   const conditionHits = food.tags.map(norm).filter((t) => avoid.has(t));
   if (conditionHits.length > 0) {
@@ -127,6 +127,17 @@ export function assessFoodSuitability(food: FoodItem, situation: FoodSituation =
     const highRisk = conditionHits.some((t) => ['high-sugar', 'high-gi', 'high-purine', 'high-potassium', 'high-phosphorus'].includes(t));
     worsen(highRisk ? 'avoid' : 'moderate');
     reasons.push(`carries ${conditionHits.join('/')} — a flag for your conditions`);
+  }
+
+  // --- Condition cautions (nutrient thresholds, independent of tags) ---
+  const conds = new Set((situation.conditions ?? []).map(norm));
+  if (conds.has('diabetes') && !conditionHits.length && (food.sugarG >= 10 || (food.glycemicIndex ?? 0) >= 55)) {
+    worsen('moderate');
+    reasons.push('high in sugar / glycaemic load — keep the portion small and pair it with protein or fibre');
+  }
+  if ((conds.has('hypertension') || conds.has('heart_disease')) && food.sodiumMg >= 400 && !food.tags.map(norm).includes('high-sodium')) {
+    worsen('moderate');
+    reasons.push('relatively high in sodium — watch the quantity');
   }
 
   // --- Softer nudges (moderate) ---

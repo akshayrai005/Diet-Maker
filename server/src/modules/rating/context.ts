@@ -28,6 +28,12 @@ export interface UserContext {
   todayFocus: string | null;
   rest: boolean;
   weightDeltaKg: number | null;
+  /** Latest logged body weight (kg) from check-ins, if any. */
+  latestWeightKg: number | null;
+  /** Workout days completed in the last 7 days. */
+  weeklyWorkoutsCompleted: number;
+  /** Progressive-overload trend over the last ~60 days. */
+  overloadTrend: 'up' | 'flat' | 'down';
   projection: Projection[];
   adherence: AdherenceResult;
   rating: RatingResult;
@@ -112,6 +118,7 @@ export async function gatherUserContext(userId: string, offsetMin = 0, now: Date
     .filter((w): w is number => w != null);
   const weightDeltaKg =
     weights.length >= 2 ? Math.round((weights[weights.length - 1]! - weights[0]!) * 10) / 10 : null;
+  const latestWeightKg = weights.length > 0 ? weights[weights.length - 1]! : null;
 
   // Today's discipline score.
   const adherence = computeAdherence({
@@ -150,6 +157,9 @@ export async function gatherUserContext(userId: string, offsetMin = 0, now: Date
     todayFocus: todayDay?.focus ?? null,
     rest,
     weightDeltaKg,
+    latestWeightKg,
+    weeklyWorkoutsCompleted: workoutDaysCompleted,
+    overloadTrend,
     projection: result?.projection ?? [],
     adherence,
     rating,

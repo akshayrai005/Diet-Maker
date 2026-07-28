@@ -36,7 +36,19 @@ function toFoodItem(f: {
     sugarG: f.sugarG, sodiumMg: f.sodiumMg, glycemicIndex: f.glycemicIndex ?? undefined,
     typicalServingG: f.typicalServingG, costTier: (f.costTier as 1 | 2 | 3) ?? 2,
     tags: f.tags, allergens: f.allergens,
+    prep: ((f as { prep?: string }).prep as FoodItem['prep']) ?? 'stove',
   };
+}
+
+/** Meal slot for the current local hour — lets "what should I eat now?" pick the right slot. */
+function slotForHour(hour: number): MealSlot {
+  if (hour < 6) return 'bedtime';
+  if (hour < 10) return 'breakfast';
+  if (hour < 12) return 'midmorning';
+  if (hour < 15) return 'lunch';
+  if (hour < 18) return 'eveningsnack';
+  if (hour < 22) return 'dinner';
+  return 'bedtime';
 }
 
 /** Fuzzy-ish food matcher: name contains the term, or the term contains a name keyword. */
@@ -116,17 +128,23 @@ export async function chat(userId: string, message: string, firstName?: string, 
   // "I don't have access to your log" for a question we can answer. When the rules engine gives a
   // confident data-backed answer, we return it verbatim and DO NOT ask the LLM (which would only
   // hallucinate or disclaim). The LLM is reserved for open-ended chat the rules engine can't place.
+  const foodItems = foods.map(toFoodItem);
+  const localHour = new Date(Date.now() + offsetMin * 60_000).getUTCHours();
   const base = answer(message, {
     targets,
     conditions,
-    findFood: makeFindFood(foods.map(toFoodItem)),
+    findFood: makeFindFood(foodItems),
     firstName,
     coach,
+    foods: foodItems,
+    dietType: (profile as { dietType?: string } | null)?.dietType,
+    nowSlot: slotForHour(localHour),
   });
 
   // Intents that are grounded in server-computed data — always prefer these over the LLM.
   const DATA_INTENTS = new Set<ChatReply['intent']>([
     'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits', 'coach_plan',
+    'coach_suggest', 'coach_exercise', 'coach_mind',
     'food_safety', 'targets', 'water', 'weight_pace',
   ]);
 
