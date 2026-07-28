@@ -4,6 +4,10 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.request.ImageRequest
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -262,8 +266,9 @@ private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
                     Text("Hold", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 flow.poses.forEachIndexed { i, p ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        Text("${i + 1}", Modifier.size(width = 22.dp, height = 20.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+                    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.Top) {
+                        Text("${i + 1}", Modifier.size(width = 18.dp, height = 20.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+                        YogaPoseThumb(p.name, Modifier.padding(end = 8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = BrandGreenDeep)
                             Text(p.cue, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -422,5 +427,28 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Done") }
+    }
+}
+
+/** Small pose illustration for a yoga pose (free yoga-api). Falls back to a yoga emoji. */
+@Composable
+private fun YogaPoseThumb(name: String, modifier: Modifier = Modifier) {
+    val url = remember(name) { YogaPoseMap.imageUrl(name) }
+    var failed by remember(name) { mutableStateOf(false) }
+    Box(
+        modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(Color.White),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (url == null || failed) {
+            Text("🧘", style = MaterialTheme.typography.titleMedium)
+        } else {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(true).build(),
+                contentDescription = "$name pose",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize().padding(3.dp),
+                onState = { state -> if (state is AsyncImagePainter.State.Error) failed = true },
+            )
+        }
     }
 }
