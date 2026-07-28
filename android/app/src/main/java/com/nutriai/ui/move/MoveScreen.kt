@@ -407,7 +407,7 @@ private fun ExerciseRowCard(
                     }
                 }
                 // Bundled offline form diagram for the muscle group.
-                ExerciseIllustration(muscleGroup = ex.muscleGroup, sizeDp = 40)
+                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 40)
                 Column(Modifier.weight(1f)) {
                     Text(ex.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
@@ -479,7 +479,7 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        ExerciseIllustration(muscleGroup = exercise.muscleGroup, sizeDp = 34)
+                        ExerciseDemo(name = exercise.name, muscleGroup = exercise.muscleGroup, sizeDp = 34)
                         Text(sub, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     }
                 }
