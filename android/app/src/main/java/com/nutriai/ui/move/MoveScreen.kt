@@ -401,15 +401,15 @@ private fun ExerciseRowCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (index != null) {
-                    Box(Modifier.size(30.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                        Text("${index + 1}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                // Bundled offline form diagram for the muscle group.
+                // Animated demo (or muscle diagram). Kept first so every row across every section
+                // lines up at the same left edge, numbered or not.
                 ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 40)
                 Column(Modifier.weight(1f)) {
-                    Text(ex.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (index != null) "${index + 1}. ${ex.name}" else ex.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                         Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
