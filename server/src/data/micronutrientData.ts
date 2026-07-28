@@ -87,4 +87,14 @@ export const MICRONUTRIENTS_PER_100G: Record<string, Partial<Micronutrients>> = 
   'veg-pulao': { ironMg: 1.0, calciumMg: 25, magnesiumMg: 22, potassiumMg: 180, zincMg: 0.6, phosphorusMg: 70, vitaminAMcg: 150, vitaminCMg: 8, folateMcg: 25 },
   'vegetable-pulao': { ironMg: 1.0, calciumMg: 25, magnesiumMg: 22, potassiumMg: 180, zincMg: 0.6, phosphorusMg: 70, vitaminAMcg: 150, vitaminCMg: 8, folateMcg: 25 },
   walnuts: { ironMg: 2.9, calciumMg: 98, magnesiumMg: 158, potassiumMg: 441, zincMg: 3.1, phosphorusMg: 346, copperMcg: 1586, manganeseMg: 3.4, folateMcg: 98, vitaminB6Mg: 0.5, vitaminEMg: 0.7 },
+
+  // ---- PG / hostel / no-cook staples ----
+  'cold-milk': { calciumMg: 120, phosphorusMg: 95, potassiumMg: 150, vitaminB12Mcg: 0.4, vitaminB2Mg: 0.18, zincMg: 0.4, iodineMcg: 15 },
+  sattu: { ironMg: 4.5, folateMcg: 160, magnesiumMg: 75, potassiumMg: 280, zincMg: 2.6, phosphorusMg: 160, copperMcg: 600, manganeseMg: 1.6 },
+  muesli: { ironMg: 3.5, magnesiumMg: 80, potassiumMg: 280, zincMg: 2.0, phosphorusMg: 180, manganeseMg: 2.0, vitaminB1Mg: 0.3, calciumMg: 90 },
+  'bread-pb': { ironMg: 2.0, magnesiumMg: 60, potassiumMg: 230, zincMg: 1.4, phosphorusMg: 130, vitaminB3Mg: 4.0, vitaminEMg: 3.0, manganeseMg: 1.2 },
+  'soaked-oats': { ironMg: 2.3, magnesiumMg: 55, potassiumMg: 180, zincMg: 1.4, phosphorusMg: 140, manganeseMg: 1.8, vitaminB1Mg: 0.25 },
+  'whey-shake': { calciumMg: 200, phosphorusMg: 130, potassiumMg: 180, magnesiumMg: 20, zincMg: 1.0, vitaminB12Mcg: 0.6 },
+  'roasted-makhana': { magnesiumMg: 210, potassiumMg: 500, phosphorusMg: 280, calciumMg: 60, ironMg: 1.4, manganeseMg: 1.3 },
+  'dry-fruits-mix': { ironMg: 3.0, magnesiumMg: 150, potassiumMg: 600, zincMg: 2.8, phosphorusMg: 320, copperMcg: 1100, manganeseMg: 2.2, vitaminEMg: 7.0, folateMcg: 60 },
 };

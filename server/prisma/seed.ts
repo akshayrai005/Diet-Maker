@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { SEED_FOODS } from '../src/data/foods.seed';
 import { MICRONUTRIENTS_PER_100G } from '../src/data/micronutrientData';
+import { inferPrep } from '../src/modules/food/prep';
 
 const prisma = new PrismaClient();
 
@@ -32,6 +33,7 @@ async function main() {
         costTier: f.costTier,
         tags: f.tags,
         allergens: f.allergens,
+        prep: inferPrep(f),
         source: 'seed',
       },
       create: {
@@ -54,6 +56,7 @@ async function main() {
         costTier: f.costTier,
         tags: f.tags,
         allergens: f.allergens,
+        prep: inferPrep(f),
         source: 'seed',
       },
     });

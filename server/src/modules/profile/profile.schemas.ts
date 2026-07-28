@@ -72,6 +72,12 @@ export const sensitiveSchema = z.object({
   budgetTier: z.enum(['low', 'medium', 'flexible']).optional(),
   /** Foods/tags the user already has at home - plans prefer these. */
   pantryTags: z.array(z.string().max(40)).max(50).optional(),
+  /** Kitchen access: how much can the user actually cook? Drives PG / no-cook planning. */
+  kitchen: z.enum(['none', 'kettle', 'microwave', 'stove']).optional(),
+  /** Living context - 'pg'/'hostel' switch the plan to assemble-only staples. */
+  livingSituation: z.enum(['home', 'pg', 'hostel', 'travel']).optional(),
+  /** If set, only these food IDs are usable (what the user actually has access to). */
+  availableFoodIds: z.array(z.string().max(60)).max(300).optional(),
   /** Macro-band strictness: relaxed widens the bands, strict narrows them. */
   dietStrictness: z.enum(['relaxed', 'standard', 'strict']).optional(),
   /** Workout preferences (drive the exercise plan). */

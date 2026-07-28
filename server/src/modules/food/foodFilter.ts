@@ -1,4 +1,5 @@
-import { FoodItem, PlanPreferences } from './food.types';
+import { FoodItem, PlanPreferences, PREP_RANK } from './food.types';
+import { inferPrep } from './prep';
 
 /** Which food categories a diet type permits. */
 function categoryAllowed(dietType: string, cat: FoodItem['category']): boolean {
@@ -100,9 +101,15 @@ export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodIt
   const allergyTerms = prefs.allergies.flatMap(expandAllergen).filter(Boolean);
   const forbidden = new Set(forbiddenTags(prefs.dietType).map(norm));
   const avoid = new Set(conditionAvoidTags(prefs.conditions).map(norm));
+  const kitchenCap = prefs.kitchen ? PREP_RANK[prefs.kitchen] : null;
+  const availableSet = prefs.availableFoodIds && prefs.availableFoodIds.length > 0 ? new Set(prefs.availableFoodIds) : null;
 
   return foods.filter((f) => {
     if (!categoryAllowed(prefs.dietType, f.category)) return false;
+
+    // Only foods the user can actually access / prepare.
+    if (availableSet && !availableSet.has(f.id)) return false;
+    if (kitchenCap != null && PREP_RANK[inferPrep(f)] > kitchenCap) return false;
 
     // Allergen exclusion - fail-closed: block if any allergy term (incl. synonyms) matches the
     // food's name OR any of its allergen tags, substring in either direction.

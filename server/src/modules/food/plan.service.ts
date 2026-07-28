@@ -5,6 +5,7 @@ import { computeCalcResult } from '../nutrition/calcResult';
 import { ageFromDob } from '../nutrition/calc.service';
 import { generateWeekPlan, buildSwapMeal } from './planGenerator';
 import { eligibleFoods } from './foodFilter';
+import { isPgMode, PG_STAPLE_IDS } from './prep';
 import { localSunday, localToday } from '../../lib/tz';
 import { round } from '../../calc/anthropometry';
 import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets } from './food.types';
@@ -40,6 +41,7 @@ function toFoodItem(f: Food): FoodItem {
     costTier: (f.costTier as 1 | 2 | 3) ?? 2,
     tags: f.tags,
     allergens: f.allergens,
+    prep: ((f as { prep?: string }).prep as FoodItem['prep']) ?? 'stove',
   };
 }
 
@@ -81,6 +83,11 @@ export async function generateAndSavePlan(
     planVersion: PLAN_VERSION,
   };
 
+  const s = sensitive as typeof sensitive & {
+    kitchen?: FoodItem['prep'];
+    livingSituation?: string;
+    availableFoodIds?: string[];
+  };
   const prefs: PlanPreferences = {
     dietType: profile.dietType,
     allergies: sensitive.allergies,
@@ -89,7 +96,20 @@ export async function generateAndSavePlan(
     budgetTier: sensitive.budgetTier,
     pantryTags: sensitive.pantryTags,
     strictness: sensitive.dietStrictness,
+    kitchen: s.kitchen,
+    livingSituation: s.livingSituation,
+    availableFoodIds: s.availableFoodIds,
   };
+
+  // PG / hostel / no-cook mode: restrict to assemble-only staples (unless the user gave an explicit
+  // available-food list) and lean budget-first, so the plan is something they can actually make.
+  if (isPgMode({ livingSituation: s.livingSituation, kitchen: s.kitchen })) {
+    prefs.kitchen = s.kitchen ?? 'kettle';
+    prefs.budgetTier = prefs.budgetTier ?? 'low';
+    if (!prefs.availableFoodIds || prefs.availableFoodIds.length === 0) {
+      prefs.availableFoodIds = [...PG_STAPLE_IDS];
+    }
+  }
 
   const foods = await prisma.food.findMany();
   if (foods.length === 0) {

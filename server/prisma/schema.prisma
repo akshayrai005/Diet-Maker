@@ -164,6 +164,8 @@ model Food {
   costTier        Int      @default(2)
   tags            String[]
   allergens       String[]
+  /// Kitchen access needed: none | kettle | microwave | stove. Drives PG / no-cook planning.
+  prep            String   @default("stove")
   source          String   @default("seed")
   createdAt       DateTime @default(now())
 
