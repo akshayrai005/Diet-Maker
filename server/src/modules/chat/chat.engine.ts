@@ -2,7 +2,19 @@ import { FoodItem } from '../food/food.types';
 import type { CoachContext } from '../coach/coachContext';
 
 export interface ChatContext {
-  targets: { dailyKcal: number; proteinG: number; waterMl: number } | null;
+  targets: {
+    dailyKcal: number;
+    proteinG: number;
+    waterMl: number;
+    /** Optional richer plan numbers so the coach can explain the full macro split + deficit. */
+    carbG?: number;
+    fatG?: number;
+    fiberG?: number;
+    tdee?: number;
+    bmr?: number;
+    safeWeeklyDeltaKg?: number;
+    goal?: string;
+  } | null;
   conditions: string[];
   /** Substring lookup over the food DB. */
   findFood: (term: string) => FoodItem | undefined;
@@ -23,6 +35,7 @@ export interface ChatReply {
     | 'coach_trend'
     | 'coach_frequency'
     | 'coach_habits'
+    | 'coach_plan'
     | 'fallback'
     | 'llm';
   reply: string;
@@ -145,6 +158,52 @@ function coachHabitsReply(coach: CoachContext): string | null {
   return `Your most-logged foods are ${frequent}. The ones worth watching: ${watchStr} — these carry refined/fried/high-sugar tags, so try swapping in a whole-food option a few times a week.`;
 }
 
+/** Prescriptive plan: what the body needs, the fat-loss target, and the full macro split. */
+function coachPlanReply(t: NonNullable<ChatContext['targets']>): string {
+  const lines: string[] = [];
+  if (t.tdee) lines.push(`Your body burns roughly ${t.tdee} kcal a day at your activity level — that's maintenance.`);
+
+  const deficit = t.tdee ? t.tdee - t.dailyKcal : 0;
+  const pace = t.safeWeeklyDeltaKg ? Math.abs(t.safeWeeklyDeltaKg) : 0;
+  if (t.goal === 'lose' && deficit > 0) {
+    lines.push(`To lose fat, eat about ${t.dailyKcal} kcal a day — a ${deficit} kcal deficit${pace ? `, a safe ~${pace} kg/week` : ''}.`);
+  } else if (t.goal === 'gain' && deficit < 0) {
+    lines.push(`To gain, eat about ${t.dailyKcal} kcal a day — a ${Math.abs(deficit)} kcal surplus${pace ? `, ~${pace} kg/week` : ''}.`);
+  } else {
+    lines.push(`Your daily calorie target is about ${t.dailyKcal} kcal.`);
+  }
+
+  const macros = [`protein ${t.proteinG} g`];
+  if (t.carbG != null) macros.push(`carbs ${t.carbG} g`);
+  if (t.fatG != null) macros.push(`fat ${t.fatG} g`);
+  if (t.fiberG != null) macros.push(`fibre ${t.fiberG} g`);
+  lines.push(`Daily macros: ${macros.join(', ')}. Hit protein first — it protects muscle in a deficit — then fill the rest with carbs and fat.`);
+  return lines.join(' ');
+}
+
+/** True for prescriptive "what should my targets/plan be" questions (vs "what did I log"). */
+function isPlanQuestion(msg: string): boolean {
+  // A plan question is about numbers (calories / macros), never bare "lose weight" (that's a pace
+  // question) and never "…today" (retrospective). It also must be PLAN-LEVEL — a full calorie/macro
+  // picture — so a concise single-macro ask ("how much protein?") still gets the short targets reply.
+  const retrospective = /\b(today|so far|yesterday|logged|i (ate|had|took|consumed) )\b/.test(msg);
+  if (retrospective) return false;
+
+  const fatLoss = /(to |for )?(lose|loose|reduce|cut|burn)\b.*(fat|weight)|calorie deficit|maintenance/.test(msg);
+  const mentionsCalories = /(calorie|kcal|energy|deficit|maintenance|tdee|\bplan\b|whole plan|exact plan)/.test(msg);
+  const macroWords = ['carb', 'fat', 'protein', 'fibre', 'fiber', 'macro'].filter((m) => msg.includes(m)).length;
+
+  // "how fast / how long / per week" with no calorie or macro context is a PACE question — leave it
+  // to the weight-pace intent, don't answer with a macro plan.
+  const paceOnly = /\b(how (fast|quick|long)|per week|weekly|how many weeks?)\b/.test(msg);
+  if (paceOnly && !mentionsCalories && macroWords < 2) return false;
+  const planLevel = mentionsCalories || fatLoss || macroWords >= 2;
+  if (!planLevel) return false;
+
+  const prescriptive = /\b(should|need|require|requires|target|goal|plan|maintenance|tdee|recommend|ideal|how much|how many|want|give me)\b/.test(msg);
+  return prescriptive || fatLoss || mentionsCalories;
+}
+
 /**
  * Deterministic rules-based diet chat. No LLM: intent detection + food-DB lookups +
  * guardrail-aware templates. Every answer carries the disclaimer.
@@ -174,6 +233,13 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
       reply: withDisclaimer(`I don't have "${term}" in the food database yet. As a rule: favour whole, minimally-processed versions, watch the portion, and log it so your dashboard stays accurate.`),
       sources: [],
     };
+  }
+
+  // Prescriptive plan question ("how many calories/carbs/fat to lose fat", "my macro targets").
+  // Must run BEFORE the retrospective "what did I log today" branches so a plan question never gets
+  // answered with today's totals. Uses the deterministic calc targets — never invented.
+  if (ctx.targets && isPlanQuestion(msg)) {
+    return { intent: 'coach_plan', reply: withDisclaimer(coachPlanReply(ctx.targets)), sources: [] };
   }
 
   // ---- Coach whole-app context: answer from what the user actually logged ----

@@ -81,7 +81,10 @@ export async function chat(userId: string, message: string, firstName?: string, 
     .map((m) => ({ role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const), content: decryptChatContent(m.content) }));
 
   const result = snapshot?.result as
-    | { dailyKcal: number; proteinG: number; waterMl: number }
+    | {
+        dailyKcal: number; proteinG: number; waterMl: number;
+        carbG?: number; fatG?: number; fiberG?: number; tdee?: number; bmr?: number; safeWeeklyDeltaKg?: number;
+      }
     | undefined;
 
   let conditions: string[] = [];
@@ -94,7 +97,18 @@ export async function chat(userId: string, message: string, firstName?: string, 
   }
 
   const targets = result
-    ? { dailyKcal: result.dailyKcal, proteinG: result.proteinG, waterMl: result.waterMl }
+    ? {
+        dailyKcal: result.dailyKcal,
+        proteinG: result.proteinG,
+        waterMl: result.waterMl,
+        carbG: result.carbG,
+        fatG: result.fatG,
+        fiberG: result.fiberG,
+        tdee: result.tdee,
+        bmr: result.bmr,
+        safeWeeklyDeltaKg: result.safeWeeklyDeltaKg,
+        goal: (profile as { goal?: string } | null)?.goal,
+      }
     : null;
 
   // Run the deterministic rules engine FIRST. It owns every number (targets, today's macros,
@@ -112,7 +126,7 @@ export async function chat(userId: string, message: string, firstName?: string, 
 
   // Intents that are grounded in server-computed data — always prefer these over the LLM.
   const DATA_INTENTS = new Set<ChatReply['intent']>([
-    'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits',
+    'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits', 'coach_plan',
     'food_safety', 'targets', 'water', 'weight_pace',
   ]);
 

@@ -115,4 +115,36 @@ describe('coach answers from whole-app context (deterministic, AI_PROVIDER=rules
     expect(body).toContain('160 g carbs');
     expect(body.toLowerCase()).not.toContain('access');
   });
+
+  describe('prescriptive plan questions (coach_plan) — targets, not today\'s log', () => {
+    const planTargets = {
+      dailyKcal: 2082, proteinG: 127, waterMl: 2950,
+      carbG: 210, fatG: 62, fiberG: 30, tdee: 2540, bmr: 1600, safeWeeklyDeltaKg: -0.5, goal: 'lose',
+    };
+    const planCtx = ctx({ targets: planTargets });
+
+    it('answers "how many calories to lose fat" with maintenance + deficit target, not today\'s totals', () => {
+      const r = answer('I want exact plan, total calories body required and calories I need to take to loose fat', planCtx);
+      expect(r.intent).toBe('coach_plan');
+      const body = strip(r.reply);
+      expect(body).toContain('2540 kcal'); // maintenance (TDEE)
+      expect(body).toContain('2082 kcal'); // fat-loss target
+      expect(body).toContain('458 kcal'); // the deficit
+      expect(body.toLowerCase()).not.toContain('so far today');
+    });
+
+    it('gives the full macro split when asked for carbs/fat/protein targets', () => {
+      const r = answer('how much carbs fat protein should I take daily?', planCtx);
+      expect(r.intent).toBe('coach_plan');
+      const body = strip(r.reply);
+      expect(body).toContain('protein 127 g');
+      expect(body).toContain('carbs 210 g');
+      expect(body).toContain('fat 62 g');
+    });
+
+    it('does NOT hijack a retrospective "carbs today" question', () => {
+      const r = answer('how many carbs did I take today?', planCtx);
+      expect(r.intent).toBe('coach_today');
+    });
+  });
 });
