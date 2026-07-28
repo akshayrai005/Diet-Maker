@@ -107,4 +107,12 @@ describe('coach answers from whole-app context (deterministic, AI_PROVIDER=rules
     expect(r.intent).toBe('coach_frequency');
     expect(strip(r.reply).toLowerCase()).toContain("haven't logged");
   });
+
+  it('answers a vague / misspelled consumption question from the log ("total meal today cards I took")', () => {
+    const r = answer('in total meal today which I consumed how much cards I took?', ctx());
+    expect(r.intent).toBe('coach_today');
+    const body = strip(r.reply);
+    expect(body).toContain('160 g carbs');
+    expect(body.toLowerCase()).not.toContain('access');
+  });
 });

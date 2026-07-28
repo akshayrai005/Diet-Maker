@@ -225,6 +225,14 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
         return { intent: 'coach_today', reply: withDisclaimer(r), sources: [] };
       }
     }
+
+    // Catch-all for any consumption question we can answer from today's log — even vague or
+    // misspelled ("in total meal today how much cards I took"). We hold the numbers, so we answer
+    // with the full summary rather than ever letting the coach say "I don't have access".
+    if (coach.today && /(consumed|consume|intake|took|take|eaten|ate|logged|log|total)/.test(msg) && /(today|so far|meal|food|calorie|kcal|macro|carb|card|protein|fat|diet)/.test(msg)) {
+      const r = coachTodayReply(coach);
+      if (r) return { intent: 'coach_today', reply: withDisclaimer(r), sources: [] };
+    }
   }
 
   if (/water|hydrat/.test(msg)) {

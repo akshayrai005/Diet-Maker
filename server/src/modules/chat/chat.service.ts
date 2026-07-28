@@ -97,27 +97,39 @@ export async function chat(userId: string, message: string, firstName?: string, 
     ? { dailyKcal: result.dailyKcal, proteinG: result.proteinG, waterMl: result.waterMl }
     : null;
 
-  // Try the pluggable LLM provider first (if configured). Numbers/targets always come
-  // from the deterministic calc above - the LLM never supplies them. On null/empty or
-  // any failure, fall back to the deterministic rules engine exactly as before.
-  const provider = getAiProvider();
-  let reply: ChatReply | null = null;
-  if (provider) {
-    const llm = await provider.chatReply(message, { targets, conditions, firstName, history, coach });
-    if (llm && llm.trim()) {
-      reply = { intent: 'llm', reply: stripDisclaimer(llm.trim()), sources: [] };
-    }
-  }
+  // Run the deterministic rules engine FIRST. It owns every number (targets, today's macros,
+  // trends, food frequency) — the server computes these, so the coach must never tell the user
+  // "I don't have access to your log" for a question we can answer. When the rules engine gives a
+  // confident data-backed answer, we return it verbatim and DO NOT ask the LLM (which would only
+  // hallucinate or disclaim). The LLM is reserved for open-ended chat the rules engine can't place.
+  const base = answer(message, {
+    targets,
+    conditions,
+    findFood: makeFindFood(foods.map(toFoodItem)),
+    firstName,
+    coach,
+  });
 
-  if (!reply) {
-    const base = answer(message, {
-      targets,
-      conditions,
-      findFood: makeFindFood(foods.map(toFoodItem)),
-      firstName,
-      coach,
-    });
+  // Intents that are grounded in server-computed data — always prefer these over the LLM.
+  const DATA_INTENTS = new Set<ChatReply['intent']>([
+    'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits',
+    'food_safety', 'targets', 'water', 'weight_pace',
+  ]);
+
+  let reply: ChatReply | null = null;
+  if (DATA_INTENTS.has(base.intent)) {
     reply = { ...base, reply: stripDisclaimer(base.reply) };
+  } else {
+    // Open-ended (greeting/help/fallback): let the LLM answer naturally if configured, still fed the
+    // full coach context so any numbers it cites are the real ones. Fall back to the rules reply.
+    const provider = getAiProvider();
+    if (provider) {
+      const llm = await provider.chatReply(message, { targets, conditions, firstName, history, coach });
+      if (llm && llm.trim()) {
+        reply = { intent: 'llm', reply: stripDisclaimer(llm.trim()), sources: [] };
+      }
+    }
+    if (!reply) reply = { ...base, reply: stripDisclaimer(base.reply) };
   }
 
   // Persist the exchange so the coach remembers it next time.
