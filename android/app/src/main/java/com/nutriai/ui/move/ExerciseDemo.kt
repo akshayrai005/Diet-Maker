@@ -1,5 +1,6 @@
 package com.nutriai.ui.move
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,20 +24,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
-import kotlinx.coroutines.delay
 
 /**
- * Animated movement demo for an exercise. When we have a demo in [ExerciseDemoMap], the two stills
- * (start → end position) are cross-faded on a loop into a simple animation showing the movement, so
- * the user never has to leave the app to look it up. Falls back to the bundled muscle-group diagram
- * when there's no demo, or if the images fail to load (offline). Tapping opens a larger view.
+ * Animated GIF demonstration for an exercise, so the user can see the movement without leaving the
+ * app. The GIF comes from the free ExerciseGymGifsDB (via jsDelivr CDN), mapped in [ExerciseDemoMap].
+ * Falls back to the bundled offline muscle diagram when there's no demo for the exercise, or if the
+ * GIF fails to load (offline). Tapping opens a larger looping view.
  */
 @Composable
 fun ExerciseDemo(
@@ -47,12 +49,11 @@ fun ExerciseDemo(
     modifier: Modifier = Modifier,
     sizeDp: Int = 40,
 ) {
-    val frames = remember(name) { ExerciseDemoMap.framesFor(name) }
+    val url = remember(name) { ExerciseDemoMap.gifUrl(name) }
     var failed by remember(name) { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
 
-    if (frames == null || failed) {
-        // No demo (or failed to load) → the offline diagram, exactly as before.
+    if (url == null || failed) {
         ExerciseIllustration(muscleGroup = muscleGroup, modifier = modifier, sizeDp = sizeDp)
         return
     }
@@ -66,7 +67,7 @@ fun ExerciseDemo(
             .semantics { contentDescription = "$name demonstration, tap to enlarge" },
         contentAlignment = Alignment.Center,
     ) {
-        AnimatedFrames(frames = frames, onError = { failed = true })
+        GifImage(url = url, onError = { failed = true })
     }
 
     if (showDialog) {
@@ -79,9 +80,9 @@ fun ExerciseDemo(
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)).background(Color.White),
                         contentAlignment = Alignment.Center,
-                    ) { AnimatedFrames(frames = frames, onError = { failed = true }) }
+                    ) { GifImage(url = url, onError = { failed = true }) }
                     Text(
-                        "Start → end of the movement, looped. Public-domain demo (free-exercise-db).",
+                        "Looping demo of the movement. Free community GIF set (ExerciseGymGifsDB).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -91,22 +92,20 @@ fun ExerciseDemo(
     }
 }
 
-/** Cross-fades between the start and end stills on a ~900ms loop → a lightweight 2-frame animation. */
+/** Loads an animated GIF with a decoder-enabled Coil ImageLoader; reports load failures to fall back. */
 @Composable
-private fun AnimatedFrames(frames: Pair<String, String>, onError: () -> Unit) {
-    var showEnd by remember { mutableStateOf(false) }
-    LaunchedEffect(frames) {
-        while (true) {
-            delay(900)
-            showEnd = !showEnd
-        }
+private fun GifImage(url: String, onError: () -> Unit) {
+    val context = LocalContext.current
+    val loader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                if (Build.VERSION.SDK_INT >= 28) add(ImageDecoderDecoder.Factory()) else add(GifDecoder.Factory())
+            }
+            .build()
     }
-    val url = if (showEnd) frames.second else frames.first
     AsyncImage(
-        model = ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-            .data(url)
-            .crossfade(true)
-            .build(),
+        model = ImageRequest.Builder(context).data(url).crossfade(true).build(),
+        imageLoader = loader,
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = Modifier.fillMaxWidth(),

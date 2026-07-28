@@ -100,6 +100,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
     implementation(libs.health.connect.client)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.camera.core)
