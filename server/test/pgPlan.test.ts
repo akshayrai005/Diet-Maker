@@ -20,18 +20,20 @@ describe('Feature 3 — PG / no-cook plans', () => {
   });
 
   // AC2: a no-kitchen user never gets a food that needs cooking.
-  it('AC2: kitchen "none" drops every food that needs more than assembling', () => {
+  it('AC2: kitchen "none" does NOT drop cooked foods — a PG/mess user still gets roti/dal/rice', () => {
     const eligible = eligibleFoods(SEED_FOODS, prefs({ dietType: 'nonveg', kitchen: 'none' }));
-    expect(eligible.length).toBeGreaterThan(0);
-    for (const f of eligible) expect(inferPrep(f)).toBe('none');
+    const ids = eligible.map((f) => f.id);
+    // Cooked Indian staples remain available — not cooking yourself ≠ assemble-only.
+    expect(ids).toContain('roti');
+    expect(ids).toContain('dal-tadka');
+    expect(ids).toContain('white-rice');
+    expect(eligible.some((f) => inferPrep(f) === 'stove')).toBe(true);
   });
 
-  // AC3: kettle access allows 'none' + 'kettle' but still no stove dishes.
-  it('AC3: kitchen "kettle" allows hot-water foods but no stove dishes', () => {
+  // AC3: kettle access is the same — the menu isn't restricted by how you cook.
+  it('AC3: kitchen "kettle" also keeps the full Indian menu', () => {
     const eligible = eligibleFoods(SEED_FOODS, prefs({ dietType: 'nonveg', kitchen: 'kettle' }));
-    const preps = new Set(eligible.map((f) => inferPrep(f)));
-    expect(preps.has('stove')).toBe(false);
-    expect([...preps].every((p) => p === 'none' || p === 'kettle')).toBe(true);
+    expect(eligible.map((f) => f.id)).toContain('dal-tadka');
   });
 
   // AC4: availableFoodIds intersects — only foods the user actually has.
@@ -66,13 +68,12 @@ describe('Feature 3 — PG / no-cook plans', () => {
     expect(highProtein.length).toBeGreaterThanOrEqual(4);
   });
 
-  // AC8: allergen + kitchen filters compose (a dairy-allergic PG user gets no milk staples).
-  it('AC8: allergen and kitchen filters compose safely', () => {
+  // AC8: allergen filtering still applies (fail-closed) even though kitchen no longer restricts —
+  // a dairy-allergic user gets no milk foods, but still gets cooked non-dairy Indian meals.
+  it('AC8: allergen filter still excludes milk foods, while cooked non-dairy foods remain', () => {
     const eligible = eligibleFoods(SEED_FOODS, prefs({ kitchen: 'none', allergies: ['dairy'] }));
     expect(eligible.length).toBeGreaterThan(0);
-    for (const f of eligible) {
-      expect(inferPrep(f)).toBe('none');
-      expect(f.allergens).not.toContain('milk');
-    }
+    for (const f of eligible) expect(f.allergens).not.toContain('milk');
+    expect(eligible.map((f) => f.id)).toContain('dal-tadka'); // cooked, non-dairy → still available
   });
 });

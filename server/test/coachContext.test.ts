@@ -181,25 +181,26 @@ describe('coach answers from whole-app context (deterministic, AI_PROVIDER=rules
     ];
     const withFoods = (over: Partial<ChatContext> = {}): ChatContext => ctx({ foods: CATALOG, dietType: 'veg', ...over });
 
-    // AC1 — food_safety wired to the scorer: PG (no-cook), low budget → samosa flagged.
-    it('AC1: "can I eat samosa" for a no-cook PG user returns avoid/moderate citing the no-cook/fried issue', () => {
+    // AC1 — food_safety wired to the scorer; kitchen does NOT block. A PG/mess student eats cooked
+    // dal, so "can I eat dal" is a yes even with kitchen 'none'.
+    it('AC1: a no-cook PG user is told YES to cooked dal — kitchen access does not block food', () => {
       const pgCoach = mkCoach({ kitchen: 'none', livingSituation: 'pg', pgMode: true, budgetTier: 'low' });
-      const r = answer('can I eat samosa?', withFoods({ coach: pgCoach, findFood: () => CATALOG[0] }));
+      const r = answer('can I eat dal?', withFoods({ coach: pgCoach, findFood: () => CATALOG[4] }));
       expect(r.intent).toBe('food_safety');
       const body = strip(r.reply).toLowerCase();
-      expect(body).toMatch(/avoid|moderation/);
-      expect(body).toMatch(/cook|fried|refined/);
+      expect(body).not.toMatch(/cook|stove|no kitchen/);
+      expect(body).toMatch(/yes|fits/);
     });
 
-    // AC2 — "what should I eat now" returns real ranked foods within kitchen/allergy limits.
-    it('AC2: "what should I eat now" returns ranked foods, none needing a stove for a no-cook user, none with an allergen', () => {
-      const pgCoach = mkCoach({ kitchen: 'none', pgMode: true, allergies: ['peanut'] });
-      const r = answer('what should I eat now?', withFoods({ coach: pgCoach, nowSlot: 'eveningsnack' }));
+    // AC2 — "what should I eat now" returns real ranked foods; allergens fail-closed, but cooked
+    // foods are NOT excluded for a no-kitchen user.
+    it('AC2: "what should I eat now" ranks real foods, excludes allergens, keeps cooked foods', () => {
+      const pgCoach = mkCoach({ kitchen: 'none', allergies: ['peanut'] });
+      const r = answer('what should I eat now?', withFoods({ coach: pgCoach, nowSlot: 'lunch' }));
       expect(r.intent).toBe('coach_suggest');
       const body = strip(r.reply);
-      expect(body).not.toContain('Samosa'); // needs a stove
       expect(body).not.toContain('Peanuts'); // allergen (fail-closed)
-      expect(body).toMatch(/Curd|chana/);
+      expect(body).toMatch(/Dal|Curd|chana/); // cooked dal is fine — not stripped by kitchen
     });
 
     // AC3 — "something for my iron" prefers iron-rich foods.
@@ -211,13 +212,12 @@ describe('coach answers from whole-app context (deterministic, AI_PROVIDER=rules
       expect(body.toLowerCase()).toContain('iron');
     });
 
-    // AC4 — hostel user's suggestions come only from PG staples.
-    it('AC4: hostel user gets suggestions only from assemble-only staples', () => {
-      const hostelCoach = mkCoach({ livingSituation: 'hostel', pgMode: true });
-      // catalog restricted by PG_STAPLE_IDS ∩ availableFoodIds; only curd/roasted-chana/peanuts qualify here
-      const r = answer('suggest a snack', withFoods({ coach: hostelCoach, nowSlot: 'eveningsnack' }));
+    // AC4 — a hostel user gets normal Indian food (mess/tiffin serves cooked dal), NOT assemble-only.
+    it('AC4: a hostel user still gets cooked Indian foods (dal), not assemble-only staples', () => {
+      const hostelCoach = mkCoach({ livingSituation: 'hostel' });
+      const r = answer('what should I eat for lunch', withFoods({ coach: hostelCoach, nowSlot: 'lunch' }));
       expect(r.intent).toBe('coach_suggest');
-      expect(strip(r.reply)).not.toContain('Dal tadka'); // stove staple, excluded
+      expect(strip(r.reply)).toMatch(/Dal|Curd/);
     });
 
     // AC5 — exercise questions answer from the exercise block; month trend includes weight delta.

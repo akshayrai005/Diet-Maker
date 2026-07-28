@@ -35,12 +35,9 @@ describe('assessFoodSuitability — consolidated scorer', () => {
     expect(v2.kcalForPortion).toBe(100);
   });
 
-  it('marks a food beyond the kitchen access as avoid', () => {
+  it('does NOT block a cooked food on kitchen access — a PG/mess user still eats dal', () => {
     const v = assessFoodSuitability(food({ name: 'Dal', prep: 'stove' }), { kitchen: 'none' });
-    expect(v.verdict).toBe('avoid');
-    expect(v.reasons[0]).toMatch(/cooking/);
-    // an assemble-only food is fine with no kitchen
-    expect(assessFoodSuitability(food({ name: 'Curd', prep: 'none' }), { kitchen: 'none' }).verdict).not.toBe('avoid');
+    expect(v.verdict).not.toBe('avoid');
   });
 
   it('flags a food-drug interaction (warfarin ↔ vitamin-K greens)', () => {

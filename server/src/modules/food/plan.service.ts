@@ -5,7 +5,6 @@ import { computeCalcResult } from '../nutrition/calcResult';
 import { ageFromDob } from '../nutrition/calc.service';
 import { generateWeekPlan, buildSwapMeal } from './planGenerator';
 import { eligibleFoods } from './foodFilter';
-import { isPgMode, PG_STAPLE_IDS } from './prep';
 import { localSunday, localToday } from '../../lib/tz';
 import { round } from '../../calc/anthropometry';
 import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets } from './food.types';
@@ -84,10 +83,12 @@ export async function generateAndSavePlan(
   };
 
   const s = sensitive as typeof sensitive & {
-    kitchen?: FoodItem['prep'];
     livingSituation?: string;
     availableFoodIds?: string[];
   };
+  // Everyone gets normal Indian meals (roti+dal, rice+sabji). Kitchen access no longer restricts the
+  // menu — a PG/hostel/mess or tiffin serves cooked food, so "no stove" ≠ "assemble-only". Only an
+  // explicit availableFoodIds list (rare) limits the catalogue.
   const prefs: PlanPreferences = {
     dietType: profile.dietType,
     allergies: sensitive.allergies,
@@ -96,20 +97,8 @@ export async function generateAndSavePlan(
     budgetTier: sensitive.budgetTier,
     pantryTags: sensitive.pantryTags,
     strictness: sensitive.dietStrictness,
-    kitchen: s.kitchen,
-    livingSituation: s.livingSituation,
     availableFoodIds: s.availableFoodIds,
   };
-
-  // PG / hostel / no-cook mode: restrict to assemble-only staples (unless the user gave an explicit
-  // available-food list) and lean budget-first, so the plan is something they can actually make.
-  if (isPgMode({ livingSituation: s.livingSituation, kitchen: s.kitchen })) {
-    prefs.kitchen = s.kitchen ?? 'kettle';
-    prefs.budgetTier = prefs.budgetTier ?? 'low';
-    if (!prefs.availableFoodIds || prefs.availableFoodIds.length === 0) {
-      prefs.availableFoodIds = [...PG_STAPLE_IDS];
-    }
-  }
 
   const foods = await prisma.food.findMany();
   if (foods.length === 0) {

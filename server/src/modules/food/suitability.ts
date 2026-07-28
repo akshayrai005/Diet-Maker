@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { conditionAvoidTags, expandAllergen } from './foodFilter';
 import { foodFriendliness } from './friendliness';
-import { PREP_RANK, type FoodItem, type MealSlot, type PrepLevel } from './food.types';
+import { type FoodItem, type MealSlot, type PrepLevel } from './food.types';
 
 /**
  * ONE consolidated "is this food right for me, right now?" scorer. It folds together every check the
@@ -83,13 +83,9 @@ export function assessFoodSuitability(food: FoodItem, situation: FoodSituation =
     return { ok: false, verdict: 'avoid', reasons: ["you don't have this on hand right now"], portionG, kcalForPortion };
   }
 
-  // Kitchen access: the food needs more cooking than the user can do.
-  if (situation.kitchen) {
-    const need = PREP_RANK[food.prep ?? 'stove'];
-    if (need > PREP_RANK[situation.kitchen]) {
-      return { ok: false, verdict: 'avoid', reasons: [`needs ${food.prep ?? 'stove'} cooking but you only have ${situation.kitchen} access`], portionG, kcalForPortion };
-    }
-  }
+  // NOTE: kitchen access no longer blocks a food. A PG/hostel/mess or tiffin serves cooked meals, so
+  // "no stove" doesn't mean you can't have dal — the plan and coach treat everyone as eating normal
+  // cooked Indian food. (The `prep` field is kept only as metadata for optional no-cook snack tips.)
 
   // Allergens — fail-closed.
   const allergyTerms = (situation.allergies ?? []).flatMap(expandAllergen).filter(Boolean);

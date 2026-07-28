@@ -1,7 +1,6 @@
 import { FoodItem, type MealSlot } from '../food/food.types';
 import type { CoachContext } from '../coach/coachContext';
 import { assessFoodSuitability, rankSuitable, type FoodSituation } from '../food/suitability';
-import { PG_STAPLE_IDS } from '../food/prep';
 
 export interface ChatContext {
   targets: {
@@ -196,23 +195,19 @@ function isSuggestQuestion(msg: string): boolean {
 function coachSuggestReply(ctx: ChatContext, msg: string): string | null {
   const foods = ctx.foods;
   if (!foods || foods.length === 0) return null;
-  const c = ctx.coach ?? null;
   const nutrient = requestedNutrient(msg);
   const microGaps = nutrient ? [nutrient] : undefined;
   const slot = slotFromMessage(msg) ?? ctx.nowSlot;
   const situation = buildSituation(ctx, slot, microGaps);
-  // PG / hostel with no explicit pantry → suggest only assemble-only staples they can actually make.
-  if (!situation.availableFoodIds && c?.pgMode) situation.availableFoodIds = [...PG_STAPLE_IDS];
   const picks = rankSuitable(foods, situation, { slot, limit: 3 });
   if (picks.length === 0) {
     return `I couldn't find a food that fits all your constraints right now. Tell me what you have on hand and I'll work from that.`;
   }
-  const pgNote = c?.pgMode ? ` (no-cook picks — nothing here needs a stove)` : '';
   const lines = picks.map((p) => {
     const why = p.reasons[0] ? ` — ${p.reasons[0]}` : '';
     return `• ${p.food.name} (~${p.portionG} g, ${p.kcalForPortion} kcal)${why}`;
   });
-  const lead = nutrient ? `For more ${nutrient}, try${pgNote}:` : slot ? `Good ${slot} options${pgNote}:` : `Here's what fits you right now${pgNote}:`;
+  const lead = nutrient ? `For more ${nutrient}, try:` : slot ? `Good ${slot} options:` : `Here's what fits you right now:`;
   return `${lead}\n${lines.join('\n')}`;
 }
 
