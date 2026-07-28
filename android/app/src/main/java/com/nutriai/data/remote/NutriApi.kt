@@ -126,7 +126,10 @@ interface NutriApi {
     suspend fun putReminderPrefs(@Body body: com.nutriai.data.remote.dto.ReminderPrefsDto): com.nutriai.data.remote.dto.ReminderPrefsEnvelope
 
     @GET("discipline/today")
-    suspend fun disciplineToday(): com.nutriai.data.remote.dto.DisciplineToday
+    suspend fun disciplineToday(
+        @retrofit2.http.Query("steps") steps: Int? = null,
+        @retrofit2.http.Query("sleepHours") sleepHours: Double? = null,
+    ): com.nutriai.data.remote.dto.DisciplineToday
 
     @POST("habits/{id}/toggle")
     suspend fun toggleHabit(

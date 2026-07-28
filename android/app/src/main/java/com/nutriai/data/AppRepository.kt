@@ -177,8 +177,8 @@ class AppRepository @Inject constructor(
         runCatching { api.putReminderPrefs(prefs).prefs }
 
     // ---- Discipline habits ----
-    suspend fun disciplineToday(): Result<com.nutriai.data.remote.dto.DisciplineToday> =
-        runCatching { api.disciplineToday() }
+    suspend fun disciplineToday(steps: Int? = null, sleepHours: Double? = null): Result<com.nutriai.data.remote.dto.DisciplineToday> =
+        runCatching { api.disciplineToday(steps, sleepHours) }
 
     suspend fun toggleHabit(id: String, done: Boolean): Result<com.nutriai.data.remote.dto.DisciplineToday> =
         runCatching { api.toggleHabit(id, com.nutriai.data.remote.dto.HabitToggleRequest(done)) }

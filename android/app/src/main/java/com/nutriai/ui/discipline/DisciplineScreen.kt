@@ -54,7 +54,10 @@ import javax.inject.Inject
 data class DisciplineState(val loading: Boolean = true, val data: DisciplineToday? = null)
 
 @HiltViewModel
-class DisciplineViewModel @Inject constructor(private val repository: AppRepository) : ViewModel() {
+class DisciplineViewModel @Inject constructor(
+    private val repository: AppRepository,
+    private val healthConnect: com.nutriai.data.health.HealthConnectManager,
+) : ViewModel() {
     private val _state = MutableStateFlow(DisciplineState())
     val state: StateFlow<DisciplineState> = _state.asStateFlow()
 
@@ -63,7 +66,10 @@ class DisciplineViewModel @Inject constructor(private val repository: AppReposit
     fun refresh() {
         _state.value = _state.value.copy(loading = true)
         viewModelScope.launch {
-            _state.value = DisciplineState(loading = false, data = repository.disciplineToday().getOrNull())
+            // Feed device metrics (Health Connect) so steps/sleep habits auto-tick when the goal's hit.
+            val steps = runCatching { healthConnect.readTodaySteps().toInt() }.getOrNull()?.takeIf { it > 0 }
+            val sleep = runCatching { healthConnect.readLastSleepHours() }.getOrNull()
+            _state.value = DisciplineState(loading = false, data = repository.disciplineToday(steps, sleep).getOrNull())
         }
     }
 
@@ -216,10 +222,24 @@ private fun HabitRow(habit: HabitView, onToggle: () -> Unit, onDelete: () -> Uni
         ) {
             Checkbox(
                 checked = habit.doneToday,
-                onCheckedChange = { onToggle() },
-                modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}" },
+                // Auto-tracked habits reflect the metric (steps/water/sleep) and can't be toggled by hand.
+                enabled = !habit.autoTracked,
+                onCheckedChange = { if (!habit.autoTracked) onToggle() },
+                modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}${if (habit.autoTracked) ", auto-tracked" else ""}" },
             )
-            Text("${habit.icon ?: ""} ${habit.title}".trim(), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Column(Modifier.weight(1f)) {
+                Text("${habit.icon ?: ""} ${habit.title}".trim(), style = MaterialTheme.typography.bodyLarge)
+                if (habit.autoTracked && habit.current != null && habit.target != null) {
+                    val unit = habit.unit ?: ""
+                    val cur = habit.current.toInt()
+                    val tgt = habit.target.toInt()
+                    Text(
+                        if (habit.doneToday) "✓ auto: $cur/$tgt $unit" else "$cur/$tgt $unit — auto-tracks when you hit the goal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (habit.doneToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             if (habit.streakDays > 0) {
                 Text(
                     "🔥 ${habit.streakDays}",

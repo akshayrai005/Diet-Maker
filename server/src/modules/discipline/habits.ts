@@ -16,6 +16,52 @@ export const DEFAULT_HABITS: HabitDef[] = [
   { key: 'sleep-7h', title: '7+ hours of sleep', icon: '😴', sortOrder: 4 },
 ];
 
+/**
+ * Metrics the app already tracks, used to AUTO-complete the matching habit — so hitting your water
+ * goal or 10k steps ticks the habit itself, no manual checkbox. `waterMl`/`waterTargetMl` are
+ * server-side; `steps`/`sleepHours` come from the device's Health Connect. All optional — a metric
+ * we don't have simply leaves its habit manual.
+ */
+export interface HabitMetrics {
+  steps?: number;
+  waterMl?: number;
+  waterTargetMl?: number;
+  sleepHours?: number;
+}
+
+export interface AutoHabitStatus {
+  /** True when this habit is driven by a tracked metric (so the UI shows progress, not just a box). */
+  tracked: boolean;
+  /** True when the metric has met the target today. */
+  done: boolean;
+  current?: number;
+  target?: number;
+  unit?: string;
+}
+
+const STEPS_TARGET = 10_000;
+const SLEEP_TARGET_H = 7;
+
+/**
+ * PURE: for an auto-trackable habit key, whether today's metric meets the goal. Unknown keys or
+ * missing metrics return `{ tracked: false, done: false }` — those habits stay manual.
+ */
+export function autoHabitStatus(key: string, m: HabitMetrics): AutoHabitStatus {
+  switch (key) {
+    case 'steps-10k':
+      if (m.steps == null) return { tracked: false, done: false };
+      return { tracked: true, done: m.steps >= STEPS_TARGET, current: Math.round(m.steps), target: STEPS_TARGET, unit: 'steps' };
+    case 'water-goal':
+      if (m.waterMl == null || !m.waterTargetMl) return { tracked: false, done: false };
+      return { tracked: true, done: m.waterMl >= m.waterTargetMl, current: Math.round(m.waterMl), target: Math.round(m.waterTargetMl), unit: 'ml' };
+    case 'sleep-7h':
+      if (m.sleepHours == null) return { tracked: false, done: false };
+      return { tracked: true, done: m.sleepHours >= SLEEP_TARGET_H, current: Math.round(m.sleepHours * 10) / 10, target: SLEEP_TARGET_H, unit: 'h' };
+    default:
+      return { tracked: false, done: false };
+  }
+}
+
 /** Consecutive-day streak for a habit from its done-day keys ending today (or yesterday). PURE. */
 export function habitStreak(doneDayKeys: string[], todayKey: string): number {
   return computeStreak(doneDayKeys, todayKey);

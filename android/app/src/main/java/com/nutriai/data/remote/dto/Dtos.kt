@@ -655,6 +655,11 @@ data class HabitView(
     val icon: String? = null,
     val doneToday: Boolean = false,
     val streakDays: Int = 0,
+    val autoTracked: Boolean = false,
+    val autoDone: Boolean = false,
+    val current: Double? = null,
+    val target: Double? = null,
+    val unit: String? = null,
 )
 
 @Serializable

@@ -35,7 +35,13 @@ disciplineRouter.get(
   '/discipline/today',
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
-    const data = await getDisciplineToday(req.user!.id, tzOffsetMin(req));
+    // Device-sourced metrics (Health Connect) that auto-complete the steps/sleep habits.
+    const num = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const deviceMetrics = { steps: num(req.query.steps), sleepHours: num(req.query.sleepHours) };
+    const data = await getDisciplineToday(req.user!.id, tzOffsetMin(req), new Date(), deviceMetrics);
     res.json(data);
   }),
 );
