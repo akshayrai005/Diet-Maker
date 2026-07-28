@@ -268,7 +268,7 @@ private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
                 flow.poses.forEachIndexed { i, p ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.Top) {
                         Text("${i + 1}", Modifier.size(width = 18.dp, height = 20.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-                        YogaPoseThumb(p.name, Modifier.padding(end = 8.dp))
+                        YogaPoseThumb(p.name, p.cue, Modifier.padding(end = 8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(p.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = BrandGreenDeep)
                             Text(p.cue, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -430,13 +430,20 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
     }
 }
 
-/** Small pose illustration for a yoga pose (free yoga-api). Falls back to a yoga emoji. */
+/** Pose illustration for a yoga pose (free yoga-api). Tap to preview it large. 🧘 emoji fallback. */
 @Composable
-private fun YogaPoseThumb(name: String, modifier: Modifier = Modifier) {
+private fun YogaPoseThumb(name: String, cue: String, modifier: Modifier = Modifier) {
     val url = remember(name) { YogaPoseMap.imageUrl(name) }
     var failed by remember(name) { mutableStateOf(false) }
+    var preview by remember { mutableStateOf(false) }
+
     Box(
-        modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(Color.White),
+        modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White)
+            .clickable(enabled = url != null && !failed) { preview = true }
+            .semantics { contentDescription = "$name pose, tap to preview" },
         contentAlignment = Alignment.Center,
     ) {
         if (url == null || failed) {
@@ -450,5 +457,31 @@ private fun YogaPoseThumb(name: String, modifier: Modifier = Modifier) {
                 onState = { state -> if (state is AsyncImagePainter.State.Error) failed = true },
             )
         }
+    }
+
+    if (preview && url != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { preview = false },
+            confirmButton = { TextButton(onClick = { preview = false }) { Text("Close") } },
+            title = { Text(name, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(
+                        Modifier.fillMaxWidth().heightIn(min = 240.dp).clip(RoundedCornerShape(16.dp)).background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current).data(url).crossfade(true).build(),
+                            contentDescription = "$name pose",
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        )
+                    }
+                    if (cue.isNotBlank()) {
+                        Text(cue, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            },
+        )
     }
 }
