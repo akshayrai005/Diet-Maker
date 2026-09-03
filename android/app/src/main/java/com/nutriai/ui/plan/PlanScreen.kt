@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.nutriai.ui.move.ExerciseCatalog
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -25,7 +24,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,13 +68,12 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         item {
             com.nutriai.ui.components.AppHero(
                 title = "Plan & review",
-                subtitle = "Plan the day, let the coach check it, then track how you actually did.",
+                subtitle = "Tap a day, add what you'll eat and train, then track it.",
                 emoji = "📝",
             )
         }
 
         // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
-        item { Text("This week", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
         item {
             val week by viewModel.week.collectAsStateWithLifecycle()
             androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -102,22 +99,19 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             item { AdherenceCard(state) }
         }
 
-        // Trainer notes.
+        // Trainer notes — plain field, no separate label clutter.
         item {
             OutlinedTextField(
                 value = plan.trainerNotes,
                 onValueChange = { viewModel.setTrainerNotes(it) },
-                label = { Text("What did your trainer say? (optional)") },
-                placeholder = { Text("e.g. 5x5 bench, focus on form") },
+                placeholder = { Text("What did your trainer say? (optional)") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 1,
             )
         }
 
-        // Food plan.
-        item {
-            SectionHeader("🍽️ Food plan") { showAddFood = true }
-        }
+        // Food plan — tap the header to add more; empty state IS the add action, no separate button.
+        item { Text("🍽️ Food plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddFood = true }) }
         itemsIndexed(plan.foods) { i, f ->
             PlanRow(
                 title = f.name,
@@ -125,38 +119,55 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                 onRemove = { viewModel.removeFood(i) },
             )
         }
-        if (plan.foods.isEmpty()) item { EmptyHint("No foods yet — tap + to add from presets.") }
+        item { AddRow("Tap to add food") { showAddFood = true } }
 
-        // Exercise plan.
-        item {
-            SectionHeader("🏋️ Workout plan") { showAddExercise = true }
-        }
+        // Workout plan — same pattern.
+        item { Text("🏋️ Workout plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddExercise = true }) }
         itemsIndexed(plan.exercises) { i, e ->
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (state.isToday) {
-                        Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text("${e.sets} × ${e.reps}${e.muscleGroup?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    TextButton(onClick = { viewModel.removeExercise(i) }) { Text("Remove") }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    .clickable(enabled = !state.isToday) { viewModel.removeExercise(i) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (state.isToday) {
+                    Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text("${e.sets} × ${e.reps}${e.muscleGroup?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (!state.isToday) {
+                    Text("✕", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        if (plan.exercises.isEmpty()) item { EmptyHint("No exercises yet — tap + to add from the library.") }
+        item { AddRow("Tap to add an exercise") { showAddExercise = true } }
 
         // Sleep.
         item { SleepRow(plan.bedtime, plan.waketime) { b, w -> viewModel.setSleep(b, w) } }
 
-        // AI review.
+        // AI review — tappable card instead of an outlined button.
         item {
-            OutlinedButton(onClick = { viewModel.requestReview() }, modifier = Modifier.fillMaxWidth(), enabled = !state.reviewing) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable(enabled = !state.reviewing) { viewModel.requestReview() }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 if (state.reviewing) {
                     CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp)
-                    Text("  Coach is reviewing…")
-                } else Text("🤖 Ask the coach to review my plan")
+                    Text("Coach is reviewing…", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                } else {
+                    Text("🤖 Tap to have the coach review this plan", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                }
             }
         }
         if (plan.aiReview.isNotBlank()) {
@@ -253,30 +264,40 @@ private fun AdherenceCard(state: PlanUiState) {
     }
 }
 
+/** A row that's the add action itself — tap anywhere on it, no separate button. */
 @Composable
-private fun SectionHeader(title: String, onAdd: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        AssistChip(onClick = onAdd, label = { Text("+ Add") })
+private fun AddRow(label: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text("+ $label", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
+/** A logged row — tap it to remove (a small ✕ hints at that; no separate "Remove" button). */
 @Composable
 private fun PlanRow(title: String, subtitle: String, onRemove: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            TextButton(onClick = onRemove) { Text("Remove") }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .clickable(onClick = onRemove)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Text("✕", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-}
-
-@Composable
-private fun EmptyHint(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 4.dp))
 }
 
 @Composable
