@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun DietScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
-    val labels = listOf("Plan", "Log", "Grocery")
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 3)) }
+    val labels = listOf("Plan", "Log", "Grocery", "Office")
 
     Column(modifier.fillMaxSize()) {
         Row(
@@ -45,7 +45,8 @@ fun DietScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         when (section) {
             0 -> com.nutriai.ui.calendar.CalendarScreen(Modifier.fillMaxSize())
             1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize())
-            else -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
+            2 -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
+            else -> com.nutriai.ui.lifestyle.LifestyleScreen(Modifier.fillMaxSize())
         }
     }
 }
