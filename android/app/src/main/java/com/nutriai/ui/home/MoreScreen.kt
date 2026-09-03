@@ -51,6 +51,7 @@ private val MORE_ITEMS = listOf(
     MoreItem("vitals", "🩺", "Vitals & labs", "BP, glucose, cholesterol & trends"),
     MoreItem("medications", "💊", "Medicines & supplements", "Track doses & get reminders"),
     MoreItem("checkin", "⚖️", "Weekly check-in", "Log weight & measurements"),
+    MoreItem("physique", "🧍", "Body type & goal", "Pick your shape & target physique"),
     MoreItem("body", "📸", "Body Check", "AI body-fat from a photo"),
     MoreItem("progress", "📈", "Progress & body", "Measurements, trends & private photos"),
     MoreItem("history", "🗓️", "History", "Steps, calories, water & weight day-by-day"),
@@ -84,6 +85,7 @@ fun MoreScreen(
                 "vitals" -> com.nutriai.ui.vitals.VitalsScreen(Modifier.fillMaxSize())
                 "medications" -> com.nutriai.ui.medications.MedicationsScreen(Modifier.fillMaxSize())
                 "checkin" -> CheckinScreen(Modifier.fillMaxSize())
+                "physique" -> com.nutriai.ui.bodytype.BodyTypeScreen(Modifier.fillMaxSize())
                 "body" -> BodyScreen(Modifier.fillMaxSize())
                 "progress" -> com.nutriai.ui.body.ProgressScreen(Modifier.fillMaxSize())
                 "history" -> com.nutriai.ui.history.HistoryScreen(Modifier.fillMaxSize())
