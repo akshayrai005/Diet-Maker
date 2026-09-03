@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -539,7 +540,8 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
 @Composable
 private fun SearchExerciseSheet(onDismiss: () -> Unit, onPick: (ExerciseItem) -> Unit) {
     var query by remember { mutableStateOf("") }
-    val results = remember(query) { ExerciseCatalog.search(query) }
+    var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
+    val results = remember(query, category) { ExerciseCatalog.search(query, category) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
@@ -551,10 +553,21 @@ private fun SearchExerciseSheet(onDismiss: () -> Unit, onPick: (ExerciseItem) ->
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text("e.g. bench press, squat, plank") },
+                    label = { Text("e.g. bench press, squat, yoga") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Exercise search field" },
                 )
+                // Category filter chips - every training type, one tap to narrow the list.
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(ExerciseCatalog.categories) { c ->
+                        FilterChip(
+                            selected = category == c,
+                            onClick = { category = c },
+                            label = { Text("${c.emoji} ${c.label}") },
+                            modifier = Modifier.semantics { contentDescription = "${c.label} filter" },
+                        )
+                    }
+                }
                 LazyColumn(
                     Modifier.fillMaxWidth().heightIn(max = 340.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -572,8 +585,8 @@ private fun SearchExerciseSheet(onDismiss: () -> Unit, onPick: (ExerciseItem) ->
                     items(results) { ex ->
                         SearchResultRow(ex = ex, onClick = { onPick(ex) })
                     }
-                    if (results.isEmpty() && typed.isEmpty()) {
-                        item { Text("Start typing to find an exercise.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (results.isEmpty() && typed.isNotEmpty()) {
+                        item { Text("No match in the library - tap \"Log \\\"$typed\\\"\" above to log it anyway.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
             }
