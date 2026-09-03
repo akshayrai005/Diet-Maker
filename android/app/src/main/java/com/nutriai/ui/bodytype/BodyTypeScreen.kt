@@ -268,14 +268,22 @@ private fun BodySilhouette(p: Physique, modifier: Modifier = Modifier) {
         val waistHalf = w * p.waist / 2f
         val hipHalf = w * p.hip / 2f
 
-        // Torso outline (shoulders → waist → hips) as a closed path with smooth curves.
+        // Torso outline (shoulders → belly/waist → hips) as one smooth closed path. A wider waist
+        // bows OUTWARD (belly) so skinny-fat / overweight read as soft, while a narrow waist under
+        // broad shoulders gives the athletic V-taper. Shoulders are rounded, not square.
+        val midY = (shoulderY + waistY) / 2f
+        val bellyHalf = maxOf(waistHalf, shoulderHalf * 0.7f) * 1.08f
         val torso = Path().apply {
-            moveTo(cx - shoulderHalf, shoulderY)
-            cubicTo(cx - shoulderHalf, shoulderY + h * 0.10f, cx - waistHalf, waistY - h * 0.10f, cx - waistHalf, waistY)
-            lineTo(cx - hipHalf, hipY)
+            // Left side: rounded shoulder → belly bulge → waist → hip.
+            moveTo(cx - shoulderHalf + w * 0.02f, shoulderY)
+            quadraticBezierTo(cx - shoulderHalf - w * 0.02f, shoulderY + h * 0.02f, cx - shoulderHalf, shoulderY + h * 0.05f)
+            quadraticBezierTo(cx - bellyHalf, midY, cx - waistHalf, waistY)
+            quadraticBezierTo(cx - hipHalf, waistY + h * 0.04f, cx - hipHalf, hipY)
             lineTo(cx + hipHalf, hipY)
-            lineTo(cx + waistHalf, waistY)
-            cubicTo(cx + waistHalf, waistY - h * 0.10f, cx + shoulderHalf, shoulderY + h * 0.10f, cx + shoulderHalf, shoulderY)
+            // Right side back up (mirror).
+            quadraticBezierTo(cx + hipHalf, waistY + h * 0.04f, cx + waistHalf, waistY)
+            quadraticBezierTo(cx + bellyHalf, midY, cx + shoulderHalf, shoulderY + h * 0.05f)
+            quadraticBezierTo(cx + shoulderHalf + w * 0.02f, shoulderY + h * 0.02f, cx + shoulderHalf - w * 0.02f, shoulderY)
             close()
         }
         drawPath(torso, color = fill)

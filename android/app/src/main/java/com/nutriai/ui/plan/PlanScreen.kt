@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import com.nutriai.ui.move.ExerciseCatalog
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -329,22 +331,42 @@ private fun AddFoodDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
 @Composable
 private fun AddExerciseDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
     var query by remember { mutableStateOf("") }
-    val results = remember(query) { viewModel.exerciseSuggestions(query) }
+    var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
+    val results = remember(query, category) { ExerciseCatalog.search(query, category) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add exercise") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(query, { query = it }, label = { Text("Search e.g. bench, squat") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(query, { query = it }, label = { Text("Search, or pick a body part below") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                // Body-part tabs: tap a part to see its exercises; tap an exercise to add it.
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(ExerciseCatalog.categories) { c ->
+                        FilterChip(
+                            selected = category == c,
+                            onClick = { category = c },
+                            label = { Text("${c.emoji} ${c.label}") },
+                        )
+                    }
+                }
                 LazyColumn(Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(results) { ex ->
-                        Card(Modifier.fillMaxWidth().clickable { viewModel.addExercise(ex.name, ex.muscleGroup); onDismiss() }, shape = RoundedCornerShape(10.dp)) {
-                            Column(Modifier.padding(10.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth()
+                                .clickable { viewModel.addExercise(ex.name, ex.muscleGroup); onDismiss() }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            com.nutriai.ui.move.ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 34)
+                            Column(Modifier.weight(1f)) {
                                 Text(ex.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                 ex.muscleGroup?.let { Text(it.replaceFirstChar { c -> c.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             }
+                            Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
+                    if (results.isEmpty()) item { Text("No matches — type a name to add it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             }
         },
