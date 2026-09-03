@@ -71,6 +71,12 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Smart-coach alarms: fetches today's data and posts a summary / starvation nudge. -->
+        <receiver
+            android:name=".notifications.CoachReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -53,6 +53,8 @@ class MainActivity : ComponentActivity() {
         // Ensure the user's enabled reminders are (re)scheduled as exact alarms. Alarms don't
         // survive a reboot, so this re-arm on launch (plus BootReceiver) keeps them anchored.
         lifecycleScope.launch { reminderScheduler.apply(reminderPrefs.snapshot()) }
+        // Smart-coach daily nudges (midday starvation check + 9 PM data-driven summary).
+        com.nutriai.notifications.CoachScheduler.schedule(this)
         maybeRequestNotificationPermission()
 
         setContent {

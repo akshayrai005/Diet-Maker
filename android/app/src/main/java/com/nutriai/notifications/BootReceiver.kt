@@ -26,6 +26,7 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.Default).launch {
             try {
                 scheduler.apply(prefs.snapshot())
+                CoachScheduler.schedule(context)
             } finally {
                 pending.finish()
             }
