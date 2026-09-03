@@ -182,6 +182,26 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
     }
 }
 
+/**
+ * Compact current→goal body-type picker for reuse in onboarding (spec Section 4, Step 0). Draws the
+ * same silhouettes as the standalone screen; the caller owns the selected ids and persistence.
+ */
+@Composable
+fun BodyTypeInlinePicker(
+    currentId: String?,
+    goalId: String?,
+    onCurrent: (String) -> Unit,
+    onGoal: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Where are you now?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        PhysiqueGrid(CURRENT_TYPES, currentId, onCurrent)
+        Text("Where do you want to be?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        PhysiqueGrid(GOAL_TYPES, goalId, onGoal)
+    }
+}
+
 @Composable
 private fun PhysiqueGrid(types: List<Physique>, selectedId: String?, onSelect: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

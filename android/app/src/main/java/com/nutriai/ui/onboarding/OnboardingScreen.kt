@@ -136,6 +136,22 @@ private val DAYS: List<Pair<Int?, String>> = listOf(
     null to "None", 0 to "Sunday", 1 to "Monday", 2 to "Tuesday",
     3 to "Wednesday", 4 to "Thursday", 5 to "Friday", 6 to "Saturday",
 )
+// Office/lifestyle eating pattern (spec Section 6) → drives server meal-slot distribution.
+private val EATING_PATTERN: List<Pair<String?, String>> = listOf(
+    null to "Not sure / skip",
+    "morning_night" to "Morning + night only",
+    "home" to "Home all day",
+    "office_canteen" to "Office (with canteen)",
+    "office_no_canteen" to "Office (no canteen)",
+    "field" to "Field job / travelling",
+    "night_shift" to "Night shift",
+    "omad" to "One meal a day",
+    "religious_fasting" to "Religious fasting",
+)
+// Gym membership duration (spec Section 5) → progressive-overload phase.
+private val GYM_MONTHS: List<Pair<Int?, String>> = listOf(
+    null to "Not a member", 1 to "1 month", 3 to "3 months", 6 to "6 months", 12 to "12 months",
+)
 private val CONDITIONS = listOf("diabetes", "hypertension", "kidney_disease", "thyroid", "pcos", "heart_disease", "fatty_liver", "gout")
 private val FAMILY_HISTORY = listOf("diabetes", "heart_disease", "hypertension", "stroke", "cancer", "thyroid")
 // Physique goal: value → (label, body-neutral, plain-language description). Never framed around appearance/shame.
@@ -197,6 +213,11 @@ fun OnboardingScreen(
     var contraception by remember { mutableStateOf("none") }
     var physiqueGoal by remember { mutableStateOf<String?>(null) }
     val priorityMuscles = remember { mutableStateListOf<String>() }
+    var eatingPattern by remember { mutableStateOf<String?>(null) }
+    var bodyTypeCurrent by remember { mutableStateOf<String?>(null) }
+    var bodyTypeGoal by remember { mutableStateOf<String?>(null) }
+    var gymJoinDate by remember { mutableStateOf("") }
+    var gymMonths by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(state.prefillLoaded) {
         val p = state.prefill ?: return@LaunchedEffect
@@ -234,6 +255,11 @@ fun OnboardingScreen(
             physiqueGoal = s.physiqueGoal
             priorityMuscles.clear(); priorityMuscles.addAll(s.priorityMuscles.take(MAX_PRIORITY_MUSCLES))
             timeframeWeeks = s.targetTimeframeWeeks ?: timeframeWeeks
+            eatingPattern = s.eatingPattern ?: eatingPattern
+            bodyTypeCurrent = s.bodyTypeCurrent ?: bodyTypeCurrent
+            bodyTypeGoal = s.bodyTypeGoal ?: bodyTypeGoal
+            gymJoinDate = s.gymJoinDate ?: gymJoinDate
+            gymMonths = s.gymMembershipMonths ?: gymMonths
         }
     }
 
@@ -303,6 +329,11 @@ fun OnboardingScreen(
                         physiqueGoal = physiqueGoal,
                         priorityMuscles = priorityMuscles.toList(),
                         targetTimeframeWeeks = timeframeWeeks,
+                        eatingPattern = eatingPattern,
+                        bodyTypeCurrent = bodyTypeCurrent,
+                        bodyTypeGoal = bodyTypeGoal,
+                        gymJoinDate = gymJoinDate.trim().ifBlank { null },
+                        gymMembershipMonths = gymMonths,
                     ),
                 ),
                 onDone,
@@ -326,6 +357,14 @@ fun OnboardingScreen(
             when (step) {
                 0 -> {
                     Text("A few basics so everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
+                    // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
+                    Label("Your body type")
+                    com.nutriai.ui.bodytype.BodyTypeInlinePicker(
+                        currentId = bodyTypeCurrent,
+                        goalId = bodyTypeGoal,
+                        onCurrent = { bodyTypeCurrent = it },
+                        onGoal = { bodyTypeGoal = it },
+                    )
                     numberField(height, { height = it }, "Height (cm)")
                     numberField(weight, { weight = it }, "Current weight (kg)")
                     numberField(target, { target = it }, "Target weight (kg)")
@@ -371,6 +410,12 @@ fun OnboardingScreen(
                     }
 
                     Dropdown("Diet", DIET, diet) { diet = it }
+                    Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it }
+                    Text(
+                        "How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Dropdown("Activity level", ACTIVITY, activity) { activity = it }
                     Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
                     Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
@@ -398,6 +443,14 @@ fun OnboardingScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
+
+                    // Gym membership (spec Section 5) → progressive-overload phase (Foundation→Peak).
+                    Label("Gym membership (optional)")
+                    Dropdown("Membership duration", GYM_MONTHS, gymMonths) { gymMonths = it }
+                    if (gymMonths != null) {
+                        Text("When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
+                    }
                 }
                 3 -> {
                     Label("Conditions (optional)")
@@ -497,14 +550,14 @@ private fun fmt(v: Double): String = if (v % 1.0 == 0.0) v.toLong().toString() e
 /** Date-of-birth field backed by a calendar picker (no manual typing). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DobPicker(dob: String, onDob: (String) -> Unit) {
+private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (String) -> Unit) {
     var show by remember { mutableStateOf(false) }
     Box {
         OutlinedTextField(
             value = dob,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Date of birth") },
+            label = { Text(label) },
             placeholder = { Text("Tap to pick 📅") },
             trailingIcon = { Text("📅", modifier = Modifier.padding(end = 12.dp)) },
             modifier = Modifier.fillMaxWidth(),

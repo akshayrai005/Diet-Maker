@@ -94,6 +94,14 @@ data class SensitiveData(
     // Goal-timeline: how fast the user wants to reach targetWeightKg, in weeks (1-260).
     // Optional/additive - the server clamps to a safe pace and older payloads simply omit it.
     val targetTimeframeWeeks: Int? = null,
+    // Office/lifestyle eating pattern (spec Section 6) - drives the meal-slot distribution server-side.
+    val eatingPattern: String? = null,
+    // Visual body-type selector (spec Section 4): current + goal physique.
+    val bodyTypeCurrent: String? = null,
+    val bodyTypeGoal: String? = null,
+    // Gym membership (spec Section 5): join date (yyyy-MM-dd) + duration → progressive-overload phase.
+    val gymJoinDate: String? = null,
+    val gymMembershipMonths: Int? = null,
 )
 
 // ---- Goal timeline (safe-pace preview) ----
