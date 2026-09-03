@@ -189,7 +189,14 @@ describe('guardrails — remaining condition modifiers', () => {
 
 describe('guardrails — maintain & gain', () => {
   it('maintain returns TDEE', () => {
-    expect(applyGuardrails(base({ goal: 'maintain' })).dailyKcal).toBe(2600);
+    // A true maintain holds weight — target equals current. (When goal is "maintain" but the target
+    // differs from current, the guardrail now honours the target as a lose/gain direction.)
+    expect(applyGuardrails(base({ goal: 'maintain', targetWeightKg: 90 })).dailyKcal).toBe(2600);
+  });
+  it('maintain with a lower target is treated as a loss (honours the target)', () => {
+    const r = applyGuardrails(base({ goal: 'maintain', targetWeightKg: 80 }));
+    expect(r.dailyKcal).toBeLessThan(2600);
+    expect(r.safeWeeklyDeltaKg).toBeLessThan(0);
   });
   it('gain returns a surplus above TDEE', () => {
     const r = applyGuardrails(base({ goal: 'gain' }));

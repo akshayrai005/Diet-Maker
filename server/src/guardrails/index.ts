@@ -38,7 +38,6 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
     currentWeightKg,
     tdee,
     bmi,
-    goal,
     conditions,
     clinicianOverride = false,
     reducedMobility = false,
@@ -62,7 +61,19 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
   // ---- Eating-disorder / underweight safety: never plan loss toward an underweight body ----
   const currentlyUnderweight = bmi < 18.5;
   const targetUnderweight = targetBmi !== undefined && targetBmi < 18.5;
-  if (input.goal === 'lose' && (currentlyUnderweight || targetUnderweight)) {
+
+  // Effective direction. If the user left the goal at "maintain" but set a target that clearly
+  // differs from their current weight, honour the TARGET — otherwise choosing a lower target did
+  // nothing and the projection stayed at the current weight. Safety: never auto-infer a loss toward
+  // an underweight target (an explicit lose goal is handled by the block just below instead).
+  let goal = input.goal;
+  if (goal === 'maintain' && isFinite(input.targetWeightKg) && input.targetWeightKg > 0) {
+    const diffKg = input.targetWeightKg - currentWeightKg;
+    if (diffKg <= -1 && !targetUnderweight) goal = 'lose';
+    else if (diffKg >= 1) goal = 'gain';
+  }
+
+  if (goal === 'lose' && (currentlyUnderweight || targetUnderweight)) {
     weightLossBlocked = true;
     flags.push({
       code: 'UNDERWEIGHT_NO_LOSS',
@@ -80,7 +91,7 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
   }
 
   // Cancer: often needs to prevent weight loss (cachexia) - do not plan a deficit.
-  if (has(conditions, 'cancer') && input.goal === 'lose') {
+  if (has(conditions, 'cancer') && goal === 'lose') {
     weightLossBlocked = true;
     flags.push({
       code: 'CANCER_NO_DEFICIT',
