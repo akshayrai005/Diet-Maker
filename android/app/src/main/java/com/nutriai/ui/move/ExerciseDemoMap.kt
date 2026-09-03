@@ -299,9 +299,36 @@ object ExerciseDemoMap {
             .joinToString(" ")
     }
 
-    /** Animated GIF url for an exercise name, or null when we have no demo (→ diagram fallback). */
+    /** Each dataset key pre-split into its token set, for fuzzy fallback matching. */
+    private val tokenizedKeys: List<Pair<Set<String>, String>> by lazy {
+        ids.entries.map { e -> e.key.split(" ").filter { it.isNotEmpty() }.toSet() to e.value }
+    }
+
+    private fun tokensOf(name: String): Set<String> =
+        canon(name).split(" ").filter { it.isNotEmpty() }.toSet()
+
+    /**
+     * Animated GIF url for an exercise name, or null when we truly have no close demo (→ diagram
+     * fallback). Tries an exact canonical match first, then a fuzzy TOKEN-OVERLAP match so names the
+     * generator never saw verbatim ("Incline Barbell Bench Press") still resolve to the nearest demo
+     * ("barbell bench press"). The threshold is conservative so we don't show an unrelated clip.
+     */
     fun gifUrl(name: String): String? {
-        val id = ids[canon(name)] ?: return null
-        return BASE + id + ".gif"
+        ids[canon(name)]?.let { return BASE + it + ".gif" }
+
+        val q = tokensOf(name)
+        if (q.isEmpty()) return null
+        var best: String? = null
+        var bestScore = 0.0
+        for ((toks, id) in tokenizedKeys) {
+            var inter = 0
+            for (t in q) if (t in toks) inter++
+            if (inter == 0) continue
+            val coverage = inter.toDouble() / q.size            // how much of the query is covered
+            val precision = inter.toDouble() / toks.size         // how specific the key is to the query
+            val score = coverage * 0.6 + precision * 0.4
+            if (score > bestScore) { bestScore = score; best = id }
+        }
+        return if (best != null && bestScore >= 0.5) BASE + best + ".gif" else null
     }
 }
