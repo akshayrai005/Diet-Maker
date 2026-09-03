@@ -258,13 +258,25 @@ function buildDay(
   targets: PlanTargets,
   dietType: string,
   fasting = false,
+  eatingPattern?: string,
 ): DayPlan {
+  // Morning + Night working pattern (spec Section 6): most common for office users who skip lunch.
+  // Only 3 slots, front-loaded 40% breakfast / 25% evening snack / 35% dinner.
+  const morningNight = !fasting && dietType !== 'if' && eatingPattern === 'morning_night';
+
   // Fasting day: fewer, lighter meals at ~40% of calories.
   const slots: MealSlot[] = fasting
     ? (['midmorning', 'lunch', 'eveningsnack'] as MealSlot[])
-    : dietType === 'if'
-      ? (['lunch', 'eveningsnack', 'dinner'] as MealSlot[])
-      : MEAL_SLOTS;
+    : morningNight
+      ? (['breakfast', 'eveningsnack', 'dinner'] as MealSlot[])
+      : dietType === 'if'
+        ? (['lunch', 'eveningsnack', 'dinner'] as MealSlot[])
+        : MEAL_SLOTS;
+
+  // Per-slot calorie weights: the morning+night pattern overrides the standard distribution.
+  const slotWeight: Record<string, number> = morningNight
+    ? { breakfast: 0.4, eveningsnack: 0.25, dinner: 0.35 }
+    : SLOT_KCAL_WEIGHTS;
 
   const dailyKcal = fasting ? Math.round(targets.dailyKcal * FASTING_KCAL_FACTOR) : targets.dailyKcal;
 
@@ -279,12 +291,12 @@ function buildDay(
     : eligible;
 
   // Renormalise slot weights over the active slots so kcal still sums to the target.
-  const weightSum = slots.reduce((s, sl) => s + SLOT_KCAL_WEIGHTS[sl], 0);
+  const weightSum = slots.reduce((s, sl) => s + slotWeight[sl]!, 0);
 
   // Shared across the day's meals so the same food is never served twice in one day.
   const usedToday = new Set<string>();
   const meals = slots.map((slot) => {
-    const slotKcal = (dailyKcal * SLOT_KCAL_WEIGHTS[slot]) / weightSum;
+    const slotKcal = (dailyKcal * slotWeight[slot]!) / weightSum;
     return buildMeal(slot, pool, slotKcal, dietType, dayIndex, usedToday);
   });
 
@@ -324,6 +336,8 @@ export interface GenerateOptions {
   today?: Date;
   /** Optional weekly fasting day: 0=Sun .. 6=Sat. That day gets a light plan. */
   fastDayOfWeek?: number;
+  /** Office/lifestyle eating pattern (spec Section 6), e.g. 'morning_night' → 3 front-loaded meals. */
+  eatingPattern?: string;
 }
 
 /** Label a date relative to today: Yesterday / Today / Tomorrow / weekday name. */
@@ -386,7 +400,7 @@ export function generateWeekPlan(
       dt = new Date(options.startDate.getTime() + d * 86_400_000);
       fasting = options.fastDayOfWeek !== undefined && dt.getUTCDay() === options.fastDayOfWeek;
     }
-    const day = buildDay(d, ordered, targets, prefs.dietType, fasting);
+    const day = buildDay(d, ordered, targets, prefs.dietType, fasting, options.eatingPattern);
     if (dt) {
       day.date = dt.toISOString().slice(0, 10);
       const base = dayLabel(dt, options.today ?? options.startDate ?? dt);

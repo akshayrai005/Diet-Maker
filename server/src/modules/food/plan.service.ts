@@ -123,6 +123,7 @@ export async function generateAndSavePlan(
     startDate: localSunday(tzOffsetMin),
     today: localToday(tzOffsetMin),
     fastDayOfWeek: sensitive.fastDayOfWeek,
+    eatingPattern: (sensitive as { eatingPattern?: string }).eatingPattern,
   });
 
   const saved = await prisma.dietPlan.create({

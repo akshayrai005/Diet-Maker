@@ -7,6 +7,7 @@ import { tzOffsetMin } from '../../lib/tz';
 import { prisma } from '../../lib/prisma';
 import { searchUsda, type FoodSearchItem } from './usda';
 import { MEAL_SLOTS, type MealSlot } from './food.types';
+import { portionInfoFor } from './portionUnit';
 
 export const planRouter = Router();
 
@@ -53,10 +54,14 @@ planRouter.get(
   '/foods',
   asyncHandler(async (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q : undefined;
-    const foods = await prisma.food.findMany({
+    const rows = await prisma.food.findMany({
       where: q ? { name: { contains: q, mode: 'insensitive' } } : undefined,
       orderBy: { name: 'asc' },
       take: 100,
+    });
+    const foods = rows.map((f) => {
+      const p = portionInfoFor({ name: f.name, tags: f.tags, category: f.category, typicalServingG: f.typicalServingG });
+      return { ...f, portionUnit: p.portionUnit, unitGrams: p.unitGrams };
     });
     res.json({ foods });
   }),
@@ -78,19 +83,24 @@ planRouter.get(
       take: 20,
     });
 
-    const localItems: FoodSearchItem[] = local.map((f) => ({
-      id: f.id,
-      name: f.name,
-      kcal: f.kcal,
-      proteinG: f.proteinG,
-      carbG: f.carbG,
-      fatG: f.fatG,
-      fiberG: f.fiberG,
-      sugarG: f.sugarG,
-      sodiumMg: f.sodiumMg,
-      typicalServingG: f.typicalServingG,
-      source: 'local',
-    }));
+    const localItems: FoodSearchItem[] = local.map((f) => {
+      const p = portionInfoFor({ name: f.name, tags: f.tags, category: f.category, typicalServingG: f.typicalServingG });
+      return {
+        id: f.id,
+        name: f.name,
+        kcal: f.kcal,
+        proteinG: f.proteinG,
+        carbG: f.carbG,
+        fatG: f.fatG,
+        fiberG: f.fiberG,
+        sugarG: f.sugarG,
+        sodiumMg: f.sodiumMg,
+        typicalServingG: f.typicalServingG,
+        source: 'local',
+        portionUnit: p.portionUnit,
+        unitGrams: p.unitGrams,
+      };
+    });
 
     // USDA is best-effort: [] when no key or on error.
     const usda = q ? await searchUsda(q) : [];

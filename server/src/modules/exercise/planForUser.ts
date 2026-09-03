@@ -28,7 +28,18 @@ export async function weeklyWorkoutForUser(userId: string, offsetMin = 0): Promi
   const under18 = ageFromDob(s.dob) < 18;
   const medicalCaution = (s.conditions?.length ?? 0) > 0 || profile.reducedMobility;
 
+  // Weeks since the user joined the gym → progressive-overload phase (spec Section 5).
+  const joinIso = (s as { gymJoinDate?: string }).gymJoinDate;
+  let weeksSinceJoin: number | undefined;
+  if (joinIso) {
+    const joined = Date.parse(joinIso);
+    if (!Number.isNaN(joined)) {
+      weeksSinceJoin = Math.max(0, Math.floor((Date.now() - joined) / (7 * 86_400_000)));
+    }
+  }
+
   return generateWeeklyWorkout(goal, location, {
+    weeksSinceJoin,
     restDayOfWeek: s.workoutRestDay,
     startDate: localSunday(offsetMin),
     today: localToday(offsetMin),

@@ -1,5 +1,7 @@
 import { env } from '../../lib/env';
 
+import { portionInfoFor } from './portionUnit';
+
 export interface FoodSearchItem {
   id: string;
   name: string;
@@ -12,6 +14,10 @@ export interface FoodSearchItem {
   sodiumMg: number;
   typicalServingG: number;
   source: 'local' | 'usda';
+  /** Smart portion unit for logging (spec Section 8); grams for anything measured by weight. */
+  portionUnit?: string;
+  /** Grams in one base portion unit (e.g. 1 egg = 50 g). */
+  unitGrams?: number;
 }
 
 const FDC_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search';
@@ -83,5 +89,7 @@ function mapUsdaFood(f: UsdaFood): FoodSearchItem {
     sodiumMg: round(g(NUTRIENT.sodium), 0),
     typicalServingG: 100,
     source: 'usda',
+    portionUnit: portionInfoFor({ name: f.description ?? '' }).portionUnit,
+    unitGrams: portionInfoFor({ name: f.description ?? '' }).unitGrams,
   };
 }

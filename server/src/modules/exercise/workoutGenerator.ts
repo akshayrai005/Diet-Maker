@@ -183,7 +183,25 @@ export interface WorkoutOptions {
   priorityMuscles?: string[];
   /** User-selected training split - overrides the goal-derived program when set. */
   split?: TrainingSplit;
+  /** Weeks since the user joined the gym (spec Section 5) - anchors the progressive-overload phase. */
+  weeksSinceJoin?: number;
 }
+
+/** Progressive-overload phase from weeks since joining the gym (spec Section 5). */
+type TrainingPhase = 'Foundation' | 'Building' | 'Strength' | 'Peak';
+function phaseForWeek(weeks: number): TrainingPhase {
+  if (weeks < 4) return 'Foundation';
+  if (weeks < 8) return 'Building';
+  if (weeks < 12) return 'Strength';
+  return 'Peak';
+}
+/** Each phase pushes intensity harder (still SAFETY-capped for minors / medical). */
+const PHASE_INTENSITY: Record<TrainingPhase, IntensityPreference> = {
+  Foundation: 'easy',
+  Building: 'standard',
+  Strength: 'hard',
+  Peak: 'beast',
+};
 
 /** Map a selectable split + location to a PROGRAMS key (body_part/fat_loss reuse existing programs). */
 function splitProgramKey(split: TrainingSplit, location: ExerciseLocation): string {
@@ -454,7 +472,13 @@ export function generateWeeklyWorkout(
   const key = options.split ? splitProgramKey(options.split, location) : `${goal}:${location === 'none' ? 'home' : location}`;
   const program = PROGRAMS[key] ?? PROGRAMS[`${goal}:${location === 'none' ? 'home' : location}`] ?? PROGRAMS[`${goal}:home`]!;
   const refDate = options.startDate ?? new Date(0);
-  const block = blockForDate(refDate, program.length);
+  // Anchor the mesocycle to the user's actual gym journey when we know their join date;
+  // otherwise fall back to the calendar-based rotation.
+  const phase = options.weeksSinceJoin != null ? phaseForWeek(options.weeksSinceJoin) : null;
+  const block =
+    options.weeksSinceJoin != null
+      ? Math.floor(options.weeksSinceJoin / 4) % Math.max(1, program.length)
+      : blockForDate(refDate, program.length);
   const templates = program[block]!;
   const dayCount = options.days ?? 7;
 
@@ -481,7 +505,11 @@ export function generateWeeklyWorkout(
     }
   }
 
-  const blockLabel = program.length > 1 ? `Month ${block + 1} · Block ${BLOCK_LETTERS[block] ?? block + 1}` : 'Program';
+  const blockLabel = phase
+    ? `${phase} phase · Week ${(options.weeksSinceJoin ?? 0) + 1}`
+    : program.length > 1
+      ? `Month ${block + 1} · Block ${BLOCK_LETTERS[block] ?? block + 1}`
+      : 'Program';
   const note =
     program.length > 1
       ? `${blockLabel} - exercises rotate every 4 weeks so your muscles keep growing and never fully adapt.`
@@ -495,7 +523,7 @@ export function generateWeeklyWorkout(
 
   // Level + intensity scaling. Intensity is SAFETY-capped for minors / medical caution.
   const level: FitnessLevel = options.fitnessLevel ?? 'intermediate';
-  const intensity = cappedIntensity(options.intensity ?? 'standard', {
+  const intensity = cappedIntensity(options.intensity ?? (phase ? PHASE_INTENSITY[phase] : 'standard'), {
     under18: options.under18,
     medicalCaution: options.medicalCaution,
   });
