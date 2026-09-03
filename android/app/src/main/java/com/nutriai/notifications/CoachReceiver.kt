@@ -31,12 +31,11 @@ class CoachReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.Default).launch {
             try {
                 val repo = EntryPointAccessors.fromApplication(context.applicationContext, CoachEntryPoint::class.java).repository()
-                val dash = repo.dashboard().getOrNull()
-                if (dash != null) {
-                    when (action) {
-                        CoachScheduler.ACTION_MIDDAY -> maybePostStarvation(context, dash)
-                        CoachScheduler.ACTION_SUMMARY -> postSummary(context, dash)
-                    }
+                when (action) {
+                    CoachScheduler.ACTION_MIDDAY -> repo.dashboard().getOrNull()?.let { maybePostStarvation(context, it) }
+                    CoachScheduler.ACTION_SUMMARY -> repo.dashboard().getOrNull()?.let { postSummary(context, it) }
+                    CoachScheduler.ACTION_LATE_NIGHT -> postLateNight(context, repo.dashboard().getOrNull())
+                    CoachScheduler.ACTION_GYM_CHECK -> maybePostMissedGym(context, repo)
                 }
             } finally {
                 // Re-arm tomorrow regardless of whether the fetch succeeded.
@@ -91,6 +90,41 @@ class CoachReceiver : BroadcastReceiver() {
             text = text,
             notifId = "coach_summary".hashCode(),
             tab = 0,
+        )
+    }
+
+    /** Late-night nudge to keep the last meal light (skipped on a fast day). */
+    private fun postLateNight(context: Context, dash: Dashboard?) {
+        if (dash?.fastingToday == true) return
+        ReminderNotifier.post(
+            context,
+            jobKey = "coach_latenight",
+            title = "🌙 Eating late?",
+            text = "Keep it light this late - curd or eggs only, skip the roti. A heavy meal before bed hurts sleep and recovery.",
+            notifId = "coach_latenight".hashCode(),
+            tab = 2,
+        )
+    }
+
+    /** If today is a scheduled training day but no workout was logged, nudge a quick home session. */
+    private suspend fun maybePostMissedGym(context: Context, repo: AppRepository) {
+        val env = repo.exercisePlanFull().getOrNull() ?: return
+        val days = env.plan.days
+        val todayDay = days.firstOrNull { it.label == "Today" } ?: return
+        val hasContent = todayDay.exercises.isNotEmpty() || todayDay.warmup.isNotEmpty() ||
+            todayDay.core.isNotEmpty() || todayDay.cardio != null || todayDay.cooldown.isNotEmpty()
+        if (todayDay.rest || !hasContent) return // rest day - nothing to miss.
+
+        val logged = repo.exerciseLogs(java.time.LocalDate.now().toString()).getOrNull().orEmpty()
+        if (logged.isNotEmpty()) return // already trained today.
+
+        ReminderNotifier.post(
+            context,
+            jobKey = "coach_gym",
+            title = "🏋️ No workout logged today",
+            text = "Even 3 sets of push-ups at home keep your progress going. Takes 5 minutes. 💪",
+            notifId = "coach_gym".hashCode(),
+            tab = 1,
         )
     }
 

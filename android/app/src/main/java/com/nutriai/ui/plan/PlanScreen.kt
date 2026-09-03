@@ -68,6 +68,17 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             Text("Plan the day, let the coach check it, then track how you actually did.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
+        item { Text("This week", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+        item {
+            val week by viewModel.week.collectAsStateWithLifecycle()
+            androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(week) { d ->
+                    WeekDayCard(d, selected = d.date == plan.date) { viewModel.switchTo(d.date) }
+                }
+            }
+        }
+
         // Day switch: Tomorrow (plan) / Today (track).
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,6 +160,44 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                         Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
+    val container = when {
+        d.isFast -> MaterialTheme.colorScheme.errorContainer
+        selected -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val onContainer = when {
+        d.isFast -> MaterialTheme.colorScheme.onErrorContainer
+        selected -> MaterialTheme.colorScheme.onPrimaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Card(
+        Modifier
+            .heightIn(min = 78.dp)
+            .clickable(onClick = onClick)
+            .then(if (selected) Modifier else Modifier),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = container),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(d.dayName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = onContainer)
+            if (d.isFast) {
+                Text("⚡ Fast", style = MaterialTheme.typography.labelSmall, color = onContainer)
+            } else if (d.kcal > 0) {
+                Text("${d.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = onContainer)
+                Text("${d.proteinG}g P", style = MaterialTheme.typography.labelSmall, color = onContainer)
+            } else {
+                Text("—", style = MaterialTheme.typography.labelSmall, color = onContainer.copy(alpha = 0.6f))
             }
         }
     }

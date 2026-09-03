@@ -21,25 +21,28 @@ import java.util.Calendar
 object CoachScheduler {
     const val ACTION_MIDDAY = "com.nutriai.COACH_MIDDAY"
     const val ACTION_SUMMARY = "com.nutriai.COACH_SUMMARY"
+    const val ACTION_GYM_CHECK = "com.nutriai.COACH_GYM_CHECK"
+    const val ACTION_LATE_NIGHT = "com.nutriai.COACH_LATE_NIGHT"
 
-    private const val RC_MIDDAY = 810001
-    private const val RC_SUMMARY = 810002
+    /** action → (hour of day, PendingIntent request code). */
+    private val ALARMS: Map<String, Pair<Int, Int>> = mapOf(
+        ACTION_MIDDAY to (15 to 810001),
+        ACTION_SUMMARY to (21 to 810002),
+        ACTION_GYM_CHECK to (21 to 810003),
+        ACTION_LATE_NIGHT to (22 to 810004),
+    )
 
-    private const val MIDDAY_HOUR = 15
-    private const val SUMMARY_HOUR = 21
-
-    /** (Re)schedules both coach alarms for their next occurrence. Safe to call repeatedly. */
+    /** (Re)schedules all coach alarms for their next occurrence. Safe to call repeatedly. */
     fun schedule(context: Context) {
         ReminderNotifier.ensureChannel(context)
-        armNext(context, ACTION_MIDDAY)
-        armNext(context, ACTION_SUMMARY)
+        ALARMS.keys.forEach { armNext(context, it) }
     }
 
     fun cancel(context: Context) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        listOf(ACTION_MIDDAY to RC_MIDDAY, ACTION_SUMMARY to RC_SUMMARY).forEach { (action, rc) ->
+        ALARMS.forEach { (action, cfg) ->
             val pi = PendingIntent.getBroadcast(
-                context, rc, Intent(context, CoachReceiver::class.java).setAction(action),
+                context, cfg.second, Intent(context, CoachReceiver::class.java).setAction(action),
                 PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
             )
             if (pi != null) { am.cancel(pi); pi.cancel() }
@@ -49,8 +52,9 @@ object CoachScheduler {
     /** Arms the next occurrence of one coach alarm. Called on setup and re-armed by the receiver. */
     fun armNext(context: Context, action: String) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val hour = if (action == ACTION_MIDDAY) MIDDAY_HOUR else SUMMARY_HOUR
-        val rc = if (action == ACTION_MIDDAY) RC_MIDDAY else RC_SUMMARY
+        val cfg = ALARMS[action] ?: return
+        val hour = cfg.first
+        val rc = cfg.second
 
         val now = Calendar.getInstance()
         val next = Calendar.getInstance().apply {

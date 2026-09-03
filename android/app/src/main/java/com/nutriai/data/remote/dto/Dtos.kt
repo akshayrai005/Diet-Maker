@@ -869,6 +869,10 @@ data class FoodDto(
     val sodiumMg: Double = 0.0,
     val typicalServingG: Double = 100.0,
     val source: String = "local",
+    /** Smart portion unit (spec Section 8): count/katori/bowl/glass/scoop/slice/cup/grams. */
+    val portionUnit: String = "grams",
+    /** Grams in one base unit of [portionUnit] (e.g. 1 egg = 50 g). */
+    val unitGrams: Double = 100.0,
 )
 
 @Serializable

@@ -17,6 +17,9 @@ import kotlin.math.roundToInt
 /** A preset one-tap food for building a plan fast (name + total macros). */
 data class PlanFoodPreset(val name: String, val kcal: Double, val proteinG: Double)
 
+/** One day's card in the weekly planning grid. */
+data class DaySummary(val date: String, val dayName: String, val kcal: Int, val proteinG: Int, val isFast: Boolean)
+
 val PLAN_FOOD_PRESETS = listOf(
     PlanFoodPreset("4 boiled eggs", 248.0, 24.0),
     PlanFoodPreset("2 rotis", 200.0, 6.0),
@@ -79,6 +82,30 @@ class PlanViewModel @Inject constructor(
     init {
         loadTargets()
         load(LocalDate.now().plusDays(1).toString())
+        loadWeek()
+    }
+
+    /** Mon–Sun of the current week, each with its saved plan's totals (for the week grid). */
+    private val _week = MutableStateFlow<List<DaySummary>>(emptyList())
+    val week: StateFlow<List<DaySummary>> = _week.asStateFlow()
+
+    fun loadWeek() {
+        viewModelScope.launch {
+            val monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY)
+            val summaries = (0..6).map { offset ->
+                val d = monday.plusDays(offset.toLong())
+                val iso = d.toString()
+                val saved = planStore.load(iso)
+                DaySummary(
+                    date = iso,
+                    dayName = d.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH),
+                    kcal = saved?.plannedKcal?.roundToInt() ?: 0,
+                    proteinG = saved?.plannedProtein?.roundToInt() ?: 0,
+                    isFast = d.dayOfWeek == java.time.DayOfWeek.TUESDAY,
+                )
+            }
+            _week.value = summaries
+        }
     }
 
     private fun loadTargets() {
@@ -116,7 +143,7 @@ class PlanViewModel @Inject constructor(
     private fun update(block: (DayPlan) -> DayPlan) {
         val next = block(_state.value.plan)
         _state.value = _state.value.copy(plan = next)
-        viewModelScope.launch { planStore.save(next) }
+        viewModelScope.launch { planStore.save(next); loadWeek() }
     }
 
     fun setTrainerNotes(v: String) = update { it.copy(trainerNotes = v) }

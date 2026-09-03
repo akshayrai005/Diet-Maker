@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -604,6 +605,40 @@ private fun CustomFoodDialog(onSave: (SavedFoodRequest) -> Unit, onDismiss: () -
 // Quantity dialog
 // ---------------------------------------------------------------------------
 
+/**
+ * Smart portion-unit chips for the quantity dialog (spec Section 8). For non-gram foods it offers the
+ * natural units (eggs by count, dal/curd by katori, milk by glass, whey by scoop); each chip resolves
+ * to grams via the food's unitGrams so logging stays accurate.
+ */
+@Composable
+private fun PortionUnitPicker(food: FoodDto, onPick: (Double) -> Unit) {
+    val unit = food.portionUnit.lowercase()
+    if (unit == "grams" || unit.isBlank()) return
+    val base = if (food.unitGrams > 0) food.unitGrams else food.typicalServingG
+    val options: List<Pair<String, Double>> = when (unit) {
+        "count" -> listOf("1", "2", "3", "4", "6").map { it to (it.toDouble() * base) }
+        "slice" -> listOf("1", "2", "3", "4").map { "$it slice" to (it.toDouble() * base) }
+        "scoop" -> listOf("1 scoop" to base, "2 scoops" to 2 * base)
+        "cup" -> listOf("1 cup" to base, "2 cups" to 2 * base)
+        "glass" -> listOf("½ glass" to 0.5 * base, "1 glass" to base, "2 glasses" to 2 * base)
+        "katori", "bowl" -> listOf("Small" to base, "Medium" to base * (250.0 / 150.0), "Large" to base * (350.0 / 150.0))
+        else -> emptyList()
+    }
+    if (options.isEmpty()) return
+    val noun = when (unit) {
+        "count" -> "how many"
+        else -> "portion"
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Tap $noun", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { (label, grams) ->
+                AssistChip(onClick = { onPick(grams) }, label = { Text(label) })
+            }
+        }
+    }
+}
+
 @Composable
 private fun QuantityDialog(
     food: FoodDto,
@@ -629,6 +664,9 @@ private fun QuantityDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Smart portion units (spec Section 8): tap how Indians actually measure this food
+                // (eggs by count, dal by katori…). Each chip sets the grams behind the scenes.
+                PortionUnitPicker(food) { grams -> onQtyChange(grams.toInt().toString()) }
                 OutlinedTextField(
                     value = qtyText,
                     onValueChange = onQtyChange,
