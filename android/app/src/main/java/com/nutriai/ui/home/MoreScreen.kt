@@ -46,6 +46,7 @@ import com.nutriai.ui.theme.BrandGreenDeep
 private data class MoreItem(val key: String, val icon: String, val label: String, val subtitle: String)
 
 private val MORE_ITEMS = listOf(
+    MoreItem("plan", "📝", "Plan Tomorrow", "Plan meals & workout — AI reviews it"),
     MoreItem("coach", "💬", "AI Coach", "Chat with your coach"),
     MoreItem("discipline", "✅", "Discipline", "Daily habits, streaks & adherence"),
     MoreItem("vitals", "🩺", "Vitals & labs", "BP, glucose, cholesterol & trends"),
@@ -80,6 +81,7 @@ fun MoreScreen(
                 Text("← Me")
             }
             when (selected) {
+                "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
                 "coach" -> com.nutriai.ui.coach.CoachScreen(Modifier.fillMaxSize())
                 "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())
                 "vitals" -> com.nutriai.ui.vitals.VitalsScreen(Modifier.fillMaxSize())
