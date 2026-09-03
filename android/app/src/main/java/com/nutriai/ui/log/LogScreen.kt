@@ -3,8 +3,16 @@ package com.nutriai.ui.log
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -378,6 +386,29 @@ private fun SearchCard(
     onQuery: (String) -> Unit,
     onSearch: () -> Unit,
 ) {
+    val context = LocalContext.current
+    // Voice search: system speech recognizer fills the search box with what you say
+    // (e.g. "four eggs and dal"), then runs the search. No parsing - just speech→text.
+    val voiceLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.trim()
+            if (!spoken.isNullOrBlank()) {
+                onQuery(spoken)
+                onSearch()
+            }
+        }
+    }
+    fun startVoice() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Say a food, e.g. \"four eggs and dal\"")
+        }
+        runCatching { voiceLauncher.launch(intent) }
+            .onFailure { Toast.makeText(context, "Voice input isn't available on this device", Toast.LENGTH_SHORT).show() }
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -396,6 +427,11 @@ private fun SearchCard(
                 placeholder = { Text("Search foods (local + USDA)…") },
                 singleLine = true,
                 shape = RoundedCornerShape(18.dp),
+                trailingIcon = {
+                    IconButton(onClick = { startVoice() }) {
+                        Icon(Icons.Filled.Mic, contentDescription = "Search by voice", tint = BrandGreen)
+                    }
+                },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
