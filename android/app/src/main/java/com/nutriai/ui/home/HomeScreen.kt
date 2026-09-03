@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +45,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -79,6 +83,11 @@ fun HomeScreen(
     val navController = rememberNavController()
     val backEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backEntry?.destination?.route ?: "home"
+    var showQuickLog by remember { mutableStateOf(false) }
+
+    if (showQuickLog) {
+        QuickLogSheet(onDismiss = { showQuickLog = false })
+    }
 
     // A notification tap (or new intent) can request a specific tab while Home is showing.
     LaunchedEffect(initialTab) {
@@ -93,6 +102,15 @@ fun HomeScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            // Always-visible quick log for busy users (Section 15): combos, water, re-log, skipped.
+            FloatingActionButton(
+                onClick = { showQuickLog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.semantics { contentDescription = "Quick log food or water" },
+            ) { Icon(Icons.Filled.Add, contentDescription = null) }
+        },
         bottomBar = {
             Column {
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
