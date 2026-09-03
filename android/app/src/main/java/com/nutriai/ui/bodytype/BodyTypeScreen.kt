@@ -1,14 +1,12 @@
 package com.nutriai.ui.bodytype
 
 import android.content.Context
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,9 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -226,9 +222,9 @@ private fun PhysiqueCard(p: Physique, selected: Boolean, modifier: Modifier = Mo
             containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            BodySilhouette(p, Modifier.fillMaxWidth().aspectRatio(0.7f))
-            Text("${p.emoji} ${p.label}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(p.emoji, style = MaterialTheme.typography.displaySmall)
+            Text(p.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text(p.desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
@@ -236,77 +232,9 @@ private fun PhysiqueCard(p: Physique, selected: Boolean, modifier: Modifier = Mo
 
 @Composable
 private fun MiniFigure(p: Physique, modifier: Modifier = Modifier) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        BodySilhouette(p, modifier)
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(p.emoji, style = MaterialTheme.typography.headlineMedium)
         Text(p.label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
-/**
- * Draws a symmetric front-facing body silhouette from the [Physique] proportions. Shoulder/waist/hip
- * widths taper the torso; a muscular type gets a subtly darker fill to read as more defined.
- */
-@Composable
-private fun BodySilhouette(p: Physique, modifier: Modifier = Modifier) {
-    val fill = if (p.muscular) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val cx = w / 2f
-        val headR = w * 0.11f
-        val topPad = h * 0.02f
-
-        // Head.
-        drawCircle(color = fill, radius = headR, center = Offset(cx, topPad + headR))
-
-        val shoulderY = topPad + headR * 2f + h * 0.04f
-        val waistY = shoulderY + h * 0.30f
-        val hipY = waistY + h * 0.10f
-        val legBottom = h * 0.98f
-
-        val shoulderHalf = w * p.shoulder / 2f
-        val waistHalf = w * p.waist / 2f
-        val hipHalf = w * p.hip / 2f
-
-        // Torso outline (shoulders → belly/waist → hips) as one smooth closed path. A wider waist
-        // bows OUTWARD (belly) so skinny-fat / overweight read as soft, while a narrow waist under
-        // broad shoulders gives the athletic V-taper. Shoulders are rounded, not square.
-        val midY = (shoulderY + waistY) / 2f
-        val bellyHalf = maxOf(waistHalf, shoulderHalf * 0.7f) * 1.08f
-        val torso = Path().apply {
-            // Left side: rounded shoulder → belly bulge → waist → hip.
-            moveTo(cx - shoulderHalf + w * 0.02f, shoulderY)
-            quadraticBezierTo(cx - shoulderHalf - w * 0.02f, shoulderY + h * 0.02f, cx - shoulderHalf, shoulderY + h * 0.05f)
-            quadraticBezierTo(cx - bellyHalf, midY, cx - waistHalf, waistY)
-            quadraticBezierTo(cx - hipHalf, waistY + h * 0.04f, cx - hipHalf, hipY)
-            lineTo(cx + hipHalf, hipY)
-            // Right side back up (mirror).
-            quadraticBezierTo(cx + hipHalf, waistY + h * 0.04f, cx + waistHalf, waistY)
-            quadraticBezierTo(cx + bellyHalf, midY, cx + shoulderHalf, shoulderY + h * 0.05f)
-            quadraticBezierTo(cx + shoulderHalf + w * 0.02f, shoulderY + h * 0.02f, cx + shoulderHalf - w * 0.02f, shoulderY)
-            close()
-        }
-        drawPath(torso, color = fill)
-
-        // Neck.
-        drawRect(color = fill, topLeft = Offset(cx - w * 0.045f, topPad + headR * 2f - h * 0.005f), size = androidx.compose.ui.geometry.Size(w * 0.09f, shoulderY - (topPad + headR * 2f) + h * 0.01f))
-
-        // Arms (taper from shoulders down past the waist).
-        val armW = w * (if (p.muscular) 0.10f else 0.075f)
-        drawRoundRectArm(cx - shoulderHalf, shoulderY, armW, hipY - shoulderY + h * 0.02f, fill)
-        drawRoundRectArm(cx + shoulderHalf - armW, shoulderY, armW, hipY - shoulderY + h * 0.02f, fill)
-
-        // Legs (two, from hips to bottom).
-        val legW = hipHalf * 0.85f
-        drawRoundRectLeg(cx - hipHalf, hipY, legW, legBottom - hipY, fill)
-        drawRoundRectLeg(cx + hipHalf - legW, hipY, legW, legBottom - hipY, fill)
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoundRectArm(x: Float, y: Float, w: Float, h: Float, color: Color) {
-    drawRoundRect(color = color, topLeft = Offset(x, y), size = androidx.compose.ui.geometry.Size(w, h), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2f, w / 2f))
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRoundRectLeg(x: Float, y: Float, w: Float, h: Float, color: Color) {
-    drawRoundRect(color = color, topLeft = Offset(x, y), size = androidx.compose.ui.geometry.Size(w, h), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 3f, w / 3f))
-}
