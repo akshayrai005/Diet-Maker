@@ -71,6 +71,12 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     val labels = listOf("Exercise", "Log")
 
     Column(modifier.fillMaxSize()) {
+        com.nutriai.ui.components.AppHero(
+            title = "Move",
+            subtitle = "Search, log and progress your training.",
+            emoji = "🏋️",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -209,7 +215,17 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
-        item { Hero(plan) }
+        // Plan context line (block · location · goal) — the screen-level hero lives above the tabs now.
+        plan?.let { p ->
+            item {
+                Text(
+                    "${p.blockLabel.ifBlank { "Training block" }} · ${p.location} · ${p.goal}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+        }
 
         // Going to the gym? Search & log ANY exercise - not just today's plan.
         item {

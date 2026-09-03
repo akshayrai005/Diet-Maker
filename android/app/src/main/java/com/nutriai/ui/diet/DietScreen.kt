@@ -29,6 +29,12 @@ fun DietScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     val labels = listOf("Plan", "Log", "Grocery", "Office")
 
     Column(modifier.fillMaxSize()) {
+        com.nutriai.ui.components.AppHero(
+            title = "Diet",
+            subtitle = "Your plan, food log, grocery list and office guide — all in one place.",
+            emoji = "🍽️",
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

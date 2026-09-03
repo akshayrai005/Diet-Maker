@@ -68,26 +68,11 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
         item {
-            // Gradient hero — sets a warmer, less "form-like" tone for the screen.
-            Box(
-                Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-                        ),
-                    )
-                    .padding(18.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("📝 Plan & review", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
-                    Text(
-                        "Plan the day, let the coach check it, then track how you actually did.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
-                    )
-                }
-            }
+            com.nutriai.ui.components.AppHero(
+                title = "Plan & review",
+                subtitle = "Plan the day, let the coach check it, then track how you actually did.",
+                emoji = "📝",
+            )
         }
 
         // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
