@@ -1,8 +1,6 @@
 package com.nutriai.notifications
 
 import android.content.Context
-import androidx.work.ExistingWorkPolicy
-import androidx.work.WorkManager
 import com.nutriai.data.remote.dto.MedicationDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -10,20 +8,18 @@ import javax.inject.Singleton
 
 /**
  * Schedules daily local dose reminders for active medications/supplements, reusing the existing
- * WorkManager clock-anchored one-time + self-re-arm pattern ([ReminderScheduler.enqueue] /
- * [ReminderWorker]). Each (med, time) pair is its own unique work keyed `med::{id}::{HH:mm}`, so a
- * single dose can be cancelled without touching the others. Notifications post on the shared HIGH
- * channel ([ReminderWorker.CHANNEL_ID]); dose reminders are important so they are not suppressed by
- * quiet hours (only hydration nudges are).
+ * exact-alarm clock-anchored + self-re-arm pattern ([ReminderScheduler.schedule] / [AlarmReceiver]).
+ * Each (med, time) pair is its own alarm keyed `med::{id}::{HH:mm}`, so a single dose can be cancelled
+ * without touching the others. Notifications post on the shared HIGH channel
+ * ([ReminderNotifier.CHANNEL_ID]); dose reminders are important so they are not suppressed by quiet
+ * hours (only hydration nudges are).
  */
 @Singleton
 class MedReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val prefs: MedReminderPrefs,
 ) {
-    private val workManager get() = WorkManager.getInstance(context)
-
-    private fun keyFor(id: String, time: String) = "${ReminderWorker.MED_KEY_PREFIX}$id::$time"
+    private fun keyFor(id: String, time: String) = "${ReminderNotifier.MED_KEY_PREFIX}$id::$time"
 
     /** Parses "HH:mm" → (hour, minute) if valid, else null. */
     private fun parse(time: String): Pair<Int, Int>? {
@@ -39,12 +35,12 @@ class MedReminderScheduler @Inject constructor(
             cancelMed(med.id)
             return
         }
-        ReminderWorker.ensureChannel(context)
+        ReminderNotifier.ensureChannel(context)
         val valid = med.times.filter { parse(it) != null }.toSet()
         val previous = prefs.scheduledTimes(med.id)
         // Cancel times that are no longer part of this med.
-        (previous - valid).forEach { workManager.cancelUniqueWork(keyFor(med.id, it)) }
-        // (Re)schedule current times - KEEP so an existing chain is left undisturbed.
+        (previous - valid).forEach { ReminderScheduler.cancel(context, keyFor(med.id, it)) }
+        // (Re)schedule current times as exact alarms anchored to each dose time.
         val dose = med.dose?.takeIf { it.isNotBlank() }
         valid.forEach { time ->
             val (h, m) = parse(time) ?: return@forEach
@@ -56,14 +52,14 @@ class MedReminderScheduler @Inject constructor(
                 text = "Time for your ${dose ?: med.name}. Tap to see your medicines.",
                 tab = 0,
             )
-            ReminderScheduler.enqueue(context, job, ExistingWorkPolicy.KEEP)
+            ReminderScheduler.schedule(context, job)
         }
         prefs.setTimes(med.id, valid)
     }
 
     /** Cancels every scheduled dose reminder for a med (toggled inactive or deleted). */
     suspend fun cancelMed(id: String) {
-        prefs.scheduledTimes(id).forEach { workManager.cancelUniqueWork(keyFor(id, it)) }
+        prefs.scheduledTimes(id).forEach { ReminderScheduler.cancel(context, keyFor(id, it)) }
         prefs.clear(id)
     }
 

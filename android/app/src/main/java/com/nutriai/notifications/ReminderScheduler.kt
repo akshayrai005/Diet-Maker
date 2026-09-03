@@ -1,10 +1,11 @@
 package com.nutriai.notifications
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
-import androidx.work.Data
+import android.content.Intent
+import android.os.Build
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -14,18 +15,20 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Schedules local reminder notifications via WorkManager - 100% on-device, no push service.
+ * Schedules local reminder notifications with EXACT alarms via [AlarmManager] - 100% on-device, no
+ * push service.
  *
- * Each reminder is a ONE-TIME job whose initial delay lands on the next occurrence of its target
- * local time; when it fires, [ReminderWorker] re-enqueues the next occurrence. This is deliberate:
- * a PeriodicWorkRequest cannot hit an exact clock time - after its first run it drifts every 24h
- * and Doze can defer it by hours, which made a 12:30 reminder fire at random times. Re-computing
- * the next occurrence on each fire keeps every nudge anchored to its clock time.
+ * Each reminder is a one-shot exact alarm ([AlarmManager.setExactAndAllowWhileIdle]) set for the next
+ * occurrence of its target local time; when it fires, [AlarmReceiver] posts the notification and
+ * re-arms the next occurrence. Exact alarms are the right tool for clock-anchored reminders: unlike
+ * WorkManager delayed jobs (the previous approach), they are NOT batched by Doze into a single
+ * maintenance window - which is what made every reminder arrive at once, or hours late. When the OS
+ * won't grant exact-alarm scheduling (Android 12/13 with the permission denied), we fall back to an
+ * inexact allow-while-idle alarm so reminders still fire, just not to-the-minute.
  */
 @Singleton
 class ReminderScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val prefs: ReminderPrefs,
 ) {
     private val workManager get() = WorkManager.getInstance(context)
 
@@ -37,30 +40,27 @@ class ReminderScheduler @Inject constructor(
     }
 
     suspend fun scheduleGroup(group: ReminderGroup) {
-        ReminderWorker.ensureChannel(context)
-        // The workout pre-alert is scheduled from the user's set time; the rest are fixed.
+        ReminderNotifier.ensureChannel(context)
         val jobs = if (group == ReminderGroup.WORKOUT) {
-            val (h, m) = prefs.workoutTime()
+            val (h, m) = ReminderPrefs(context).workoutTime()
             listOf(ReminderCatalog.workoutJob(h, m))
         } else {
             ReminderCatalog.jobs(group)
         }
-        // REPLACE: re-anchor to the next occurrence and cleanly migrate any stale periodic job
-        // from an older app version. It never fires early - the delay is always to a future time.
-        jobs.forEach { enqueue(context, it, ExistingWorkPolicy.REPLACE) }
+        jobs.forEach { schedule(context, it) }
     }
 
     fun cancelGroup(group: ReminderGroup) {
-        ReminderCatalog.jobs(group).forEach { workManager.cancelUniqueWork(it.key) }
+        ReminderCatalog.jobs(group).forEach { cancel(context, it.key) }
     }
 
     /**
      * Step-aware walk nudge. Unlike the clock-anchored reminders this is genuinely periodic
-     * (~90 min), because it only reacts to Health Connect step deltas - exact timing doesn't matter,
-     * and the worker itself gates on waking hours + movement so it never nags.
+     * (~90 min) and stays on WorkManager, because it only reacts to Health Connect step deltas -
+     * exact timing doesn't matter, and the worker itself gates on waking hours + movement.
      */
     fun scheduleWalkNudge() {
-        ReminderWorker.ensureChannel(context)
+        ReminderNotifier.ensureChannel(context)
         val request = PeriodicWorkRequestBuilder<WalkNudgeWorker>(90, TimeUnit.MINUTES)
             .addTag(TAG)
             .build()
@@ -78,33 +78,65 @@ class ReminderScheduler @Inject constructor(
     companion object {
         const val TAG = "nutriai_reminder"
 
-        /**
-         * Enqueues a single one-time reminder for its next occurrence. [policy] is KEEP when
-         * (re)applying settings (don't disturb an existing schedule) and REPLACE when the worker
-         * re-schedules itself for the following day.
-         */
-        fun enqueue(context: Context, job: ReminderJob, policy: ExistingWorkPolicy) {
-            val data = Data.Builder()
-                .putString(ReminderWorker.KEY_JOB_KEY, job.key)
-                .putString(ReminderWorker.KEY_TITLE, job.title)
-                .putString(ReminderWorker.KEY_TEXT, job.text)
-                .putInt(ReminderWorker.KEY_NOTIF_ID, job.key.hashCode())
-                .putInt(ReminderWorker.KEY_TAB, job.tab)
-                .putInt(ReminderWorker.KEY_HOUR, job.hour)
-                .putInt(ReminderWorker.KEY_MINUTE, job.minute)
-                .build()
+        /** Stable request code per reminder key so re-scheduling replaces the same alarm. */
+        private fun requestCode(key: String): Int = key.hashCode()
 
-            val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-                .setInitialDelay(initialDelayMs(job), TimeUnit.MILLISECONDS)
-                .setInputData(data)
-                .addTag(TAG)
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniqueWork(job.key, policy, request)
+        private fun pendingIntent(context: Context, job: ReminderJob, mutableForCancel: Boolean = false): PendingIntent {
+            val intent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "com.nutriai.REMINDER_$" + job.key
+                putExtra(ReminderNotifier.KEY_JOB_KEY, job.key)
+                putExtra(ReminderNotifier.KEY_TITLE, job.title)
+                putExtra(ReminderNotifier.KEY_TEXT, job.text)
+                putExtra(ReminderNotifier.KEY_NOTIF_ID, requestCode(job.key))
+                putExtra(ReminderNotifier.KEY_TAB, job.tab)
+                putExtra(ReminderNotifier.KEY_HOUR, job.hour)
+                putExtra(ReminderNotifier.KEY_MINUTE, job.minute)
+            }
+            return PendingIntent.getBroadcast(
+                context,
+                requestCode(job.key),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
         }
 
-        /** Milliseconds from now until the next occurrence of the job's local time (and weekday). */
-        private fun initialDelayMs(job: ReminderJob): Long {
+        /** (Re)schedules an exact alarm for the job's next occurrence. Replaces any existing one. */
+        fun schedule(context: Context, job: ReminderJob) {
+            ReminderNotifier.ensureChannel(context)
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val triggerAt = nextOccurrenceMs(job)
+            val pi = pendingIntent(context, job)
+            val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()
+            runCatching {
+                if (canExact) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                } else {
+                    // Permission not granted: still fire (allow-while-idle), just not to-the-minute.
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+                }
+            }
+        }
+
+        /** Cancels a scheduled reminder by key. */
+        fun cancel(context: Context, key: String) {
+            val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "com.nutriai.REMINDER_$" + key
+            }
+            val pi = PendingIntent.getBroadcast(
+                context,
+                requestCode(key),
+                intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+            )
+            if (pi != null) {
+                am.cancel(pi)
+                pi.cancel()
+            }
+        }
+
+        /** Absolute wall-clock millis of the next occurrence of the job's local time (and weekday). */
+        private fun nextOccurrenceMs(job: ReminderJob): Long {
             val now = Calendar.getInstance()
             val next = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, job.hour)
@@ -121,7 +153,7 @@ class ReminderScheduler @Inject constructor(
             } else if (!next.after(now)) {
                 next.add(Calendar.DAY_OF_MONTH, 1)
             }
-            return (next.timeInMillis - now.timeInMillis).coerceAtLeast(0)
+            return next.timeInMillis
         }
     }
 }

@@ -24,8 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import com.nutriai.data.local.ThemePrefs
 import com.nutriai.data.local.ThemeStore
 import com.nutriai.notifications.ReminderPrefs
+import com.nutriai.notifications.ReminderNotifier
 import com.nutriai.notifications.ReminderScheduler
-import com.nutriai.notifications.ReminderWorker
 import com.nutriai.ui.navigation.AppRoot
 import com.nutriai.ui.theme.NutriAiTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -48,9 +48,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        openTab.intValue = intent?.getIntExtra(ReminderWorker.EXTRA_TAB, 0) ?: 0
+        openTab.intValue = intent?.getIntExtra(ReminderNotifier.EXTRA_TAB, 0) ?: 0
 
-        // Ensure the user's enabled reminders are scheduled (survives reboot via WorkManager).
+        // Ensure the user's enabled reminders are (re)scheduled as exact alarms. Alarms don't
+        // survive a reboot, so this re-arm on launch (plus BootReceiver) keeps them anchored.
         lifecycleScope.launch { reminderScheduler.apply(reminderPrefs.snapshot()) }
         maybeRequestNotificationPermission()
 
@@ -80,7 +81,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        openTab.intValue = intent.getIntExtra(ReminderWorker.EXTRA_TAB, 0)
+        openTab.intValue = intent.getIntExtra(ReminderNotifier.EXTRA_TAB, 0)
     }
 
     private fun maybeRequestNotificationPermission() {

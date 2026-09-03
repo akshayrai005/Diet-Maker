@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -59,14 +60,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * The Move pillar - mirrors the Diet tab's segmented switcher so everything active lives under one
- * tab: [Exercise | Meditation | Log]. Meditation reuses the mind-&-body content; Log shows what
- * you actually did, with the calories it burned.
+ * The Move pillar - a segmented switcher so everything active lives under one tab:
+ * [Exercise | Log]. Log shows what you actually did, with the calories it burned. Meditation /
+ * mind-&-body content lives in its own dedicated Mind tab, so it's intentionally NOT duplicated here.
  */
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
-    val labels = listOf("Exercise", "Meditation", "Log")
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 1)) }
+    val labels = listOf("Exercise", "Log")
 
     Column(modifier.fillMaxSize()) {
         Row(
@@ -84,7 +85,6 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         }
         when (section) {
             0 -> ExerciseTab(Modifier.fillMaxSize())
-            1 -> com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize())
             else -> MoveLogScreen(Modifier.fillMaxSize())
         }
     }
@@ -176,6 +176,17 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
+    var showSearch by remember { mutableStateOf(false) }
+
+    if (showSearch) {
+        SearchExerciseSheet(
+            onDismiss = { showSearch = false },
+            onPick = { ex ->
+                showSearch = false
+                logTarget = ex
+            },
+        )
+    }
 
     logTarget?.let { ex ->
         LogExerciseDialog(
@@ -198,6 +209,32 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
         item { Hero(plan) }
+
+        // Going to the gym? Search & log ANY exercise - not just today's plan.
+        item {
+            Card(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { showSearch = true }
+                    .heightIn(min = 56.dp)
+                    .semantics { contentDescription = "Search and log any exercise" },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("🔍", style = MaterialTheme.typography.titleMedium)
+                    Column(Modifier.weight(1f)) {
+                        Text("Search & log an exercise", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text("At the gym? Find any lift or cardio and log it.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f))
+                    }
+                }
+            }
+        }
 
         // Plan note (e.g. "Prioritising shoulders - a little extra volume there…") from the server.
         plan?.note?.takeIf { it.isNotBlank() }?.let { note ->
@@ -492,6 +529,81 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
             ) { Text("Close") }
         },
     )
+}
+
+/**
+ * Search-and-log sheet for gym-goers: type any exercise, see live matches from [ExerciseCatalog]
+ * (name + muscle group + demo), and tap one to open the normal log dialog. If what they did isn't in
+ * the catalog, a "Log <what you typed>" row lets them log it by name anyway - nothing is off-limits.
+ */
+@Composable
+private fun SearchExerciseSheet(onDismiss: () -> Unit, onPick: (ExerciseItem) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val results = remember(query) { ExerciseCatalog.search(query) }
+    val typed = query.trim()
+    val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Search exercises") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("e.g. bench press, squat, plank") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Exercise search field" },
+                )
+                LazyColumn(
+                    Modifier.fillMaxWidth().heightIn(max = 340.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    // Let them log a free-typed movement that isn't in the catalog.
+                    if (typed.isNotEmpty() && !hasExactName) {
+                        item {
+                            SearchResultRow(
+                                ex = ExerciseCatalog.custom(typed),
+                                labelOverride = "Log \"$typed\"",
+                                onClick = { onPick(ExerciseCatalog.custom(typed)) },
+                            )
+                        }
+                    }
+                    items(results) { ex ->
+                        SearchResultRow(ex = ex, onClick = { onPick(ex) })
+                    }
+                    if (results.isEmpty() && typed.isEmpty()) {
+                        item { Text("Start typing to find an exercise.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun SearchResultRow(ex: ExerciseItem, onClick: () -> Unit, labelOverride: String? = null) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .heightIn(min = 48.dp)
+            .padding(vertical = 6.dp, horizontal = 4.dp)
+            .semantics { contentDescription = "Log ${labelOverride ?: ex.name}" },
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 36)
+        Column(Modifier.weight(1f)) {
+            Text(labelOverride ?: ex.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
+                Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Text("+ Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+    }
 }
 
 /** Is this a TIMED movement (cardio / stretch / plank), i.e. logged by duration not reps? */

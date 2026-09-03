@@ -53,10 +53,10 @@ class WalkNudgeWorker(
             PackageManager.PERMISSION_GRANTED
         if (!canNotify) return Result.success()
 
-        ReminderWorker.ensureChannel(applicationContext)
+        ReminderNotifier.ensureChannel(applicationContext)
         val openIntent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(ReminderWorker.EXTRA_TAB, 1) // open Move
+            putExtra(ReminderNotifier.EXTRA_TAB, 1) // open Move
         }
         val pending = android.app.PendingIntent.getActivity(
             applicationContext,
@@ -65,7 +65,7 @@ class WalkNudgeWorker(
             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
         )
         val text = "You've been still for a while - please go for a walk for at least 5 minutes."
-        val notification = NotificationCompat.Builder(applicationContext, ReminderWorker.CHANNEL_ID)
+        val notification = NotificationCompat.Builder(applicationContext, ReminderNotifier.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("🚶 Time to move")
             .setContentText(text)
