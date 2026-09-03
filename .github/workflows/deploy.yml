@@ -1,0 +1,35 @@
+name: Deploy server to Render
+
+# render.yaml already sets autoDeploy: true, so a service connected to this repo
+# redeploys on every push to main on its own. This workflow is a belt-and-suspenders:
+# it pings a Render Deploy Hook so a deploy fires even if auto-deploy is off, and gives
+# a manual "Run workflow" button. It no-ops safely when the secret isn't configured.
+#
+# Setup: Render dashboard → your service → Settings → Deploy Hook → copy the URL, then
+# GitHub repo → Settings → Secrets and variables → Actions → new secret RENDER_DEPLOY_HOOK.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'render.yaml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Trigger Render deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not set — skipping."
+            echo "render.yaml autoDeploy:true already redeploys on push if the service is connected to this repo."
+            exit 0
+          fi
+          echo "Triggering Render deploy…"
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Deploy hook fired."

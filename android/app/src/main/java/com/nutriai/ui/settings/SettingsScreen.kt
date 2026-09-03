@@ -1,8 +1,12 @@
 package com.nutriai.ui.settings
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -69,6 +73,15 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    // Import: pick a previously-exported JSON and re-log its food entries.
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            if (bytes == null) Toast.makeText(context, "Couldn't read that file", Toast.LENGTH_SHORT).show()
+            else viewModel.importData(bytes) { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+        }
+    }
     val onToggleReminder: (ReminderGroup, Boolean) -> Unit = { group, enabled ->
         if (enabled &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -140,6 +153,50 @@ fun SettingsScreen(
                 onAccent = viewModel::setAccent,
                 onMode = viewModel::setThemeMode,
             )
+        }
+
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Your data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
+                    Text(
+                        "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.exportData(
+                                onBytes = { bytes ->
+                                    runCatching {
+                                        val file = File(context.cacheDir, "kaizen-my-data.json")
+                                        file.writeBytes(bytes)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/json"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(intent, "Export my data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    }.onFailure { Toast.makeText(context, it.message ?: "Export failed", Toast.LENGTH_SHORT).show() }
+                                },
+                                onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Export my data") }
+                    OutlinedButton(
+                        onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Import data (restore food logs)") }
+                }
+            }
         }
 
         item {

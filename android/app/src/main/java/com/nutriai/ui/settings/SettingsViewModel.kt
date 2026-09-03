@@ -45,6 +45,29 @@ class SettingsViewModel @Inject constructor(
     val walkNudge: StateFlow<Boolean> =
         reminderPrefs.walkEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    /** Fetches the full data export (JSON bytes) so the screen can share/save it via FileProvider. */
+    fun exportData(onBytes: (ByteArray) -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            val r = repository.exportDataBytes()
+            val bytes = r.getOrNull()
+            if (bytes == null || bytes.isEmpty()) onError(r.exceptionOrNull()?.message ?: "Export failed")
+            else onBytes(bytes)
+        }
+    }
+
+    /** Best-effort restore: re-logs food entries from an exported JSON (dated today). */
+    fun importData(bytes: ByteArray, onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            val r = repository.importFoodLogs(bytes)
+            onResult(
+                r.fold(
+                    onSuccess = { "Restored $it food ${if (it == 1) "entry" else "entries"} (dated today)." },
+                    onFailure = { "Import failed: ${it.message ?: "invalid file"}" },
+                ),
+            )
+        }
+    }
+
     fun setWalkNudge(enabled: Boolean) {
         viewModelScope.launch {
             reminderPrefs.setWalkEnabled(enabled)

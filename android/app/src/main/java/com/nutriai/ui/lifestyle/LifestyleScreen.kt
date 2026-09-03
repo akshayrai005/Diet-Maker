@@ -230,15 +230,33 @@ class LifestylePrefs @Inject constructor(@ApplicationContext private val context
 }
 
 @HiltViewModel
-class LifestyleViewModel @Inject constructor(private val prefs: LifestylePrefs) : ViewModel() {
+class LifestyleViewModel @Inject constructor(
+    private val prefs: LifestylePrefs,
+    private val repository: com.nutriai.data.AppRepository,
+) : ViewModel() {
     private val _pattern = MutableStateFlow(EatingPattern.MORNING_NIGHT)
     val pattern: StateFlow<EatingPattern> = _pattern.asStateFlow()
 
-    init { viewModelScope.launch { _pattern.value = prefs.pattern() } }
+    init {
+        viewModelScope.launch {
+            // Local cache first for an instant render, then reconcile with the server (source of truth).
+            _pattern.value = prefs.pattern()
+            val serverId = repository.getProfile().getOrNull()?.sensitive?.eatingPattern
+            if (serverId != null) {
+                val p = EatingPattern.byId(serverId)
+                _pattern.value = p
+                prefs.setPattern(p)
+            }
+        }
+    }
 
     fun select(p: EatingPattern) {
         _pattern.value = p
-        viewModelScope.launch { prefs.setPattern(p) }
+        viewModelScope.launch {
+            prefs.setPattern(p)
+            // Push to the server so the diet generator regenerates with this pattern.
+            repository.updateEatingPattern(p.id)
+        }
     }
 }
 

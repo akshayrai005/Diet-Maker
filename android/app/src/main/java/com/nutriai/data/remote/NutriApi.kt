@@ -199,6 +199,11 @@ interface NutriApi {
     @GET("reports/weekly.pdf")
     suspend fun weeklyPdf(): okhttp3.ResponseBody
 
+    /** GDPR-style full data export (profile, food/water logs, plans, check-ins) as JSON. */
+    @retrofit2.http.Streaming
+    @GET("me/export")
+    suspend fun exportData(): okhttp3.ResponseBody
+
     // ---- Check-ins ----
     @POST("checkins")
     suspend fun createCheckin(@Body body: CheckinRequest): CheckinCreatedEnvelope

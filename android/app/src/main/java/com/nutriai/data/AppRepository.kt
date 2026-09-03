@@ -70,6 +70,26 @@ class AppRepository @Inject constructor(
     suspend fun getProfile(): Result<com.nutriai.data.remote.dto.ProfileDto?> =
         runCatching { api.getProfile().profile }
 
+    /**
+     * Pushes a changed eating pattern to the server so the diet generator uses it (server is the
+     * source of truth). Best-effort: needs a complete profile (sensitive block); no-ops otherwise.
+     * Reuses saveProfile so the plan + targets regenerate for the new pattern.
+     */
+    suspend fun updateEatingPattern(pattern: String): Result<Unit> = runCatching {
+        val p = api.getProfile().profile ?: return@runCatching
+        val s = p.sensitive ?: return@runCatching // incomplete profile - keep local only
+        saveProfile(
+            ProfileUpsertRequest(
+                heightCm = p.heightCm,
+                activityLevel = p.activityLevel,
+                goal = p.goal,
+                dietType = p.dietType,
+                reducedMobility = p.reducedMobility,
+                sensitive = s.copy(eatingPattern = pattern),
+            ),
+        ).getOrThrow()
+    }
+
     suspend fun latestCalc(): Result<CalcResult?> = runCatching { api.latestCalc().result }
 
     /** Safe-pace preview for reaching [targetWeightKg] in [weeks] (server uses stored current weight). */
@@ -280,6 +300,41 @@ class AppRepository @Inject constructor(
     suspend fun deleteFoodLog(id: String): Result<Unit> = runCatching { api.deleteFoodLog(id) }
 
     suspend fun reportPdfBytes(): Result<ByteArray> = runCatching { api.weeklyPdf().bytes() }
+
+    /** Full account data export as JSON bytes (spec Section 12: backup/restore). */
+    suspend fun exportDataBytes(): Result<ByteArray> = runCatching { api.exportData().bytes() }
+
+    /**
+     * Best-effort restore from an exported JSON (spec Section 12). There is no server bulk-import, so
+     * we re-log the food entries via the normal logging endpoint (they land on today's date). Returns
+     * how many entries were re-logged.
+     */
+    suspend fun importFoodLogs(jsonBytes: ByteArray): Result<Int> = runCatching {
+        val root = json.parseToJsonElement(String(jsonBytes)) as kotlinx.serialization.json.JsonObject
+        val logs = root["foodLogs"] as? kotlinx.serialization.json.JsonArray
+            ?: throw IllegalArgumentException("No foodLogs in this file")
+        var count = 0
+        for (el in logs) {
+            val o = el as? kotlinx.serialization.json.JsonObject ?: continue
+            fun d(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0
+            fun s(k: String) = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            val name = s("foodName") ?: continue
+            val grams = d("grams").takeIf { it > 0 } ?: 100.0
+            val f = 100.0 / grams
+            val r = logNamed(
+                slot = s("mealSlot") ?: "breakfast",
+                name = name,
+                per100g = com.nutriai.data.remote.dto.FoodLogPer100g(
+                    kcal = d("kcal") * f, proteinG = d("proteinG") * f, carbG = d("carbG") * f,
+                    fatG = d("fatG") * f, fiberG = d("fiberG") * f, sugarG = d("sugarG") * f, sodiumMg = d("sodiumMg") * f,
+                ),
+                grams = grams,
+                method = "import",
+            )
+            if (r.isSuccess) count++
+        }
+        count
+    }
 
     // ---- Check-ins ----
     suspend fun createCheckin(body: com.nutriai.data.remote.dto.CheckinRequest): Result<Unit> =
