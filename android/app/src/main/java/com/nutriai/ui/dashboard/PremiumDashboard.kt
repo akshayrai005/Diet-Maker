@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -84,7 +85,8 @@ fun PremiumDashboard(
     sleepHours: Double? = null,
     manualHeartRate: Int? = null,
     stress: Int? = null,
-    onSaveVitals: (Int?, Int?) -> Unit = { _, _ -> },
+    onSaveVitals: (Int?, Int?, Int?) -> Unit = { _, _, _ -> },
+    soreness: Int? = null,
     safetyFlags: List<com.nutriai.data.remote.dto.Flag> = emptyList(),
     riskFindings: List<com.nutriai.data.remote.dto.RiskFinding> = emptyList(),
     weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
@@ -165,6 +167,7 @@ fun PremiumDashboard(
                     sleepHours = sleepHours,
                     manualHeartRate = manualHeartRate,
                     stress = stress,
+                    soreness = soreness,
                     onSaveVitals = onSaveVitals,
                     onConnect = onConnectSteps,
                     connected = stepsPermission,
@@ -293,23 +296,23 @@ private fun CoachTipLine(name: String?, dashboard: Dashboard, sleepHours: Double
     Card(
         Modifier.fillMaxWidth().clickable { expanded = !expanded },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        colors = CardDefaults.cardColors(containerColor = com.nutriai.ui.theme.KaizenLavenderContainer),
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "${lead.emoji} ${lead.text}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = com.nutriai.ui.theme.KaizenLavender,
                     maxLines = if (expanded) 6 else 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(if (expanded) "▲" else "▼", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text(if (expanded) "▲" else "▼", color = com.nutriai.ui.theme.KaizenLavender)
             }
             if (expanded) {
                 rest.forEach { i ->
-                    Text("${i.emoji} ${i.text}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.9f))
+                    Text("${i.emoji} ${i.text}", style = MaterialTheme.typography.bodySmall, color = com.nutriai.ui.theme.KaizenLavender.copy(alpha = 0.85f))
                 }
             }
         }
@@ -728,49 +731,46 @@ private fun HydrationCard(water: DashMetric, onAddWater: () -> Unit) {
     val consumed = water.consumedMl ?: water.consumed ?: 0.0
     val target = water.targetMl ?: water.target
     val fraction = (water.percent ?: 0.0).coerceIn(0.0, 100.0).toFloat() / 100f
+    val glasses = (consumed / 250.0).toInt()
+    val glassTarget = target?.let { (it / 250.0).toInt() }
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 170.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "💧 Hydration",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    "${consumed.toInt()}${target?.let { " / ${it.toInt()}" } ?: ""} ml",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreen,
-                )
-            }
+            Text(
+                "💧 Hydration",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "$glasses${glassTarget?.let { " / $it" } ?: ""} glasses",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen,
+            )
             LinearProgressIndicator(
                 progress = { fraction.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp)),
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 color = BrandGreenLight,
                 trackColor = BrandGreenLight.copy(alpha = 0.18f),
             )
             Button(
                 onClick = onAddWater,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) { Text("+ Add 250 ml") }
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+            ) { Text("+ 1 glass", style = MaterialTheme.typography.labelMedium) }
         }
     }
 }
@@ -785,22 +785,24 @@ private fun VitalsCard(
     sleepHours: Double?,
     manualHeartRate: Int?,
     stress: Int?,
-    onSaveVitals: (Int?, Int?) -> Unit,
+    soreness: Int? = null,
+    onSaveVitals: (Int?, Int?, Int?) -> Unit,
     onConnect: () -> Unit = {},
     connected: Boolean = false,
 ) {
     var editing by remember { mutableStateOf(false) }
-    // Prefer a live Health Connect reading; fall back to the manually-entered value.
     val hr = heartRate ?: manualHeartRate
     val hrFromWatch = heartRate != null
     val stressLabel = stress?.let { listOf("", "😌 Calm", "🙂 Low", "😐 Medium", "😣 High", "😖 Very high").getOrElse(it) { "" } }
+    val sorenessLabel = soreness?.let { listOf("", "None", "Mild", "Moderate", "Sore", "Very sore").getOrElse(it) { "" } }
 
     if (editing) {
         VitalsEntryDialog(
             initialHr = manualHeartRate,
             initialStress = stress,
+            initialSoreness = soreness,
             onDismiss = { editing = false },
-            onSave = { newHr, newStress -> onSaveVitals(newHr, newStress); editing = false },
+            onSave = { newHr, newStress, newSoreness -> onSaveVitals(newHr, newStress, newSoreness); editing = false },
         )
     }
 
@@ -840,6 +842,9 @@ private fun VitalsCard(
                         stressLabel?.let {
                             Text(it, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreenDeep)
                         }
+                        sorenessLabel?.let {
+                            Text("🦵 $it", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreenDeep)
+                        }
                     }
                     if (hr != null && !hrFromWatch) {
                         Text("*manually logged", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -878,11 +883,13 @@ private fun VitalsCard(
 private fun VitalsEntryDialog(
     initialHr: Int?,
     initialStress: Int?,
+    initialSoreness: Int? = null,
     onDismiss: () -> Unit,
-    onSave: (Int?, Int?) -> Unit,
+    onSave: (Int?, Int?, Int?) -> Unit,
 ) {
     var hrText by remember { mutableStateOf(initialHr?.toString() ?: "") }
     var stress by remember { mutableStateOf(initialStress) }
+    var soreness by remember { mutableStateOf(initialSoreness) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log your vitals") },
@@ -910,9 +917,25 @@ private fun VitalsEntryDialog(
                         ) { Text(face, style = MaterialTheme.typography.titleLarge) }
                     }
                 }
+                Text("How sore are your muscles?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("High soreness softens tomorrow's plan", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val levels = listOf(1 to "😊", 2 to "🙂", 3 to "😐", 4 to "😣", 5 to "🥴")
+                    levels.forEach { (lvl, face) ->
+                        val selected = soreness == lvl
+                        Box(
+                            Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (selected) BrandAmber else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .clickable { soreness = if (selected) null else lvl },
+                            contentAlignment = Alignment.Center,
+                        ) { Text(face, style = MaterialTheme.typography.titleLarge) }
+                    }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(hrText.toIntOrNull(), stress) }) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onSave(hrText.toIntOrNull(), stress, soreness) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
@@ -920,55 +943,48 @@ private fun VitalsEntryDialog(
 @Composable
 private fun StepsCard(steps: Long, stepsKcal: Int, hasPermission: Boolean, available: Boolean, onConnect: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 170.dp),
+        shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "👟 Steps today",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    if (hasPermission) "%,d".format(steps) else "-",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreen,
-                )
-            }
+            Text(
+                "👟 Steps today",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                if (hasPermission) "%,d".format(steps) else "-",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen,
+            )
             if (hasPermission) {
                 Text(
                     "≈ $stepsKcal kcal burned",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 Text(
-                    if (available) {
-                        "Connect Health Connect to auto-track your steps and calories burned."
-                    } else {
-                        "Install Health Connect (free) to auto-track your steps and calories burned."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
+                    if (available) "Connect to auto-track steps." else "Install Health Connect to auto-track.",
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Button(
                     onClick = onConnect,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                ) { Text(if (available) "Connect steps" else "Install Health Connect") }
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp),
+                ) { Text(if (available) "Connect" else "Install", style = MaterialTheme.typography.labelMedium) }
             }
         }
     }

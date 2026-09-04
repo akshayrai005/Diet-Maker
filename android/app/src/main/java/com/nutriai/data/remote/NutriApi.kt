@@ -252,7 +252,7 @@ interface NutriApi {
 
     // ---- Workout ----
     @GET("exercise-plan")
-    suspend fun exercisePlan(): com.nutriai.data.remote.dto.WorkoutEnvelope
+    suspend fun exercisePlan(@Query("soreness") soreness: Int? = null): com.nutriai.data.remote.dto.WorkoutEnvelope
 
     @POST("exercise-logs")
     suspend fun logExercise(@Body body: com.nutriai.data.remote.dto.ExerciseLogRequest): com.nutriai.data.remote.dto.ExerciseLogEnvelope

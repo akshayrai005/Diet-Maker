@@ -1,6 +1,6 @@
 package com.nutriai.ui.home
 
-import androidx.compose.foundation.background
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,8 +42,7 @@ import com.nutriai.ui.grocery.GroceryScreen
 import com.nutriai.ui.reports.ReportsScreen
 import com.nutriai.ui.body.BodyScreen
 import com.nutriai.ui.settings.SettingsScreen
-import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.BrandGreenDeep
+
 
 private data class MoreItem(val key: String, val icon: String, val label: String, val subtitle: String)
 
@@ -119,20 +118,7 @@ private fun MoreMenu(modifier: Modifier = Modifier, onSelect: (String) -> Unit) 
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        // Compact profile strip — not a tall hero card.
-        Card(
-            Modifier.fillMaxWidth().heightIn(min = 64.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        ) {
-            Box(
-                Modifier.fillMaxWidth()
-                    .background(Brush.horizontalGradient(listOf(BrandGreen, BrandGreenDeep)))
-                    .padding(horizontal = 18.dp, vertical = 14.dp),
-            ) {
-                Text("Me", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        }
+        com.nutriai.ui.components.ScreenHeader("me")
 
         // Quick access — 2×2 grid, each card compact (not a full-width stack).
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

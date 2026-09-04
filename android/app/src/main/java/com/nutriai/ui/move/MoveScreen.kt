@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -241,29 +242,20 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
-        // Plan context line (block · location · goal) — the screen-level hero lives above the tabs now.
+        // Plan context — one compact line, block/location/goal + note folded in (no separate paragraph).
         plan?.let { p ->
             item {
+                val context = buildString {
+                    append(p.blockLabel.ifBlank { "Training block" }).append(" · ").append(p.location).append(" · ").append(p.goal)
+                    p.note?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
+                }
                 Text(
-                    "${p.blockLabel.ifBlank { "Training block" }} · ${p.location} · ${p.goal}",
+                    context,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-            }
-        }
-
-        // Plan note (e.g. "Prioritising shoulders - a little extra volume there…") from the server.
-        plan?.note?.takeIf { it.isNotBlank() }?.let { note ->
-            item {
-                Text(
-                    note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp)
-                        .semantics { contentDescription = "Plan note: $note" },
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).semantics { contentDescription = "Plan: $context" },
                 )
             }
         }

@@ -114,6 +114,30 @@ exerciseRouter.get(
       };
     }
 
+    // Soreness check-in softening: when the user reports ≥ 3/5, reduce today's volume.
+    const soreness = Number(req.query.soreness) || 0;
+    if (soreness >= 3) {
+      const factor = soreness >= 5 ? 0.4 : soreness >= 4 ? 0.6 : 0.8;
+      plan = {
+        ...plan,
+        days: plan.days.map((day) => {
+          if (day.label !== 'Today') return day;
+          const soften = (ex: typeof day.exercises[number]) => ({
+            ...ex,
+            sets: Math.max(1, Math.round(ex.sets * factor)),
+            reps: ex.reps.replace(/\d+/g, (m: string) => String(Math.max(1, Math.round(Number(m) * factor)))),
+          });
+          return {
+            ...day,
+            exercises: day.exercises.map(soften),
+            warmup: (day.warmup ?? []).map(soften),
+            core: (day.core ?? []).map(soften),
+            cooldown: (day.cooldown ?? []).map(soften),
+          };
+        }),
+      };
+    }
+
     // Auto promotion/demotion nudge so the app can prompt "level up / ease down".
     const levelSuggestion = suggestLevelChange(history, currentLevel);
 

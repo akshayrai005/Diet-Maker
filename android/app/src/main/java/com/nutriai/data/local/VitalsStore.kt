@@ -18,6 +18,8 @@ data class ManualVitals(
     val heartRate: Int? = null,
     /** Self-rated stress, 1 (calm) … 5 (very stressed). */
     val stress: Int? = null,
+    /** Self-rated muscle soreness, 1 (none) … 5 (can barely move). Feeds into plan softening. */
+    val soreness: Int? = null,
     val updatedAtMillis: Long = 0L,
 )
 
@@ -32,20 +34,23 @@ class VitalsStore @Inject constructor(
 ) {
     private val hrKey = intPreferencesKey("manual_hr")
     private val stressKey = intPreferencesKey("manual_stress")
+    private val sorenessKey = intPreferencesKey("manual_soreness")
     private val updatedKey = longPreferencesKey("updated_at")
 
     val vitals: Flow<ManualVitals> = context.vitalsStore.data.map { p ->
         ManualVitals(
             heartRate = p[hrKey],
             stress = p[stressKey],
+            soreness = p[sorenessKey],
             updatedAtMillis = p[updatedKey] ?: 0L,
         )
     }
 
-    suspend fun save(heartRate: Int?, stress: Int?, nowMillis: Long) {
+    suspend fun save(heartRate: Int?, stress: Int?, soreness: Int? = null, nowMillis: Long) {
         context.vitalsStore.edit { p ->
             if (heartRate != null && heartRate > 0) p[hrKey] = heartRate else p.remove(hrKey)
             if (stress != null && stress in 1..5) p[stressKey] = stress else p.remove(stressKey)
+            if (soreness != null && soreness in 1..5) p[sorenessKey] = soreness else p.remove(sorenessKey)
             p[updatedKey] = nowMillis
         }
     }

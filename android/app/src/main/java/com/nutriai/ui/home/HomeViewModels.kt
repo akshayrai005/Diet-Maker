@@ -25,6 +25,7 @@ data class DashboardState(
     val sleepHours: Double? = null,
     val manualHeartRate: Int? = null,
     val stress: Int? = null,
+    val soreness: Int? = null,
     val safetyFlags: List<com.nutriai.data.remote.dto.Flag> = emptyList(),
     val riskFindings: List<com.nutriai.data.remote.dto.RiskFinding> = emptyList(),
     val weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
@@ -57,13 +58,16 @@ class DashboardViewModel @Inject constructor(
         // Manually-entered vitals (for watches that don't sync to Health Connect).
         viewModelScope.launch {
             vitalsStore.vitals.collect { v ->
-                _state.value = _state.value.copy(manualHeartRate = v.heartRate, stress = v.stress)
+                _state.value = _state.value.copy(manualHeartRate = v.heartRate, stress = v.stress, soreness = v.soreness)
             }
         }
     }
 
-    fun saveManualVitals(heartRate: Int?, stress: Int?) {
-        viewModelScope.launch { vitalsStore.save(heartRate, stress, System.currentTimeMillis()) }
+    fun saveManualVitals(heartRate: Int?, stress: Int?, soreness: Int? = null) {
+        viewModelScope.launch {
+            vitalsStore.save(heartRate, stress, soreness, System.currentTimeMillis())
+            if (soreness != null && soreness >= 3) refresh()
+        }
     }
 
     /** Reads today's steps from Health Connect (0 if unavailable / no permission). */

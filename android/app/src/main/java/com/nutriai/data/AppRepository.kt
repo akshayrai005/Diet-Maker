@@ -374,12 +374,12 @@ class AppRepository @Inject constructor(
         runCatching { api.familyCalc(id).result }
 
     // ---- Workout ----
-    suspend fun exercisePlan(): Result<com.nutriai.data.remote.dto.WeeklyWorkout> =
-        runCatching { api.exercisePlan().plan }
+    suspend fun exercisePlan(soreness: Int? = null): Result<com.nutriai.data.remote.dto.WeeklyWorkout> =
+        runCatching { api.exercisePlan(soreness).plan }
 
     /** Plan plus the auto level-up/ease-down suggestion. */
-    suspend fun exercisePlanFull(): Result<com.nutriai.data.remote.dto.WorkoutEnvelope> =
-        runCatching { api.exercisePlan() }
+    suspend fun exercisePlanFull(soreness: Int? = null): Result<com.nutriai.data.remote.dto.WorkoutEnvelope> =
+        runCatching { api.exercisePlan(soreness) }
 
     // ---- Workout logging ----
     suspend fun logExercise(body: com.nutriai.data.remote.dto.ExerciseLogRequest): Result<com.nutriai.data.remote.dto.ExerciseLogDto> =
