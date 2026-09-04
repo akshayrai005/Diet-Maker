@@ -86,7 +86,7 @@ fun MoveLogScreen(modifier: Modifier = Modifier, viewModel: MoveLogViewModel = h
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text("${state.todayExercise.size} sets logged today", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text("~$burnedToday kcal 🔥", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text("~$burnedToday kcal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         }
                     }
                 }
@@ -99,7 +99,7 @@ fun MoveLogScreen(modifier: Modifier = Modifier, viewModel: MoveLogViewModel = h
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("💪 ${e.exerciseName}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            Text(e.exerciseName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                             Text(
                                 buildString {
                                     if (e.sets != null) append("${e.sets} sets")
@@ -124,7 +124,6 @@ fun MoveLogScreen(modifier: Modifier = Modifier, viewModel: MoveLogViewModel = h
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text("🏋️", style = MaterialTheme.typography.displayMedium)
                         Text("No sets logged yet today", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                         Text("Go to Today tab to start your workout", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     }

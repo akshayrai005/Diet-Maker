@@ -115,7 +115,7 @@ fun CycleSection(modifier: Modifier = Modifier, viewModel: CycleViewModel = hilt
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (cycle.needsSetup) {
-                Text("🌸 Track your cycle", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("Track your cycle", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Text(
                     "Log when your last period started and I'll tailor your diet, workouts and yoga to each phase.",
                     style = MaterialTheme.typography.bodySmall,
@@ -124,7 +124,7 @@ fun CycleSection(modifier: Modifier = Modifier, viewModel: CycleViewModel = hilt
                 DayAgoChips(enabled = !state.submitting, onPickDate = { showDatePicker = true }) { viewModel.logPeriod(it) }
             } else {
                 Text(
-                    "🌸 ${cycle.phaseLabel ?: "Your cycle"}",
+                    cycle.phaseLabel ?: "Your cycle",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -153,7 +153,7 @@ fun CycleSection(modifier: Modifier = Modifier, viewModel: CycleViewModel = hilt
 
                 if (cycle.periodOngoing) {
                     Button(onClick = { viewModel.endPeriod() }, enabled = !state.submitting) {
-                        Text("🩸 My period ended today")
+                        Text("My period ended today")
                     }
                 }
 
@@ -190,7 +190,7 @@ private fun DayAgoChips(enabled: Boolean, onPickDate: (() -> Unit)? = null, onPi
             AssistChip(onClick = { if (enabled) onPick(days) }, label = { Text(label) })
         }
         if (onPickDate != null) {
-            AssistChip(onClick = { if (enabled) onPickDate() }, label = { Text("📅 Pick date") })
+            AssistChip(onClick = { if (enabled) onPickDate() }, label = { Text("Pick date") })
         }
     }
 }
@@ -257,7 +257,7 @@ private fun CycleHealthCard(h: CycleHealth) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("🩺 Cycle health check", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Cycle health check", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(h.headline, style = MaterialTheme.typography.bodySmall)
                 }
                 Text(if (expanded) "▲" else "▼")
@@ -276,7 +276,7 @@ private fun CycleHealthCard(h: CycleHealth) {
                     Text("This can be due to: ${f.possibleCauses}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (h.redFlags.isNotEmpty()) {
-                    Text("🚩 See a doctor if any of these", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
+                    Text("See a doctor if any of these", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
                     h.redFlags.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
                 }
                 TipGroup("🥗 Diet", h.advice.diet)

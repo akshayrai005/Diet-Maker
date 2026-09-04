@@ -17,10 +17,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -204,7 +207,7 @@ fun BarcodeScreen(
                 modifier = Modifier.fillMaxWidth().height(54.dp),
                 shape = RoundedCornerShape(24.dp),
             ) {
-                Text("📷  Enable camera to scan", fontWeight = FontWeight.SemiBold)
+                Text("Enable camera to scan", fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -266,13 +269,12 @@ fun BarcodeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Box(
                             modifier = Modifier
-                                .height(48.dp)
+                                .size(48.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen)))
-                                .padding(horizontal = 14.dp),
+                                .background(BrandGreen.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text("🍽", style = MaterialTheme.typography.titleLarge)
+                            androidx.compose.material3.Icon(Icons.Filled.Restaurant, contentDescription = null, tint = BrandGreenDeep)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(

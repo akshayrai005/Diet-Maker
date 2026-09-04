@@ -132,7 +132,7 @@ fun MoodCheckinCard(modifier: Modifier = Modifier, viewModel: MoodViewModel = hi
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("How are you today? 🧠", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("How are you today?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
             FaceSelector("Mood", MOOD_FACES, mood) { mood = it }
             FaceSelector("Stress", STRESS_FACES, stress) { stress = it }
@@ -172,7 +172,6 @@ fun MoodCheckinCard(modifier: Modifier = Modifier, viewModel: MoodViewModel = hi
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 ) {
                     Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("💛", style = MaterialTheme.typography.titleMedium)
                         Text(
                             state.insight.message.ifBlank { "It might help to talk with someone. Reaching out is a sign of strength." },
                             style = MaterialTheme.typography.bodyMedium,
