@@ -153,13 +153,7 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
         ) {
             state.toast?.let { msg ->
                 item {
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    ) {
-                        Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
-                    }
+                    com.nutriai.ui.components.StatusIndicator(text = msg, status = com.nutriai.ui.components.Status.Positive)
                     LaunchedEffect(msg) { delay(2500); viewModel.clearToast() }
                 }
             }

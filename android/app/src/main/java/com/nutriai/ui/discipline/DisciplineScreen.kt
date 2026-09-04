@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -149,19 +152,16 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
                 }
             }
 
-            item { Text("Today’s habits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            items(d.habits.size) { i ->
-                HabitRow(
-                    d.habits[i],
-                    onToggle = { viewModel.toggle(d.habits[i]) },
-                    onDelete = { viewModel.removeHabit(d.habits[i].id) },
-                )
+            item { Text("Today's habits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            itemsIndexed(d.habits) { i, habit ->
+                HabitRow(habit, onToggle = { viewModel.toggle(habit) }, onDelete = { viewModel.removeHabit(habit.id) })
+                if (i != d.habits.lastIndex) androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
             }
             item {
                 TextButton(
                     onClick = { showAdd = true },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a habit" },
-                ) { Text("＋ Add habit") }
+                ) { Text("+ Add habit") }
             }
 
             if (d.adherence.topActions.isNotEmpty()) {
@@ -214,50 +214,43 @@ private fun AdherenceRing(score: Int) {
 
 @Composable
 private fun HabitRow(habit: HabitView, onToggle: () -> Unit, onDelete: () -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Checkbox(
-                checked = habit.doneToday,
-                // Auto-tracked habits reflect the metric (steps/water/sleep) and can't be toggled by hand.
-                enabled = !habit.autoTracked,
-                onCheckedChange = { if (!habit.autoTracked) onToggle() },
-                modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}${if (habit.autoTracked) ", auto-tracked" else ""}" },
-            )
-            Column(Modifier.weight(1f)) {
-                Text("${habit.icon ?: ""} ${habit.title}".trim(), style = MaterialTheme.typography.bodyLarge)
-                if (habit.autoTracked && habit.current != null && habit.target != null) {
-                    val unit = habit.unit ?: ""
-                    val cur = habit.current.toInt()
-                    val tgt = habit.target.toInt()
-                    Text(
-                        if (habit.doneToday) "✓ auto: $cur/$tgt $unit" else "$cur/$tgt $unit — auto-tracks when you hit the goal",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (habit.doneToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (habit.streakDays > 0) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Checkbox(
+            checked = habit.doneToday,
+            // Auto-tracked habits reflect the metric (steps/water/sleep) and can't be toggled by hand.
+            enabled = !habit.autoTracked,
+            onCheckedChange = { if (!habit.autoTracked) onToggle() },
+            modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}${if (habit.autoTracked) ", auto-tracked" else ""}" },
+        )
+        Column(Modifier.weight(1f)) {
+            Text(habit.title, style = MaterialTheme.typography.bodyLarge)
+            if (habit.autoTracked && habit.current != null && habit.target != null) {
+                val unit = habit.unit ?: ""
+                val cur = habit.current.toInt()
+                val tgt = habit.target.toInt()
                 Text(
-                    "🔥 ${habit.streakDays}",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    if (habit.doneToday) "Auto: $cur/$tgt $unit" else "$cur/$tgt $unit - auto-tracks when you hit the goal",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (habit.doneToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                "✕",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable { onDelete() }
-                    .semantics { contentDescription = "Delete ${habit.title}" }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
         }
+        if (habit.streakDays > 0) {
+            com.nutriai.ui.components.StatusIndicator(text = "${habit.streakDays}d", status = com.nutriai.ui.components.Status.Caution)
+        }
+        androidx.compose.material3.Icon(
+            Icons.Filled.Close,
+            contentDescription = "Delete ${habit.title}",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable { onDelete() }
+                .padding(6.dp)
+                .size(18.dp),
+        )
     }
 }

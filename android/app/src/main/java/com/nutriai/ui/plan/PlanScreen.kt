@@ -105,7 +105,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         }
 
         // Food plan — tap the header to add more; empty state IS the add action, no separate button.
-        item { Text("🍽️ Food plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddFood = true }) }
+        item { Text("Food plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddFood = true }) }
         itemsIndexed(plan.foods) { i, f ->
             PlanRow(
                 title = f.name,
@@ -116,7 +116,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         item { AddRow("Tap to add food") { showAddFood = true } }
 
         // Workout plan — same pattern.
-        item { Text("🏋️ Workout plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddExercise = true }) }
+        item { Text("Workout plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddExercise = true }) }
         itemsIndexed(plan.exercises) { i, e ->
             Row(
                 Modifier
@@ -160,7 +160,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                     CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp)
                     Text("Coach is reviewing…", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                 } else {
-                    Text("🤖 Tap to have the coach review this plan", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                    Text("Tap to have the coach review this plan", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -204,7 +204,7 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
         ) {
             Text(d.dayName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = onContainer)
             if (d.isFast) {
-                Text("⚡ Fast", style = MaterialTheme.typography.labelSmall, color = onContainer)
+                Text("Fast", style = MaterialTheme.typography.labelSmall, color = onContainer)
             } else if (d.kcal > 0) {
                 Text("${d.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = onContainer)
                 Text("${d.proteinG}g P", style = MaterialTheme.typography.labelSmall, color = onContainer)
@@ -243,7 +243,7 @@ private fun MetricBar(label: String, value: Int, target: Int, unit: String, pct:
 private fun AdherenceCard(state: PlanUiState) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("📊 Plan adherence — today", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+            Text("Plan adherence - today", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
             Text("${state.adherence}% followed", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
             state.actualProtein?.let {
                 Text(
