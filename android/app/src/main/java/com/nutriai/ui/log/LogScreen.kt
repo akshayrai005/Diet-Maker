@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
@@ -40,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -165,9 +167,9 @@ fun LogScreen(
             )
         }
 
-        // 3. Search field + button
+        // 3. Search field
         item {
-            SearchCard(
+            SearchField(
                 query = state.query,
                 onQuery = { viewModel.onQuery(it) },
                 onSearch = { viewModel.search(state.query) },
@@ -176,27 +178,20 @@ fun LogScreen(
 
         // 3b. Snap a meal (AI photo logging)
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.sm)) {
+                com.nutriai.ui.components.PrimaryButton(
+                    text = if (state.analyzing) "Analyzing…" else "Snap a meal",
                     onClick = { snapMeal() },
                     modifier = Modifier.weight(1f),
+                    icon = if (state.analyzing) null else Icons.Filled.PhotoCamera,
                     enabled = !state.analyzing,
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                ) {
-                    if (state.analyzing) {
-                        CircularProgressIndicator(Modifier.size(20.dp), color = Color.White)
-                    } else {
-                        Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.size(6.dp))
-                        Text("Snap a meal")
-                    }
-                }
-                OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp)) {
-                    Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.size(6.dp))
-                    Text("Photo")
-                }
+                )
+                com.nutriai.ui.components.SecondaryButton(
+                    text = "Photo",
+                    onClick = { galleryLauncher.launch("image/*") },
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.PhotoLibrary,
+                )
             }
         }
 
@@ -299,7 +294,7 @@ private fun SlotChipRow(
     selected: String,
     onSelect: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.sm)) {
         Text(
             "Meal",
             style = MaterialTheme.typography.labelLarge,
@@ -308,46 +303,26 @@ private fun SlotChipRow(
         )
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.sm),
         ) {
             slots.forEach { slot ->
-                SlotChip(
-                    label = slot.replaceFirstChar { it.uppercase() },
+                FilterChip(
                     selected = slot == selected,
                     onClick = { onSelect(slot) },
+                    label = { Text(slot.replaceFirstChar { it.uppercase() }) },
                 )
             }
         }
     }
 }
 
-@Composable
-private fun SlotChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) BrandGreen else MaterialTheme.colorScheme.surfaceVariant
-    val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(bg)
-            .clickable { onClick() }
-            .padding(horizontal = 18.dp, vertical = 10.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = fg,
-        )
-    }
-}
-
 // ---------------------------------------------------------------------------
-// Search card
+// Search field — plain, no card wrapper, matching the rest of the app's
+// OutlinedTextField usage (Checkin, Onboarding, Settings).
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun SearchCard(
+private fun SearchField(
     query: String,
     onQuery: (String) -> Unit,
     onSearch: () -> Unit,
@@ -375,43 +350,21 @@ private fun SearchCard(
         runCatching { voiceLauncher.launch(intent) }
             .onFailure { Toast.makeText(context, "Voice input isn't available on this device", Toast.LENGTH_SHORT).show() }
     }
-    Card(
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQuery,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Search foods (local + USDA)…") },
-                singleLine = true,
-                shape = RoundedCornerShape(18.dp),
-                trailingIcon = {
-                    IconButton(onClick = { startVoice() }) {
-                        Icon(Icons.Filled.Mic, contentDescription = "Search by voice", tint = BrandGreen)
-                    }
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = BrandGreen,
-                    cursorColor = BrandGreen,
-                ),
-            )
-            Button(
-                onClick = onSearch,
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) { Text("Search") }
-        }
-    }
+        placeholder = { Text("Search foods (local + USDA)") },
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = {
+            IconButton(onClick = { startVoice() }) {
+                Icon(Icons.Filled.Mic, contentDescription = "Search by voice")
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch() }),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -536,14 +489,18 @@ private fun QuickRow(
 
 @Composable
 private fun QuickChip(label: String, accent: Boolean = false, onClick: () -> Unit) {
-    Box(
-        Modifier.clip(RoundedCornerShape(20.dp))
-            .background(if (accent) BrandGreen else BrandGreen.copy(alpha = 0.12f))
-            .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, color = if (accent) Color.White else BrandGreenDeep)
-    }
+    AssistChip(
+        onClick = onClick,
+        label = { Text(label) },
+        colors = if (accent) {
+            androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                labelColor = MaterialTheme.colorScheme.onPrimary,
+            )
+        } else {
+            androidx.compose.material3.AssistChipDefaults.assistChipColors()
+        },
+    )
 }
 
 @Composable
