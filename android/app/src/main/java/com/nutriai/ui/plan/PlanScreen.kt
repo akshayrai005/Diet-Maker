@@ -65,13 +65,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
-        item {
-            com.nutriai.ui.components.AppHero(
-                title = "Plan & review",
-                subtitle = "Tap a day, add what you'll eat and train, then track it.",
-                emoji = "📝",
-            )
-        }
+        item { com.nutriai.ui.components.ScreenTitleBar("Plan & review") }
 
         // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
         item {

@@ -1,6 +1,11 @@
 package com.nutriai.ui.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.Color
@@ -310,12 +315,29 @@ fun CalendarScreen(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                "This week",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        // Day navigation: ‹ prev / next › steps through the same dates the week strip below shows,
+        // so this defaults to (and always centers on) today without needing a full calendar.
+        if (state.dietDays.isNotEmpty() || state.workoutDays.isNotEmpty()) {
+            item {
+                val dates = (state.dietDays.mapNotNull { it.date } + state.workoutDays.mapNotNull { it.date }).distinct().sorted()
+                val idx = dates.indexOf(state.selectedDate)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { if (idx > 0) viewModel.selectDate(dates[idx - 1]) }, enabled = idx > 0) {
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day")
+                    }
+                    Text(
+                        state.dietDays.firstOrNull { it.date == state.selectedDate }?.label
+                            ?: state.workoutDays.firstOrNull { it.date == state.selectedDate }?.label
+                            ?: "Today",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    IconButton(onClick = { if (idx in 0 until dates.lastIndex) viewModel.selectDate(dates[idx + 1]) }, enabled = idx in 0 until dates.lastIndex) {
+                        Icon(Icons.Filled.ChevronRight, contentDescription = "Next day")
+                    }
+                }
+            }
         }
         item {
             Button(onClick = { viewModel.regenerate() }, modifier = Modifier.fillMaxWidth()) {

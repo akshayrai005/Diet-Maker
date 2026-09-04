@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -62,21 +66,17 @@ import javax.inject.Inject
 
 /**
  * The Move pillar - a segmented switcher so everything active lives under one tab:
- * [Exercise | Log]. Log shows what you actually did, with the calories it burned. Meditation /
+ * [Today | Library | Log]. Today is the day's plan with sets/reps/weight logging built in; Library
+ * is the full searchable exercise catalog for logging anything off-plan; Log is history. Meditation /
  * mind-&-body content lives in its own dedicated Mind tab, so it's intentionally NOT duplicated here.
  */
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 1)) }
-    val labels = listOf("Exercise", "Log")
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
+    val labels = listOf("Today", "Library", "Log")
 
     Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.AppHero(
-            title = "Move",
-            subtitle = "Search, log and progress your training.",
-            emoji = "🏋️",
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-        )
+        com.nutriai.ui.components.ScreenTitleBar("Move", Modifier.padding(horizontal = 12.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -92,6 +92,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         }
         when (section) {
             0 -> ExerciseTab(Modifier.fillMaxSize())
+            1 -> ExerciseLibraryTab(Modifier.fillMaxSize())
             else -> MoveLogScreen(Modifier.fillMaxSize())
         }
     }
@@ -183,17 +184,6 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
-    var showSearch by remember { mutableStateOf(false) }
-
-    if (showSearch) {
-        SearchExerciseSheet(
-            onDismiss = { showSearch = false },
-            onPick = { ex ->
-                showSearch = false
-                logTarget = ex
-            },
-        )
-    }
 
     logTarget?.let { ex ->
         LogExerciseDialog(
@@ -224,32 +214,6 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
-            }
-        }
-
-        // Going to the gym? Search & log ANY exercise - not just today's plan.
-        item {
-            Card(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable { showSearch = true }
-                    .heightIn(min = 56.dp)
-                    .semantics { contentDescription = "Search and log any exercise" },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("🔍", style = MaterialTheme.typography.titleMedium)
-                    Column(Modifier.weight(1f)) {
-                        Text("Search & log an exercise", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Text("At the gym? Find any lift or cardio and log it.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f))
-                    }
-                }
             }
         }
 
@@ -549,89 +513,94 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
 }
 
 /**
- * Search-and-log sheet for gym-goers: type any exercise, see live matches from [ExerciseCatalog]
- * (name + muscle group + demo), and tap one to open the normal log dialog. If what they did isn't in
- * the catalog, a "Log <what you typed>" row lets them log it by name anyway - nothing is off-limits.
+ * Full-screen exercise library (the "Library" sub-tab): search + category chips + a 2-column grid of
+ * result cards, so browsing the whole catalog doesn't need a cramped dialog. Tapping a card opens the
+ * same adaptive log dialog used everywhere else in Move. If what they did isn't in the catalog, a
+ * "Log <what you typed>" card lets them log it by name anyway - nothing is off-limits.
  */
 @Composable
-private fun SearchExerciseSheet(onDismiss: () -> Unit, onPick: (ExerciseItem) -> Unit) {
+private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel()) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
+    var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     val results = remember(query, category) { ExerciseCatalog.search(query, category) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Search exercises") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("e.g. bench press, squat, yoga") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Exercise search field" },
+    logTarget?.let { ex ->
+        LogExerciseDialog(
+            exercise = ex,
+            onDismiss = { logTarget = null },
+            onConfirm = { w, reps, sets, dur ->
+                viewModel.logEntry(ex.name, null, w, reps, sets, dur)
+                logTarget = null
+            },
+        )
+    }
+
+    Column(modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text("e.g. bench press, squat, yoga") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Exercise search field" },
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(ExerciseCatalog.categories) { c ->
+                FilterChip(
+                    selected = category == c,
+                    onClick = { category = c },
+                    label = { Text("${c.emoji} ${c.label}") },
+                    modifier = Modifier.semantics { contentDescription = "${c.label} filter" },
                 )
-                // Category filter chips - every training type, one tap to narrow the list.
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items(ExerciseCatalog.categories) { c ->
-                        FilterChip(
-                            selected = category == c,
-                            onClick = { category = c },
-                            label = { Text("${c.emoji} ${c.label}") },
-                            modifier = Modifier.semantics { contentDescription = "${c.label} filter" },
-                        )
-                    }
-                }
-                LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = 340.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    // Let them log a free-typed movement that isn't in the catalog.
-                    if (typed.isNotEmpty() && !hasExactName) {
-                        item {
-                            SearchResultRow(
-                                ex = ExerciseCatalog.custom(typed),
-                                labelOverride = "Log \"$typed\"",
-                                onClick = { onPick(ExerciseCatalog.custom(typed)) },
-                            )
-                        }
-                    }
-                    items(results) { ex ->
-                        SearchResultRow(ex = ex, onClick = { onPick(ex) })
-                    }
-                    if (results.isEmpty() && typed.isNotEmpty()) {
-                        item { Text("No match in the library - tap \"Log \\\"$typed\\\"\" above to log it anyway.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    }
+            }
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            if (typed.isNotEmpty() && !hasExactName) {
+                item {
+                    ExerciseGridCard(
+                        ex = ExerciseCatalog.custom(typed),
+                        labelOverride = "Log \"$typed\"",
+                        onClick = { logTarget = ExerciseCatalog.custom(typed) },
+                    )
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
+            gridItems(results) { ex -> ExerciseGridCard(ex = ex, onClick = { logTarget = ex }) }
+            if (results.isEmpty() && typed.isNotEmpty()) {
+                item(span = { GridItemSpan(2) }) {
+                    Text("No match in the library - tap \"Log \\\"$typed\\\"\" above to log it anyway.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
+/** One exercise in the Library's 2-column grid — compact card, ~120dp tall. */
 @Composable
-private fun SearchResultRow(ex: ExerciseItem, onClick: () -> Unit, labelOverride: String? = null) {
-    Row(
+private fun ExerciseGridCard(ex: ExerciseItem, onClick: () -> Unit, labelOverride: String? = null) {
+    Card(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .heightIn(min = 120.dp)
             .clickable(onClick = onClick)
-            .heightIn(min = 48.dp)
-            .padding(vertical = 6.dp, horizontal = 4.dp)
             .semantics { contentDescription = "Log ${labelOverride ?: ex.name}" },
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
     ) {
-        ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 36)
-        Column(Modifier.weight(1f)) {
-            Text(labelOverride ?: ex.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 40)
+            Text(labelOverride ?: ex.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
             ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                 Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
         }
-        Text("+ Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
     }
 }
 

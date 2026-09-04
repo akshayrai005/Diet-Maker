@@ -32,6 +32,8 @@ data class DashboardState(
     val maintenanceKcal: Double? = null, // TDEE - what the body burns/day
     val coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     val rating: com.nutriai.data.remote.dto.RatingResult? = null,
+    /** Today's training day from the workout plan (null if rest day / no plan yet). */
+    val todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
     val error: String? = null,
 )
 
@@ -135,6 +137,12 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             repository.coachToday().getOrNull()?.let { c ->
                 _state.value = _state.value.copy(coach = c.brief, rating = c.rating)
+            }
+        }
+        // Today's workout (for the "Today: Chest + Triceps" card up top).
+        viewModelScope.launch {
+            repository.exercisePlan().getOrNull()?.days?.firstOrNull { it.label == "Today" }?.let { day ->
+                _state.value = _state.value.copy(todayWorkout = day)
             }
         }
     }

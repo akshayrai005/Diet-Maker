@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -126,82 +127,96 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
     }
 
     val w = state.wellness
-    LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
-    ) {
-        item { Hero() }
+    var section by remember { mutableIntStateOf(0) }
+    val labels = listOf("Meditate", "Yoga", "Mood")
 
-        // Mind pillar - daily mood / stress / sleep check-in with a supportive insight.
-        item { com.nutriai.ui.mind.MoodCheckinCard() }
-
-        state.toast?.let { msg ->
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                ) {
-                    Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
-                }
-                LaunchedEffect(msg) { delay(2500); viewModel.clearToast() }
+    Column(modifier.fillMaxSize()) {
+        com.nutriai.ui.components.ScreenTitleBar("Mind", Modifier.padding(horizontal = 16.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            labels.forEachIndexed { i, label ->
+                FilterChip(
+                    selected = section == i,
+                    onClick = { section = i },
+                    label = { Text(label) },
+                    modifier = Modifier.semantics { contentDescription = "$label section" },
+                )
             }
         }
 
-        if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
-        }
-
-        state.suggestion?.let { s ->
-            if (s.meditation != null || s.yoga != null) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(vertical = 12.dp),
+        ) {
+            state.toast?.let { msg ->
                 item {
                     Card(
                         Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     ) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(s.reason.ifBlank { "For right now" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            val picks = listOfNotNull(s.yoga?.name, s.meditation?.name).joinToString("  ·  ")
-                            if (picks.isNotBlank()) {
-                                Text(picks, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f))
-                            }
-                            s.meditation?.let { med ->
-                                TextButton(
-                                    onClick = { active = med },
-                                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Start ${med.name}" },
-                                ) { Text("▶ Start ${med.name}") }
+                        Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
+                    }
+                    LaunchedEffect(msg) { delay(2500); viewModel.clearToast() }
+                }
+            }
+
+            if (state.loading) {
+                item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
+            }
+
+            // The "for right now" pick only makes sense on its matching tab.
+            state.suggestion?.let { s ->
+                val show = (section == 0 && s.meditation != null) || (section == 1 && s.yoga != null)
+                if (show) {
+                    item {
+                        Card(
+                            Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        ) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(s.reason.ifBlank { "For right now" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                val picks = listOfNotNull(s.yoga?.name.takeIf { section == 1 }, s.meditation?.name.takeIf { section == 0 }).joinToString("  ·  ")
+                                if (picks.isNotBlank()) {
+                                    Text(picks, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f))
+                                }
+                                if (section == 0) {
+                                    s.meditation?.let { med ->
+                                        TextButton(
+                                            onClick = { active = med },
+                                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Start ${med.name}" },
+                                        ) { Text("▶ Start ${med.name}") }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        if (w != null && w.yoga.isNotEmpty()) {
-            item { SectionLabel("🧘 Yoga flows") }
-            items(w.yoga, key = { it.id }) { YogaFlowCard(it, onDone = { viewModel.logSession(it.id) }) }
-        }
-        if (w != null && w.meditation.isNotEmpty()) {
-            item { SectionLabel("🌬️ Meditation & breathing") }
-            items(w.meditation, key = { it.id }) { MeditationCard(it, onOpen = { active = it }) }
-        }
-    }
-}
-
-@Composable
-private fun Hero() {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen, BrandGreenDeep))).padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Mind & Body", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("Yoga flows and guided breathing to calm, focus and recover.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f))
+            when (section) {
+                0 -> {
+                    if (w != null && w.meditation.isNotEmpty()) {
+                        items(w.meditation, key = { it.id }) { MeditationCard(it, onOpen = { active = it }) }
+                    } else if (!state.loading) {
+                        item { Text("No meditation sessions right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+                1 -> {
+                    if (w != null && w.yoga.isNotEmpty()) {
+                        items(w.yoga, key = { it.id }) { YogaFlowCard(it, onDone = { viewModel.logSession(it.id) }) }
+                    } else if (!state.loading) {
+                        item { Text("No yoga flows right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+                else -> {
+                    // Mind pillar - daily mood / stress / sleep check-in with a supportive insight.
+                    item { com.nutriai.ui.mind.MoodCheckinCard() }
+                }
             }
         }
     }

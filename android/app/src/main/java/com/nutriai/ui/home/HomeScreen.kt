@@ -6,6 +6,7 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,12 +59,14 @@ import androidx.navigation.compose.rememberNavController
 
 private data class TabItem(val route: String, val label: String, val icon: ImageVector)
 
+/** "log" is not a real destination — it opens QuickLogSheet directly and is rendered specially. */
+private const val LOG_TAB_ROUTE = "log"
+
 private val TABS = listOf(
-    TabItem("home", "Home", Icons.Filled.Home),
+    TabItem("today", "Today", Icons.Filled.Home),
     TabItem("diet", "Diet", Icons.Filled.Restaurant),
+    TabItem(LOG_TAB_ROUTE, "Log", Icons.Filled.Add),
     TabItem("move", "Move", Icons.Filled.FitnessCenter),
-    // Mind is a first-class destination reflecting its 25% weight (mood check-in + yoga + meditation).
-    TabItem("mind", "Mind", Icons.Filled.SelfImprovement),
     TabItem("me", "Me", Icons.Filled.Person),
 )
 
@@ -71,7 +74,7 @@ private val TABS = listOf(
 private fun tabRoute(index: Int): String = when (index) {
     1 -> "move" // 5 AM workout reminder
     2 -> "diet" // meal reminders → diet (plan/log/grocery)
-    else -> "home"
+    else -> "today"
 }
 
 @Composable
@@ -82,7 +85,7 @@ fun HomeScreen(
 ) {
     val navController = rememberNavController()
     val backEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backEntry?.destination?.route ?: "home"
+    val currentRoute = backEntry?.destination?.route ?: "today"
     var showQuickLog by remember { mutableStateOf(false) }
 
     if (showQuickLog) {
@@ -102,15 +105,7 @@ fun HomeScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            // Always-visible quick log for busy users (Section 15): combos, water, re-log, skipped.
-            FloatingActionButton(
-                onClick = { showQuickLog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.semantics { contentDescription = "Quick log food or water" },
-            ) { Icon(Icons.Filled.Add, contentDescription = null) }
-        },
+        // No separate FAB — the center "Log" nav item IS the quick-log entry point now.
         bottomBar = {
             Column {
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
@@ -119,27 +114,48 @@ fun HomeScreen(
                     tonalElevation = 6.dp,
                 ) {
                     TABS.forEach { item ->
-                        NavigationBarItem(
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                if (currentRoute != item.route) {
-                                    navController.navigate(item.route) {
-                                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
+                        if (item.route == LOG_TAB_ROUTE) {
+                            // Center action tab: doesn't navigate, opens Quick Log directly. Styled as
+                            // a raised green circle so it reads as THE action, not just another tab.
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = { showQuickLog = true },
+                                icon = {
+                                    Box(
+                                        Modifier
+                                            .size(44.dp)
+                                            .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(item.icon, contentDescription = "Quick log", tint = MaterialTheme.colorScheme.onPrimary)
                                     }
-                                }
-                            },
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
+                                },
+                                label = null,
+                                colors = NavigationBarItemDefaults.colors(indicatorColor = androidx.compose.ui.graphics.Color.Transparent),
+                            )
+                        } else {
+                            NavigationBarItem(
+                                selected = currentRoute == item.route,
+                                onClick = {
+                                    if (currentRoute != item.route) {
+                                        navController.navigate(item.route) {
+                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                },
+                                icon = { Icon(item.icon, contentDescription = item.label) },
+                                label = { Text(item.label) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -147,14 +163,21 @@ fun HomeScreen(
     ) { padding ->
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = "today",
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            composable("home") {
+            composable("today") {
                 DashboardTab(
                     onLogout = onLogout,
                     onCompleteProfile = onCompleteProfile,
                     onOpenVitals = { navController.navigate("vitals") },
+                    onOpenMove = {
+                        navController.navigate("move") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
             composable("vitals") {
@@ -165,7 +188,6 @@ fun HomeScreen(
             }
             composable("diet") { com.nutriai.ui.diet.DietScreen(Modifier.fillMaxSize()) }
             composable("move") { com.nutriai.ui.move.MoveScreen(Modifier.fillMaxSize()) }
-            composable("mind") { com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize()) }
             composable("me") {
                 MoreScreen(
                     Modifier.fillMaxSize(),
@@ -182,6 +204,7 @@ private fun DashboardTab(
     onLogout: () -> Unit,
     onCompleteProfile: () -> Unit,
     onOpenVitals: () -> Unit = {},
+    onOpenMove: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -242,7 +265,9 @@ private fun DashboardTab(
             maintenanceKcal = state.maintenanceKcal,
             coach = state.coach,
             rating = state.rating,
+            todayWorkout = state.todayWorkout,
             onOpenVitals = onOpenVitals,
+            onOpenMove = onOpenMove,
             onConnectSteps = {
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }

@@ -92,84 +92,91 @@ fun PremiumDashboard(
     maintenanceKcal: Double? = null,
     coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     rating: com.nutriai.data.remote.dto.RatingResult? = null,
+    todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
     onOpenVitals: () -> Unit = {},
+    onOpenMove: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
+    var seeMore by remember { mutableStateOf(false) }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp),
     ) {
-        // 1. Hero
-        item { HeroCard(greetingName = greetingName, streakDays = d.streakDays) }
+        // 1. Compact one-line greeting — no card, just text, so real content starts immediately.
+        item { CompactGreeting(greetingName = greetingName, streakDays = d.streakDays) }
 
-        // 1a. Your Analysis - server-computed health rating + today's coach brief.
-        if (rating != null || coach != null) {
-            item { com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach) }
+        // 2. THE first thing the user sees: calories / protein / water as 3 rings side by side.
+        item { ThreeSummaryRings(dashboard = d) }
+
+        // 3. Today's workout — one glance, tap to go log it.
+        item { TodayWorkoutCard(day = todayWorkout, onOpen = onOpenMove) }
+
+        // 4. Coach tip — one line, expands to the full insight card.
+        item { CoachTipLine(name = greetingName, dashboard = d, sleepHours = sleepHours, steps = steps) }
+
+        // 5. Macro row
+        item { MacroRow(dashboard = d) }
+
+        // 6. Steps + Hydration side by side (2-column, compact).
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.weight(1f)) { StepsCard(steps = steps, stepsKcal = stepsKcal, hasPermission = stepsPermission, available = stepsAvailable, onConnect = onConnectSteps) }
+                Box(Modifier.weight(1f)) { HydrationCard(water = d.water, onAddWater = onAddWater) }
+            }
         }
 
-        // 1b. AI Coach - proactive, deterministic morning insights from today's data.
-        item { CoachCard(name = greetingName, dashboard = d, sleepHours = sleepHours, steps = steps) }
-
-        // 2. Calorie ring
-        item { CalorieRingCard(dashboard = d, burnedKcal = stepsKcal, maintenanceKcal = maintenanceKcal, onCompleteProfile = onCompleteProfile) }
-
-        // 2b. Health & safety notes (guardrail flags: conditions, medication interactions…)
+        // Safety notes stay ABOVE the fold on purpose — real medical/guardrail alerts aren't "extra".
         if (safetyFlags.isNotEmpty()) {
             item { SafetyCard(flags = safetyFlags) }
         }
 
-        // 2c. Deterministic health-risk findings (central obesity, BP, glucose, sleep…).
-        if (riskFindings.isNotEmpty()) {
-            item { RiskCard(findings = riskFindings) }
-        }
-
-        // 3. Macro row
-        item { MacroRow(dashboard = d) }
-
-        // Micronutrients vs RDA (estimated server-side from today's logged foods).
-        d.micronutrients?.let { mn ->
-            if (mn.targets.isNotEmpty()) item { com.nutriai.ui.analysis.MicronutrientsCard(mn) }
-        }
-
-        // 3b. Day-to-day goal monitor (last 7 days' calorie adherence).
-        if (weekDays.isNotEmpty() && weekKcalTarget != null && weekKcalTarget > 0) {
-            item { GoalMonitorCard(days = weekDays, target = weekKcalTarget) }
-        }
-
-        // 4. Steps (Health Connect) - above hydration
-        item { StepsCard(steps = steps, stepsKcal = stepsKcal, hasPermission = stepsPermission, available = stepsAvailable, onConnect = onConnectSteps) }
-
-        // 4b. Vitals - reads heart rate & sleep from Health Connect (fed by Google Fit / your band).
+        // 7. Everything else lives behind one "See more" toggle so the screen isn't half analytics.
         item {
-            VitalsCard(
-                heartRate = heartRate,
-                sleepHours = sleepHours,
-                manualHeartRate = manualHeartRate,
-                stress = stress,
-                onSaveVitals = onSaveVitals,
-                onConnect = onConnectSteps,
-                connected = stepsPermission,
+            Text(
+                if (seeMore) "see less ▲" else "see more ▼",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth().clickable { seeMore = !seeMore }.padding(vertical = 4.dp),
+                textAlign = TextAlign.Center,
             )
         }
 
-        // Vitals & labs lives under the Me tab — no duplicate card on Home.
-
-        // 5. Hydration
-        item { HydrationCard(water = d.water, onAddWater = onAddWater) }
-
-        // 6. Scores
-        item { ScoresRow(dashboard = d) }
-
-        // 6. Your journey (projection)
-        if (d.projection.size > 1) {
-            item { JourneyCard(dashboard = d) }
+        if (seeMore) {
+            if (rating != null || coach != null) {
+                item { com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach) }
+            }
+            if (riskFindings.isNotEmpty()) {
+                item { RiskCard(findings = riskFindings) }
+            }
+            d.micronutrients?.let { mn ->
+                if (mn.targets.isNotEmpty()) item { com.nutriai.ui.analysis.MicronutrientsCard(mn) }
+            }
+            if (weekDays.isNotEmpty() && weekKcalTarget != null && weekKcalTarget > 0) {
+                item { GoalMonitorCard(days = weekDays, target = weekKcalTarget) }
+            }
+            item {
+                VitalsCard(
+                    heartRate = heartRate,
+                    sleepHours = sleepHours,
+                    manualHeartRate = manualHeartRate,
+                    stress = stress,
+                    onSaveVitals = onSaveVitals,
+                    onConnect = onConnectSteps,
+                    connected = stepsPermission,
+                )
+            }
+            item { ScoresRow(dashboard = d) }
+            if (d.projection.size > 1) {
+                item { JourneyCard(dashboard = d) }
+            }
         }
 
-        // 7. Footer: disclaimer only (Log out + Delete account live in Settings)
+        // Footer: disclaimer only (Log out + Delete account live in Settings)
         item {
             Text(
                 "Educational guidance, not medical advice - consult a professional.",
@@ -178,6 +185,133 @@ fun PremiumDashboard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
+        }
+    }
+}
+
+/** Single-line greeting with the streak on the right — no card, no wasted height. */
+@Composable
+private fun CompactGreeting(greetingName: String?, streakDays: Int) {
+    val hour = LocalTime.now().hour
+    val greeting = when {
+        hour < 12 -> "Good morning"
+        hour < 17 -> "Good afternoon"
+        else -> "Good evening"
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "$greeting, ${greetingName ?: "there"} ${if (hour < 12) "☀️" else if (hour < 17) "🌤️" else "🌙"}",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        if (streakDays > 0) {
+            Text("🔥 ${streakDays}d", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandAmber)
+        }
+    }
+}
+
+/**
+ * THE hero of the Today tab: calories, protein and water as three small rings side by side, so the
+ * "what do I need right now" question is answered in under 2 seconds without scrolling.
+ */
+@Composable
+private fun ThreeSummaryRings(dashboard: Dashboard) {
+    val cal = dashboard.calories
+    val protein = dashboard.protein
+    val water = dashboard.water
+    val calPct = if (cal.target != null && cal.target > 0) (cal.consumed / cal.target).coerceIn(0.0, 1.0).toFloat() else 0f
+    val proteinPct = if (protein.target != null && protein.target > 0) ((protein.consumed ?: 0.0) / protein.target).coerceIn(0.0, 1.0).toFloat() else 0f
+    val waterTarget = water.targetMl ?: water.target
+    val waterConsumed = water.consumedMl ?: water.consumed ?: 0.0
+    val waterPct = if (waterTarget != null && waterTarget > 0) (waterConsumed / waterTarget).coerceIn(0.0, 1.0).toFloat() else 0f
+    val glasses = (waterConsumed / 250.0).toInt()
+    val glassTarget = waterTarget?.let { (it / 250.0).toInt() }
+
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            MiniRing("🔥 Calories", "${cal.consumed.toInt()}", cal.target?.let { "/${it.toInt()}" } ?: "kcal", calPct * 100, BrandAmber, size = 84.dp)
+            MiniRing("💪 Protein", "${(protein.consumed ?: 0.0).toInt()}g", protein.target?.let { "/${it.toInt()}g" } ?: "", proteinPct * 100, BrandGreen, size = 84.dp)
+            MiniRing("💧 Water", "$glasses", glassTarget?.let { "/$it glasses" } ?: "glasses", waterPct * 100, Color(0xFF4C9AE0), size = 84.dp)
+        }
+    }
+}
+
+/** Today's scheduled workout — one glance, tap through to Move to log it. Rest days show as such. */
+@Composable
+private fun TodayWorkoutCard(day: com.nutriai.data.remote.dto.WorkoutDay?, onOpen: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth().clickable(onClick = onOpen),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (day == null) {
+                    Text("🏋️ Today's workout", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    Text("Generate your plan in Move to see it here.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
+                } else if (day.rest) {
+                    Text("😴 Rest day", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    Text("Recovery - light movement, stretch, hydrate.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
+                } else {
+                    val count = day.exercises.size + day.warmup.size + day.core.size + day.cooldown.size + (if (day.cardio != null) 1 else 0)
+                    Text("🏋️ Today: ${day.focus}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    Text("$count exercises · tap to log", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.85f))
+                }
+            }
+            if (day != null && !day.rest) {
+                Box(
+                    Modifier.clip(RoundedCornerShape(14.dp)).background(BrandGreen).padding(horizontal = 14.dp, vertical = 8.dp),
+                ) { Text("Start →", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White) }
+            }
+        }
+    }
+}
+
+/** One-line coach tip that expands to show every insight (the full CoachCard content) on tap. */
+@Composable
+private fun CoachTipLine(name: String?, dashboard: Dashboard, sleepHours: Double?, steps: Long) {
+    var expanded by remember { mutableStateOf(false) }
+    val hour = remember { LocalTime.now().hour }
+    val insights = remember(dashboard, sleepHours, steps, hour) { buildCoachInsights(name, dashboard, sleepHours, steps, hour) }
+    if (insights.isEmpty()) return
+    // Lead with the most actionable line (skip the plain greeting if there's a real insight after it).
+    val lead = insights.getOrNull(1) ?: insights[0]
+    val rest = insights.filter { it !== lead }
+
+    Card(
+        Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${lead.emoji} ${lead.text}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = if (expanded) 6 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(if (expanded) "▲" else "▼", color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            if (expanded) {
+                rest.forEach { i ->
+                    Text("${i.emoji} ${i.text}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.9f))
+                }
+            }
         }
     }
 }
@@ -451,14 +585,14 @@ private fun CalorieRingCard(
 }
 
 @Composable
-private fun MiniRing(title: String, centerValue: String, centerLabel: String, percent: Float, accent: Color) {
+private fun MiniRing(title: String, centerValue: String, centerLabel: String, percent: Float, accent: Color, size: androidx.compose.ui.unit.Dp = 118.dp) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Box(modifier = Modifier.size(118.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
             RingCanvas(percent = percent, trackColor = MaterialTheme.colorScheme.surfaceVariant, accent = accent, modifier = Modifier.fillMaxSize())
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(centerValue, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(centerLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Text(centerValue, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(centerLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, maxLines = 1)
             }
         }
     }

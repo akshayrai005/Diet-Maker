@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -45,22 +47,27 @@ import com.nutriai.ui.theme.BrandGreenDeep
 
 private data class MoreItem(val key: String, val icon: String, val label: String, val subtitle: String)
 
-private val MORE_ITEMS = listOf(
-    MoreItem("plan", "📝", "Plan Tomorrow", "Plan meals & workout — AI reviews it"),
-    MoreItem("coach", "💬", "AI Coach", "Chat with your coach"),
-    MoreItem("discipline", "✅", "Discipline", "Daily habits, streaks & adherence"),
-    MoreItem("vitals", "🩺", "Vitals & labs", "BP, glucose, cholesterol & trends"),
-    MoreItem("medications", "💊", "Medicines & supplements", "Track doses & get reminders"),
-    MoreItem("checkin", "⚖️", "Weekly check-in", "Log weight & measurements"),
-    MoreItem("physique", "🧍", "Body type & goal", "Pick your shape & target physique"),
-    MoreItem("body", "📸", "Body Check", "AI body-fat from a photo"),
-    MoreItem("progress", "📈", "Progress & body", "Measurements, trends & private photos"),
-    MoreItem("history", "🗓️", "History", "Steps, calories, water & weight day-by-day"),
-    MoreItem("barcode", "📷", "Scan barcode", "Camera food lookup"),
-    MoreItem("reports", "📄", "Health reports", "Weekly & monthly · view or share"),
-    MoreItem("badges", "🏅", "Achievements", "Streaks & milestones"),
-    MoreItem("family", "👨‍👩‍👧", "Family", "Members with their own plan"),
-    MoreItem("settings", "⚙️", "Settings", "Profile, account & more"),
+/** The 4 most-used destinations — a 2×2 grid right under the profile strip. */
+private val QUICK_ACCESS = listOf(
+    MoreItem("progress", "📊", "Progress", "Measurements & photos"),
+    MoreItem("plan", "📝", "Plan Tomorrow", "AI plan review"),
+    MoreItem("checkin", "⚖️", "Weekly Check-in", "Log weight"),
+    MoreItem("reports", "📄", "Reports", "Download PDF"),
+)
+
+/** Everything else — a horizontal-scroll chip row instead of a long flat list. */
+private val TOOLS = listOf(
+    MoreItem("mind", "🧘", "Mind", ""),
+    MoreItem("coach", "💬", "Coach", ""),
+    MoreItem("vitals", "🩺", "Vitals", ""),
+    MoreItem("medications", "💊", "Medicines", ""),
+    MoreItem("barcode", "📷", "Barcode", ""),
+    MoreItem("badges", "🏅", "Badges", ""),
+    MoreItem("family", "👨‍👩‍👧", "Family", ""),
+    MoreItem("discipline", "✅", "Discipline", ""),
+    MoreItem("history", "🗓️", "History", ""),
+    MoreItem("physique", "🧍", "Body type", ""),
+    MoreItem("body", "📸", "Body Check", ""),
 )
 
 @Composable
@@ -82,6 +89,7 @@ fun MoreScreen(
             }
             when (selected) {
                 "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
+                "mind" -> com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize())
                 "coach" -> com.nutriai.ui.coach.CoachScreen(Modifier.fillMaxSize())
                 "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())
                 "vitals" -> com.nutriai.ui.vitals.VitalsScreen(Modifier.fillMaxSize())
@@ -109,50 +117,93 @@ fun MoreScreen(
 private fun MoreMenu(modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
+        // Compact profile strip — not a tall hero card.
         Card(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            Modifier.fillMaxWidth().heightIn(min = 64.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         ) {
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(BrandGreen, BrandGreenDeep)))
-                    .padding(22.dp),
+                    .background(Brush.horizontalGradient(listOf(BrandGreen, BrandGreenDeep)))
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
             ) {
-                Column {
-                    Text("Me", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text("Coach, progress, family & settings", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f))
+                Text("Me", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+
+        // Quick access — 2×2 grid, each card compact (not a full-width stack).
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("quick access", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            QUICK_ACCESS.chunked(2).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { item -> QuickAccessCard(item, Modifier.weight(1f)) { onSelect(item.key) } }
+                    if (row.size == 1) Box(Modifier.weight(1f))
                 }
             }
         }
 
-        MORE_ITEMS.forEach { item ->
+        // Tools — horizontal-scroll chip row instead of a long flat list.
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("tools", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TOOLS.forEach { item -> ToolChip(item) { onSelect(item.key) } }
+            }
+        }
+
+        // Account.
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("account", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Card(
-                Modifier.fillMaxWidth().clickable { onSelect(item.key) },
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onSelect("settings") },
+                shape = RoundedCornerShape(16.dp),
             ) {
                 Row(
-                    Modifier.fillMaxWidth().padding(14.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Box(
-                            Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center,
-                        ) { Text(item.icon, fontSize = 22.sp) }
-                        Column {
-                            Text(item.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            Text(item.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("⚙️", fontSize = 18.sp)
+                        Text("Settings", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                     }
                     Text("›", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuickAccessCard(item: MoreItem, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(
+        modifier.heightIn(min = 100.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.icon, fontSize = 22.sp)
+            Text(item.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(item.subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ToolChip(item: MoreItem, onClick: () -> Unit) {
+    Card(
+        Modifier.heightIn(min = 72.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(item.icon, fontSize = 20.sp)
+            Text(item.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }
