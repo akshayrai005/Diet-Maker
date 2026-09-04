@@ -5,7 +5,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+
+private val LocalKaizenColors = staticCompositionLocalOf { kaizenColorTokens(dark = false) }
+
+/** Semantic status/surface tokens for the active theme (Phase 1 color system). */
+val MaterialTheme.kaizenColors: KaizenColorTokens
+    @Composable get() = LocalKaizenColors.current
 
 private val LightColors = lightColorScheme(
     primary = BrandGreen,
@@ -82,10 +90,12 @@ fun NutriAiTheme(
         colorScheme = colorScheme,
         typography = NutriTypography,
     ) {
-        // Make Nunito the default family even for raw Text() that sets only size/weight.
-        androidx.compose.material3.ProvideTextStyle(
-            value = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = Nunito),
-            content = content,
-        )
+        CompositionLocalProvider(LocalKaizenColors provides kaizenColorTokens(darkTheme)) {
+            // Make Nunito the default family even for raw Text() that sets only size/weight.
+            androidx.compose.material3.ProvideTextStyle(
+                value = androidx.compose.material3.LocalTextStyle.current.copy(fontFamily = Nunito),
+                content = content,
+            )
+        }
     }
 }

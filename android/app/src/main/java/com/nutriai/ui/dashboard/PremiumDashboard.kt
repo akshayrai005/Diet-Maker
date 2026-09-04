@@ -192,7 +192,7 @@ fun PremiumDashboard(
     }
 }
 
-/** Single-line greeting with the streak on the right — no card, no wasted height. */
+/** Today's screen header — the Phase 1 shared header, streak shown as its trailing action. */
 @Composable
 private fun CompactGreeting(greetingName: String?, streakDays: Int) {
     val hour = LocalTime.now().hour
@@ -201,21 +201,23 @@ private fun CompactGreeting(greetingName: String?, streakDays: Int) {
         hour < 17 -> "Good afternoon"
         else -> "Good evening"
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            "$greeting, ${greetingName ?: "there"} ${if (hour < 12) "☀️" else if (hour < 17) "🌤️" else "🌙"}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        if (streakDays > 0) {
-            Text("🔥 ${streakDays}d", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandAmber)
-        }
-    }
+    com.nutriai.ui.components.ScreenHeader(
+        title = "$greeting, ${greetingName ?: "there"}",
+        action = {
+            if (streakDays > 0) {
+                com.nutriai.ui.components.StatusIndicator(
+                    text = "${streakDays}d streak",
+                    status = com.nutriai.ui.components.Status.Caution,
+                )
+            }
+        },
+    )
 }
 
 /**
- * THE hero of the Today tab: calories, protein and water as three small rings side by side, so the
- * "what do I need right now" question is answered in under 2 seconds without scrolling.
+ * THE hero of the Today tab: calories, protein and water as one grouped metric row with a shared
+ * progress bar each — the Phase 1 demonstration that data doesn't need a card-per-metric or a ring
+ * per metric to read clearly (INSTRUCTION.md Change 04 / Card Lock).
  */
 @Composable
 private fun ThreeSummaryRings(dashboard: Dashboard) {
@@ -230,18 +232,31 @@ private fun ThreeSummaryRings(dashboard: Dashboard) {
     val glasses = (waterConsumed / 250.0).toInt()
     val glassTarget = waterTarget?.let { (it / 250.0).toInt() }
 
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 18.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            MiniRing("🔥 Calories", "${cal.consumed.toInt()}", cal.target?.let { "/${it.toInt()}" } ?: "kcal", calPct * 100, BrandAmber, size = 84.dp)
-            MiniRing("💪 Protein", "${(protein.consumed ?: 0.0).toInt()}g", protein.target?.let { "/${it.toInt()}g" } ?: "", proteinPct * 100, BrandGreen, size = 84.dp)
-            MiniRing("💧 Water", "$glasses", glassTarget?.let { "/$it glasses" } ?: "glasses", waterPct * 100, Color(0xFF4C9AE0), size = 84.dp)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.sm)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            com.nutriai.ui.components.MetricBlock(
+                label = "Calories",
+                value = "${cal.consumed.toInt()}${cal.target?.let { "/${it.toInt()}" } ?: ""}",
+                unit = "kcal",
+                color = BrandAmber,
+            )
+            com.nutriai.ui.components.MetricBlock(
+                label = "Protein",
+                value = "${(protein.consumed ?: 0.0).toInt()}${protein.target?.let { "/${it.toInt()}" } ?: ""}",
+                unit = "g",
+                color = BrandGreen,
+            )
+            com.nutriai.ui.components.MetricBlock(
+                label = "Water",
+                value = "$glasses${glassTarget?.let { "/$it" } ?: ""}",
+                unit = "glasses",
+                color = Color(0xFF4C9AE0),
+            )
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.sm)) {
+            com.nutriai.ui.components.KaizenProgressBar(progress = calPct, modifier = Modifier.weight(1f), color = BrandAmber)
+            com.nutriai.ui.components.KaizenProgressBar(progress = proteinPct, modifier = Modifier.weight(1f), color = BrandGreen)
+            com.nutriai.ui.components.KaizenProgressBar(progress = waterPct, modifier = Modifier.weight(1f), color = Color(0xFF4C9AE0))
         }
     }
 }
