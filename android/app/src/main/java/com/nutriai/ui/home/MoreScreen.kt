@@ -1,72 +1,101 @@
 package com.nutriai.ui.home
 
-
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Accessibility
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.nutriai.ui.badges.BadgesScreen
 import com.nutriai.ui.barcode.BarcodeScreen
 import com.nutriai.ui.checkin.CheckinScreen
+import com.nutriai.ui.components.KaizenIconButton
+import com.nutriai.ui.components.ListRow
+import com.nutriai.ui.components.ScreenHeader
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.Spacing
 import com.nutriai.ui.family.FamilyScreen
-import com.nutriai.ui.grocery.GroceryScreen
 import com.nutriai.ui.reports.ReportsScreen
 import com.nutriai.ui.body.BodyScreen
 import com.nutriai.ui.settings.SettingsScreen
 
+private data class ProfileItem(val key: String, val icon: ImageVector, val label: String, val subtitle: String)
+private data class ProfileGroup(val title: String, val items: List<ProfileItem>)
 
-private data class MoreItem(val key: String, val icon: String, val label: String, val subtitle: String)
-
-/** The 4 most-used destinations — a 2×2 grid right under the profile strip. */
-private val QUICK_ACCESS = listOf(
-    MoreItem("progress", "📊", "Progress", "Measurements & photos"),
-    MoreItem("plan", "📝", "Plan Tomorrow", "AI plan review"),
-    MoreItem("checkin", "⚖️", "Weekly Check-in", "Log weight"),
-    MoreItem("reports", "📄", "Reports", "Download PDF"),
-)
-
-/** Everything else — a horizontal-scroll chip row instead of a long flat list. */
-private val TOOLS = listOf(
-    MoreItem("mind", "🧘", "Mind", ""),
-    MoreItem("coach", "💬", "Coach", ""),
-    MoreItem("vitals", "🩺", "Vitals", ""),
-    MoreItem("medications", "💊", "Medicines", ""),
-    MoreItem("barcode", "📷", "Barcode", ""),
-    MoreItem("badges", "🏅", "Badges", ""),
-    MoreItem("family", "👨‍👩‍👧", "Family", ""),
-    MoreItem("discipline", "✅", "Discipline", ""),
-    MoreItem("history", "🗓️", "History", ""),
-    MoreItem("physique", "🧍", "Body type", ""),
-    MoreItem("body", "📸", "Body Check", ""),
+/** Only destinations that actually exist — grouped by purpose, per Phase 2 Profile IA. */
+private val GROUPS = listOf(
+    ProfileGroup(
+        "Health & Progress",
+        listOf(
+            ProfileItem("progress", Icons.Filled.TrendingUp, "Progress", "Measurements & photos"),
+            ProfileItem("body", Icons.Filled.PhotoCamera, "Body", "Body check photos"),
+            ProfileItem("physique", Icons.Filled.Accessibility, "Body type", "Current vs. goal physique"),
+            ProfileItem("vitals", Icons.Filled.MonitorHeart, "Vitals", "Heart rate, sleep, stress"),
+            ProfileItem("history", Icons.Filled.History, "History", "Past logs & trends"),
+        ),
+    ),
+    ProfileGroup(
+        "Planning & Coaching",
+        listOf(
+            ProfileItem("plan", Icons.Filled.EventNote, "Plan", "AI plan review"),
+            ProfileItem("coach", Icons.Filled.Chat, "Coach", "Chat with your coach"),
+            ProfileItem("checkin", Icons.Filled.MonitorWeight, "Check-in", "Weekly weigh-in"),
+        ),
+    ),
+    ProfileGroup(
+        "Wellness",
+        listOf(
+            ProfileItem("mind", Icons.Filled.SelfImprovement, "Mind", "Mindfulness & wellness"),
+            ProfileItem("discipline", Icons.Filled.CheckCircle, "Discipline", "Habit tracking"),
+            ProfileItem("badges", Icons.Filled.MilitaryTech, "Badges", "Achievements"),
+        ),
+    ),
+    ProfileGroup(
+        "Tools",
+        listOf(
+            ProfileItem("medications", Icons.Filled.Medication, "Medications", "Reminders & log"),
+            ProfileItem("family", Icons.Filled.Groups, "Family", "Shared household"),
+            ProfileItem("reports", Icons.Filled.Description, "Reports", "Download PDF"),
+            ProfileItem("barcode", Icons.Filled.QrCodeScanner, "Barcode", "Scan a product"),
+        ),
+    ),
+    ProfileGroup(
+        "Account",
+        listOf(
+            ProfileItem("settings", Icons.Filled.Settings, "Settings", ""),
+        ),
+    ),
 )
 
 @Composable
@@ -77,15 +106,23 @@ fun MoreScreen(
 ) {
     var selected by remember { mutableStateOf<String?>(null) }
 
-    // System back returns to the More menu from a sub-screen, not out to the dashboard.
+    // System back returns to the Profile menu from a sub-screen, not out to the dashboard.
     androidx.activity.compose.BackHandler(enabled = selected != null) { selected = null }
 
     when (selected) {
-        null -> MoreMenu(modifier) { selected = it }
+        null -> ProfileMenu(modifier) { selected = it }
         else -> Column(modifier.fillMaxSize()) {
-            TextButton(onClick = { selected = null }, modifier = Modifier.padding(4.dp)) {
-                Text("← Me")
-            }
+            ScreenHeader(
+                title = GROUPS.flatMap { it.items }.firstOrNull { it.key == selected }?.label ?: "Profile",
+                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal),
+                action = {
+                    KaizenIconButton(
+                        icon = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back to Profile",
+                        onClick = { selected = null },
+                    )
+                },
+            )
             when (selected) {
                 "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
                 "mind" -> com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize())
@@ -113,83 +150,27 @@ fun MoreScreen(
 }
 
 @Composable
-private fun MoreMenu(modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
+private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.section),
     ) {
-        com.nutriai.ui.components.ScreenHeader("me")
+        ScreenHeader("Profile")
 
-        // Quick access — 2×2 grid, each card compact (not a full-width stack).
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("quick access", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            QUICK_ACCESS.chunked(2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    row.forEach { item -> QuickAccessCard(item, Modifier.weight(1f)) { onSelect(item.key) } }
-                    if (row.size == 1) Box(Modifier.weight(1f))
+        GROUPS.forEach { group ->
+            Column {
+                SectionHeader(group.title)
+                group.items.forEachIndexed { index, item ->
+                    ListRow(
+                        title = item.label,
+                        subtitle = item.subtitle.ifBlank { null },
+                        leading = { Icon(item.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp)) },
+                        trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        onClick = { onSelect(item.key) },
+                    )
+                    if (index != group.items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 }
             }
-        }
-
-        // Tools — horizontal-scroll chip row instead of a long flat list.
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("tools", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TOOLS.forEach { item -> ToolChip(item) { onSelect(item.key) } }
-            }
-        }
-
-        // Account.
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("account", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Card(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onSelect("settings") },
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("⚙️", fontSize = 18.sp)
-                        Text("Settings", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                    }
-                    Text("›", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuickAccessCard(item: MoreItem, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Card(
-        modifier.heightIn(min = 100.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(item.icon, fontSize = 22.sp)
-            Text(item.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(item.subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-@Composable
-private fun ToolChip(item: MoreItem, onClick: () -> Unit) {
-    Card(
-        Modifier.heightIn(min = 72.dp).clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(
-            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(item.icon, fontSize = 20.sp)
-            Text(item.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }

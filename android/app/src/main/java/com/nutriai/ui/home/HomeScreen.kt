@@ -64,10 +64,10 @@ private const val LOG_TAB_ROUTE = "log"
 
 private val TABS = listOf(
     TabItem("today", "Today", Icons.Filled.Home),
-    TabItem("diet", "Diet", Icons.Filled.Restaurant),
+    TabItem("diet", "Nutrition", Icons.Filled.Restaurant),
     TabItem(LOG_TAB_ROUTE, "Log", Icons.Filled.Add),
     TabItem("move", "Move", Icons.Filled.FitnessCenter),
-    TabItem("me", "Me", Icons.Filled.Person),
+    TabItem("me", "Profile", Icons.Filled.Person),
 )
 
 /** Maps a notification's requested tab index to the new tab routes. */
