@@ -109,114 +109,138 @@ fun SettingsScreen(
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = com.nutriai.ui.theme.Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.section),
+        contentPadding = PaddingValues(vertical = com.nutriai.ui.theme.Spacing.md),
     ) {
-        item { SettingsHero(name = state.user?.firstName, email = state.user?.email) }
+        item { com.nutriai.ui.components.ScreenHeader("Settings") }
 
+        // Profile.
         item {
-            SettingTile(icon = "🧍", title = "Edit health profile", subtitle = "Height, weight, goal, diet & conditions", onClick = onEditProfile)
-        }
-
-        item { RemindersCard(reminders = reminders, onToggle = onToggleReminder) }
-
-        remoteReminders?.let { rp ->
-            item {
-                WorkoutReminderCard(
-                    prefs = rp,
-                    onSave = { viewModel.saveReminderPrefs(it) },
+            Column {
+                com.nutriai.ui.components.SectionHeader("Profile")
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(state.user?.firstName?.ifBlank { null } ?: "Your account", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    state.user?.email?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                com.nutriai.ui.components.ListRow(
+                    title = "Edit health profile",
+                    subtitle = "Height, weight, goal, diet & conditions",
+                    onClick = onEditProfile,
                 )
             }
         }
 
+        // Notifications.
         item {
-            WalkNudgeCard(
-                enabled = walkNudge,
-                onToggle = { enabled ->
-                    if (enabled &&
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                        PackageManager.PERMISSION_GRANTED
-                    ) {
-                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    viewModel.setWalkNudge(enabled)
-                },
-            )
-        }
-
-        item {
-            ThemeCard(
-                accent = theme.accent,
-                mode = theme.mode,
-                onAccent = viewModel::setAccent,
-                onMode = viewModel::setThemeMode,
-            )
-        }
-
-        item {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Your data", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-                    Text(
-                        "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Column {
+                com.nutriai.ui.components.SectionHeader("Notifications")
+                ReminderGroup.entries.forEachIndexed { i, group ->
+                    if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    SwitchRow(
+                        title = group.label,
+                        subtitle = group.subtitle,
+                        checked = reminders[group] ?: false,
+                        onCheckedChange = { onToggleReminder(group, it) },
                     )
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.exportData(
-                                onBytes = { bytes ->
-                                    runCatching {
-                                        val file = File(context.cacheDir, "kaizen-my-data.json")
-                                        file.writeBytes(bytes)
-                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                        val intent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "application/json"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(
-                                            Intent.createChooser(intent, "Export my data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                        )
-                                    }.onFailure { Toast.makeText(context, it.message ?: "Export failed", Toast.LENGTH_SHORT).show() }
-                                },
-                                onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Export my data") }
-                    OutlinedButton(
-                        onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Import data (restore food logs)") }
+                }
+                remoteReminders?.let { rp ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    WorkoutReminderRows(prefs = rp, onSave = { viewModel.saveReminderPrefs(it) })
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                SwitchRow(
+                    title = "Walk nudge",
+                    subtitle = "A reminder to move when you've been still too long (uses Health Connect steps)",
+                    checked = walkNudge,
+                    onCheckedChange = { enabled ->
+                        if (enabled &&
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                        viewModel.setWalkNudge(enabled)
+                    },
+                )
+            }
+        }
+
+        // Appearance.
+        item {
+            Column {
+                com.nutriai.ui.components.SectionHeader("Appearance")
+                Text("Accent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp)) {
+                    listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
+                        FilterChip(selected = theme.accent == key, onClick = { viewModel.setAccent(key) }, label = { Text(label) })
+                    }
+                }
+                Text("Theme", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                    listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
+                        FilterChip(selected = theme.mode == key, onClick = { viewModel.setThemeMode(key) }, label = { Text(label) })
+                    }
                 }
             }
         }
 
+        // Privacy & data.
         item {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Account", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-                    OutlinedButton(onClick = { viewModel.logout(onLoggedOut) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Log out")
-                    }
-                    OutlinedButton(
-                        onClick = { showDelete = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Delete account", color = MaterialTheme.colorScheme.error)
-                    }
-                }
+            Column {
+                com.nutriai.ui.components.SectionHeader("Privacy & data")
+                Text(
+                    "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+                com.nutriai.ui.components.ListRow(
+                    title = "Export my data",
+                    onClick = {
+                        viewModel.exportData(
+                            onBytes = { bytes ->
+                                runCatching {
+                                    val file = File(context.cacheDir, "kaizen-my-data.json")
+                                    file.writeBytes(bytes)
+                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/json"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(intent, "Export my data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    )
+                                }.onFailure { Toast.makeText(context, it.message ?: "Export failed", Toast.LENGTH_SHORT).show() }
+                            },
+                            onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+                        )
+                    },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                com.nutriai.ui.components.ListRow(
+                    title = "Import data",
+                    subtitle = "Restore food logs from a backup",
+                    onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
+                )
+            }
+        }
+
+        // Account - destructive actions isolated at the bottom, clearly marked.
+        item {
+            Column {
+                com.nutriai.ui.components.SectionHeader("Account")
+                com.nutriai.ui.components.ListRow(title = "Log out", onClick = { viewModel.logout(onLoggedOut) })
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                com.nutriai.ui.components.ListRow(
+                    title = "Delete account",
+                    onClick = { showDelete = true },
+                    trailing = { com.nutriai.ui.components.StatusIndicator(text = "Irreversible", status = com.nutriai.ui.components.Status.Critical) },
+                )
             }
         }
 
@@ -238,57 +262,17 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsHero(name: String?, email: String?) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(BrandGreen, BrandGreenDeep))).padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.25f)),
-                    contentAlignment = Alignment.Center,
-                ) { Text(name?.firstOrNull()?.uppercase() ?: "👤", style = MaterialTheme.typography.titleLarge, color = Color.White) }
-                Column {
-                    Text(name?.ifBlank { "Your account" } ?: "Your account", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                    if (!email.isNullOrBlank()) {
-                        Text(email, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
-                    }
-                }
-            }
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-    }
-}
-
-@Composable
-private fun ThemeCard(
-    accent: String,
-    mode: String,
-    onAccent: (String) -> Unit,
-    onMode: (String) -> Unit,
-) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("🎨 Appearance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-            Text("Accent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
-                    FilterChip(selected = accent == key, onClick = { onAccent(key) }, label = { Text(label) })
-                }
-            }
-            Text("Theme", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
-                    FilterChip(selected = mode == key, onClick = { onMode(key) }, label = { Text(label) })
-                }
-            }
-        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -305,7 +289,7 @@ private fun fmt12(hour: Int, minute: Int): String {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun WorkoutReminderCard(
+private fun WorkoutReminderRows(
     prefs: com.nutriai.data.remote.dto.ReminderPrefsDto,
     onSave: (com.nutriai.data.remote.dto.ReminderPrefsDto) -> Unit,
 ) {
@@ -313,7 +297,6 @@ private fun WorkoutReminderCard(
     var hour by remember(prefs) { mutableStateOf(parts.getOrNull(0)?.toIntOrNull() ?: 18) }
     var minute by remember(prefs) { mutableStateOf(parts.getOrNull(1)?.toIntOrNull() ?: 0) }
     var workout by remember(prefs) { mutableStateOf(prefs.workoutEnabled) }
-    var walk by remember(prefs) { mutableStateOf(prefs.walkEnabled) }
     var showPicker by remember { mutableStateOf(false) }
 
     if (showPicker) {
@@ -322,139 +305,27 @@ private fun WorkoutReminderCard(
             onDismissRequest = { showPicker = false },
             title = { Text("When do you work out?") },
             text = { TimePicker(state = tp) },
-            confirmButton = { TextButton(onClick = { hour = tp.hour; minute = tp.minute; showPicker = false }) { Text("Set") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    hour = tp.hour; minute = tp.minute; showPicker = false
+                    onSave(prefs.copy(workoutEnabled = workout, workoutTime = "%02d:%02d".format(hour, minute)))
+                }) { Text("Set") }
+            },
             dismissButton = { TextButton(onClick = { showPicker = false }) { Text("Cancel") } },
         )
     }
 
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("⏰ Workout & walk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Workout pre-alert", style = MaterialTheme.typography.bodyLarge)
-                    Text("A nudge 10 minutes before your set time", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(checked = workout, onCheckedChange = { workout = it })
-            }
-            if (workout) {
-                OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Workout time:  ${fmt12(hour, minute)}", fontWeight = FontWeight.SemiBold)
-                }
-                Text(
-                    "You'll get a heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)} (10 min before).",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Walk nudge", style = MaterialTheme.typography.bodyLarge)
-                    Text("A reminder to move when you've been still too long", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Switch(checked = walk, onCheckedChange = { walk = it })
-            }
-            Button(
-                onClick = { onSave(prefs.copy(workoutEnabled = workout, walkEnabled = walk, workoutTime = "%02d:%02d".format(hour, minute))) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save preferences") }
-        }
-    }
-}
-
-@Composable
-private fun RemindersCard(
-    reminders: Map<ReminderGroup, Boolean>,
-    onToggle: (ReminderGroup, Boolean) -> Unit,
-) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("🔔 Reminders", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-            Text(
-                "Gentle on-device nudges. No account or internet needed.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            ReminderGroup.entries.forEachIndexed { i, group ->
-                if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(group.label, style = MaterialTheme.typography.bodyLarge)
-                        Text(group.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Switch(
-                        checked = reminders[group] ?: false,
-                        onCheckedChange = { onToggle(group, it) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WalkNudgeCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("🚶 Walk nudge", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
-            Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                    Text("Remind me to move", style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        "Uses Health Connect steps - if you've been sitting still during the day, a gentle nudge suggests a 5-minute walk. Needs step access; stays quiet at night.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(checked = enabled, onCheckedChange = onToggle)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingTile(icon: String, title: String, subtitle: String, onClick: () -> Unit) {
-    Card(
-        Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(
-                    Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center,
-                ) { Text(icon) }
-                Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Text("›", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+    SwitchRow(
+        title = "Workout pre-alert",
+        subtitle = "A nudge 10 minutes before your set time",
+        checked = workout,
+        onCheckedChange = { workout = it; onSave(prefs.copy(workoutEnabled = it, workoutTime = "%02d:%02d".format(hour, minute))) },
+    )
+    if (workout) {
+        com.nutriai.ui.components.ListRow(
+            title = "Workout time",
+            subtitle = "${fmt12(hour, minute)} - heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)}",
+            onClick = { showPicker = true },
+        )
     }
 }

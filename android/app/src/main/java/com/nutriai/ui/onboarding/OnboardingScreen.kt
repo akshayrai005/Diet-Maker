@@ -16,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -493,7 +495,7 @@ fun OnboardingScreen(
                     PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                 }
                 else -> {
-                    Text("You're all set 🎉", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("You're all set", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     Text(
                         "We'll build your personalised plan across Diet, Movement, Mind and Discipline - with safe, explainable targets. Small habits, big results.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -558,8 +560,8 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
-            placeholder = { Text("Tap to pick 📅") },
-            trailingIcon = { Text("📅", modifier = Modifier.padding(end = 12.dp)) },
+            placeholder = { Text("Tap to pick") },
+            trailingIcon = { androidx.compose.material3.Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.padding(end = 12.dp)) },
             modifier = Modifier.fillMaxWidth(),
         )
         // Transparent overlay so the whole (read-only) field opens the calendar.
