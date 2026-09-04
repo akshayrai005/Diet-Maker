@@ -149,6 +149,8 @@ fun CheckinScreen(
     var notes by remember { mutableStateOf("") }
     var energy by remember { mutableStateOf<Int?>(null) }
     var mood by remember { mutableStateOf<Int?>(null) }
+    var step by remember { mutableStateOf(0) }
+    val lastStep = 5
 
     LazyColumn(
         modifier = modifier
@@ -160,7 +162,7 @@ fun CheckinScreen(
         // 1. Header
         item { CheckinHeader() }
 
-        // 2. Input form card
+        // 2. Guided, one-question-at-a-time check-in (Change 03).
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -172,85 +174,85 @@ fun CheckinScreen(
                     modifier = Modifier.fillMaxWidth().padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(
-                        "Log your week",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                    // Progress.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            "Log your week",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Text(
+                            "${step + 1} of ${lastStep + 1}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { (step + 1f) / (lastStep + 1) },
+                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                        color = BrandGreen,
                     )
 
-                    BrandField(
-                        value = weight,
-                        onValueChange = { weight = it },
-                        label = "Weight (kg)",
-                        keyboardType = KeyboardType.Decimal,
-                    )
-                    BrandField(
-                        value = waist,
-                        onValueChange = { waist = it },
-                        label = "Waist (cm, optional)",
-                        keyboardType = KeyboardType.Decimal,
-                    )
+                    // One meaningful question per step.
+                    when (step) {
+                        0 -> BrandField(value = weight, onValueChange = { weight = it }, label = "Weight (kg)", keyboardType = KeyboardType.Decimal)
+                        1 -> BrandField(value = waist, onValueChange = { waist = it }, label = "Waist (cm, optional)", keyboardType = KeyboardType.Decimal)
+                        2 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Energy", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RatingChips(selected = energy) { energy = it }
+                        }
+                        3 -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("Mood", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RatingChips(selected = mood) { mood = it }
+                        }
+                        4 -> BrandField(value = sleep, onValueChange = { sleep = it }, label = "Sleep hours (optional)", keyboardType = KeyboardType.Decimal)
+                        else -> BrandField(value = notes, onValueChange = { notes = it }, label = "Notes (optional)", keyboardType = KeyboardType.Text)
+                    }
 
-                    Text(
-                        "Energy",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    RatingChips(selected = energy) { energy = it }
-
-                    Text(
-                        "Mood",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    RatingChips(selected = mood) { mood = it }
-
-                    BrandField(
-                        value = sleep,
-                        onValueChange = { sleep = it },
-                        label = "Sleep hours (optional)",
-                        keyboardType = KeyboardType.Decimal,
-                    )
-                    BrandField(
-                        value = notes,
-                        onValueChange = { notes = it },
-                        label = "Notes",
-                        keyboardType = KeyboardType.Text,
-                    )
-
-                    Button(
-                        onClick = {
-                            val w = weight.toDoubleOrNull()
-                            if (w != null) {
-                                viewModel.submit(
-                                    weightKg = w,
-                                    waistCm = waist.toDoubleOrNull(),
-                                    energy = energy,
-                                    sleepHours = sleep.toDoubleOrNull(),
-                                    mood = mood,
-                                    notes = notes.trim().ifBlank { null },
-                                )
-                            }
-                        },
-                        enabled = weight.isNotBlank() && !state.submitting,
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                    ) {
-                        if (state.submitting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.height(22.dp),
-                                color = Color.White,
-                            )
+                    // Back / Next / Save.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (step > 0) {
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { step-- },
+                                modifier = Modifier.weight(1f).height(54.dp),
+                                shape = RoundedCornerShape(24.dp),
+                            ) { Text("Back") }
+                        }
+                        if (step < lastStep) {
+                            Button(
+                                onClick = { step++ },
+                                enabled = step != 0 || weight.isNotBlank(),
+                                modifier = Modifier.weight(1f).height(54.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                            ) { Text("Next") }
                         } else {
-                            Text(
-                                "Save check-in",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Button(
+                                onClick = {
+                                    val w = weight.toDoubleOrNull()
+                                    if (w != null) {
+                                        viewModel.submit(
+                                            weightKg = w,
+                                            waistCm = waist.toDoubleOrNull(),
+                                            energy = energy,
+                                            sleepHours = sleep.toDoubleOrNull(),
+                                            mood = mood,
+                                            notes = notes.trim().ifBlank { null },
+                                        )
+                                    }
+                                },
+                                enabled = weight.isNotBlank() && !state.submitting,
+                                modifier = Modifier.weight(1f).height(54.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                            ) {
+                                if (state.submitting) {
+                                    CircularProgressIndicator(modifier = Modifier.height(22.dp), color = Color.White)
+                                } else {
+                                    Text("Save check-in", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                         }
                     }
 
