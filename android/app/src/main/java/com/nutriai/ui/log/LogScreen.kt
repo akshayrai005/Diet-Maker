@@ -10,7 +10,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.background
@@ -28,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,6 +45,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -175,9 +183,19 @@ fun LogScreen(
                     enabled = !state.analyzing,
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                ) { if (state.analyzing) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White) else Text("📷 Snap a meal") }
+                ) {
+                    if (state.analyzing) {
+                        CircularProgressIndicator(Modifier.size(20.dp), color = Color.White)
+                    } else {
+                        Icon(Icons.Filled.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.size(6.dp))
+                        Text("Snap a meal")
+                    }
+                }
                 OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp)) {
-                    Text("🖼️ Photo")
+                    Icon(Icons.Filled.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(6.dp))
+                    Text("Photo")
                 }
             }
         }
@@ -192,10 +210,10 @@ fun LogScreen(
 
         // 3d. Recent + saved quick-log
         if (state.recents.isNotEmpty()) {
-            item { QuickRow("🕘 Recent", state.recents.map { it.name }) { idx -> val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) } } }
+            item { QuickRow("Recent", state.recents.map { it.name }) { idx -> val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) } } }
         }
         item {
-            QuickRow("⭐ Saved", state.saved.map { it.name }, trailingLabel = "＋ Custom", onTrailing = { showCustom = true }) { idx ->
+            QuickRow("Saved", state.saved.map { it.name }, trailingLabel = "+ Custom", onTrailing = { showCustom = true }) { idx ->
                 val s = state.saved[idx]; pendingQty = PendingQty(s.name, s.kcal) { g -> viewModel.logSaved(s, g) }
             }
         }
@@ -251,8 +269,9 @@ fun LogScreen(
                     TotalChip(kcal = totalKcal)
                 }
             }
-            items(state.today, key = { it.id }) { entry ->
+            itemsIndexed(state.today, key = { _, it -> it.id }) { index, entry ->
                 LogEntryCard(entry, onDelete = { viewModel.delete(entry.id) })
+                if (index != state.today.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
             }
         }
     }
@@ -468,7 +487,12 @@ private fun ResultCard(food: FoodDto, onAdd: () -> Unit, onFavorite: () -> Unit)
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text("☆", style = MaterialTheme.typography.titleLarge, color = BrandGreen, modifier = Modifier.clickable { onFavorite() }.padding(4.dp))
+            Icon(
+                Icons.Filled.StarBorder,
+                contentDescription = "Save ${food.name}",
+                tint = BrandGreen,
+                modifier = Modifier.clickable { onFavorite() }.padding(4.dp),
+            )
             Button(
                 onClick = onAdd,
                 shape = RoundedCornerShape(18.dp),
@@ -593,79 +617,38 @@ private fun CustomFoodDialog(onSave: (SavedFoodRequest) -> Unit, onDismiss: () -
 // Today's log entry card
 // ---------------------------------------------------------------------------
 
-private fun slotEmoji(slot: String): String = when (slot.lowercase()) {
-    "breakfast" -> "🍳"
-    "midmorning" -> "🍎"
-    "lunch" -> "🥗"
-    "eveningsnack" -> "☕"
-    "dinner" -> "🍽️"
-    "bedtime" -> "🥛"
-    else -> "🍴"
-}
-
+/** A row, not a card - meal name/detail on the left, kcal + remove on the right (Change 04). */
 @Composable
 private fun LogEntryCard(entry: FoodLogEntry, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Leading meal badge.
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(BrandGreen.copy(alpha = 0.14f)),
-                contentAlignment = Alignment.Center,
-            ) { Text(slotEmoji(entry.mealSlot), style = MaterialTheme.typography.titleLarge) }
+        Icon(Icons.Filled.Restaurant, contentDescription = null, tint = BrandGreenDeep, modifier = Modifier.size(22.dp))
 
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    entry.foodName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    MetaPill("${entry.grams.toInt()} g")
-                    MetaPill(entry.mealSlot.replaceFirstChar { it.uppercase() })
-                }
-                Text(
-                    "P ${entry.proteinG.toInt()} · C ${entry.carbG.toInt()} · F ${entry.fatG.toInt()} g",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                entry.foodName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "${entry.mealSlot.replaceFirstChar { it.uppercase() }} · ${entry.grams.toInt()} g · P ${entry.proteinG.toInt()} C ${entry.carbG.toInt()} F ${entry.fatG.toInt()} g",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "${entry.kcal.toInt()}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreenDeep,
-                )
-                Text("kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(2.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable { onDelete() }
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        "Remove",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
+        Text(
+            "${entry.kcal.toInt()} kcal",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreenDeep,
+        )
+        IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Filled.Close, contentDescription = "Remove ${entry.foodName}", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -693,29 +676,19 @@ private fun MetaPill(text: String) {
 
 @Composable
 private fun TotalChip(kcal: Double) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(
-                Brush.horizontalGradient(colors = listOf(BrandGreen, BrandGreenDeep)),
-            )
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                "${kcal.toInt()}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-            Text(
-                " kcal",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.padding(bottom = 3.dp),
-            )
-        }
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(
+            "${kcal.toInt()}",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreenDeep,
+        )
+        Text(
+            " kcal",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 3.dp),
+        )
     }
 }
