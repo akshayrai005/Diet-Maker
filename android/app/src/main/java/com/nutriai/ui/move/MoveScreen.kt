@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -158,6 +160,40 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         }
     }
 
+    /**
+     * Logs a REAL, non-uniform set list - sit-ups at 20/12/12, planks at 60s/40s/40s - as one entry
+     * per set, so history keeps the actual numbers instead of an averaged "3 x 12". Reports the
+     * combined burn in a single toast.
+     */
+    fun logSets(name: String, focus: String?, sets: List<LoggedSet>) {
+        if (sets.isEmpty()) return
+        viewModelScope.launch {
+            var kcal = 0
+            var ok = 0
+            sets.forEach { s ->
+                val r = repository.logExercise(
+                    ExerciseLogRequest(
+                        exerciseName = name,
+                        focus = focus,
+                        weightKg = s.weightKg,
+                        reps = s.reps,
+                        sets = if (s.reps != null) 1 else null,
+                        durationMin = s.durationMin,
+                        notes = s.note,
+                    ),
+                )
+                if (r.isSuccess) { ok++; kcal += r.getOrNull()?.kcal ?: 0 }
+            }
+            val env = repository.exercisePlanFull().getOrNull()
+            _state.value = _state.value.copy(
+                plan = env?.plan ?: _state.value.plan,
+                levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
+                toast = if (ok > 0) "Logged $name · $ok set${if (ok == 1) "" else "s"} · ~$kcal kcal 🔥" else "Couldn't log - try again",
+                sessionKcal = _state.value.sessionKcal + kcal,
+            )
+        }
+    }
+
     fun clearToast() { _state.value = _state.value.copy(toast = null) }
 }
 
@@ -189,8 +225,8 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         LogExerciseDialog(
             exercise = ex,
             onDismiss = { logTarget = null },
-            onConfirm = { w, reps, sets, dur ->
-                viewModel.logEntry(ex.name, shownDay?.focus, w, reps, sets, dur)
+            onConfirm = { sets ->
+                viewModel.logSets(ex.name, shownDay?.focus, sets)
                 logTarget = null
             },
         )
@@ -531,8 +567,8 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
         LogExerciseDialog(
             exercise = ex,
             onDismiss = { logTarget = null },
-            onConfirm = { w, reps, sets, dur ->
-                viewModel.logEntry(ex.name, null, w, reps, sets, dur)
+            onConfirm = { sets ->
+                viewModel.logSets(ex.name, null, sets)
                 logTarget = null
             },
         )
@@ -612,62 +648,116 @@ private fun isTimed(ex: ExerciseItem): Boolean =
 private fun isWeighted(ex: ExerciseItem): Boolean =
     !isTimed(ex) && ex.type == "strength" && ex.equipment != "bodyweight"
 
+/** One performed set: reps (or a timed hold) plus an optional load. */
+data class LoggedSet(
+    val weightKg: Double? = null,
+    val reps: Int? = null,
+    val durationMin: Int? = null,
+    val note: String? = null,
+)
+
+/** One editable row in the multi-set log dialog. */
+private class SetRow(amount: String, weight: String) {
+    var amount by mutableStateOf(amount)
+    var weight by mutableStateOf(weight)
+}
+
 /**
- * One adaptive log dialog for EVERY item. Timed pieces (cardio, stretches, planks) log a DURATION
- * (no weight/reps); bodyweight/core moves log reps + sets (no weight - that's the "what the weight?"
- * fix); only real weighted lifts show the optional weight field. Everything is pre-filled with the
- * prescribed amount so you can log fast, but edit it if you did more or fewer.
+ * Multi-set log dialog. Real sessions are rarely uniform - sit-ups go 20/12/12, planks go 60s/40s/40s -
+ * so every set gets its own row instead of forcing a single "sets x reps" pair. Timed holds enter
+ * SECONDS per set; a single cardio block (a 16-min walk) is one row of minutes; weighted lifts get an
+ * optional per-set load. Saving logs one entry per set, so the history keeps the real numbers.
  */
 @Composable
-private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (Double?, Int?, Int?, Int?) -> Unit) {
+private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (List<LoggedSet>) -> Unit) {
     val timed = isTimed(exercise)
     val weighted = isWeighted(exercise)
     val ns = exercise.nextSession
-    var weight by remember { mutableStateOf(ns?.suggestedWeightKg?.let { trimKg(it) } ?: "") }
-    var reps by remember { mutableStateOf((ns?.suggestedReps ?: firstInt(exercise.reps))?.toString() ?: "") }
-    var sets by remember { mutableStateOf((ns?.suggestedSets ?: exercise.sets).toString()) }
-    var minutes by remember { mutableStateOf(estimateMinutes(exercise.reps, 2).toString()) }
+    val defaultReps = (ns?.suggestedReps ?: firstInt(exercise.reps))?.toString() ?: ""
+    val defaultWeight = ns?.suggestedWeightKg?.let { trimKg(it) } ?: ""
+    // A single cardio block (walk / cycle / stair climber) is one row of minutes, not a set list.
+    val singleBlock = timed && exercise.sets <= 1
+    val defaultCount = if (singleBlock) 1 else (ns?.suggestedSets ?: exercise.sets).coerceIn(1, 10)
+
+    val rows = remember(exercise.name) {
+        mutableStateListOf<SetRow>().also { list ->
+            val amount = if (timed && !singleBlock) "45" else if (timed) estimateMinutes(exercise.reps, 2).toString() else defaultReps
+            repeat(defaultCount) { list.add(SetRow(amount, defaultWeight)) }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log - ${exercise.name}") },
+        title = { Text("Log · ${exercise.name}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (timed) {
-                    OutlinedTextField(
-                        value = minutes, onValueChange = { minutes = it.filter { c -> c.isDigit() } },
-                        label = { Text("Minutes") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(),
-                    )
-                } else {
-                    if (weighted) {
-                        OutlinedTextField(
-                            value = weight, onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } },
-                            label = { Text("Weight (kg), optional") }, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(),
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    when {
+                        singleBlock -> "How long did you go?"
+                        timed -> "Seconds held per set - they're rarely equal."
+                        else -> "Reps per set - edit any that differed."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                rows.forEachIndexed { i, row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (singleBlock) "⏱" else "${i + 1}",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(20.dp),
                         )
+                        OutlinedTextField(
+                            value = row.amount,
+                            onValueChange = { v -> row.amount = v.filter { c -> c.isDigit() } },
+                            label = { Text(if (singleBlock) "Minutes" else if (timed) "Seconds" else "Reps") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (weighted) {
+                            OutlinedTextField(
+                                value = row.weight,
+                                onValueChange = { v -> row.weight = v.filter { c -> c.isDigit() || c == '.' } },
+                                label = { Text("kg") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (rows.size > 1) {
+                            Text(
+                                "✕",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .clickable { rows.removeAt(i) }
+                                    .padding(6.dp)
+                                    .semantics { contentDescription = "Remove set ${i + 1}" },
+                            )
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(
-                            value = reps, onValueChange = { reps = it.filter { c -> c.isDigit() } },
-                            label = { Text("Reps") }, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
-                        )
-                        OutlinedTextField(
-                            value = sets, onValueChange = { sets = it.filter { c -> c.isDigit() } },
-                            label = { Text("Sets") }, singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f),
-                        )
-                    }
-                    // Rest timer for between sets, right where you log them.
-                    RestTimer(compact = true)
                 }
+                if (!singleBlock) {
+                    TextButton(onClick = { rows.add(SetRow(rows.lastOrNull()?.amount ?: "", rows.lastOrNull()?.weight ?: "")) }) {
+                        Text("+ Add set")
+                    }
+                }
+                if (!timed) RestTimer(compact = true)
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (timed) onConfirm(null, null, null, minutes.toIntOrNull())
-                else onConfirm(weight.toDoubleOrNull(), reps.toIntOrNull(), sets.toIntOrNull(), null)
+                val out = rows.mapNotNull { r ->
+                    val n = r.amount.toIntOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
+                    when {
+                        singleBlock -> LoggedSet(durationMin = n, note = "$n min")
+                        timed -> LoggedSet(durationMin = maxOf(1, Math.round(n / 60.0).toInt()), note = "${n}s")
+                        else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n)
+                    }
+                }
+                if (out.isNotEmpty()) onConfirm(out)
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
