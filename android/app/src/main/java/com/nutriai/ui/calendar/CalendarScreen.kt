@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.size
@@ -341,7 +342,7 @@ fun CalendarScreen(
         }
         item {
             Button(onClick = { viewModel.regenerate() }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.dietDays.isEmpty()) "Generate my 7-day plan" else "🔄 Regenerate week")
+                Text(if (state.dietDays.isEmpty()) "Generate my 7-day plan" else "Regenerate week")
             }
         }
 
@@ -426,7 +427,7 @@ fun CalendarScreen(
             }
 
             // Diet section.
-            item { Text("🍽️ Diet", style = MaterialTheme.typography.titleSmall) }
+            item { Text("Diet", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
             if (dietDay == null || dietDay.meals.isEmpty()) {
                 item {
                     Text(
@@ -437,75 +438,55 @@ fun CalendarScreen(
                 }
             } else {
                 items(dietDay.meals) { meal ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // A meal group - not a card, not a bordered spreadsheet (Change 07/Card Lock).
+                    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                meal.slot.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                "Swap",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) },
+                            )
+                        }
+                        // Condition-friendliness highlights (Diabetes-friendly, Gut-friendly…).
+                        val highlights = meal.friendliness?.highlights.orEmpty()
+                        if (highlights.isNotEmpty()) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                highlights.forEach { h ->
+                                    com.nutriai.ui.components.StatusIndicator(text = h, status = com.nutriai.ui.components.Status.Positive)
+                                }
+                            }
+                        }
+                        meal.items.forEachIndexed { i, mealItem ->
                             Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Text(
-                                    meal.slot.replaceFirstChar { it.uppercase() },
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                Column(Modifier.weight(1f)) {
+                                    Text(mealItem.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                    Text("${mealItem.grams.toInt()} g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text("${mealItem.kcal.toInt()} kcal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    Icons.Filled.MenuBook,
+                                    contentDescription = "View recipe for ${mealItem.name}",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp).clickable { viewModel.loadRecipe(mealItem.name, mealItem.foodId) },
                                 )
-                                Text(
-                                    "🔄 Swap",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) },
-                                )
                             }
-                            // Condition-friendliness highlights (Diabetes-friendly, Gut-friendly…).
-                            val highlights = meal.friendliness?.highlights.orEmpty()
-                            if (highlights.isNotEmpty()) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    highlights.forEach { h ->
-                                        Text(
-                                            "💚 $h",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
-                                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                                        )
-                                    }
-                                }
-                            }
-                            // Fully-bordered grid (like the grocery table): outer border, row
-                            // dividers, vertical column separators.
-                            val b = MaterialTheme.colorScheme.outlineVariant
-                            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).border(1.dp, b, RoundedCornerShape(8.dp))) {
-                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Food", Modifier.weight(1f).padding(8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                    Text("Qty", Modifier.width(52.dp).padding(6.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                    Text("kcal", Modifier.width(44.dp).padding(6.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                    Box(Modifier.width(34.dp))
-                                }
-                                meal.items.forEach { mealItem ->
-                                    HorizontalDivider(thickness = 1.dp, color = b)
-                                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
-                                        Text(mealItem.name, Modifier.weight(1f).padding(8.dp), style = MaterialTheme.typography.bodySmall)
-                                        Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                        Text("${mealItem.grams.toInt()} g", Modifier.width(52.dp).padding(6.dp), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-                                        Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                        Text("${mealItem.kcal.toInt()}", Modifier.width(44.dp).padding(6.dp), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Box(Modifier.width(1.dp).fillMaxHeight().background(b))
-                                        Text(
-                                            "📖",
-                                            modifier = Modifier
-                                                .width(34.dp)
-                                                .clickable { viewModel.loadRecipe(mealItem.name, mealItem.foodId) }
-                                                .padding(vertical = 6.dp),
-                                            textAlign = TextAlign.Center,
-                                        )
-                                    }
-                                }
-                            }
+                            if (i != meal.items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
                 }
@@ -517,7 +498,6 @@ fun CalendarScreen(
                     )
                 }
             }
-
         }
 
 
@@ -580,7 +560,7 @@ private fun GuidanceCard(g: Guidance) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("🎯 Personalized for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text("Personalized for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     Text(
                         g.summary.ifBlank { "Diet & exercise tips for your profile" },
                         style = MaterialTheme.typography.bodySmall,
@@ -591,11 +571,11 @@ private fun GuidanceCard(g: Guidance) {
             }
             if (expanded) {
                 if (g.dietTips.isNotEmpty()) {
-                    Text("🥗 Diet", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("Diet", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     g.dietTips.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
                 }
                 if (g.exerciseTips.isNotEmpty()) {
-                    Text("🏋️ Exercise", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("Exercise", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     g.exerciseTips.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
                 }
                 Text(
@@ -670,7 +650,7 @@ private fun WorkoutWellnessCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("🧘 Yoga & meditation - part of today's routine", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text("Yoga & meditation - part of today's routine", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
 
             // Mood selector - tune the session to how you feel.
             Text("How's your mood today?", style = MaterialTheme.typography.labelMedium)
@@ -704,7 +684,7 @@ private fun WorkoutWellnessCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("🌬️ ${med.name}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(med.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Text("${med.durationMin} min guided breathing (voice)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     OutlinedButton(onClick = { onStartMeditation(med) }) { Text("▶ Start") }

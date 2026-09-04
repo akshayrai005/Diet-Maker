@@ -17,9 +17,22 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LocalDrink
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -159,67 +172,48 @@ fun BadgesScreen(
 @Composable
 private fun BadgesHero(earned: Int, total: Int) {
     val fraction = if (total > 0) earned.toFloat() / total.toFloat() else 0f
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                "$earned",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                " / $total badges earned",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
+        LinearProgressIndicator(
+            progress = { fraction.coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(BrandGreenLight, BrandGreen, BrandGreenDeep),
-                    ),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        "$earned",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Text(
-                        " / $total badges earned 🏆",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White.copy(alpha = 0.9f),
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                }
-                LinearProgressIndicator(
-                    progress = { fraction.coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.28f),
-                )
-            }
-        }
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
+            color = BrandGreen,
+            trackColor = BrandGreen.copy(alpha = 0.15f),
+        )
     }
 }
 
-private data class BadgeVisual(val emoji: String, val accent: Color)
+private data class BadgeVisual(val icon: androidx.compose.ui.graphics.vector.ImageVector, val accent: Color)
 
-/** Distinct emoji + accent per badge so they look varied (not identical gray locks). */
+/** Distinct vector icon + accent per badge so they look varied - not emoji as the visual language. */
 private fun badgeVisual(badge: Badge): BadgeVisual {
     val t = (badge.title + " " + badge.code).lowercase()
     return when {
-        "streak" in t || "day" in t -> BadgeVisual("🔥", Color(0xFFF97316))
-        "week" in t -> BadgeVisual("🗓️", Color(0xFF6366F1))
-        "consist" in t || "king" in t -> BadgeVisual("👑", Color(0xFFEAB308))
-        "hydrat" in t || "water" in t -> BadgeVisual("💧", Color(0xFF0EA5E9))
-        "protein" in t -> BadgeVisual("💪", Color(0xFFEF4444))
-        "track" in t || "progress" in t -> BadgeVisual("📈", Color(0xFF10B981))
-        "kilo" in t || "weight" in t -> BadgeVisual("⚖️", Color(0xFF8B5CF6))
-        "bite" in t || "first" in t -> BadgeVisual("🍽️", BrandGreen)
-        else -> BadgeVisual("🏆", BrandGreen)
+        "streak" in t || "day" in t -> BadgeVisual(Icons.Filled.Whatshot, Color(0xFFF97316))
+        "week" in t -> BadgeVisual(Icons.Filled.CalendarMonth, Color(0xFF6366F1))
+        "consist" in t || "king" in t -> BadgeVisual(Icons.Filled.MilitaryTech, Color(0xFFEAB308))
+        "hydrat" in t || "water" in t -> BadgeVisual(Icons.Filled.LocalDrink, Color(0xFF0EA5E9))
+        "protein" in t -> BadgeVisual(Icons.Filled.FitnessCenter, Color(0xFFEF4444))
+        "track" in t || "progress" in t -> BadgeVisual(Icons.Filled.TrendingUp, Color(0xFF10B981))
+        "kilo" in t || "weight" in t -> BadgeVisual(Icons.Filled.Scale, Color(0xFF8B5CF6))
+        "bite" in t || "first" in t -> BadgeVisual(Icons.Filled.Restaurant, BrandGreen)
+        else -> BadgeVisual(Icons.Filled.EmojiEvents, BrandGreen)
     }
 }
 
@@ -254,7 +248,12 @@ private fun BadgeCard(badge: Badge) {
                         ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(v.emoji, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.alpha(if (earned) 1f else 0.5f))
+                        Icon(
+                            v.icon,
+                            contentDescription = null,
+                            tint = if (earned) Color.White else v.accent,
+                            modifier = Modifier.size(22.dp).alpha(if (earned) 1f else 0.5f),
+                        )
                     }
                 }
                 if (earned) {
@@ -263,13 +262,13 @@ private fun BadgeCard(badge: Badge) {
                             .background(MaterialTheme.colorScheme.surface).padding(2.dp)
                             .clip(CircleShape).background(v.accent),
                         contentAlignment = Alignment.Center,
-                    ) { Text("✓", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold) }
+                    ) { Icon(Icons.Filled.Check, contentDescription = "Earned", tint = Color.White, modifier = Modifier.size(12.dp)) }
                 } else {
                     Box(
                         Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surface),
                         contentAlignment = Alignment.Center,
-                    ) { Text("🔒", style = MaterialTheme.typography.labelSmall) }
+                    ) { Icon(Icons.Filled.Lock, contentDescription = "Locked", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp)) }
                 }
             }
 

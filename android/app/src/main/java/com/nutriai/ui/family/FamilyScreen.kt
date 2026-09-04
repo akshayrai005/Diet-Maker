@@ -162,8 +162,9 @@ fun FamilyScreen(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            state.members.forEach { member ->
+            state.members.forEachIndexed { i, member ->
                 MemberCard(member = member) { viewModel.viewCalc(member.id) }
+                if (i != state.members.lastIndex) androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
             }
         }
 
@@ -214,112 +215,42 @@ fun FamilyScreen(
 
 @Composable
 private fun FamilyHeader(count: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(BrandGreenLight, BrandGreen, BrandGreenDeep),
-                    ),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Family 👨‍👩‍👧",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Text(
-                    "Track and care for everyone under one roof.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
-                )
-                Spacer(Modifier.height(2.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color.White.copy(alpha = 0.22f))
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Text(
-                        if (count == 1) "1 member" else "$count members",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                    )
-                }
-            }
-        }
-    }
+    com.nutriai.ui.components.ScreenHeader(
+        title = "Family",
+        subtitle = if (count == 1) "1 member" else "$count members",
+    )
 }
 
 // ---------------------------------------------------------------------------
-// Member card
+// Member row - not a decorative profile-card grid (Change 02).
 // ---------------------------------------------------------------------------
 
 @Composable
 private fun MemberCard(member: FamilyMemberDto, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    com.nutriai.ui.components.ListRow(
+        title = member.firstName,
+        subtitle = member.relation?.takeIf { it.isNotBlank() } ?: "Family member",
+        leading = {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen)),
-                    ),
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(BrandGreen.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     member.firstName.trim().take(1).uppercase().ifBlank { "?" },
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    member.firstName,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    member.relation?.takeIf { it.isNotBlank() } ?: "Family member",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    color = BrandGreenDeep,
                 )
             }
-            Text(
-                "View →",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = BrandGreen,
-            )
-        }
-    }
+        },
+        trailing = {
+            Text("View", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = BrandGreen)
+        },
+        onClick = onClick,
+    )
 }
 
 // ---------------------------------------------------------------------------

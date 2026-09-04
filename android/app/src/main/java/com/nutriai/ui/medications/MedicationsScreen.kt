@@ -212,28 +212,19 @@ fun MedicationsScreen(
                 Text("Medicines & supplements", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 AssistChip(
                     onClick = { showAdd = true },
-                    label = { Text("＋ Add") },
+                    label = { Text("+ Add") },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a medicine or supplement" },
                 )
             }
         }
 
-        // Disclaimer - shown prominently near the top.
+        // Disclaimer - shown prominently near the top, plain text (no card needed).
         item {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-            ) {
-                Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("⚠️", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        state.disclaimer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
+            Text(
+                state.disclaimer,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         state.toast?.let { msg ->
@@ -429,7 +420,7 @@ private fun MedicationDialog(
                 TextButton(
                     onClick = { showTimePicker = true },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a reminder time" },
-                ) { Text("＋ Add time") }
+                ) { Text("+ Add time") }
 
                 OutlinedTextField(
                     value = notes,

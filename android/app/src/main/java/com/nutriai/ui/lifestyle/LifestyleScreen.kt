@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -315,18 +317,17 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
             }
         }
 
-        // Meal timing for the selected pattern.
+        // Meal timing for the selected pattern - rows, not a card per row.
         item { Text("Meal timing", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-        items(selected.meals) { row ->
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(row.time, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(0.32f))
-                    Column(Modifier.weight(0.68f)) {
-                        Text(row.meal, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                        Text(row.food, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+        itemsIndexed(selected.meals) { i, row ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(row.time, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(0.32f))
+                Column(Modifier.weight(0.68f)) {
+                    Text(row.meal, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(row.food, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            if (i != selected.meals.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
         }
 
         // Pattern-specific tips.
