@@ -24,11 +24,17 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -262,32 +268,20 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         state.toast?.let { msg ->
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                ) {
-                    Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
-                }
+                com.nutriai.ui.components.StatusIndicator(text = msg, status = com.nutriai.ui.components.Status.Positive)
                 LaunchedEffect(msg) { kotlinx.coroutines.delay(2500); viewModel.clearToast() }
             }
         }
 
         if (state.sessionKcal > 0) {
             item {
-                Card(
-                    Modifier.fillMaxWidth().semantics { contentDescription = "This session: about ${state.sessionKcal} calories burned" },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-                ) {
-                    Text(
-                        "🔥 This session: ~${state.sessionKcal} kcal burned (warm-up + main + cardio + cool-down)",
-                        Modifier.padding(14.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
+                Text(
+                    "This session: ~${state.sessionKcal} kcal burned",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { contentDescription = "This session: about ${state.sessionKcal} calories burned" },
+                )
             }
         }
 
@@ -295,46 +289,50 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         }
         state.error?.let { err ->
-            item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-                    Text(err, Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            item { Text(err, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
 
         state.levelSuggestion?.takeIf { it.direction == "up" || it.direction == "down" }?.let { ls ->
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (ls.direction == "up") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.tertiaryContainer,
-                    ),
-                ) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            if (ls.direction == "up") "⬆️ Ready to level up" else "🌱 Consider easing down",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer,
-                        )
-                        Text(
-                            ls.reason,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = (if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer).copy(alpha = 0.9f),
-                        )
-                        Text(
-                            "Change it in your profile (Me › Edit health profile).",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = (if (ls.direction == "up") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onTertiaryContainer).copy(alpha = 0.75f),
-                        )
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    com.nutriai.ui.components.StatusIndicator(
+                        text = if (ls.direction == "up") "Ready to level up" else "Consider easing down",
+                        status = if (ls.direction == "up") com.nutriai.ui.components.Status.Positive else com.nutriai.ui.components.Status.Caution,
+                    )
+                    Text(ls.reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+        }
+
+        // MOVE LANDING (Change 01): today's workout -> Start Workout -> current session.
+        shownDay?.let { day ->
+            item {
+                Text(
+                    if (day.label == "Today") "Today's workout" else day.label ?: "Day ${day.dayIndex + 1}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
+            item { Text(if (day.rest || !hasContent) "Rest day" else day.focus, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold) }
+
+            if (!day.rest && hasContent) {
+                val firstLoggable = day.warmup.firstOrNull() ?: day.exercises.firstOrNull() ?: day.core.firstOrNull() ?: day.cardio ?: day.cooldown.firstOrNull()
+                item {
+                    androidx.compose.material3.Button(
+                        onClick = { firstLoggable?.let { logTarget = it } },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        shape = RoundedCornerShape(com.nutriai.ui.theme.Radius.md),
+                    ) {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Text(" Start workout", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
 
         plan?.days?.takeIf { it.isNotEmpty() }?.let { days ->
-            item { Text("This week · tap a day", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            item { Text("This week", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
             item {
                 val current = selectedIdx ?: days.indexOfFirst { it === shownDay }
                 WeekStrip(days, selectedIndex = current, onSelect = { selectedIdx = it })
@@ -342,57 +340,59 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         shownDay?.let { day ->
-            item { Text(if (day.label == "Today") "Today · ${day.focus}" else "${day.label ?: "Day ${day.dayIndex + 1}"} · ${day.focus}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-
             val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
             if (day.rest || !hasContent) {
-                item { Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) { Text("Rest & recovery day - light movement, stretch, hydrate.", Modifier.padding(18.dp)) } }
+                item { Text("Rest & recovery day - light movement, stretch, hydrate.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
                 // Warm-up.
                 if (day.warmup.isNotEmpty()) {
-                    item { SessionHeader("🔥 Warm-up") }
+                    item { SessionHeader("Warm-up") }
                     items(day.warmup.size) { i ->
                         val w = day.warmup[i]
-                        ExerciseRowCard(w, "Warm-up", onLog = { logTarget = w })
+                        ExerciseRow(w, "Warm-up", onLog = { logTarget = w })
+                        if (i != day.warmup.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                     }
                 }
 
-                // Main lifts - same card, with the numbered badge + sets/reps/log/cue/swap controls.
+                // Main lifts - numbered, with sets/reps/log/cue/swap controls.
                 if (day.exercises.isNotEmpty()) {
-                    item { SessionHeader("🏋️ Main") }
+                    item { SessionHeader("Main") }
                     items(day.exercises.size) { i ->
                         val ex = day.exercises[i]
-                        ExerciseRowCard(
+                        ExerciseRow(
                             ex = ex,
                             section = "Main",
                             index = i,
                             onLog = { logTarget = ex },
                             onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
                         )
+                        if (i != day.exercises.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                     }
                 }
 
                 // Core / Abs - its own labeled section, loggable.
                 if (day.core.isNotEmpty()) {
-                    item { SessionHeader("🧱 Core & Abs") }
+                    item { SessionHeader("Core & Abs") }
                     items(day.core.size) { i ->
                         val cr = day.core[i]
-                        ExerciseRowCard(cr, "Core", onLog = { logTarget = cr })
+                        ExerciseRow(cr, "Core", onLog = { logTarget = cr })
+                        if (i != day.core.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                     }
                 }
 
                 // Cardio (single item, if any).
                 day.cardio?.let { c ->
-                    item { SessionHeader("🏃 Cardio") }
-                    item { ExerciseRowCard(c, "Cardio", onLog = { logTarget = c }) }
+                    item { SessionHeader("Cardio") }
+                    item { ExerciseRow(c, "Cardio", onLog = { logTarget = c }) }
                 }
 
                 // Cool-down.
                 if (day.cooldown.isNotEmpty()) {
-                    item { SessionHeader("🧊 Cool-down") }
+                    item { SessionHeader("Cool-down") }
                     items(day.cooldown.size) { i ->
                         val cd = day.cooldown[i]
-                        ExerciseRowCard(cd, "Cool-down", onLog = { logTarget = cd })
+                        ExerciseRow(cd, "Cool-down", onLog = { logTarget = cd })
+                        if (i != day.cooldown.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                     }
                 }
 
@@ -431,8 +431,10 @@ private fun SessionHeader(title: String) {
  *    the adaptive log dialog (duration for timed pieces, reps/sets for the rest, weight only for lifts).
  * The cue and next-session target lines render only when the item carries them (i.e. Main).
  */
+/** One exercise, as a compact row (Change 03) - not a card. Demo thumbnail stays small; full-size
+ * imagery is reserved for the demo/detail dialog only (Change 04). */
 @Composable
-private fun ExerciseRowCard(
+private fun ExerciseRow(
     ex: ExerciseItem,
     section: String,
     index: Int? = null,
@@ -440,36 +442,35 @@ private fun ExerciseRowCard(
     onSwap: (() -> Unit)? = null,
 ) {
     val repsLabel = if (ex.sets > 1) "${ex.sets} x ${ex.reps}" else ex.reps
-    Card(
+    Column(
         Modifier.fillMaxWidth()
+            .padding(vertical = 10.dp)
             .semantics { contentDescription = "$section: ${ex.name}, $repsLabel" },
-        shape = RoundedCornerShape(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Animated demo (or muscle diagram). Kept first so every row across every section
-                // lines up at the same left edge, numbered or not.
-                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 40)
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (index != null) "${index + 1}. ${ex.name}" else ex.name,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
-                        Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Animated demo (or muscle diagram). Kept first so every row across every section
+            // lines up at the same left edge, numbered or not.
+            ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 36)
+            Column(Modifier.weight(1f)) {
                 Text(
-                    repsLabel,
-                    Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                    if (index != null) "${index + 1}. ${ex.name}" else ex.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
                 )
+                ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
+                    Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
+            Text(
+                repsLabel,
+                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+            )
+        }
 
-            ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
-                Text("💡 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
+            Text(cue, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
 
             ex.nextSession?.let { ns ->
                 val target = buildString {
@@ -504,7 +505,6 @@ private fun ExerciseRowCard(
             }
         }
     }
-}
 
 /** Read-only alternatives sheet for a main exercise (equipment-free / injury-friendly). */
 @Composable
@@ -695,7 +695,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                 rows.forEachIndexed { i, row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            if (singleBlock) "⏱" else "${i + 1}",
+                            if (singleBlock) "•" else "${i + 1}",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -720,13 +720,14 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             )
                         }
                         if (rows.size > 1) {
-                            Text(
-                                "✕",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = "Remove set ${i + 1}",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clickable { rows.removeAt(i) }
                                     .padding(6.dp)
-                                    .semantics { contentDescription = "Remove set ${i + 1}" },
+                                    .size(18.dp),
                             )
                         }
                     }
@@ -763,25 +764,6 @@ private fun trimKg(v: Double): String = if (v == v.toLong().toDouble()) v.toLong
 private fun firstInt(reps: String): Int? = Regex("\\d+").find(reps)?.value?.toIntOrNull()
 
 @Composable
-private fun Hero(plan: WeeklyWorkout?) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("🏋️ Move", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Text(
-                plan?.let { "${it.blockLabel.ifBlank { "Training block" }} · ${it.location} · ${it.goal}" } ?: "Your training plan",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
-            )
-        }
-    }
-}
-
-@Composable
 private fun WeekStrip(days: List<WorkoutDay>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         days.take(7).forEachIndexed { i, d ->
@@ -798,7 +780,11 @@ private fun WeekStrip(days: List<WorkoutDay>, selectedIndex: Int, onSelect: (Int
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Text(if (rest) "😴" else "💪", style = MaterialTheme.typography.bodyMedium)
+                if (rest) {
+                    Icon(Icons.Filled.Hotel, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
                 Text(
                     d.label?.take(3) ?: "D${d.dayIndex + 1}",
                     style = MaterialTheme.typography.labelSmall,
