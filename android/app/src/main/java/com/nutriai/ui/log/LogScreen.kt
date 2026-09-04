@@ -90,7 +90,6 @@ fun LogScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var pendingFood by remember { mutableStateOf<FoodDto?>(null) }
-    var qtyText by remember { mutableStateOf("") }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -130,17 +129,11 @@ fun LogScreen(
         CustomFoodDialog(onSave = { viewModel.saveCustom(it); showCustom = false }, onDismiss = { showCustom = false })
     }
 
-    // Quantity dialog - set exact grams for THIS food before logging (accurate calories).
+    // Quantity bottom sheet - set exact grams for THIS food before logging (accurate calories).
     pendingFood?.let { food ->
-        QuantityDialog(
+        com.nutriai.ui.components.QuantityBottomSheet(
             food = food,
-            qtyText = qtyText,
-            onQtyChange = { qtyText = it.filter { c -> c.isDigit() } },
-            onConfirm = {
-                val g = qtyText.toDoubleOrNull()
-                if (g != null && g > 0) viewModel.log(food, g)
-                pendingFood = null
-            },
+            onConfirm = { g -> viewModel.log(food, g); pendingFood = null },
             onDismiss = { pendingFood = null },
         )
     }
@@ -227,10 +220,7 @@ fun LogScreen(
             items(state.results, key = { it.id }) { food ->
                 ResultCard(
                     food = food,
-                    onAdd = {
-                        pendingFood = food
-                        qtyText = food.typicalServingG.toInt().toString()
-                    },
+                    onAdd = { pendingFood = food },
                     onFavorite = { viewModel.favorite(food) },
                 )
             }
@@ -641,113 +631,6 @@ private fun CustomFoodDialog(onSave: (SavedFoodRequest) -> Unit, onDismiss: () -
 // Quantity dialog
 // ---------------------------------------------------------------------------
 
-/**
- * Smart portion-unit chips for the quantity dialog (spec Section 8). For non-gram foods it offers the
- * natural units (eggs by count, dal/curd by katori, milk by glass, whey by scoop); each chip resolves
- * to grams via the food's unitGrams so logging stays accurate.
- */
-@Composable
-private fun PortionUnitPicker(food: FoodDto, onPick: (Double) -> Unit) {
-    val unit = food.portionUnit.lowercase()
-    if (unit == "grams" || unit.isBlank()) return
-    val base = if (food.unitGrams > 0) food.unitGrams else food.typicalServingG
-    val options: List<Pair<String, Double>> = when (unit) {
-        "count" -> listOf("1", "2", "3", "4", "6").map { it to (it.toDouble() * base) }
-        "slice" -> listOf("1", "2", "3", "4").map { "$it slice" to (it.toDouble() * base) }
-        "scoop" -> listOf("1 scoop" to base, "2 scoops" to 2 * base)
-        "cup" -> listOf("1 cup" to base, "2 cups" to 2 * base)
-        "glass" -> listOf("½ glass" to 0.5 * base, "1 glass" to base, "2 glasses" to 2 * base)
-        "katori", "bowl" -> listOf("Small" to base, "Medium" to base * (250.0 / 150.0), "Large" to base * (350.0 / 150.0))
-        else -> emptyList()
-    }
-    if (options.isEmpty()) return
-    val noun = when (unit) {
-        "count" -> "how many"
-        else -> "portion"
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Tap $noun", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEach { (label, grams) ->
-                AssistChip(onClick = { onPick(grams) }, label = { Text(label) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuantityDialog(
-    food: FoodDto,
-    qtyText: String,
-    onQtyChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
-        title = {
-            Text(
-                "How much ${food.name}?",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    "${food.kcal.toInt()} kcal per 100 g",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                // Smart portion units (spec Section 8): tap how Indians actually measure this food
-                // (eggs by count, dal by katori…). Each chip sets the grams behind the scenes.
-                PortionUnitPicker(food) { grams -> onQtyChange(grams.toInt().toString()) }
-                OutlinedTextField(
-                    value = qtyText,
-                    onValueChange = onQtyChange,
-                    label = { Text("Grams") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = BrandGreen,
-                        focusedLabelColor = BrandGreen,
-                        cursorColor = BrandGreen,
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                val g = qtyText.toDoubleOrNull() ?: 0.0
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(BrandGreen.copy(alpha = 0.12f))
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                ) {
-                    Text(
-                        "= ${(food.kcal * g / 100).toInt()} kcal · ${(food.proteinG * g / 100).toInt()} g protein",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandGreenDeep,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) { Text("Add") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}
 
 // ---------------------------------------------------------------------------
 // Today's log entry card

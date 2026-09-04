@@ -58,7 +58,7 @@ fun DietScreen(
     LaunchedEffect(Unit) { summaryViewModel.load() }
 
     Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.ScreenTitleBar("Diet", Modifier.padding(horizontal = 12.dp))
+        com.nutriai.ui.components.ScreenHeader("Diet", modifier = Modifier.padding(horizontal = 12.dp))
 
         // Compact one-line daily summary — the "how am I doing" glance the old hero buried in prose.
         dashboard?.let { d ->

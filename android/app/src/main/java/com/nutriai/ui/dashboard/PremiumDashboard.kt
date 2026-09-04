@@ -230,7 +230,7 @@ private fun ThreeSummaryRings(dashboard: Dashboard) {
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = 18.dp),
@@ -317,70 +317,6 @@ private fun CoachTipLine(name: String?, dashboard: Dashboard, sleepHours: Double
 }
 
 // ---------------------------------------------------------------------------
-// 1. Hero card
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun HeroCard(greetingName: String?, streakDays: Int) {
-    val hour = LocalTime.now().hour
-    val (greeting, motivation) = when {
-        hour < 12 -> "Good morning" to "Fuel your body right - today is yours to own."
-        hour < 17 -> "Good afternoon" to "Keep the momentum going. Every choice counts."
-        else -> "Good evening" to "Wind down strong. Consistency beats perfection."
-    }
-    val name = greetingName ?: "there"
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(BrandGreenLight, BrandGreen, BrandGreenDeep),
-                    ),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        "$greeting, $name 👋",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Text(
-                        motivation,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.22f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Text(
-                        "🔥 $streakDays",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
 // 1b. AI Coach card - proactive, deterministic insights
 // ---------------------------------------------------------------------------
 
@@ -446,40 +382,6 @@ private fun buildCoachInsights(
     return out.take(4)
 }
 
-@Composable
-private fun CoachCard(name: String?, dashboard: Dashboard, sleepHours: Double?, steps: Long) {
-    val hour = remember { java.time.LocalTime.now().hour }
-    val insights = remember(dashboard, sleepHours, steps, hour) {
-        buildCoachInsights(name, dashboard, sleepHours, steps, hour)
-    }
-    if (insights.isEmpty()) return
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(BrandGreenDeep, BrandGreen)))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("🧠", style = MaterialTheme.typography.titleMedium)
-                Text("Your AI coach", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-            insights.forEach { i ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(i.emoji, style = MaterialTheme.typography.bodyMedium)
-                    Text(i.text, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.95f), modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // 2. Calorie ring
 // ---------------------------------------------------------------------------
@@ -495,7 +397,7 @@ private fun CalorieRingCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
@@ -764,7 +666,7 @@ private fun GoalMonitorCard(days: List<com.nutriai.data.remote.dto.ReportDay>, t
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -829,7 +731,7 @@ private fun HydrationCard(water: DashMetric, onAddWater: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
@@ -905,7 +807,7 @@ private fun VitalsCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
@@ -1020,7 +922,7 @@ private fun StepsCard(steps: Long, stepsKcal: Int, hasPermission: Boolean, avail
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
@@ -1102,7 +1004,7 @@ private fun ScoreTile(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
         Column(
@@ -1138,7 +1040,7 @@ private fun JourneyCard(dashboard: Dashboard) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
     ) {
         Column(
@@ -1212,7 +1114,7 @@ private fun RiskCard(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
@@ -1260,7 +1162,7 @@ private fun SafetyCard(flags: List<com.nutriai.data.remote.dto.Flag>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(

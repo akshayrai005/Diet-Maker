@@ -76,7 +76,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     val labels = listOf("Today", "Library", "Log")
 
     Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.ScreenTitleBar("Move", Modifier.padding(horizontal = 12.dp))
+        com.nutriai.ui.components.ScreenHeader("Move", modifier = Modifier.padding(horizontal = 12.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -65,7 +65,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
     ) {
-        item { com.nutriai.ui.components.ScreenTitleBar("Plan & review") }
+        item { com.nutriai.ui.components.ScreenHeader("Plan & review") }
 
         // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
         item {

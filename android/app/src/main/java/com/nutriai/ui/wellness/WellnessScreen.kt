@@ -131,7 +131,7 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
     val labels = listOf("Meditate", "Yoga", "Mood")
 
     Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.ScreenTitleBar("Mind", Modifier.padding(horizontal = 16.dp))
+        com.nutriai.ui.components.ScreenHeader("Mind", modifier = Modifier.padding(horizontal = 16.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
