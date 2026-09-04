@@ -147,12 +147,12 @@ fun ReportsScreen(
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                    ) { Text("⤓  Download", fontWeight = FontWeight.SemiBold) }
+                    ) { Text("Download", fontWeight = FontWeight.SemiBold) }
                     androidx.compose.material3.OutlinedButton(
                         onClick = { downloadMode = false; showViewer = true },
                         modifier = Modifier.weight(1f).height(52.dp),
                         shape = RoundedCornerShape(24.dp),
-                    ) { Text("👁  View report", fontWeight = FontWeight.SemiBold) }
+                    ) { Text("View report", fontWeight = FontWeight.SemiBold) }
                 }
             }
         }

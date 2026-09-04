@@ -375,35 +375,18 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
 
         state.toast?.let { msg ->
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                ) {
-                    Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Medium)
-                }
+                com.nutriai.ui.components.StatusIndicator(text = msg, status = com.nutriai.ui.components.Status.Positive)
                 LaunchedEffect(msg) { kotlinx.coroutines.delay(2500); viewModel.clearToast() }
             }
         }
 
-        // Log measurements action.
+        // Log measurements action - the primary CTA on this screen.
         item {
-            Card(
-                Modifier.fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clickable { showLog = true }
-                    .semantics { contentDescription = "Log body measurements" },
+            Button(
+                onClick = { showLog = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).semantics { contentDescription = "Log body measurements" },
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-            ) {
-                Text(
-                    "＋ Log measurements",
-                    Modifier.fillMaxWidth().padding(14.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
+            ) { Text("+ Log measurements", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
         }
 
         if (state.loading) {
@@ -420,16 +403,13 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
         }
 
         if (series != null) {
-            // Body-fat card - hidden entirely for minors.
-            if (!isMinor) {
-                series.latestBodyFat?.let { bf ->
-                    item { BodyFatCard(pct = bf.pct, band = bf.band) }
-                }
+            // Body-fat (hidden for minors) and waist-to-hip ratio, grouped - not two cards.
+            val bf = if (!isMinor) series.latestBodyFat else null
+            if (bf != null || series.whr != null) {
+                item { BodyCompositionRow(pct = bf?.pct, band = bf?.band, whr = series.whr) }
             }
-
-            // Waist-to-hip ratio (a ratio, not a body-fat number) with an educational band + note.
-            series.whr?.let { whr ->
-                item { WhrCard(whr) }
+            series.whr?.note?.takeIf { it.isNotBlank() }?.let { note ->
+                item { Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
 
             // Per-metric trend chart with a selector.
@@ -478,12 +458,12 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
                         onClick = { takePhoto() },
                         enabled = !state.savingPhoto,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = "Take a progress photo with the camera" },
-                    ) { Text("📷 Take photo") }
+                    ) { Text("Take photo") }
                     OutlinedButton(
                         onClick = { galleryLauncher.launch("image/*") },
                         enabled = !state.savingPhoto,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { contentDescription = "Choose a progress photo from your gallery" },
-                    ) { Text("🖼️ Choose") }
+                    ) { Text("Choose") }
                 }
             }
             item {
@@ -566,22 +546,14 @@ private fun SectionLabel(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 }
 
+/** Plain text, not a card - a disclaimer doesn't need decoration to be noticed. */
 @Composable
 private fun DisclaimerCard(text: String) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-    ) {
-        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("💚", style = MaterialTheme.typography.titleMedium)
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-        }
-    }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -596,67 +568,49 @@ private fun SavedPointCard(point: BodyPoint, whr: Whr?, isMinor: Boolean) {
         point.neckCm?.let { add("Neck ${formatNum(it)} cm") }
         if (!isMinor) point.bodyFatPct?.let { add("Body fat ${formatNum(it)}%") }
     }
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Saved ✓", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            if (parts.isNotEmpty()) {
-                Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-            if (whr != null && whr.ratio > 0.0) {
-                Text(
-                    "Waist-to-hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
-                )
-            }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        com.nutriai.ui.components.StatusIndicator(text = "Saved", status = com.nutriai.ui.components.Status.Positive)
+        if (parts.isNotEmpty()) {
+            Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        }
+        if (whr != null && whr.ratio > 0.0) {
+            Text(
+                "Waist-to-hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
+/** Body-fat and waist-to-hip ratio, grouped in one row - not two separate cards. */
 @Composable
-private fun BodyFatCard(pct: Double, band: String) {
-    Card(
-        Modifier.fillMaxWidth().semantics {
-            contentDescription = "Latest body fat ${formatNum(pct)} percent${band.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}"
-        },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Body fat", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("${formatNum(pct)}%", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                if (band.isNotBlank()) {
-                    Text(band, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+private fun BodyCompositionRow(pct: Double?, band: String?, whr: Whr?) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        if (pct != null) {
+            Column(
+                Modifier.semantics { contentDescription = "Latest body fat ${formatNum(pct)} percent${band?.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}" },
+            ) {
+                Text("Body fat", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${formatNum(pct)}%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    band?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun WhrCard(whr: Whr) {
-    Card(
-        Modifier.fillMaxWidth().semantics {
-            contentDescription = "Waist to hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}"
-        },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Waist-to-hip ratio", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(formatNum(whr.ratio), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                if (whr.band.isNotBlank()) {
-                    Text(whr.band, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+        if (whr != null) {
+            Column(
+                Modifier.semantics { contentDescription = "Waist to hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}" },
+            ) {
+                Text("Waist-to-hip", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(formatNum(whr.ratio), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    whr.band.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
-            }
-            if (whr.note.isNotBlank()) {
-                Text(whr.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

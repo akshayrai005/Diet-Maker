@@ -162,8 +162,8 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Your plan", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text("🎯 ${s.calories} · ${s.protein} protein", style = MaterialTheme.typography.bodyMedium)
-                        Text("📋 ${s.approach}  ·  ⏳ ${s.time}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${s.calories} · ${s.protein} protein", style = MaterialTheme.typography.bodyMedium)
+                        Text("${s.approach} · ${s.time}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("Estimates — your actual targets come from your full profile & goal.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

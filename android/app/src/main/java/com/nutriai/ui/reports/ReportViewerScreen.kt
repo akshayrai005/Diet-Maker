@@ -149,7 +149,7 @@ fun ReportViewerScreen(
                 }
             }
 
-            TextButton(onClick = { webRef?.let { printReport(context, it) } }, enabled = state.html.isNotEmpty()) { Text("⤓ PDF") }
+            TextButton(onClick = { webRef?.let { printReport(context, it) } }, enabled = state.html.isNotEmpty()) { Text("Save PDF") }
         }
 
         Box(Modifier.fillMaxSize()) {

@@ -150,9 +150,9 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
                         }
                     },
                     modifier = Modifier.weight(1f),
-                ) { Text("📷 Take photo") }
+                ) { Text("Take photo") }
                 OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f)) {
-                    Text("🖼️ Choose")
+                    Text("Choose")
                 }
             }
         }
@@ -169,7 +169,7 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
                         )
                         Button(onClick = { viewModel.analyze() }, enabled = !state.analyzing, modifier = Modifier.fillMaxWidth()) {
                             if (state.analyzing) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White)
-                            else Text("✨ Analyze with AI")
+                            else Text("Analyze with AI")
                         }
                         Text(
                             "Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
@@ -188,19 +188,10 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
 
 @Composable
 private fun Hero() {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen, BrandGreenDeep))).padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Body Check 📸", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("A rough AI body-fat read from a photo. Nothing is saved.", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f))
-            }
-        }
-    }
+    com.nutriai.ui.components.ScreenHeader(
+        title = "Body Check",
+        subtitle = "A rough AI body-fat read from a photo. Nothing is saved.",
+    )
 }
 
 @Composable
