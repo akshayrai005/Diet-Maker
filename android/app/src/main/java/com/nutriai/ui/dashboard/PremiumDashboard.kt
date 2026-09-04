@@ -163,12 +163,6 @@ fun PremiumDashboard(
         }
 
         // SECONDARY INFORMATION — always below the primary experience, rows not cards.
-        if (safetyFlags.isNotEmpty()) {
-            item { SafetyRows(flags = safetyFlags) }
-        }
-        if (riskFindings.isNotEmpty()) {
-            item { RiskRows(findings = riskFindings) }
-        }
         d.micronutrients?.let { mn ->
             if (mn.targets.isNotEmpty()) {
                 item {
@@ -189,6 +183,12 @@ fun PremiumDashboard(
         }
         if (d.projection.size > 1) {
             item { JourneySummaryRow(dashboard = d) }
+        }
+        if (safetyFlags.isNotEmpty()) {
+            item { SafetyRows(flags = safetyFlags) }
+        }
+        if (riskFindings.isNotEmpty()) {
+            item { RiskRows(findings = riskFindings) }
         }
 
         item {
