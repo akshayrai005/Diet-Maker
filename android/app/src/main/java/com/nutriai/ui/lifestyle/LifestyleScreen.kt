@@ -301,10 +301,7 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (isSel) BrandGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
                                 ),
-                                border = BorderStroke(
-                                    if (isSel) 2.dp else 1.dp,
-                                    if (isSel) BrandGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                ),
+                                border = if (isSel) BorderStroke(2.dp, BrandGreen) else null,
                                 elevation = CardDefaults.cardElevation(if (isSel) 4.dp else 1.dp),
                             ) {
                                 Row(
