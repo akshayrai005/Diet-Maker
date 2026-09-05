@@ -143,7 +143,7 @@ fun PremiumDashboard(
         // Calorie ring card
         item {
             Column(sectionPadding) {
-                CalorieSummaryCard(dashboard = d, steps = steps, stepsPermission = stepsPermission)
+                CalorieSummaryCard(dashboard = d, steps = steps, stepsPermission = stepsPermission, maintenanceKcal = maintenanceKcal)
             }
         }
 
@@ -327,11 +327,10 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermission: Boolean) {
+private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, maintenanceKcal: Double? = null) {
     val cal = dashboard.calories
     val hasTarget = cal.target != null && cal.target > 0
     val pct = if (hasTarget) (cal.consumed / cal.target!!).coerceIn(0.0, 1.5).toFloat() else 0f
-    val remaining = if (hasTarget) (cal.target!! - cal.consumed) else 0.0
 
     Card(
         Modifier.fillMaxWidth(),
@@ -342,9 +341,8 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermissio
         Row(Modifier.fillMaxWidth().padding(Spacing.xl), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             CalorieRing(consumed = cal.consumed.toInt(), target = cal.target?.toInt(), progress = pct)
             Column(Modifier.weight(1f).padding(start = Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                QuickStat("🔥", "Remaining", if (hasTarget) "${remaining.toInt()}" else "—", "kcal", NutritionColor)
-                QuickStat("🎯", "Target", if (hasTarget) "%,d".format(cal.target!!.toInt()) else "—", "kcal", BrandAmber)
-                QuickStat("🚶", "Steps", if (stepsPermission && steps > 0) "%,d".format(steps) else "—", "", MovementColor)
+                QuickStat("🏋️", "Body Need", maintenanceKcal?.let { "%,d".format(it.toInt()) } ?: "—", "kcal", KaizenCoral)
+                QuickStat("🎯", "Target", if (hasTarget) "%,d".format(cal.target!!.toInt()) else "—", "kcal", NutritionColor)
             }
         }
     }
@@ -444,29 +442,35 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 borderColor = HydrationColor,
             )
         }
-        // Row 3: Walk/Steps + Drink Water
+        // Row 3: Calories Burned + BMI
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             DomainCard(
                 modifier = Modifier.weight(1f),
-                emoji = "🚶", title = "Walk",
-                mainValue = if (stepsPermission && steps > 0) "%,d".format(steps) else "-",
-                mainUnit = "steps",
-                progress = if (stepsPermission && steps > 0) (steps / 10000f).coerceIn(0f, 1f) else 0f,
+                emoji = "🔥", title = "Burned",
+                mainValue = if (stepsKcal > 0) "$stepsKcal" else "-",
+                mainUnit = "kcal",
+                progress = if (stepsKcal > 0) (stepsKcal / 500f).coerceIn(0f, 1f) else 0f,
                 accentColor = BrandAmber, bgColor = CardAmberLight,
-                detail = if (stepsPermission && stepsKcal > 0) "≈ $stepsKcal kcal burned" else "Connect Health",
+                detail = if (stepsPermission && steps > 0) "from %,d steps".format(steps) else "Connect Health",
                 borderColor = BrandAmber,
             )
-            val waterGlasses = ((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 250.0).toInt()
-            val waterTargetGlasses = ((dashboard.water.targetMl ?: dashboard.water.target ?: 2750.0) / 250.0).toInt()
+            val bmiVal = dashboard.bmi
+            val bmiCategory = when {
+                bmiVal == null -> ""
+                bmiVal < 18.5 -> "Underweight"
+                bmiVal < 25.0 -> "Normal"
+                bmiVal < 30.0 -> "Overweight"
+                else -> "Obese"
+            }
             DomainCard(
                 modifier = Modifier.weight(1f),
-                emoji = "🥛", title = "Drink Water",
-                mainValue = "$waterGlasses/$waterTargetGlasses",
-                mainUnit = "glasses",
-                progress = (waterGlasses.toFloat() / waterTargetGlasses.coerceAtLeast(1)).coerceIn(0f, 1f),
-                accentColor = KaizenBlue, bgColor = CardBlueLight,
-                detail = "Drink more water",
-                borderColor = KaizenBlue,
+                emoji = "📏", title = "BMI",
+                mainValue = bmiVal?.let { "%.1f".format(it) } ?: "-",
+                mainUnit = bmiCategory,
+                progress = bmiVal?.let { ((it - 15.0) / 25.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                accentColor = KaizenLavender, bgColor = CardLavenderLight,
+                detail = if (bmiVal != null) "Goal: 18.5 – 24.9" else "Complete profile",
+                borderColor = KaizenLavender,
             )
         }
     }
