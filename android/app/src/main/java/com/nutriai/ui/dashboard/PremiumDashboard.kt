@@ -130,24 +130,26 @@ fun PremiumDashboard(
         )
     }
 
+    val sectionPadding = Modifier.padding(horizontal = Spacing.screenHorizontal)
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = Spacing.xxl),
     ) {
         // Hero greeting
         item { HeroSection(greetingName = greetingName, streakDays = d.streakDays, dashboard = d) }
 
         // Calorie ring card
         item {
-            Column(Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.lg)) {
+            Column(sectionPadding) {
                 CalorieSummaryCard(dashboard = d, steps = steps, stepsPermission = stepsPermission)
             }
         }
 
         // Domain cards — 2x2 grid, NO scrolling
         item {
-            Column(Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.lg)) {
+            Column(sectionPadding) {
                 SectionHeader("Your Day", emoji = "📊")
                 DomainCardsGrid(
                     dashboard = d,
@@ -162,7 +164,7 @@ fun PremiumDashboard(
 
         // Priorities
         item {
-            Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg)) {
+            Column(sectionPadding) {
                 SectionHeader("Priorities", emoji = "🎯")
                 Card(
                     Modifier.fillMaxWidth(),
@@ -180,7 +182,7 @@ fun PremiumDashboard(
         // Insight
         if (rating != null || coach != null) {
             item {
-                Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                Column(sectionPadding) {
                     InsightSection(rating = rating, coach = coach, expanded = showFullAnalysis, onToggle = { showFullAnalysis = !showFullAnalysis })
                 }
             }
@@ -190,7 +192,7 @@ fun PremiumDashboard(
         d.micronutrients?.let { mn ->
             if (mn.targets.isNotEmpty()) {
                 item {
-                    Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
+                    Column(sectionPadding) {
                         VitaminsRow(mn = mn, expanded = showVitamins, onToggle = { showVitamins = !showVitamins })
                     }
                 }
@@ -199,7 +201,7 @@ fun PremiumDashboard(
 
         // Vitals
         item {
-            Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+            Column(sectionPadding) {
                 VitalsRow(heartRate = heartRate, manualHeartRate = manualHeartRate, sleepHours = sleepHours, onEdit = { editingVitals = true })
             }
         }
@@ -207,7 +209,7 @@ fun PremiumDashboard(
         // 7-day goal
         if (weekDays.isNotEmpty() && weekKcalTarget != null && weekKcalTarget > 0) {
             item {
-                Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg)) {
+                Column(sectionPadding) {
                     GoalMonitorSection(days = weekDays, target = weekKcalTarget)
                 }
             }
@@ -215,15 +217,15 @@ fun PremiumDashboard(
 
         // Journey
         if (d.projection.size > 1) {
-            item { Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) { JourneySummaryRow(dashboard = d) } }
+            item { Column(sectionPadding) { JourneySummaryRow(dashboard = d) } }
         }
 
         // Safety
         if (safetyFlags.isNotEmpty()) {
-            item { Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) { SafetyRows(flags = safetyFlags) } }
+            item { Column(sectionPadding) { SafetyRows(flags = safetyFlags) } }
         }
         if (riskFindings.isNotEmpty()) {
-            item { Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) { RiskRows(findings = riskFindings) } }
+            item { Column(sectionPadding) { RiskRows(findings = riskFindings) } }
         }
 
         item {
@@ -506,28 +508,57 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
 private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
     val order = mapOf("critical" to 0, "warning" to 1, "info" to 2)
     val sorted = flags.sortedBy { order[it.severity] ?: 3 }
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionHeader("Health & Safety", emoji = "🛡️")
+        // Header card
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = KaizenCoral.copy(alpha = 0.06f)),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, KaizenCoral.copy(alpha = 0.2f)),
+            elevation = CardDefaults.cardElevation(5.dp),
+            colors = CardDefaults.cardColors(containerColor = CardCoralLight),
+            border = androidx.compose.foundation.BorderStroke(2.dp, KaizenCoral.copy(alpha = 0.4f)),
         ) {
-            Column(Modifier.padding(Spacing.lg)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text("⚠️", fontSize = 18.sp)
-                    Text("Safety Alerts", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenCoral)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Text("⚠️", fontSize = 22.sp)
+                Text("Safety Alerts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = KaizenCoral)
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.clip(RoundedCornerShape(4.dp)).background(KaizenCoral).padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                ) {
+                    Text("${sorted.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
-                Spacer(Modifier.height(Spacing.md))
-                sorted.forEachIndexed { index, f ->
-                    val status = when (f.severity) { "critical" -> Status.Critical; "warning" -> Status.Caution; else -> Status.Information }
-                    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
-                        StatusIndicator(text = f.severity.uppercase(), status = status)
-                        Text(f.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+        // Each flag as its own card
+        sorted.forEach { f ->
+            val (flagColor, flagBg) = when (f.severity) {
+                "critical" -> KaizenCoral to CardCoralLight
+                "warning" -> BrandAmber to CardAmberLight
+                else -> KaizenBlue to CardBlueLight
+            }
+            val status = when (f.severity) { "critical" -> Status.Critical; "warning" -> Status.Caution; else -> Status.Information }
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(SharpRadius),
+                elevation = CardDefaults.cardElevation(3.dp),
+                colors = CardDefaults.cardColors(containerColor = flagBg),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, flagColor.copy(alpha = 0.35f)),
+            ) {
+                Row(Modifier.padding(Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
+                    Box(
+                        Modifier.size(40.dp).clip(RoundedCornerShape(SharpRadius)).background(flagColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(when (f.severity) { "critical" -> "🚨"; "warning" -> "⚠️"; else -> "ℹ️" }, fontSize = 18.sp)
                     }
-                    if (index != sorted.lastIndex) HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        StatusIndicator(text = f.severity.uppercase(), status = status)
+                        Text(f.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
@@ -536,29 +567,73 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
 
 @Composable
 private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionHeader("Health Signals", emoji = "📡")
+        // Header card
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.06f)),
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, BrandAmber.copy(alpha = 0.2f)),
+            elevation = CardDefaults.cardElevation(5.dp),
+            colors = CardDefaults.cardColors(containerColor = CardAmberLight),
+            border = androidx.compose.foundation.BorderStroke(2.dp, BrandAmber.copy(alpha = 0.4f)),
         ) {
-            Column(Modifier.padding(Spacing.lg)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text("🔍", fontSize = 18.sp)
-                    Text("Risk Findings", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandAmber)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Text("🔍", fontSize = 22.sp)
+                Text("Risk Findings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color(0xFFE65100))
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.clip(RoundedCornerShape(4.dp)).background(BrandAmber).padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                ) {
+                    Text("${findings.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
-                Spacer(Modifier.height(Spacing.md))
-                findings.forEachIndexed { index, f ->
-                    val status = when (f.level) { "high" -> Status.Critical; "moderate" -> Status.Caution; else -> Status.Information }
-                    Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
-                        StatusIndicator(text = f.label, status = status)
-                        Text(f.why, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
-                        Text("→ ${f.nextAction}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        // Each finding as its own colorful card
+        findings.forEach { f ->
+            val (findColor, findBg) = when (f.level) {
+                "high" -> KaizenCoral to CardCoralLight
+                "moderate" -> BrandAmber to CardAmberLight
+                else -> KaizenBlue to CardBlueLight
+            }
+            val status = when (f.level) { "high" -> Status.Critical; "moderate" -> Status.Caution; else -> Status.Information }
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(SharpRadius),
+                elevation = CardDefaults.cardElevation(3.dp),
+                colors = CardDefaults.cardColors(containerColor = findBg),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, findColor.copy(alpha = 0.35f)),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Box(
+                            Modifier.size(40.dp).clip(RoundedCornerShape(SharpRadius)).background(findColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(when (f.level) { "high" -> "🚨"; "moderate" -> "⚠️"; else -> "💡" }, fontSize = 18.sp)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            StatusIndicator(text = f.label, status = status)
+                        }
                     }
-                    if (index != findings.lastIndex) HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
+                    Text(f.why, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(SharpRadius),
+                        elevation = CardDefaults.cardElevation(0.dp),
+                        colors = CardDefaults.cardColors(containerColor = findColor.copy(alpha = 0.08f)),
+                    ) {
+                        Text(
+                            "→ ${f.nextAction}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = findColor,
+                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        )
+                    }
                 }
             }
         }
