@@ -112,6 +112,7 @@ fun PremiumDashboard(
     todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
     onOpenVitals: () -> Unit = {},
     onOpenMove: () -> Unit = {},
+    onOpenPlan: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
@@ -185,6 +186,34 @@ fun PremiumDashboard(
                 ) {
                     Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         PrioritiesContent(dashboard = d, todayWorkout = todayWorkout, onOpenMove = onOpenMove, onAddWater = onAddWater)
+                    }
+                }
+            }
+        }
+
+        // Plan Tomorrow shortcut
+        item {
+            Column(sectionPadding) {
+                Card(
+                    Modifier.fillMaxWidth().clickable(onClick = onOpenPlan),
+                    shape = RoundedCornerShape(SharpRadius),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(Spacing.lg),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text("📅 Plan Tomorrow", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text(
+                                "Set workout + diet adapts automatically",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text("→", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

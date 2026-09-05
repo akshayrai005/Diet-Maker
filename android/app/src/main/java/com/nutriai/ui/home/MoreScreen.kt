@@ -109,8 +109,9 @@ fun MoreScreen(
     modifier: Modifier = Modifier,
     onEditProfile: () -> Unit = {},
     onLoggedOut: () -> Unit = {},
+    initialPage: String? = null,
 ) {
-    var selected by remember { mutableStateOf<String?>(null) }
+    var selected by remember { mutableStateOf<String?>(initialPage) }
 
     androidx.activity.compose.BackHandler(enabled = selected != null) { selected = null }
 
