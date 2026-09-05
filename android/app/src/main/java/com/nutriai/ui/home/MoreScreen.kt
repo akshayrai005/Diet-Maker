@@ -19,27 +19,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Accessibility
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EventNote
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material.icons.filled.MilitaryTech
-import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.filled.MonitorWeight
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,25 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nutriai.ui.badges.BadgesScreen
 import com.nutriai.ui.barcode.BarcodeScreen
 import com.nutriai.ui.checkin.CheckinScreen
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.KaizenIconButton
-import com.nutriai.ui.components.ScreenHeader
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.CardAmberLight
-import com.nutriai.ui.theme.CardBlueLight
-import com.nutriai.ui.theme.CardCoralLight
-import com.nutriai.ui.theme.CardGreenLight
-import com.nutriai.ui.theme.CardLavenderLight
-import com.nutriai.ui.theme.CardMintLight
 import com.nutriai.ui.theme.HeroGradientTop
 import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.HydrationColor
@@ -78,21 +50,21 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.RecoveryColor
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 import com.nutriai.ui.family.FamilyScreen
 import com.nutriai.ui.reports.ReportsScreen
 import com.nutriai.ui.body.BodyScreen
 import com.nutriai.ui.settings.SettingsScreen
 
+private val Sharp = RoundedCornerShape(8.dp)
+
 private data class ProfileItem(val key: String, val emoji: String, val label: String, val subtitle: String, val tint: Color = BrandGreen)
-private data class ProfileGroup(val title: String, val emoji: String, val bgColor: Color, val items: List<ProfileItem>)
+private data class ProfileGroup(val title: String, val emoji: String, val items: List<ProfileItem>)
 
 private val GROUPS = listOf(
     ProfileGroup(
-        "Your Health", "❤️", CardCoralLight,
+        "Your Health", "❤️",
         listOf(
             ProfileItem("progress", "📈", "Progress", "Measurements & photos", NutritionColor),
             ProfileItem("body", "📸", "Body", "Body check photos", NutritionColor),
@@ -102,7 +74,7 @@ private val GROUPS = listOf(
         ),
     ),
     ProfileGroup(
-        "Your Plan", "📋", CardBlueLight,
+        "Your Plan", "📋",
         listOf(
             ProfileItem("plan", "📅", "Plan", "AI plan review", MovementColor),
             ProfileItem("coach", "🤖", "Coach", "Chat with your coach", KaizenLavender),
@@ -110,7 +82,7 @@ private val GROUPS = listOf(
         ),
     ),
     ProfileGroup(
-        "Wellness", "🧘", CardLavenderLight,
+        "Wellness", "🧘",
         listOf(
             ProfileItem("mind", "🧠", "Mind", "Mindfulness & wellness", RecoveryColor),
             ProfileItem("discipline", "🎯", "Discipline", "Habit tracking", NutritionColor),
@@ -118,7 +90,7 @@ private val GROUPS = listOf(
         ),
     ),
     ProfileGroup(
-        "Tools", "🔧", CardAmberLight,
+        "Tools", "🔧",
         listOf(
             ProfileItem("medications", "💊", "Medications", "Reminders & log", KaizenCoral),
             ProfileItem("family", "👨‍👩‍👧", "Family", "Shared household", HydrationColor),
@@ -127,7 +99,7 @@ private val GROUPS = listOf(
         ),
     ),
     ProfileGroup(
-        "Account", "⚙️", Color(0xFFF0F0F0),
+        "Account", "⚙️",
         listOf(
             ProfileItem("settings", "⚙️", "Settings", "", Color(0xFF627069)),
         ),
@@ -147,21 +119,23 @@ fun MoreScreen(
     when (selected) {
         null -> ProfileMenu(modifier) { selected = it }
         else -> Column(modifier.fillMaxSize()) {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            // Back header with gradient
+            Box(
+                Modifier.fillMaxWidth()
+                    .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                    .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             ) {
-                KaizenIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to Profile",
-                    onClick = { selected = null },
-                )
-                Text(
-                    GROUPS.flatMap { it.items }.firstOrNull { it.key == selected }?.label ?: "Profile",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    IconButton(onClick = { selected = null }, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
+                    Text(
+                        GROUPS.flatMap { it.items }.firstOrNull { it.key == selected }?.label ?: "Profile",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                    )
+                }
             }
             when (selected) {
                 "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
@@ -194,7 +168,7 @@ private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Uni
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
-        // Profile header with vibrant gradient
+        // Profile header with gradient
         Box(
             Modifier
                 .fillMaxWidth()
@@ -207,42 +181,46 @@ private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Uni
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
-                    modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f)),
+                    modifier = Modifier.size(72.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("👤", fontSize = 36.sp)
+                    Text("👤", fontSize = 32.sp)
                 }
-                Spacer(Modifier.height(Spacing.md))
-                Text("Your Profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("🌟 Health & wellness hub", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+                Spacer(Modifier.height(Spacing.sm))
+                Text("Your Profile", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Text("🌟 Health & wellness hub", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
             }
         }
 
-        Spacer(Modifier.height(Spacing.lg))
+        Spacer(Modifier.height(Spacing.md))
 
-        // Groups as colored cards
+        // Groups as plain cards
         GROUPS.forEach { group ->
-            Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
-                SectionHeader(group.title, emoji = group.emoji)
+            Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs)) {
+                Text(
+                    "${group.emoji} ${group.title}",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = Spacing.xs),
+                )
                 Card(
                     Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(Radius.lg),
-                    elevation = CardDefaults.cardElevation(3.dp),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    Column(Modifier.padding(vertical = Spacing.xs)) {
+                    Column(Modifier.padding(vertical = 4.dp)) {
                         group.items.forEachIndexed { index, item ->
                             ProfileMenuRow(item = item, onClick = { onSelect(item.key) })
                             if (index != group.items.lastIndex) {
                                 HorizontalDivider(
-                                    modifier = Modifier.padding(start = 64.dp),
-                                    color = MaterialTheme.kaizenColors.divider,
+                                    modifier = Modifier.padding(start = 52.dp),
+                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
                                 )
                             }
                         }
                     }
                 }
-                Spacer(Modifier.height(Spacing.lg))
             }
         }
 
@@ -256,17 +234,22 @@ private fun ProfileMenuRow(item: ProfileItem, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.rowPadding),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(horizontal = Spacing.md, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        EmojiBadge(emoji = item.emoji, bgColor = item.tint.copy(alpha = 0.12f), size = 40.dp)
+        Box(
+            modifier = Modifier.size(36.dp).clip(Sharp).background(item.tint.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(item.emoji, fontSize = 16.sp)
+        }
         Column(Modifier.weight(1f)) {
-            Text(item.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text(item.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
             if (item.subtitle.isNotBlank()) {
-                Text(item.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(item.subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
             }
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
     }
 }

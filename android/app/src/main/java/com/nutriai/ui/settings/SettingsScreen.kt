@@ -22,19 +22,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,23 +51,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.BuildConfig
 import com.nutriai.notifications.ReminderGroup
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.HeroGradientTop
+import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.SectionHeader
-import com.nutriai.ui.components.EmojiBadge
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 @Composable
 fun SettingsScreen(
@@ -86,7 +85,6 @@ fun SettingsScreen(
     val context = LocalContext.current
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
-    // Import: pick a previously-exported JSON and re-log its food entries.
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
@@ -120,175 +118,233 @@ fun SettingsScreen(
         )
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(Spacing.section),
-        contentPadding = PaddingValues(vertical = Spacing.md),
-    ) {
-        item { com.nutriai.ui.components.ScreenHeader("Settings") }
-
-        // Profile
-        item {
-            FeatureCard(
-                emoji = "👤",
-                title = "Profile",
-                accentColor = KaizenBlue,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        state.user?.firstName?.ifBlank { null } ?: "Your account",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    state.user?.email?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Spacer(Modifier.height(Spacing.sm))
-                com.nutriai.ui.components.ListRow(
-                    title = "Edit health profile",
-                    subtitle = "Height, weight, goal, diet & conditions",
-                    onClick = onEditProfile,
-                )
-            }
+    Column(modifier.fillMaxWidth()) {
+        // Purple gradient header
+        Box(
+            Modifier.fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+        ) {
+            Text("⚙️ Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
         }
 
-        // Notifications
-        item {
-            FeatureCard(
-                emoji = "🔔",
-                title = "Notifications",
-                accentColor = BrandAmber,
-            ) {
-                ReminderGroup.entries.forEachIndexed { i, group ->
-                    if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                    SwitchRow(
-                        title = group.label,
-                        subtitle = group.subtitle,
-                        checked = reminders[group] ?: false,
-                        onCheckedChange = { onToggleReminder(group, it) },
-                    )
-                }
-                remoteReminders?.let { rp ->
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                    WorkoutReminderRows(prefs = rp, onSave = { viewModel.saveReminderPrefs(it) })
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                SwitchRow(
-                    title = "Walk nudge",
-                    subtitle = "A reminder to move when you've been still too long (uses Health Connect steps)",
-                    checked = walkNudge,
-                    onCheckedChange = { enabled ->
-                        if (enabled &&
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-                        ) {
-                            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                        viewModel.setWalkNudge(enabled)
-                    },
-                )
-            }
-        }
-
-        // Appearance
-        item {
-            FeatureCard(
-                emoji = "🎨",
-                title = "Appearance",
-                accentColor = KaizenLavender,
-            ) {
-                Text("Accent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp)) {
-                    listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
-                        FilterChip(selected = theme.accent == key, onClick = { viewModel.setAccent(key) }, label = { Text(label) })
-                    }
-                }
-                Text("Theme", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
-                    listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
-                        FilterChip(selected = theme.mode == key, onClick = { viewModel.setThemeMode(key) }, label = { Text(label) })
-                    }
-                }
-            }
-        }
-
-        // Privacy & data
-        item {
-            FeatureCard(
-                emoji = "🔒",
-                title = "Privacy & Data",
-                accentColor = BrandGreen,
-            ) {
-                Text(
-                    "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 10.dp),
-                )
-                com.nutriai.ui.components.ListRow(
-                    title = "📤 Export my data",
-                    onClick = {
-                        viewModel.exportData(
-                            onBytes = { bytes ->
-                                runCatching {
-                                    val file = File(context.cacheDir, "kaizen-my-data.json")
-                                    file.writeBytes(bytes)
-                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/json"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(
-                                        Intent.createChooser(intent, "Export my data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                    )
-                                }.onFailure { Toast.makeText(context, it.message ?: "Export failed", Toast.LENGTH_SHORT).show() }
-                            },
-                            onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            contentPadding = PaddingValues(vertical = Spacing.md),
+        ) {
+            // Profile
+            item {
+                SettingsSection(emoji = "👤", title = "Profile") {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            state.user?.firstName?.ifBlank { null } ?: "Your account",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                         )
-                    },
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                com.nutriai.ui.components.ListRow(
-                    title = "📥 Import data",
-                    subtitle = "Restore food logs from a backup",
-                    onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
-                )
+                        state.user?.email?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Spacer(Modifier.height(Spacing.sm))
+                    SettingsRow(title = "Edit health profile", subtitle = "Height, weight, goal, diet & conditions", onClick = onEditProfile)
+                }
+            }
+
+            // Notifications
+            item {
+                SettingsSection(emoji = "🔔", title = "Notifications") {
+                    ReminderGroup.entries.forEachIndexed { i, group ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        SwitchRow(
+                            title = group.label,
+                            subtitle = group.subtitle,
+                            checked = reminders[group] ?: false,
+                            onCheckedChange = { onToggleReminder(group, it) },
+                        )
+                    }
+                    remoteReminders?.let { rp ->
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        WorkoutReminderRows(prefs = rp, onSave = { viewModel.saveReminderPrefs(it) })
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    SwitchRow(
+                        title = "Walk nudge",
+                        subtitle = "Reminder to move when still too long (Health Connect steps)",
+                        checked = walkNudge,
+                        onCheckedChange = { enabled ->
+                            if (enabled &&
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            viewModel.setWalkNudge(enabled)
+                        },
+                    )
+                }
+            }
+
+            // Appearance
+            item {
+                SettingsSection(emoji = "🎨", title = "Appearance") {
+                    Text("Accent", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) {
+                        listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
+                            val selected = theme.accent == key
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                    )
+                                    .clickable { viewModel.setAccent(key) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            ) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    Text("Theme", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
+                        listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
+                            val selected = theme.mode == key
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                    )
+                                    .clickable { viewModel.setThemeMode(key) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            ) {
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Privacy & data
+            item {
+                SettingsSection(emoji = "🔒", title = "Privacy & Data") {
+                    Text(
+                        "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    SettingsRow(
+                        title = "📤 Export my data",
+                        onClick = {
+                            viewModel.exportData(
+                                onBytes = { bytes ->
+                                    runCatching {
+                                        val file = File(context.cacheDir, "kaizen-my-data.json")
+                                        file.writeBytes(bytes)
+                                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                        val intent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "application/json"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(intent, "Export my data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    }.onFailure { Toast.makeText(context, it.message ?: "Export failed", Toast.LENGTH_SHORT).show() }
+                                },
+                                onError = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+                            )
+                        },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    SettingsRow(
+                        title = "📥 Import data",
+                        subtitle = "Restore food logs from a backup",
+                        onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
+                    )
+                }
+            }
+
+            // Account
+            item {
+                SettingsSection(emoji = "⚠️", title = "Account") {
+                    SettingsRow(title = "🚪 Log out", onClick = { viewModel.logout(onLoggedOut) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    Row(
+                        Modifier.fillMaxWidth().clickable { showDelete = true }.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("🗑️ Delete account", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = KaizenCoral)
+                        Box(
+                            Modifier.clip(Sharp).background(KaizenCoral.copy(alpha = 0.1f)).padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text("Irreversible", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = KaizenCoral, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text("Kaizen v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Educational guidance, not medical advice - consult a professional.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
+    }
+}
 
-        // Account - destructive actions isolated at the bottom, clearly marked.
-        item {
-            FeatureCard(
-                emoji = "⚠️",
-                title = "Account",
-                accentColor = KaizenCoral,
-            ) {
-                com.nutriai.ui.components.ListRow(title = "🚪 Log out", onClick = { viewModel.logout(onLoggedOut) })
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                com.nutriai.ui.components.ListRow(
-                    title = "🗑️ Delete account",
-                    onClick = { showDelete = true },
-                    trailing = { com.nutriai.ui.components.StatusIndicator(text = "Irreversible", status = com.nutriai.ui.components.Status.Critical) },
-                )
+@Composable
+private fun SettingsSection(emoji: String, title: String, content: @Composable () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(emoji, fontSize = 16.sp)
+                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
+            Spacer(Modifier.height(Spacing.sm))
+            content()
         }
+    }
+}
 
-        item {
-            Column(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text("Kaizen v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "Educational guidance, not medical advice - consult a professional.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+@Composable
+private fun SettingsRow(title: String, subtitle: String? = null, onClick: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+        subtitle?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
         }
     }
 }
@@ -296,19 +352,18 @@ fun SettingsScreen(
 @Composable
 private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
-/** "11:00 AM" from 24h hour+minute. */
 private fun fmt12(hour: Int, minute: Int): String {
     val ampm = if (hour < 12) "AM" else "PM"
     val h12 = when {
@@ -354,10 +409,18 @@ private fun WorkoutReminderRows(
         onCheckedChange = { workout = it; onSave(prefs.copy(workoutEnabled = it, workoutTime = "%02d:%02d".format(hour, minute))) },
     )
     if (workout) {
-        com.nutriai.ui.components.ListRow(
-            title = "⏰ Workout time",
-            subtitle = "${fmt12(hour, minute)} - heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)}",
-            onClick = { showPicker = true },
-        )
+        Row(
+            Modifier.fillMaxWidth().clickable { showPicker = true }.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("⏰ Workout time", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                Text(
+                    "${fmt12(hour, minute)} - heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)}",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp,
+                )
+            }
+        }
     }
 }
