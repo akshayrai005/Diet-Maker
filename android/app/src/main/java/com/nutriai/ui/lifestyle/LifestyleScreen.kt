@@ -81,7 +81,7 @@ enum class EatingPattern(
         listOf(
             MealRow("7:30 AM", "Meal 1 — biggest", "4 boiled eggs + 2 rotis + 1 banana (~550 kcal, 30g)"),
             MealRow("10:30 AM", "Pocket snack", "30g peanuts OR 2 boiled eggs in tiffin (~180 kcal, 12g)"),
-            MealRow("4:30 PM", "Pre-gym", "1 banana + peanut butter (~200 kcal, 8g)"),
+            MealRow("~1 hr before", "Pre-gym", "1 banana + peanut butter (~200 kcal, 8g)"),
             MealRow("8:30 PM", "Meal 2 — high protein", "150g chicken/fish + sabzi + roti + dal (~600 kcal, 45g)"),
             MealRow("10:00 PM", "Optional", "1 cup curd or a glass of milk (~120 kcal, 10g)"),
         ),
@@ -111,7 +111,7 @@ enum class EatingPattern(
             MealRow("7:30 AM", "Breakfast", "4 eggs + 2 rotis + banana"),
             MealRow("11:00 AM", "Snack", "Boiled eggs from tiffin"),
             MealRow("1:00 PM", "Canteen lunch", "Dal + sabzi + 1 roti (skip rice & fried items)"),
-            MealRow("5:00 PM", "Pre-gym", "Banana + peanut butter"),
+            MealRow("~1 hr before", "Pre-gym", "Banana + peanut butter"),
             MealRow("8:30 PM", "Dinner", "150g chicken/fish + sabzi + roti"),
         ),
         listOf(
@@ -125,7 +125,7 @@ enum class EatingPattern(
             MealRow("7:30 AM", "Breakfast — biggest", "4 eggs + 2 rotis + banana"),
             MealRow("11:00 AM", "Snack", "Peanuts / roasted chana in pocket"),
             MealRow("1:00 PM", "Tiffin", "Paneer/chicken + sabzi + 1 roti (prepped Sunday)"),
-            MealRow("5:00 PM", "Pre-gym", "Banana + PB"),
+            MealRow("~1 hr before", "Pre-gym", "Banana + PB"),
             MealRow("8:30 PM", "Dinner", "150g protein + sabzi + roti"),
         ),
         listOf(
@@ -355,7 +355,7 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                 Modifier.fillMaxWidth(),
                 shape = Sharp,
                 elevation = CardDefaults.cardElevation(2.dp),
-                border = BorderStroke(1.dp, mealColor.copy(alpha = 0.3f)),
+                border = null,
                 colors = CardDefaults.cardColors(containerColor = mealColor.copy(alpha = 0.06f)),
             ) {
                 Row(
