@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,20 +55,14 @@ import com.nutriai.data.remote.dto.VitalClassification
 import com.nutriai.data.remote.dto.VitalPoint
 import com.nutriai.data.remote.dto.VitalSeries
 import com.nutriai.data.remote.dto.VitalSummaryItem
-import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.ui.components.EmptyState
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.components.PrimaryButton
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.StatusIndicator
 import com.nutriai.ui.components.Status
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -83,6 +78,8 @@ import javax.inject.Inject
 // labs; each reading gets an educational band + guideline citation from the
 // server. Not medical advice. Mirrors the cycle/discipline/wellness features.
 // ---------------------------------------------------------------------------
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 private const val DEFAULT_DISCLAIMER =
     "Educational, not medical advice. Confirm any result with your doctor."
@@ -147,18 +144,13 @@ private fun vitalEmoji(type: String): String = when (type) {
     else -> "📊"
 }
 
-/**
- * Severity -> colour. Routed through MaterialTheme.colorScheme where a slot exists; amber/orange
- * have no theme slot so they are named constants. The chip never relies on colour alone - the
- * band text is always shown alongside.
- */
 @Composable
 private fun severityColor(severity: String): Color = when (severity) {
     "normal" -> BrandGreen
-    "watch" -> Color(0xFFF2B705) // amber
-    "elevated" -> Color(0xFFEF8A17) // orange
+    "watch" -> Color(0xFFF2B705)
+    "elevated" -> Color(0xFFEF8A17)
     "high" -> KaizenCoral
-    "urgent" -> Color(0xFFB3261E) // strong red
+    "urgent" -> Color(0xFFB3261E)
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
@@ -278,7 +270,6 @@ fun VitalsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // While a metric detail is open, system back returns to the overview list.
     BackHandler(enabled = state.selectedType != null) { viewModel.closeMetric() }
 
     val selected = state.selectedType
@@ -327,7 +318,7 @@ private fun VitalsOverview(
         }
 
         item {
-            SectionHeader(title = "Vitals & Labs", emoji = "❤️")
+            Text("❤️ Vitals & Labs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
 
         if (state.loading) {
@@ -349,14 +340,14 @@ private fun VitalsOverview(
         }
 
         // Body & vitals section
-        item { SectionHeader(title = "Body & Vitals", emoji = "🏋️") }
+        item { Text("🏋️ Body & Vitals", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         items(BODY_VITALS.size) { i ->
             val meta = BODY_VITALS[i]
             MetricRow(meta = meta, item = byType[meta.type], onClick = { onOpen(meta.type) })
         }
 
         // Blood labs section
-        item { SectionHeader(title = "Blood Labs", emoji = "🧪") }
+        item { Text("🧪 Blood Labs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         items(LAB_VITALS.size) { i ->
             val meta = LAB_VITALS[i]
             MetricRow(meta = meta, item = byType[meta.type], onClick = { onOpen(meta.type) })
@@ -386,12 +377,17 @@ private fun MetricRow(meta: VitalMeta, item: VitalSummaryItem?, onClick: () -> U
         "${meta.label}, no readings yet. Add first reading."
     }
 
-    GlassCard(
-        modifier = Modifier.semantics { contentDescription = rowDesc },
-        onClick = onClick,
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = rowDesc },
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(Spacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -400,10 +396,7 @@ private fun MetricRow(meta: VitalMeta, item: VitalSummaryItem?, onClick: () -> U
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 modifier = Modifier.weight(1f),
             ) {
-                EmojiBadge(
-                    emoji = vitalEmoji(meta.type),
-                    bgColor = KaizenCoral.copy(alpha = 0.15f),
-                )
+                Text(vitalEmoji(meta.type), style = MaterialTheme.typography.titleMedium)
                 Column {
                     Text(meta.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     if (hasData) {
@@ -488,7 +481,7 @@ private fun VitalDetail(
 
         item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                EmojiBadge(emoji = vitalEmoji(meta.type), bgColor = KaizenLavender.copy(alpha = 0.2f))
+                Text(vitalEmoji(meta.type), style = MaterialTheme.typography.headlineSmall)
                 Column {
                     Text(meta.label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text(
@@ -504,8 +497,18 @@ private fun VitalDetail(
         state.savedClassification?.let { c ->
             item {
                 state.toast?.let { LaunchedEffect(it) { delay(3000); onClearToast() } }
-                FeatureCard(emoji = "✅", title = "Saved", accentColor = BrandGreen) {
-                    if (c.band.isNotBlank()) SeverityChip(band = c.band, severity = c.severity)
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md)) {
+                        Text("✅ Saved", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        if (c.band.isNotBlank()) {
+                            Spacer(Modifier.height(Spacing.xs))
+                            SeverityChip(band = c.band, severity = c.severity)
+                        }
+                    }
                 }
             }
         }
@@ -520,30 +523,34 @@ private fun VitalDetail(
             // Educational latest reading: band + guideline citation + message.
             series.latest?.let { latest ->
                 item {
-                    FeatureCard(
-                        emoji = vitalEmoji(series.type),
-                        title = "Latest Reading",
-                        accentColor = KaizenBlue,
+                    Card(
+                        shape = Sharp,
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                            Text(
-                                "${displayValue(series.type, latest.point)} ${series.unit}".trim(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            if (latest.band.isNotBlank()) SeverityChip(band = latest.band, severity = latest.severity)
-                        }
-                        if (latest.message.isNotBlank()) {
+                        Column(Modifier.padding(Spacing.md)) {
+                            Text("${vitalEmoji(series.type)} Latest Reading", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             Spacer(Modifier.height(Spacing.sm))
-                            Text(latest.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (latest.guideline.isNotBlank()) {
-                            Spacer(Modifier.height(Spacing.xs))
-                            Text(
-                                "📚 Source: ${latest.guideline}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                                Text(
+                                    "${displayValue(series.type, latest.point)} ${series.unit}".trim(),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                if (latest.band.isNotBlank()) SeverityChip(band = latest.band, severity = latest.severity)
+                            }
+                            if (latest.message.isNotBlank()) {
+                                Spacer(Modifier.height(Spacing.sm))
+                                Text(latest.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (latest.guideline.isNotBlank()) {
+                                Spacer(Modifier.height(Spacing.xs))
+                                Text(
+                                    "📚 Source: ${latest.guideline}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
@@ -555,13 +562,21 @@ private fun VitalDetail(
             }
             if (chartPoints.size >= 2) {
                 item {
-                    FeatureCard(emoji = "📈", title = "Trend", accentColor = KaizenLavender) {
-                        val lineColor = KaizenLavender
-                        VitalLineChart(values = chartPoints, lineColor = lineColor)
-                        Spacer(Modifier.height(Spacing.sm))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${formatNum(chartPoints.min())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${formatNum(chartPoints.max())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Card(
+                        shape = Sharp,
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    ) {
+                        Column(Modifier.padding(Spacing.md)) {
+                            Text("📈 Trend", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(Spacing.sm))
+                            val lineColor = KaizenLavender
+                            VitalLineChart(values = chartPoints, lineColor = lineColor)
+                            Spacer(Modifier.height(Spacing.sm))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("${formatNum(chartPoints.min())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${formatNum(chartPoints.max())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -579,7 +594,7 @@ private fun VitalDetail(
 
             // Past readings (newest first - server returns oldest->newest for the chart).
             if (series.points.isNotEmpty()) {
-                item { SectionHeader(title = "Past Readings", emoji = "🗓️") }
+                item { Text("🗓️ Past Readings", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 val past = series.points.reversed()
                 items(past.size) { i ->
                     val p = past[i]
@@ -609,9 +624,13 @@ private fun VitalDetail(
 
 @Composable
 private fun PastReadingRow(type: String, unit: String, point: VitalPoint) {
-    GlassCard {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(Spacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -787,42 +806,48 @@ fun HomeVitalsCard(
     val byType = state.items.associateBy { it.type }
     val picks = HOME_PRIORITY.mapNotNull { byType[it] }.take(3)
 
-    FeatureCard(
-        emoji = "❤️",
-        title = "Vitals & Labs",
-        modifier = modifier.semantics { contentDescription = "Vitals and labs. Open to view or add readings." },
-        accentColor = KaizenCoral,
-        onClick = onOpenVitals,
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenVitals)
+            .semantics { contentDescription = "Vitals and labs. Open to view or add readings." },
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        if (picks.isEmpty()) {
-            Text(
-                "Track your vitals — blood pressure, glucose, cholesterol and more.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            picks.forEach { item ->
-                val meta = metaFor(item.type)
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text("❤️ Vitals & Labs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.sm))
+            if (picks.isEmpty()) {
+                Text(
+                    "Track your vitals — blood pressure, glucose, cholesterol and more.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                picks.forEach { item ->
+                    val meta = metaFor(item.type)
                     Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
-                        EmojiBadge(emoji = vitalEmoji(item.type), bgColor = KaizenCoral.copy(alpha = 0.15f), size = 28.dp)
-                        Text(meta.label, style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "${displayValue(item.type, item.latest)} ${item.unit.ifBlank { meta.unit }}".trim(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        item.classification?.let { c ->
-                            if (c.band.isNotBlank()) StatusIndicator(text = c.band, status = severityToStatus(c.severity))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            Text(vitalEmoji(item.type), style = MaterialTheme.typography.bodyMedium)
+                            Text(meta.label, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                "${displayValue(item.type, item.latest)} ${item.unit.ifBlank { meta.unit }}".trim(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            item.classification?.let { c ->
+                                if (c.band.isNotBlank()) StatusIndicator(text = c.band, status = severityToStatus(c.severity))
+                            }
                         }
                     }
                 }

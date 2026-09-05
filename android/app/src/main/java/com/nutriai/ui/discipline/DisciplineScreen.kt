@@ -49,12 +49,8 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.DisciplineToday
 import com.nutriai.data.remote.dto.HabitView
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.components.PrimaryButton
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.StatusIndicator
 import com.nutriai.ui.components.Status
 import com.nutriai.ui.theme.BrandAmber
@@ -64,13 +60,14 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.NutritionColor
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class DisciplineState(val loading: Boolean = true, val data: DisciplineToday? = null)
 
@@ -148,8 +145,6 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
-        item { com.nutriai.ui.components.ScreenHeader("🎯 Discipline") }
-
         if (state.loading) {
             item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
         }
@@ -157,34 +152,37 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
         state.data?.let { d ->
             // Adherence score card
             item {
-                FeatureCard(
-                    emoji = "🏆",
-                    title = "Today's Adherence",
-                    accentColor = KaizenLavender,
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AdherenceRing(d.adherence.score)
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Text(
-                                "${d.adherence.score}%",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = KaizenLavender,
-                            )
-                            KaizenProgressBar(
-                                progress = d.adherence.score / 100f,
-                                color = KaizenLavender,
-                            )
-                            Spacer(Modifier.height(Spacing.xs))
-                            Text(
-                                d.review,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text("🏆 Today's Adherence", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AdherenceRing(d.adherence.score)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                Text(
+                                    "${d.adherence.score}%",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KaizenLavender,
+                                )
+                                KaizenProgressBar(
+                                    progress = d.adherence.score / 100f,
+                                    color = KaizenLavender,
+                                )
+                                Spacer(Modifier.height(Spacing.xs))
+                                Text(
+                                    d.review,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
@@ -192,15 +190,22 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
 
             // Nudges
             if (d.nudges.isNotEmpty()) {
-                item { SectionHeader(title = "Nudges", emoji = "💡") }
+                item {
+                    Text("💡 Nudges", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
                 d.nudges.forEach { nudge ->
                     item {
-                        GlassCard {
+                        Card(
+                            shape = Sharp,
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        ) {
                             Row(
+                                Modifier.padding(Spacing.md),
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                EmojiBadge(emoji = "💬", bgColor = BrandAmber.copy(alpha = 0.2f), size = 32.dp)
+                                Text("💬", style = MaterialTheme.typography.titleMedium)
                                 Text(nudge, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
@@ -209,7 +214,9 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
             }
 
             // Today's habits
-            item { SectionHeader(title = "Today's Habits", emoji = "✅") }
+            item {
+                Text("✅ Today's Habits", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            }
             itemsIndexed(d.habits) { i, habit ->
                 HabitRow(habit, onToggle = { viewModel.toggle(habit) }, onDelete = { viewModel.removeHabit(habit.id) })
             }
@@ -224,15 +231,22 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
 
             // Quick wins
             if (d.adherence.topActions.isNotEmpty()) {
-                item { SectionHeader(title = "Quick Wins", emoji = "🚀") }
+                item {
+                    Text("🚀 Quick Wins", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
                 d.adherence.topActions.forEach { a ->
                     item {
-                        GlassCard {
+                        Card(
+                            shape = Sharp,
+                            elevation = CardDefaults.cardElevation(2.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        ) {
                             Row(
+                                Modifier.padding(Spacing.md),
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                EmojiBadge(emoji = "⚡", bgColor = BrandAmber.copy(alpha = 0.2f), size = 28.dp)
+                                Text("⚡", style = MaterialTheme.typography.titleMedium)
                                 Text(a, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
@@ -272,9 +286,13 @@ private fun HabitRow(habit: HabitView, onToggle: () -> Unit, onDelete: () -> Uni
     }
     val accentColor = if (habit.doneToday) NutritionColor else KaizenBlue
 
-    GlassCard {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {

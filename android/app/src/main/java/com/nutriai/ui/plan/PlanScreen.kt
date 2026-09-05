@@ -1,9 +1,7 @@
 package com.nutriai.ui.plan
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,18 +35,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenProgressBar
-import com.nutriai.ui.components.MetricBlock
 import com.nutriai.ui.components.PrimaryButton
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
@@ -55,17 +49,12 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.RecoveryColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
-/**
- * "Plan Tomorrow" screen (spec Section 21). Build the next day's food + workout + sleep, capture what
- * your trainer said, watch live totals vs target, get an AI coach review, then on the day itself flip
- * to "Today" to compare planned vs actual and see an adherence score.
- */
+private val Sharp = RoundedCornerShape(8.dp)
+
 @Composable
 fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -84,9 +73,15 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.lg),
     ) {
-        item { SectionHeader(title = "Plan & Review", emoji = "📋") }
+        item {
+            Text(
+                "📋 Plan & Review",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        }
 
-        // Weekly grid: Mon-Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
+        // Weekly grid
         item {
             val week by viewModel.week.collectAsStateWithLifecycle()
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -96,7 +91,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             }
         }
 
-        // Day switch: Tomorrow (plan) / Today (track).
+        // Day switch
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("📅 Tomorrow") })
@@ -104,29 +99,42 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             }
         }
 
-        // Live totals vs target.
+        // Live totals vs target
         item { TotalsCard(state) }
 
-        // Plan-vs-actual (only meaningful when viewing today).
+        // Plan-vs-actual
         if (state.isToday && (plan.foods.isNotEmpty() || plan.exercises.isNotEmpty())) {
             item { AdherenceCard(state) }
         }
 
         // Trainer notes
         item {
-            FeatureCard(emoji = "🗣️", title = "Trainer Notes", accentColor = KaizenLavender) {
-                OutlinedTextField(
-                    value = plan.trainerNotes,
-                    onValueChange = { viewModel.setTrainerNotes(it) },
-                    placeholder = { Text("What did your trainer say? (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 1,
-                )
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("🗣️ Trainer Notes", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = plan.trainerNotes,
+                        onValueChange = { viewModel.setTrainerNotes(it) },
+                        placeholder = { Text("What did your trainer say? (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 1,
+                    )
+                }
             }
         }
 
         // Food plan
-        item { SectionHeader(title = "Food Plan", emoji = "🍽️") }
+        item {
+            Text(
+                "🍽️ Food Plan",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         itemsIndexed(plan.foods) { i, f ->
             PlanRow(
                 title = f.name,
@@ -145,17 +153,27 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         }
 
         // Workout plan
-        item { SectionHeader(title = "Workout Plan", emoji = "💪") }
+        item {
+            Text(
+                "💪 Workout Plan",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         itemsIndexed(plan.exercises) { i, e ->
-            GlassCard {
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth().padding(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (state.isToday) {
                         Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
                     }
-                    EmojiBadge(emoji = "🏋️", bgColor = MovementColor.copy(alpha = 0.15f), size = 32.dp)
+                    Text("🏋️", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.padding(start = Spacing.sm))
                     Column(Modifier.weight(1f)) {
                         Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -183,28 +201,49 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 
         // Sleep
         item {
-            FeatureCard(emoji = "😴", title = "Sleep Schedule", accentColor = RecoveryColor) {
-                SleepRow(plan.bedtime, plan.waketime) { b, w -> viewModel.setSleep(b, w) }
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("😴 Sleep Schedule", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    SleepRow(plan.bedtime, plan.waketime) { b, w -> viewModel.setSleep(b, w) }
+                }
             }
         }
 
         // AI review
         item {
-            FeatureCard(
-                emoji = "🤖",
-                title = if (state.reviewing) "Coach is reviewing…" else "Tap for Coach Review",
-                accentColor = KaizenBlue,
-                onClick = if (!state.reviewing) {{ viewModel.requestReview() }} else null,
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = if (!state.reviewing) Modifier.clickable { viewModel.requestReview() } else Modifier,
             ) {
-                if (state.reviewing) {
-                    CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp, color = KaizenBlue)
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        if (state.reviewing) "🤖 Coach is reviewing…" else "🤖 Tap for Coach Review",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (state.reviewing) {
+                        CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp, color = KaizenBlue)
+                    }
                 }
             }
         }
         if (plan.aiReview.isNotBlank()) {
             item {
-                FeatureCard(emoji = "💬", title = "Coach Review", accentColor = BrandGreen) {
-                    Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text("💬 Coach Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -227,7 +266,7 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
         Modifier
             .heightIn(min = 78.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(Radius.md),
+        shape = Sharp,
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Column(
@@ -252,8 +291,13 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
 private fun TotalsCard(state: PlanUiState) {
     val kcalPct = (state.plan.plannedKcal / state.kcalTarget).coerceIn(0.0, 1.0).toFloat()
     val proteinPct = (state.plan.plannedProtein / state.proteinTarget).coerceIn(0.0, 1.0).toFloat()
-    FeatureCard(emoji = "🎯", title = "Planned vs Target", accentColor = BrandAmber) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text("🎯 Planned vs Target", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("🔥 Calories", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                 Text("${state.plan.plannedKcal.roundToInt()} / ${state.kcalTarget.roundToInt()} kcal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -271,40 +315,51 @@ private fun TotalsCard(state: PlanUiState) {
 
 @Composable
 private fun AdherenceCard(state: PlanUiState) {
-    FeatureCard(emoji = "⚡", title = "Plan Adherence - Today", accentColor = BrandGreen) {
-        Text(
-            "${state.adherence}% followed",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = BrandGreen,
-        )
-        state.actualProtein?.let {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("⚡ Plan Adherence - Today", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text(
-                "💪 Protein: ${it.roundToInt()}g actual / ${state.plan.plannedProtein.roundToInt()}g planned",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "${state.adherence}% followed",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = BrandGreen,
             )
-        }
-        if (state.plan.exercises.isNotEmpty()) {
-            Text(
-                "🏋️ Workout: ${state.plan.exercises.count { it.done }}/${state.plan.exercises.size} done",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            state.actualProtein?.let {
+                Text(
+                    "💪 Protein: ${it.roundToInt()}g actual / ${state.plan.plannedProtein.roundToInt()}g planned",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (state.plan.exercises.isNotEmpty()) {
+                Text(
+                    "🏋️ Workout: ${state.plan.exercises.count { it.done }}/${state.plan.exercises.size} done",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
-/** A logged row -- tap it to remove. */
 @Composable
 private fun PlanRow(title: String, subtitle: String, emoji: String = "🥗", onRemove: () -> Unit) {
-    GlassCard(onClick = onRemove) {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.clickable(onClick = onRemove),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            EmojiBadge(emoji = emoji, bgColor = NutritionColor.copy(alpha = 0.15f), size = 36.dp)
+            Text(emoji, style = MaterialTheme.typography.titleMedium)
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                 Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -336,7 +391,7 @@ private fun AddFoodDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
                 items(viewModel.foodPresets) { p ->
                     Card(
                         Modifier.fillMaxWidth().clickable { viewModel.addFood(p.name, p.kcal, p.proteinG); onDismiss() },
-                        shape = RoundedCornerShape(Radius.sm),
+                        shape = Sharp,
                     ) {
                         Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(p.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -377,7 +432,6 @@ private fun AddExerciseDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(query, { query = it }, label = { Text("Search, or pick a body part below") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                // Body-part tabs: tap a part to see its exercises; tap an exercise to add it.
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(ExerciseCatalog.categories) { c ->
                         FilterChip(

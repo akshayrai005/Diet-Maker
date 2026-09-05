@@ -1,6 +1,5 @@
 package com.nutriai.ui.family
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -12,18 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -35,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,11 +45,7 @@ import com.nutriai.data.remote.dto.CalcResult
 import com.nutriai.data.remote.dto.FamilyMemberDto
 import com.nutriai.data.remote.dto.FamilyMemberRequest
 import com.nutriai.data.remote.dto.SensitiveData
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.MetricBlock
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.PrimaryButton
 import com.nutriai.ui.components.EmptyState
 import com.nutriai.ui.components.StatusIndicator
@@ -61,18 +53,17 @@ import com.nutriai.ui.components.Status
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
 import com.nutriai.ui.theme.KaizenBlue
-import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 private val SEX = listOf("male", "female")
 private val ACTIVITY = listOf("sedentary", "light", "moderate", "active", "veryactive")
@@ -160,11 +151,6 @@ fun FamilyScreen(
     ) {
         Spacer(Modifier.height(4.dp))
 
-        com.nutriai.ui.components.ScreenHeader(
-            title = "👨‍👩‍👧 Family",
-            subtitle = if (state.members.size == 1) "1 member" else "${state.members.size} members",
-        )
-
         if (state.loading) {
             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreen)
@@ -172,18 +158,18 @@ fun FamilyScreen(
         }
 
         if (state.members.isNotEmpty()) {
-            SectionHeader(title = "Members", emoji = "👥")
+            Text("👥 Members", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             state.members.forEach { member ->
-                GlassCard {
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
                     Row(
-                        Modifier.fillMaxWidth(),
+                        Modifier.fillMaxWidth().padding(Spacing.lg),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        EmojiBadge(
-                            emoji = "🙋",
-                            bgColor = KaizenLavender.copy(alpha = 0.2f),
-                        )
                         Column(Modifier.weight(1f)) {
                             Text(
                                 member.firstName,
@@ -198,7 +184,7 @@ fun FamilyScreen(
                             )
                         }
                         Text(
-                            "👁️ View",
+                            "View",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = BrandGreen,
@@ -262,29 +248,30 @@ fun FamilyScreen(
 
 @Composable
 private fun CalcStatCard(calc: CalcResult) {
-    FeatureCard(
-        emoji = "📊",
-        title = "Daily Targets",
-        accentColor = BrandGreen,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            MetricBlock(label = "BMI", value = String.format("%.1f", calc.bmi), color = KaizenBlue, modifier = Modifier.weight(1f))
-            MetricBlock(label = "TDEE", value = "${calc.tdee.toInt()}", color = BrandGreenDeep, modifier = Modifier.weight(1f))
-        }
-        Spacer(Modifier.height(Spacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            MetricBlock(label = "Daily kcal", value = "${calc.dailyKcal.toInt()}", color = BrandAmber, modifier = Modifier.weight(1f))
-            MetricBlock(label = "Protein", value = "${calc.proteinG.toInt()} g", color = KaizenLavender, modifier = Modifier.weight(1f))
-        }
-        if (calc.requiresSupervision) {
-            Spacer(Modifier.height(Spacing.md))
-            StatusIndicator(text = "⚠️ Requires professional supervision", status = Status.Critical)
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text("📊 Daily Targets", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                MetricBlock(label = "BMI", value = String.format("%.1f", calc.bmi), color = KaizenBlue, modifier = Modifier.weight(1f))
+                MetricBlock(label = "TDEE", value = "${calc.tdee.toInt()}", color = BrandGreenDeep, modifier = Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                MetricBlock(label = "Daily kcal", value = "${calc.dailyKcal.toInt()}", color = BrandAmber, modifier = Modifier.weight(1f))
+                MetricBlock(label = "Protein", value = "${calc.proteinG.toInt()} g", color = KaizenLavender, modifier = Modifier.weight(1f))
+            }
+            if (calc.requiresSupervision) {
+                StatusIndicator(text = "Requires professional supervision", status = Status.Critical)
+            }
         }
     }
 }
@@ -309,45 +296,47 @@ private fun AddMemberCard(
     loading: Boolean,
     onSubmit: (Double, Double, Double) -> Unit,
 ) {
-    FeatureCard(
-        emoji = "➕",
-        title = "Add a Member",
-        accentColor = KaizenBlue,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
+            Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            SectionHeader(title = "Basic Info", emoji = "📝")
+            Text("+ Add a Member", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+
+            Text("📝 Basic Info", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             BrandField(firstName, onFirstName, "First name")
             BrandField(relation, onRelation, "Relation")
             BrandField(height, onHeight, "Height (cm)", number = true)
 
-            SectionHeader(title = "Sex", emoji = "👤")
+            Text("👤 Sex", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             SingleChoiceChips(SEX, sex, onSex)
 
-            SectionHeader(title = "Body Details", emoji = "⚖️")
+            Text("⚖️ Body Details", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             BrandField(dob, onDob, "Date of birth (YYYY-MM-DD)")
             BrandField(weight, onWeight, "Current weight (kg)", number = true)
             BrandField(target, onTarget, "Target weight (kg)", number = true)
 
-            SectionHeader(title = "Activity Level", emoji = "🏃")
+            Text("🏃 Activity Level", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             SingleChoiceChips(ACTIVITY, activity, onActivity)
 
-            SectionHeader(title = "Goal", emoji = "🎯")
+            Text("🎯 Goal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             SingleChoiceChips(GOAL, goal, onGoal)
 
-            SectionHeader(title = "Diet", emoji = "🍲")
+            Text("🍲 Diet", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             SingleChoiceChips(DIET, diet, onDiet)
 
             message?.let {
-                GlassCard {
-                    Text(
-                        "✅ $it",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = BrandGreenDeep,
-                    )
-                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = BrandGreenDeep,
+                )
             }
 
             val h = height.toDoubleOrNull()
@@ -356,7 +345,7 @@ private fun AddMemberCard(
             val valid = firstName.isNotBlank() && dob.isNotBlank() && h != null && w != null && t != null
 
             PrimaryButton(
-                text = "👥 Add Member",
+                text = "Add Member",
                 onClick = {
                     if (h != null && w != null && t != null) onSubmit(h, w, t)
                 },
@@ -384,7 +373,7 @@ private fun BrandField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(Radius.md),
+        shape = Sharp,
         keyboardOptions = if (number) {
             KeyboardOptions(keyboardType = KeyboardType.Decimal)
         } else {
@@ -412,7 +401,7 @@ private fun SingleChoiceChips(options: List<String>, selected: String, onSelect:
                 selected = opt == selected,
                 onClick = { onSelect(opt) },
                 label = { Text(opt) },
-                shape = RoundedCornerShape(Radius.md),
+                shape = Sharp,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = BrandGreen,
                     selectedLabelColor = Color.White,

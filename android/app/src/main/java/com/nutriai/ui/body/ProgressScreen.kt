@@ -8,9 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +33,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -79,16 +80,7 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.BrandAmber
-import com.nutriai.ui.theme.MovementColor
-import com.nutriai.ui.theme.RecoveryColor
-import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.SectionHeader
-import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -108,6 +100,8 @@ import javax.inject.Inject
 // the phone (only a filename is recorded on the server). Body-neutral, encouraging
 // copy - no "ideal" targets. Body-fat is hidden entirely for minors.
 // ---------------------------------------------------------------------------
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 private const val DEFAULT_DISCLAIMER =
     "For your own tracking only - not a medical or fitness assessment, and never a measure of your worth."
@@ -403,20 +397,18 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = PaddingValues(vertical = Spacing.lg),
     ) {
-        item {
-            com.nutriai.ui.components.ScreenHeader(
-                title = "Progress & Body",
-                subtitle = "📈 Track your journey, celebrate your wins",
-            )
-        }
-
         // Disclaimer - shown prominently near the top.
         item {
-            GlassCard {
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
                 Text(
                     "💙 ${series?.disclaimer?.ifBlank { DEFAULT_DISCLAIMER } ?: DEFAULT_DISCLAIMER}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(Spacing.md),
                 )
             }
         }
@@ -443,8 +435,16 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
 
         state.error?.let { err ->
             item {
-                FeatureCard(emoji = "⚠️", title = "Error", accentColor = KaizenCoral) {
-                    Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md)) {
+                        Text("⚠️ Error", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }
@@ -459,8 +459,16 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             val bf = if (!isMinor) series.latestBodyFat else null
             if (bf != null || series.whr != null) {
                 item {
-                    FeatureCard(emoji = "📊", title = "Body Composition", accentColor = RecoveryColor) {
-                        BodyCompositionRow(pct = bf?.pct, band = bf?.band, whr = series.whr)
+                    Card(
+                        shape = Sharp,
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    ) {
+                        Column(Modifier.padding(Spacing.md)) {
+                            Text("📊 Body Composition", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(Spacing.sm))
+                            BodyCompositionRow(pct = bf?.pct, band = bf?.band, whr = series.whr)
+                        }
                     }
                 }
             }
@@ -483,13 +491,13 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             // Trend summaries for every measurement with a first->last change.
             val trends = series.trends.filter { !(isMinor && it.key == "bodyFatPct") }
             if (trends.isNotEmpty()) {
-                item { SectionHeader(title = "Changes over time", emoji = "📈") }
+                item { Text("📈 Changes over time", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 items(trends.size) { i -> TrendRow(trends[i]) }
             }
 
             // ---- Measurement log: delete a wrong / test entry ----
             if (series.points.isNotEmpty()) {
-                item { SectionHeader(title = "Measurement log", emoji = "📋") }
+                item { Text("📋 Measurement log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 val recent = series.points.reversed() // newest first
                 items(recent.size) { i ->
                     MeasurementLogRow(point = recent[i], onDelete = { viewModel.deleteMetric(recent[i]) })
@@ -498,7 +506,7 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
         }
 
         // ---- Progress-photo timeline ----
-        item { SectionHeader(title = "Progress photos", emoji = "📸") }
+        item { Text("📸 Progress photos", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
 
         if (!state.consentGiven) {
             item {
@@ -570,11 +578,16 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
 
             if (!state.photosLoading && state.photos.isEmpty()) {
                 item {
-                    GlassCard {
+                    Card(
+                        shape = Sharp,
+                        elevation = CardDefaults.cardElevation(2.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    ) {
                         Text(
                             "📷 No photos yet. Add one to start a private, on-device timeline.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(Spacing.md),
                         )
                     }
                 }
@@ -601,16 +614,6 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
     }
 }
 
-/** Plain text, not a card - a disclaimer doesn't need decoration to be noticed. */
-@Composable
-private fun DisclaimerCard(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
 @Composable
 private fun SavedPointCard(point: BodyPoint, whr: Whr?, isMinor: Boolean) {
     val parts = buildList {
@@ -623,16 +626,24 @@ private fun SavedPointCard(point: BodyPoint, whr: Whr?, isMinor: Boolean) {
         point.neckCm?.let { add("📐 Neck ${formatNum(it)} cm") }
         if (!isMinor) point.bodyFatPct?.let { add("📊 Body fat ${formatNum(it)}%") }
     }
-    FeatureCard(emoji = "✅", title = "Saved", accentColor = BrandGreen) {
-        if (parts.isNotEmpty()) {
-            Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-        }
-        if (whr != null && whr.ratio > 0.0) {
-            Text(
-                "📐 Waist-to-hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text("✅ Saved", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.xs))
+            if (parts.isNotEmpty()) {
+                Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
+            if (whr != null && whr.ratio > 0.0) {
+                Text(
+                    "📐 Waist-to-hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -645,10 +656,7 @@ private fun BodyCompositionRow(pct: Double?, band: String?, whr: Whr?) {
             Column(
                 Modifier.semantics { contentDescription = "Latest body fat ${formatNum(pct)} percent${band?.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}" },
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    EmojiBadge(emoji = "📊", bgColor = KaizenCoral)
-                    Text("Body fat", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text("📊 Body fat", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${formatNum(pct)}%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     band?.takeIf { it.isNotBlank() }?.let {
@@ -661,10 +669,7 @@ private fun BodyCompositionRow(pct: Double?, band: String?, whr: Whr?) {
             Column(
                 Modifier.semantics { contentDescription = "Waist to hip ratio ${formatNum(whr.ratio)}${whr.band.takeIf { it.isNotBlank() }?.let { ", $it" } ?: ""}" },
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    EmojiBadge(emoji = "📐", bgColor = KaizenLavender)
-                    Text("Waist-to-hip", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text("📐 Waist-to-hip", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(formatNum(whr.ratio), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     whr.band.takeIf { it.isNotBlank() }?.let {
@@ -686,41 +691,46 @@ private fun MetricChartCard(
     val values = series.points.mapNotNull { it.valueFor(selectedKey) }
     val unit = unitFor(selectedKey)
 
-    FeatureCard(
-        emoji = "📈",
-        title = "Trends",
-        accentColor = KaizenBlue,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        // Metric selector - horizontally scrollable chips.
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            chartableKeys.forEach { key ->
-                FilterChip(
-                    selected = key == selectedKey,
-                    onClick = { onSelect(key) },
-                    label = { Text("${emojiFor(key)} ${labelFor(key)}") },
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Chart ${labelFor(key)}" },
+        Column(Modifier.padding(Spacing.md)) {
+            Text("📈 Trends", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.sm))
+
+            // Metric selector - horizontally scrollable chips.
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                chartableKeys.forEach { key ->
+                    FilterChip(
+                        selected = key == selectedKey,
+                        onClick = { onSelect(key) },
+                        label = { Text("${emojiFor(key)} ${labelFor(key)}") },
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Chart ${labelFor(key)}" },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(Spacing.sm))
+
+            if (values.size >= 2) {
+                val lineColor = colorFor(selectedKey)
+                BodyLineChart(values = values, lineColor = lineColor, metricLabel = labelFor(selectedKey))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${formatNum(values.min())} $unit".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${formatNum(values.max())} $unit".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                Text(
+                    "Log ${labelFor(selectedKey).lowercase()} at least twice to see a trend line.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        Spacer(Modifier.height(Spacing.sm))
-
-        if (values.size >= 2) {
-            val lineColor = colorFor(selectedKey)
-            BodyLineChart(values = values, lineColor = lineColor, metricLabel = labelFor(selectedKey))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${formatNum(values.min())} $unit".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${formatNum(values.max())} $unit".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            Text(
-                "Log ${labelFor(selectedKey).lowercase()} at least twice to see a trend line.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -785,16 +795,20 @@ private fun TrendRow(trend: com.nutriai.data.remote.dto.BodyTrend) {
         else -> "➡️"
     }
     val deltaText = "$arrow ${formatNum(kotlin.math.abs(delta))} $unit".trim()
-    GlassCard {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(
-            Modifier.fillMaxWidth().semantics {
+            Modifier.fillMaxWidth().padding(Spacing.md).semantics {
                 contentDescription = "${labelFor(trend.key)} changed from ${formatNum(trend.first)} to ${formatNum(trend.last)} $unit"
             },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                EmojiBadge(emoji = emojiFor(trend.key), bgColor = colorFor(trend.key))
+                Text(emojiFor(trend.key), style = MaterialTheme.typography.titleMedium)
                 Column(Modifier.weight(1f)) {
                     Text(labelFor(trend.key), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
@@ -818,9 +832,13 @@ private fun MeasurementLogRow(point: BodyPoint, onDelete: () -> Unit) {
         point.waistCm?.let { "📏 waist ${formatNum(it)}" },
         point.bodyFatPct?.let { "📊 BF ${formatNum(it)}%" },
     )
-    GlassCard {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(Spacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -855,23 +873,27 @@ private fun MeasurementLogRow(point: BodyPoint, onDelete: () -> Unit) {
 
 @Composable
 private fun ConsentCard(savingPhoto: Boolean, onAgree: () -> Unit) {
-    FeatureCard(
-        emoji = "🔒",
-        title = "Private progress photos",
-        accentColor = KaizenLavender,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Text(
-            CONSENT_LINE,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.sm))
-        com.nutriai.ui.components.PrimaryButton(
-            text = "👍 Got it",
-            onClick = onAgree,
-            enabled = !savingPhoto,
-            modifier = Modifier.semantics { contentDescription = "I understand - enable private progress photos" },
-        )
+        Column(Modifier.padding(Spacing.md)) {
+            Text("🔒 Private progress photos", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                CONSENT_LINE,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.sm))
+            com.nutriai.ui.components.PrimaryButton(
+                text = "👍 Got it",
+                onClick = onAgree,
+                enabled = !savingPhoto,
+                modifier = Modifier.semantics { contentDescription = "I understand - enable private progress photos" },
+            )
+        }
     }
 }
 
@@ -879,17 +901,25 @@ private fun ConsentCard(savingPhoto: Boolean, onAgree: () -> Unit) {
 private fun CompareCard(context: Context, photos: List<BodyPhotoDto>, refs: List<String>) {
     val picked = refs.mapNotNull { r -> photos.firstOrNull { it.localRef == r } }
     if (picked.size < 2) return
-    FeatureCard(emoji = "🔀", title = "Before & After", accentColor = BrandAmber) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            picked.forEach { photo ->
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    LocalPhoto(
-                        context = context,
-                        localRef = photo.localRef,
-                        desc = "Progress photo from ${photo.takenAt.take(10)}",
-                        modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).clip(RoundedCornerShape(12.dp)),
-                    )
-                    Text("📅 ${photo.takenAt.take(10)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Text("🔀 Before & After", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.sm))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                picked.forEach { photo ->
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        LocalPhoto(
+                            context = context,
+                            localRef = photo.localRef,
+                            desc = "Progress photo from ${photo.takenAt.take(10)}",
+                            modifier = Modifier.fillMaxWidth().aspectRatio(0.75f).clip(Sharp),
+                        )
+                        Text("📅 ${photo.takenAt.take(10)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -905,14 +935,13 @@ private fun PhotoRow(
     onToggleSelect: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val borderMod = if (compareMode && selected) {
-        Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-    } else Modifier
     Card(
-        Modifier.fillMaxWidth().then(borderMod),
-        shape = RoundedCornerShape(16.dp),
+        Modifier.fillMaxWidth(),
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("📅 ${photo.takenAt.take(10)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (!compareMode) {
@@ -929,7 +958,7 @@ private fun PhotoRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(0.8f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(Sharp)
                     .then(if (compareMode) Modifier.clickable(onClick = onToggleSelect) else Modifier),
             )
             photo.caption?.takeIf { it.isNotBlank() }?.let {

@@ -1,7 +1,7 @@
 package com.nutriai.ui.coach
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,19 +52,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.ui.home.ChatViewModel
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 
-// ---------------------------------------------------------------------------
-// Premium "AI Coach" chat screen for NutriAI.
-// One self-contained file. Reuses com.nutriai.ui.home.ChatViewModel.
-// Design language matches PremiumDashboard (rounded cards, brand gradients).
-// ---------------------------------------------------------------------------
+private val Sharp = RoundedCornerShape(8.dp)
 
 private val QuickSuggestions = listOf(
     "How much protein?",
@@ -85,12 +73,10 @@ fun CoachScreen(
     val listState = rememberLazyListState()
     val messages = state.messages
 
-    // Red-flag safety net - surfaced alongside the coach's normal reply.
     state.redFlagMessage?.let { msg ->
         com.nutriai.ui.safety.RedFlagDialog(message = msg, onDismiss = { viewModel.clearRedFlag() })
     }
 
-    // Keep the newest message in view as the conversation grows.
     LaunchedEffect(messages.size, state.sending) {
         val count = messages.size + if (state.sending) 1 else 0
         if (count > 0) listState.animateScrollToItem(count - 1)
@@ -99,7 +85,7 @@ fun CoachScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = com.nutriai.ui.theme.Spacing.screenHorizontal),
+            .padding(horizontal = Spacing.screenHorizontal),
     ) {
         Spacer(Modifier.height(16.dp))
         CoachHeader()
@@ -151,37 +137,23 @@ fun CoachScreen(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Header - brand-gradient avatar + title/subtitle
-// ---------------------------------------------------------------------------
-
 @Composable
 private fun CoachHeader() {
-    val tokens = MaterialTheme.kaizenColors
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Radius.lg))
-            .background(
-                Brush.horizontalGradient(listOf(tokens.cardGradientStart, tokens.cardGradientEnd)),
-            )
-            .padding(Spacing.lg),
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(Radius.sm))
-                    .background(BrandGreen.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.SmartToy, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
-            }
+        Row(
+            Modifier.padding(Spacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.SmartToy, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(14.dp))
             Column {
                 Text(
                     "🤖 Kaizen Coach",
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
@@ -194,13 +166,8 @@ private fun CoachHeader() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Chat bubbles
-// ---------------------------------------------------------------------------
-
 @Composable
 private fun ChatBubble(text: String, fromUser: Boolean) {
-    val tokens = MaterialTheme.kaizenColors
     val bubbleShape = if (fromUser) {
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
     } else {
@@ -213,11 +180,7 @@ private fun ChatBubble(text: String, fromUser: Boolean) {
         val bubbleMod = Modifier
             .widthIn(max = 300.dp)
             .clip(bubbleShape)
-            .let { m ->
-                if (fromUser) m.background(BrandGreen)
-                else m.background(Brush.verticalGradient(listOf(tokens.cardGradientStart, tokens.cardGradientEnd)))
-                    .border(1.dp, tokens.glassBorder, bubbleShape)
-            }
+            .background(if (fromUser) BrandGreen else MaterialTheme.colorScheme.surfaceVariant)
         Box(modifier = bubbleMod) {
             Text(
                 text,
@@ -259,10 +222,6 @@ private fun TypingBubble() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Quick-suggestion chips
-// ---------------------------------------------------------------------------
-
 @Composable
 private fun SuggestionChips(enabled: Boolean, onPick: (String) -> Unit) {
     Row(
@@ -286,10 +245,6 @@ private fun SuggestionChips(enabled: Boolean, onPick: (String) -> Unit) {
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// Input row
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun InputBar(

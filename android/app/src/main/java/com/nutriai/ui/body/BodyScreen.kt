@@ -6,10 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,20 +15,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,12 +29,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -55,18 +44,10 @@ import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.BodyAssessment
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.KaizenBlue
-import com.nutriai.ui.theme.BrandAmber
-import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.SectionHeader
-import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -76,11 +57,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class BodyUiState(
     val analyzing: Boolean = false,
@@ -150,69 +129,83 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
-        item { Hero() }
-
         item {
-            FeatureCard(
-                emoji = "📸",
-                title = "Capture",
-                accentColor = KaizenBlue,
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    com.nutriai.ui.components.PrimaryButton(
-                        text = "📷 Take photo",
-                        onClick = {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                launchCamera(context, System.currentTimeMillis()) { uri -> cameraUri = uri; cameraLauncher.launch(uri) }
-                            } else {
-                                cameraPermLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    com.nutriai.ui.components.SecondaryButton(
-                        text = "🖼️ Choose",
-                        onClick = { galleryLauncher.launch("image/*") },
-                        modifier = Modifier.weight(1f),
-                    )
+                Column(Modifier.padding(Spacing.md)) {
+                    Text("📸 Capture", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(Spacing.sm))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        com.nutriai.ui.components.PrimaryButton(
+                            text = "📷 Take photo",
+                            onClick = {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                    launchCamera(context, System.currentTimeMillis()) { uri -> cameraUri = uri; cameraLauncher.launch(uri) }
+                                } else {
+                                    cameraPermLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        com.nutriai.ui.components.SecondaryButton(
+                            text = "🖼️ Choose",
+                            onClick = { galleryLauncher.launch("image/*") },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
 
         state.currentPhoto?.let { photo ->
             item {
-                FeatureCard(
-                    emoji = "🖼️",
-                    title = "Your Photo",
-                    accentColor = KaizenLavender,
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    AsyncImage(
-                        model = photo,
-                        contentDescription = "Your photo",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().aspectRatio(0.8f).clip(RoundedCornerShape(14.dp)),
-                    )
-                    Spacer(Modifier.height(Spacing.sm))
-                    com.nutriai.ui.components.PrimaryButton(
-                        text = if (state.analyzing) "🔄 Analyzing..." else "🤖 Analyze with AI",
-                        onClick = { viewModel.analyze() },
-                        enabled = !state.analyzing,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        "🔒 Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Column(Modifier.padding(Spacing.md)) {
+                        Text("🖼️ Your Photo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(Spacing.sm))
+                        AsyncImage(
+                            model = photo,
+                            contentDescription = "Your photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxWidth().aspectRatio(0.8f).clip(Sharp),
+                        )
+                        Spacer(Modifier.height(Spacing.sm))
+                        com.nutriai.ui.components.PrimaryButton(
+                            text = if (state.analyzing) "🔄 Analyzing..." else "🤖 Analyze with AI",
+                            onClick = { viewModel.analyze() },
+                            enabled = !state.analyzing,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            "🔒 Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
 
         state.error?.let {
             item {
-                FeatureCard(emoji = "⚠️", title = "Error", accentColor = KaizenCoral) {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md)) {
+                        Text("⚠️ Error", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }
@@ -221,60 +214,55 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
 }
 
 @Composable
-private fun Hero() {
-    com.nutriai.ui.components.ScreenHeader(
-        title = "Body Check",
-        subtitle = "📊 A rough AI body-fat read from a photo. Nothing is saved.",
-    )
-}
-
-@Composable
 private fun AssessmentCard(a: BodyAssessment) {
-    FeatureCard(
-        emoji = "📊",
-        title = "Assessment",
-        accentColor = BrandGreen,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        when {
-            !a.available -> Text("AI analysis isn't enabled on the server. Your formula estimate is ${fmtPct(a.formulaEstimatePct)}.", style = MaterialTheme.typography.bodyMedium)
-            a.refused -> Text(a.reason ?: "Couldn't analyse this photo.", style = MaterialTheme.typography.bodyMedium)
-            else -> {
-                val fromPhoto = a.source == "ai"
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    EmojiBadge(emoji = if (fromPhoto) "📷" else "📐", bgColor = if (fromPhoto) KaizenBlue else KaizenLavender)
+        Column(Modifier.padding(Spacing.md)) {
+            Text("📊 Assessment", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(Spacing.sm))
+            when {
+                !a.available -> Text("AI analysis isn't enabled on the server. Your formula estimate is ${fmtPct(a.formulaEstimatePct)}.", style = MaterialTheme.typography.bodyMedium)
+                a.refused -> Text(a.reason ?: "Couldn't analyse this photo.", style = MaterialTheme.typography.bodyMedium)
+                else -> {
+                    val fromPhoto = a.source == "ai"
                     Text(
-                        if (fromPhoto) "Estimated body fat (from your photo)" else "Estimated body fat (from your stats)",
-                        style = MaterialTheme.typography.labelLarge,
+                        if (fromPhoto) "📷 Estimated body fat (from your photo)" else "📐 Estimated body fat (from your stats)",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                Spacer(Modifier.height(Spacing.sm))
-                Text(
-                    "${trim(a.bodyFatLow)}-${trim(a.bodyFatHigh)}%",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreenDeep,
-                )
-                a.category?.takeIf { it.isNotBlank() }?.let {
-                    Text("🏷️ Category: $it  ·  confidence ${a.confidence ?: "low"}", style = MaterialTheme.typography.bodySmall)
-                }
-                a.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                if (fromPhoto) {
-                    a.formulaEstimatePct?.let {
-                        Text(
-                            "📐 Formula (BMI-based) estimate: ${fmtPct(it)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    Spacer(Modifier.height(Spacing.sm))
+                    Text(
+                        "${trim(a.bodyFatLow)}-${trim(a.bodyFatHigh)}%",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandGreenDeep,
+                    )
+                    a.category?.takeIf { it.isNotBlank() }?.let {
+                        Text("🏷️ Category: $it  ·  confidence ${a.confidence ?: "low"}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    a.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    if (fromPhoto) {
+                        a.formulaEstimatePct?.let {
+                            Text(
+                                "📐 Formula (BMI-based) estimate: ${fmtPct(it)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "⚠️ ${a.disclaimer}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            "⚠️ ${a.disclaimer}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

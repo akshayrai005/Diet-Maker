@@ -54,28 +54,22 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.Badge
 import com.nutriai.data.remote.dto.Gamification
-import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.ui.components.EmptyState
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenProgressBar
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class BadgesState(
     val loading: Boolean = true,
@@ -113,30 +107,30 @@ fun BadgesScreen(
     viewModel: BadgesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val tokens = MaterialTheme.kaizenColors
 
     when {
         state.loading -> {
             Box(
-                modifier = modifier.fillMaxSize().background(tokens.pageBackground).padding(Spacing.xl),
+                modifier = modifier.fillMaxSize().padding(Spacing.xl),
                 contentAlignment = Alignment.Center,
             ) { CircularProgressIndicator(color = BrandGreen) }
         }
 
         state.error != null -> {
             Box(
-                modifier = modifier.fillMaxSize().background(tokens.pageBackground).padding(Spacing.xl),
+                modifier = modifier.fillMaxSize().padding(Spacing.xl),
                 contentAlignment = Alignment.Center,
             ) {
-                FeatureCard(
-                    emoji = "⚠️",
-                    title = "Oops!",
-                    accentColor = KaizenCoral,
+                Card(
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Text(
                         state.error!!,
                         color = KaizenCoral,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(Spacing.lg),
                     )
                 }
             }
@@ -148,26 +142,18 @@ fun BadgesScreen(
                 columns = GridCells.Fixed(2),
                 modifier = modifier
                     .fillMaxSize()
-                    .background(tokens.pageBackground)
                     .padding(horizontal = Spacing.screenHorizontal),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 contentPadding = PaddingValues(vertical = Spacing.lg),
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    com.nutriai.ui.components.ScreenHeader(
-                        title = "🏅 Achievements",
-                        subtitle = "Earn badges by staying consistent with your goals",
-                    )
-                }
-
-                item(span = { GridItemSpan(maxLineSpan) }) {
                     BadgesHero(earned = g.earnedCount, total = g.total)
                 }
 
                 if (g.badges.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        SectionHeader(title = "Your Badges", emoji = "🏆")
+                        Text("🏆 Your Badges", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -179,7 +165,7 @@ fun BadgesScreen(
 
         else -> {
             Box(
-                modifier = modifier.fillMaxSize().background(tokens.pageBackground).padding(Spacing.xl),
+                modifier = modifier.fillMaxSize().padding(Spacing.xl),
                 contentAlignment = Alignment.Center,
             ) {
                 EmptyState(
@@ -195,12 +181,13 @@ fun BadgesScreen(
 @Composable
 private fun BadgesHero(earned: Int, total: Int) {
     val fraction = if (total > 0) earned.toFloat() / total.toFloat() else 0f
-    FeatureCard(
-        emoji = "🌟",
-        title = "Progress",
-        accentColor = BrandAmber,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Text("🌟 Progress", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -252,12 +239,9 @@ private fun BadgeCard(badge: Badge) {
     val v = badgeVisual(badge)
     Card(
         modifier = Modifier.fillMaxWidth().height(190.dp),
-        shape = RoundedCornerShape(Radius.lg),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (earned) 6.dp else 1.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (earned) v.accent.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        ),
-        border = if (earned) androidx.compose.foundation.BorderStroke(2.dp, v.accent.copy(alpha = 0.5f)) else null,
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (earned) 4.dp else 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(vertical = Spacing.lg, horizontal = Spacing.md),
@@ -322,7 +306,7 @@ private fun BadgeCard(badge: Badge) {
             }
 
             Text(
-                if (earned) "✅ EARNED" else "🔒 LOCKED",
+                if (earned) "EARNED" else "LOCKED",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (earned) v.accent else MaterialTheme.colorScheme.onSurfaceVariant,

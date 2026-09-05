@@ -5,8 +5,6 @@ import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,20 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -41,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -61,28 +55,23 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.BarcodeFood
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.PrimaryButton
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class BarcodeState(
     val code: String = "",
@@ -177,102 +166,78 @@ fun BarcodeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
-    val tokens = MaterialTheme.kaizenColors
 
     Column(
         modifier
             .fillMaxSize()
-            .background(tokens.pageBackground)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         Spacer(Modifier.height(Spacing.xs))
 
-        // ---- Hero header ----
-        com.nutriai.ui.components.ScreenHeader(
-            title = "📷 Barcode Scanner",
-            subtitle = "Scan packaged food and log it instantly",
-        )
-
-        FeatureCard(
-            emoji = "📦",
-            title = "Scan & Log",
-            accentColor = BrandGreen,
-        ) {
-            Text(
-                "Point, scan, and log packaged food in seconds.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
         // ---- Camera preview ----
-        SectionHeader(title = "Camera", emoji = "🎥")
+        Text("🎥 Camera", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
         if (cameraPermission.status.isGranted) {
-            GlassCard {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(230.dp)
-                            .clip(RoundedCornerShape(Radius.lg))
-                            .border(
-                                width = 3.dp,
-                                brush = Brush.verticalGradient(listOf(NutritionColor, KaizenBlue)),
-                                shape = RoundedCornerShape(Radius.lg),
-                            ),
+                            .clip(Sharp),
                     ) {
                         CameraScanner(
                             onBarcode = viewModel::onScanned,
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(Radius.lg)),
+                            modifier = Modifier.fillMaxSize().clip(Sharp),
                         )
                     }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        EmojiBadge(emoji = "🎯", bgColor = BrandGreen.copy(alpha = 0.15f))
-                        Text(
-                            "Point at a barcode",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = BrandGreen,
-                        )
-                    }
+                    Text(
+                        "Point at a barcode",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = BrandGreen,
+                    )
                 }
             }
         } else {
-            FeatureCard(
-                emoji = "📸",
-                title = "Camera Permission",
-                accentColor = KaizenBlue,
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
-                PrimaryButton(
-                    text = "Enable camera to scan",
-                    onClick = { cameraPermission.launchPermissionRequest() },
-                    containerColor = KaizenBlue,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text("Camera Permission", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    PrimaryButton(
+                        text = "Enable camera to scan",
+                        onClick = { cameraPermission.launchPermissionRequest() },
+                        containerColor = KaizenBlue,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
 
         // ---- Manual entry ----
-        SectionHeader(title = "Manual Entry", emoji = "⌨️")
+        Text("⌨️ Manual Entry", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
-        FeatureCard(
-            emoji = "🔢",
-            title = "Enter Barcode",
-            accentColor = KaizenLavender,
+        Card(
+            shape = Sharp,
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 OutlinedTextField(
                     value = state.code,
                     onValueChange = viewModel::onCode,
                     label = { Text("Barcode number") },
                     singleLine = true,
-                    shape = RoundedCornerShape(Radius.md),
+                    shape = Sharp,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = KaizenLavender,
@@ -282,7 +247,7 @@ fun BarcodeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 PrimaryButton(
-                    text = "🔍 Look up",
+                    text = "Look up",
                     onClick = { viewModel.lookup() },
                     enabled = state.code.isNotBlank() && !state.loading,
                     containerColor = KaizenLavender,
@@ -299,27 +264,24 @@ fun BarcodeScreen(
 
         // ---- Found food + grams + meal + log ----
         state.food?.let { food ->
-            SectionHeader(title = "Found Food", emoji = "✅")
+            Text("✅ Found Food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
-            FeatureCard(
-                emoji = "🍽️",
-                title = food.name,
-                accentColor = NutritionColor,
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text(food.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     ) {
-                        EmojiBadge(
-                            emoji = "🔥",
-                            bgColor = KaizenCoral.copy(alpha = 0.18f),
-                            size = 48.dp,
-                        )
                         Column {
                             Text(
                                 "${food.per100g.kcal.toInt()} kcal",
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = KaizenCoral,
                             )
@@ -331,12 +293,14 @@ fun BarcodeScreen(
                         }
                     }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+
                     OutlinedTextField(
                         value = state.grams,
                         onValueChange = viewModel::onGrams,
-                        label = { Text("⚖️ Grams") },
+                        label = { Text("Grams") },
                         singleLine = true,
-                        shape = RoundedCornerShape(Radius.md),
+                        shape = Sharp,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = NutritionColor,
@@ -346,7 +310,7 @@ fun BarcodeScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    SectionHeader(title = "Meal Slot", emoji = "🍽️")
+                    Text("🍽️ Meal Slot", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -357,7 +321,7 @@ fun BarcodeScreen(
                                 selected = s == state.slot,
                                 onClick = { viewModel.onSlot(s) },
                                 label = { Text("$emoji $s") },
-                                shape = RoundedCornerShape(Radius.md),
+                                shape = Sharp,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = NutritionColor,
                                     selectedLabelColor = Color.White,
@@ -367,7 +331,7 @@ fun BarcodeScreen(
                     }
 
                     PrimaryButton(
-                        text = "✅ Log it",
+                        text = "Log it",
                         onClick = { viewModel.logIt() },
                         enabled = !state.loading,
                         containerColor = BrandGreenDeep,
@@ -379,16 +343,17 @@ fun BarcodeScreen(
 
         // ---- Friendly message ----
         state.message?.let {
-            FeatureCard(
-                emoji = "💬",
-                title = "Status",
-                accentColor = BrandAmber,
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(Spacing.lg),
                 )
             }
         }

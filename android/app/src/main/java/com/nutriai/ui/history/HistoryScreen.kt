@@ -1,7 +1,6 @@
 package com.nutriai.ui.history
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -19,12 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,20 +34,13 @@ import com.nutriai.data.AppRepository
 import com.nutriai.data.health.HealthConnectManager
 import com.nutriai.data.remote.dto.DailyHistory
 import com.nutriai.ui.components.EmptyState
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.SectionHeader
-import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.HydrationColor
-import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +48,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.max
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class HistoryState(
     val loading: Boolean = true,
@@ -85,18 +81,16 @@ class HistoryViewModel @Inject constructor(
 @Composable
 fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val tokens = MaterialTheme.kaizenColors
 
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(tokens.pageBackground)
             .padding(horizontal = Spacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         item {
             Spacer(Modifier.height(Spacing.md))
-            SectionHeader(title = "Your History", emoji = "📜")
+            Text("📜 Your History", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
 
         item {
@@ -106,7 +100,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                         selected = state.days == d,
                         onClick = { viewModel.load(d) },
                         label = { Text("$emoji Last $d days") },
-                        shape = RoundedCornerShape(Radius.md),
+                        shape = Sharp,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = BrandGreen,
                             selectedLabelColor = Color.White,
@@ -119,7 +113,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
         if (state.loading) {
             item {
                 Row(
-                    Modifier.fillMaxWidth().padding(Spacing.xxxl),
+                    Modifier.fillMaxWidth().padding(Spacing.xl),
                     horizontalArrangement = Arrangement.Center,
                 ) { CircularProgressIndicator(color = BrandGreen) }
             }
@@ -139,7 +133,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                 val stepsTotal = stepVals.sum().toLong()
 
                 item {
-                    SectionHeader(title = "Activity", emoji = "🚶")
+                    Text("🚶 Activity", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
                 item {
                     MetricChart(
@@ -151,7 +145,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                 }
 
                 item {
-                    SectionHeader(title = "Nutrition", emoji = "🍲")
+                    Text("🍲 Nutrition", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
                 item {
                     MetricChart(
@@ -179,7 +173,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                 }
                 if (h.weight.size >= 2) {
                     item {
-                        SectionHeader(title = "Body", emoji = "🏋️")
+                        Text("🏋️ Body", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     }
                     item {
                         val first = h.weight.first().weightKg
@@ -200,48 +194,51 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
     }
 }
 
-/** A compact bar (or line) chart drawn on a Canvas inside a FeatureCard. */
+/** A compact bar (or line) chart drawn on a Canvas inside a plain Card. */
 @Composable
 private fun MetricChart(title: String, subtitle: String, values: List<Float>, color: Color, line: Boolean = false) {
-    FeatureCard(
-        emoji = title.take(2),
-        title = title.drop(2).trim(),
-        accentColor = color,
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(Spacing.md))
-        val maxV = max(1f, values.maxOrNull() ?: 1f)
-        val minV = if (line) (values.minOrNull() ?: 0f) else 0f
-        val span = max(1f, maxV - minV)
-        Canvas(Modifier.fillMaxWidth().height(100.dp)) {
-            val n = values.size
-            if (n == 0) return@Canvas
-            if (line) {
-                val step = if (n > 1) size.width / (n - 1) else size.width
-                var prev: Offset? = null
-                values.forEachIndexed { i, v ->
-                    val x = i * step
-                    val y = size.height - ((v - minV) / span) * size.height
-                    val p = Offset(x, y)
-                    prev?.let { drawLine(color, it, p, strokeWidth = 4f) }
-                    drawCircle(color, radius = 5f, center = p)
-                    prev = p
-                }
-            } else {
-                val gap = size.width / n * 0.20f
-                val barW = size.width / n - gap
-                values.forEachIndexed { i, v ->
-                    val bh = (v / maxV) * size.height
-                    val x = i * (barW + gap)
-                    drawRect(
-                        color = if (v > 0f) color else color.copy(alpha = 0.15f),
-                        topLeft = Offset(x, size.height - bh),
-                        size = androidx.compose.ui.geometry.Size(barW, max(bh, 1f)),
-                    )
+        Column(Modifier.padding(Spacing.md)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(Spacing.md))
+            val maxV = max(1f, values.maxOrNull() ?: 1f)
+            val minV = if (line) (values.minOrNull() ?: 0f) else 0f
+            val span = max(1f, maxV - minV)
+            Canvas(Modifier.fillMaxWidth().height(100.dp)) {
+                val n = values.size
+                if (n == 0) return@Canvas
+                if (line) {
+                    val step = if (n > 1) size.width / (n - 1) else size.width
+                    var prev: Offset? = null
+                    values.forEachIndexed { i, v ->
+                        val x = i * step
+                        val y = size.height - ((v - minV) / span) * size.height
+                        val p = Offset(x, y)
+                        prev?.let { drawLine(color, it, p, strokeWidth = 4f) }
+                        drawCircle(color, radius = 5f, center = p)
+                        prev = p
+                    }
+                } else {
+                    val gap = size.width / n * 0.20f
+                    val barW = size.width / n - gap
+                    values.forEachIndexed { i, v ->
+                        val bh = (v / maxV) * size.height
+                        val x = i * (barW + gap)
+                        drawRect(
+                            color = if (v > 0f) color else color.copy(alpha = 0.15f),
+                            topLeft = Offset(x, size.height - bh),
+                            size = androidx.compose.ui.geometry.Size(barW, max(bh, 1f)),
+                        )
+                    }
                 }
             }
         }

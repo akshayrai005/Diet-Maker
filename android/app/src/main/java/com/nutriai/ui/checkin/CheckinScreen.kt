@@ -21,6 +21,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -34,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -49,21 +49,13 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.CheckinDto
 import com.nutriai.data.remote.dto.CheckinRequest
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenProgressBar
-import com.nutriai.ui.components.MetricBlock
-import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
-import com.nutriai.ui.theme.RecoveryColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,6 +64,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.round
+
+private val Sharp = RoundedCornerShape(8.dp)
 
 data class CheckinState(
     val loading: Boolean = true,
@@ -113,7 +107,6 @@ class CheckinViewModel @Inject constructor(
     ) {
         _state.value = _state.value.copy(submitting = true, message = null)
         viewModelScope.launch {
-            // Red-flag safety net on the free-text note - surfaced alongside, never blocking the save.
             notes?.trim()?.ifBlank { null }?.let { note ->
                 repository.checkRedFlags(note).getOrNull()?.let { rf ->
                     if (rf.urgent) _state.value = _state.value.copy(redFlagMessage = rf.message)
@@ -174,14 +167,19 @@ fun CheckinScreen(
         // 1. Header
         item { CheckinHeader() }
 
-        // 2. Guided, one-question-at-a-time check-in
+        // 2. Guided check-in
         item {
-            FeatureCard(emoji = "📝", title = "Log Your Week", accentColor = BrandGreen) {
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
-                    // Progress
+                    Text("📝 Log Your Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
                             "Step ${step + 1} of ${lastStep + 1}",
@@ -194,7 +192,6 @@ fun CheckinScreen(
                         color = BrandGreen,
                     )
 
-                    // One meaningful question per step.
                     when (step) {
                         0 -> BrandField(value = weight, onValueChange = { weight = it }, label = "⚖️ Weight (kg)", keyboardType = KeyboardType.Decimal)
                         1 -> BrandField(value = waist, onValueChange = { waist = it }, label = "📏 Waist (cm, optional)", keyboardType = KeyboardType.Decimal)
@@ -210,13 +207,12 @@ fun CheckinScreen(
                         else -> BrandField(value = notes, onValueChange = { notes = it }, label = "📝 Notes (optional)", keyboardType = KeyboardType.Text)
                     }
 
-                    // Back / Next / Save.
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                         if (step > 0) {
                             androidx.compose.material3.OutlinedButton(
                                 onClick = { step-- },
                                 modifier = Modifier.weight(1f).height(54.dp),
-                                shape = RoundedCornerShape(Radius.lg),
+                                shape = Sharp,
                             ) { Text("← Back") }
                         }
                         if (step < lastStep) {
@@ -224,7 +220,7 @@ fun CheckinScreen(
                                 onClick = { step++ },
                                 enabled = step != 0 || weight.isNotBlank(),
                                 modifier = Modifier.weight(1f).height(54.dp),
-                                shape = RoundedCornerShape(Radius.lg),
+                                shape = Sharp,
                                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                             ) { Text("Next →") }
                         } else {
@@ -244,7 +240,7 @@ fun CheckinScreen(
                                 },
                                 enabled = weight.isNotBlank() && !state.submitting,
                                 modifier = Modifier.weight(1f).height(54.dp),
-                                shape = RoundedCornerShape(Radius.lg),
+                                shape = Sharp,
                                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                             ) {
                                 if (state.submitting) {
@@ -272,7 +268,7 @@ fun CheckinScreen(
         if (state.loading) {
             item {
                 Box(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.xxl),
+                    modifier = Modifier.fillMaxWidth().padding(Spacing.xl),
                     contentAlignment = Alignment.Center,
                 ) { CircularProgressIndicator(color = BrandGreen) }
             }
@@ -280,7 +276,13 @@ fun CheckinScreen(
             item { WeightTrend(state.checkins) }
 
             if (state.checkins.isNotEmpty()) {
-                item { SectionHeader(title = "Past Check-ins", emoji = "🗓️") }
+                item {
+                    Text(
+                        "🗓️ Past Check-ins",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
 
             items(state.checkins) { c ->
@@ -292,12 +294,19 @@ fun CheckinScreen(
 
 @Composable
 private fun CheckinHeader() {
-    FeatureCard(emoji = "⚖️", title = "Weekly Check-in", accentColor = KaizenBlue) {
-        Text(
-            "Track your progress — small steps, steady wins. 🏆",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("⚖️ Weekly Check-in", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Track your progress — small steps, steady wins. 🏆",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -315,7 +324,7 @@ private fun BrandField(
         singleLine = keyboardType != KeyboardType.Text,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.md),
+        shape = Sharp,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = BrandGreen,
             focusedLabelColor = BrandGreen,
@@ -337,7 +346,7 @@ private fun RatingChips(selected: Int?, onSelect: (Int) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp)
-                    .clip(RoundedCornerShape(Radius.md))
+                    .clip(Sharp)
                     .background(
                         if (isSelected) BrandGreen else BrandGreen.copy(alpha = 0.10f),
                     )
@@ -358,14 +367,12 @@ private fun RatingChips(selected: Int?, onSelect: (Int) -> Unit) {
     }
 }
 
-// Small helper so we don't need to import clickable at call site repeatedly.
 private fun Modifier.clickableChip(onClick: () -> Unit): Modifier =
     this.clickable(onClick = onClick)
 
 @Composable
 private fun WeightTrend(checkins: List<CheckinDto>) {
     if (checkins.isEmpty()) return
-    // Chronological (oldest -> newest) regardless of server order; ISO date strings sort correctly.
     val points = checkins
         .mapNotNull { c -> c.measurements?.weightKg?.let { c.date to it } }
         .sortedBy { it.first }
@@ -378,74 +385,81 @@ private fun WeightTrend(checkins: List<CheckinDto>) {
         null
     }
 
-    FeatureCard(emoji = "📈", title = "Weight Trend", accentColor = KaizenLavender) {
-        latest?.let {
-            Text(
-                "Latest: $it kg",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("📈 Weight Trend", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
-        if (weights.size >= 2) {
-            Spacer(Modifier.height(Spacing.sm))
-            WeightChart(weights = weights, lineColor = KaizenLavender)
-            Spacer(Modifier.height(Spacing.xs))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            latest?.let {
                 Text(
-                    "${weights.min()} kg",
-                    style = MaterialTheme.typography.labelSmall,
+                    "Latest: $it kg",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+
+            if (weights.size >= 2) {
+                Spacer(Modifier.height(Spacing.sm))
+                WeightChart(weights = weights, lineColor = KaizenLavender)
+                Spacer(Modifier.height(Spacing.xs))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        "${weights.min()} kg",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        "${weights.max()} kg",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            if (delta != null) {
+                Spacer(Modifier.height(Spacing.sm))
+                val down = delta < 0
+                val flat = delta == 0.0
+                val arrow = when {
+                    flat -> "▬"
+                    down -> "📉"
+                    else -> "📈"
+                }
+                val accent = when {
+                    flat -> MaterialTheme.colorScheme.onSurface
+                    down -> BrandGreen
+                    else -> BrandAmber
+                }
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        arrow,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                    )
+                    Text(
+                        " ${if (delta > 0) "+" else ""}$delta kg",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                        modifier = Modifier.padding(start = Spacing.xs),
+                    )
+                }
+                Text(
+                    "since your first check-in",
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            } else if (checkins.size < 2) {
                 Text(
-                    "${weights.max()} kg",
-                    style = MaterialTheme.typography.labelSmall,
+                    "Log again next week to see your trend. 🔄",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-
-        if (delta != null) {
-            Spacer(Modifier.height(Spacing.sm))
-            val down = delta < 0
-            val flat = delta == 0.0
-            val arrow = when {
-                flat -> "▬"
-                down -> "📉"
-                else -> "📈"
-            }
-            // Weight loss (down) is framed positively in brand green; gain in amber.
-            val accent = when {
-                flat -> MaterialTheme.colorScheme.onSurface
-                down -> BrandGreen
-                else -> BrandAmber
-            }
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    arrow,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = accent,
-                )
-                Text(
-                    " ${if (delta > 0) "+" else ""}$delta kg",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = accent,
-                    modifier = Modifier.padding(start = Spacing.xs),
-                )
-            }
-            Text(
-                "since your first check-in",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else if (checkins.size < 2) {
-            Text(
-                "Log again next week to see your trend. 🔄",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -500,9 +514,13 @@ private fun WeightChart(weights: List<Double>, lineColor: Color) {
 
 @Composable
 private fun PastCheckinCard(c: CheckinDto) {
-    GlassCard {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             Row(
@@ -536,7 +554,7 @@ private fun PastCheckinCard(c: CheckinDto) {
 private fun MetricPill(label: String, value: String, accentColor: Color = BrandGreen) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(Radius.sm))
+            .clip(Sharp)
             .background(accentColor.copy(alpha = 0.12f))
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
     ) {
