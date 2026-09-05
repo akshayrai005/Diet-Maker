@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -393,19 +394,18 @@ fun CalendarScreen(
         // Week strip built from the diet-plan days — auto-scroll to today.
         if (state.dietDays.isNotEmpty()) {
             item {
-                val todayIdx = state.dietDays.indexOfFirst { it.label == "Today" }.coerceAtLeast(0)
-                val stripState = androidx.compose.foundation.lazy.rememberLazyListState()
-                androidx.compose.runtime.LaunchedEffect(todayIdx) {
-                    stripState.scrollToItem(maxOf(0, todayIdx - 1))
-                }
-                LazyRow(state = stripState, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    items(state.dietDays) { day ->
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    state.dietDays.forEach { day ->
                         DayPill(
                             label = day.label,
                             date = day.date,
                             isToday = day.label == "Today",
                             isSelected = day.date != null && day.date == state.selectedDate,
                             onClick = { day.date?.let { viewModel.selectDate(it) } },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -866,9 +866,9 @@ private fun DayPill(
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val dayNumber = date?.substringAfterLast('-')?.trimStart('0')?.ifBlank { "0" } ?: "-"
-    // Always show the real weekday (Mon/Tue...) from the date, not Yesterday/Today/Tomorrow.
     val weekday = date?.let {
         runCatching {
             java.time.LocalDate.parse(it)
@@ -888,29 +888,29 @@ private fun DayPill(
     }
 
     Card(
-        modifier = Modifier.width(74.dp).clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(Radius.md),
         colors = CardDefaults.cardColors(containerColor = container),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             Text(
                 weekday ?: "-",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                 color = content,
                 maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
+                fontSize = 10.sp,
             )
             Text(
                 dayNumber,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = content,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -919,7 +919,7 @@ private fun DayPill(
             if (isToday) {
                 Box(
                     Modifier
-                        .size(6.dp)
+                        .size(4.dp)
                         .clip(CircleShape)
                         .background(if (isSelected) Color.White else BrandGreen),
                 )
