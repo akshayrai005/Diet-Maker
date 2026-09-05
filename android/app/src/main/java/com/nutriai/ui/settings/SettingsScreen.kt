@@ -62,8 +62,6 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.BrandAmber
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.Spacing
 
 private val Sharp = RoundedCornerShape(8.dp)
@@ -122,7 +120,7 @@ fun SettingsScreen(
         // Purple gradient header
         Box(
             Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         ) {
             Text("⚙️ Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
@@ -197,7 +195,7 @@ fun SettingsScreen(
                                 Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(
-                                        if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        if (selected) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
                                         else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                     )
                                     .clickable { viewModel.setAccent(key) }
@@ -220,7 +218,7 @@ fun SettingsScreen(
                                 Modifier
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(
-                                        if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        if (selected) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
                                         else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                     )
                                     .clickable { viewModel.setThemeMode(key) }

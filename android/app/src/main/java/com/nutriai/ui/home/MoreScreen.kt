@@ -43,8 +43,6 @@ import com.nutriai.ui.badges.BadgesScreen
 import com.nutriai.ui.barcode.BarcodeScreen
 import com.nutriai.ui.checkin.CheckinScreen
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
@@ -122,7 +120,7 @@ fun MoreScreen(
             // Back header with gradient
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -172,7 +170,7 @@ private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Uni
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                 .padding(horizontal = Spacing.screenHorizontal)
                 .padding(top = Spacing.xxl, bottom = Spacing.xl),
         ) {

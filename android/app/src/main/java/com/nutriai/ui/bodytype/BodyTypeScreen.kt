@@ -39,8 +39,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
@@ -292,7 +290,7 @@ private fun PhysiqueCard(p: Physique, selected: Boolean, modifier: Modifier = Mo
                 Box(
                     Modifier
                         .matchParentSize()
-                        .background(Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                        .background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                 )
             }
             Column(

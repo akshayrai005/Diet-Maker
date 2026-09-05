@@ -46,8 +46,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.Dashboard
-import com.nutriai.ui.theme.HeroGradientBottom
-import com.nutriai.ui.theme.HeroGradientTop
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,7 +85,7 @@ fun DietScreen(
 
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -124,7 +122,7 @@ fun DietScreen(
                             .weight(1f)
                             .clip(RoundedCornerShape(6.dp))
                             .background(
-                                if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                if (selected) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
                                 else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                             )
                             .clickable { section = idx }

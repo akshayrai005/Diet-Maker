@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -68,8 +69,6 @@ import com.nutriai.ui.theme.CardGreenLight
 import com.nutriai.ui.theme.CardLavenderLight
 import com.nutriai.ui.theme.CardMintLight
 import com.nutriai.ui.theme.CoralAccent
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
@@ -265,7 +264,7 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
 
     Box(
         Modifier.fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
             .padding(horizontal = Spacing.screenHorizontal)
             .padding(top = Spacing.xxl, bottom = Spacing.xl),
     ) {
@@ -423,9 +422,8 @@ private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: I
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(Spacing.sm).height(72.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Text(emoji, fontSize = 14.sp)
@@ -448,11 +446,10 @@ private fun DomainCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, borderColor.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(Modifier.padding(Spacing.lg).heightIn(min = 140.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(emoji, fontSize = 18.sp)
                 Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = accentColor)

@@ -50,8 +50,6 @@ import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.CardLavenderLight
 import com.nutriai.ui.theme.CardGreenLight
 import com.nutriai.ui.theme.Spacing
@@ -301,7 +299,7 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                                     .weight(1f)
                                     .clip(Sharp)
                                     .background(
-                                        if (isSel) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        if (isSel) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
                                         else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
                                     )
                                     .clickable { viewModel.select(p) }

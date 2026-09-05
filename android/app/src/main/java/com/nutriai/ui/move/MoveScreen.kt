@@ -76,8 +76,6 @@ import com.nutriai.data.remote.dto.WorkoutDay
 import com.nutriai.ui.components.EmptyState
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
@@ -102,7 +100,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         // Purple gradient header
         Box(
             Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         ) {
             Text("🏃 Move", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
@@ -124,7 +122,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
                             .weight(1f)
                             .clip(RoundedCornerShape(6.dp))
                             .background(
-                                if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                if (selected) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
                                 else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                             )
                             .clickable { section = idx }
