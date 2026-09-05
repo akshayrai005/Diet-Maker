@@ -2,7 +2,6 @@ package com.nutriai.ui.diet
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,16 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,11 +46,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.Dashboard
-import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.HeroGradientTop
-import com.nutriai.ui.theme.HydrationColor
-import com.nutriai.ui.theme.NutritionColor
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -116,41 +105,6 @@ fun DietScreen(
                     // Mini calorie ring
                     MiniRing(consumed = cal.consumed.toInt(), target = cal.target?.toInt(), progress = pct)
                 }
-            }
-        }
-
-        // ── Action row: Log food + Barcode + Water ──
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Button(
-                onClick = { section = 1 },
-                modifier = Modifier.weight(1f).height(40.dp),
-                shape = RoundedCornerShape(Sharp),
-                colors = ButtonDefaults.buttonColors(containerColor = NutritionColor),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-            ) {
-                Icon(Icons.Filled.Restaurant, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Log food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            }
-            OutlinedButton(
-                onClick = { section = 1 },
-                modifier = Modifier.height(40.dp),
-                shape = RoundedCornerShape(Sharp),
-                border = BorderStroke(1.5.dp, NutritionColor.copy(alpha = 0.4f)),
-            ) {
-                Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(16.dp), tint = NutritionColor)
-            }
-            Button(
-                onClick = { summaryViewModel.addWater() },
-                modifier = Modifier.height(40.dp),
-                shape = RoundedCornerShape(Sharp),
-                colors = ButtonDefaults.buttonColors(containerColor = HydrationColor),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-            ) {
-                Text("💧 + Add", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
         }
 

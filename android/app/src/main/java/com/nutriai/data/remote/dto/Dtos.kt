@@ -404,7 +404,7 @@ data class DashboardEnvelope(val dashboard: Dashboard)
 
 // ---- Plan ----
 @Serializable
-data class MealItem(val foodId: String, val name: String, val grams: Double, val kcal: Double, val proteinG: Double)
+data class MealItem(val foodId: String, val name: String, val grams: Double, val kcal: Double, val proteinG: Double, val carbG: Double = 0.0, val fatG: Double = 0.0)
 
 @Serializable
 data class Meal(
