@@ -155,6 +155,7 @@ data class ExerciseItem(
     // Equipment-free / injury-friendly alternatives for this movement. Additive & defaulted -
     // older payloads simply omit it (ignoreUnknownKeys is on).
     val substitutions: List<String> = emptyList(),
+    val breathingCue: String = "",
 )
 
 @Serializable

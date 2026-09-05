@@ -36,7 +36,7 @@ val PLAN_FOOD_PRESETS = listOf(
 )
 
 data class PlanUiState(
-    val plan: DayPlan = DayPlan(date = LocalDate.now().plusDays(1).toString()),
+    val plan: DayPlan = DayPlan(date = LocalDate.now().toString()),
     val kcalTarget: Double = 1900.0,
     val proteinTarget: Double = 130.0,
     val actualKcal: Double? = null,      // only for today (plan-vs-actual)
@@ -81,7 +81,7 @@ class PlanViewModel @Inject constructor(
 
     init {
         loadTargets()
-        load(LocalDate.now().plusDays(1).toString())
+        load(LocalDate.now().toString())
         loadWeek()
     }
 
@@ -101,7 +101,7 @@ class PlanViewModel @Inject constructor(
                     dayName = d.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH),
                     kcal = saved?.plannedKcal?.roundToInt() ?: 0,
                     proteinG = saved?.plannedProtein?.roundToInt() ?: 0,
-                    isFast = d.dayOfWeek == java.time.DayOfWeek.TUESDAY,
+                    isFast = saved?.isFast == true,
                 )
             }
             _week.value = summaries
@@ -146,7 +146,9 @@ class PlanViewModel @Inject constructor(
         viewModelScope.launch { planStore.save(next); loadWeek() }
     }
 
+    fun toggleFast() = update { it.copy(isFast = !it.isFast) }
     fun setTrainerNotes(v: String) = update { it.copy(trainerNotes = v) }
+    fun setWorkoutMinutes(v: Int) = update { it.copy(workoutMinutes = v) }
     fun setSleep(bed: String, wake: String) = update { it.copy(bedtime = bed, waketime = wake) }
     fun addFood(name: String, kcal: Double, proteinG: Double) = update { it.copy(foods = it.foods + PlanFood(name, kcal, proteinG)) }
     fun removeFood(index: Int) = update { it.copy(foods = it.foods.filterIndexed { i, _ -> i != index }) }
@@ -170,7 +172,7 @@ class PlanViewModel @Inject constructor(
                 if (p.trainerNotes.isNotBlank()) append("My trainer said: \"${p.trainerNotes}\". Cross-check it against my targets. ")
                 append("Planned food (total ${p.plannedKcal.roundToInt()} kcal, ${p.plannedProtein.roundToInt()}g protein): ")
                 append(p.foods.joinToString(", ") { "${it.name} (${it.kcal.roundToInt()}kcal/${it.proteinG.roundToInt()}g)" }.ifBlank { "none yet" })
-                append(". Planned exercises: ")
+                append(". Available workout time: ${p.workoutMinutes} min. Planned exercises: ")
                 append(p.exercises.joinToString(", ") { "${it.name} ${it.sets}x${it.reps}" }.ifBlank { "none yet" })
                 append(". Sleep ${p.bedtime}-${p.waketime}. ")
                 append("Tell me if protein/calories are on target, suggest specific Indian food swaps to fix gaps, and whether the workout looks right. Keep it short and friendly.")

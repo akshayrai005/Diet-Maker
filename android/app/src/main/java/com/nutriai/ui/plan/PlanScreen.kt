@@ -1,6 +1,8 @@
 package com.nutriai.ui.plan
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -81,12 +83,30 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             )
         }
 
-        // Weekly grid
+        // Weekly grid inside card
         item {
             val week by viewModel.week.collectAsStateWithLifecycle()
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                items(week) { d ->
-                    WeekDayCard(d, selected = d.date == plan.date) { viewModel.switchTo(d.date) }
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        items(week) { d ->
+                            WeekDayCard(
+                                d,
+                                selected = d.date == plan.date,
+                                onToggleFast = { viewModel.switchTo(d.date); viewModel.toggleFast() },
+                            ) { viewModel.switchTo(d.date) }
+                        }
+                    }
+                    Text(
+                        "Long-press a day to toggle fasting",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
                 }
             }
         }
@@ -94,8 +114,8 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         // Day switch
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilterChip(selected = plan.date == today, onClick = { viewModel.switchTo(today) }, label = { Text("🎯 Today") })
                 FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("📅 Tomorrow") })
-                FilterChip(selected = plan.date == today, onClick = { viewModel.switchTo(today) }, label = { Text("🎯 Today (track)") })
             }
         }
 
@@ -123,6 +143,28 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 1,
                     )
+                }
+            }
+        }
+
+        // Workout duration
+        item {
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("⏱️ Workout Duration", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        listOf(30, 45, 60, 90).forEach { mins ->
+                            FilterChip(
+                                selected = plan.workoutMinutes == mins,
+                                onClick = { viewModel.setWorkoutMinutes(mins) },
+                                label = { Text("${mins}m") },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -178,6 +220,13 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                     Column(Modifier.weight(1f)) {
                         Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                         Text("${e.sets} × ${e.reps}${e.muscleGroup?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        val catalogEntry = ExerciseCatalog.search(e.name).firstOrNull()
+                        catalogEntry?.breathingCue?.takeIf { it.isNotBlank() }?.let { cue ->
+                            Text("🫁 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                        }
+                        if ((i + 1) % 3 == 0) {
+                            Text("💧 Hydrate — take a sip", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                        }
                     }
                     if (!state.isToday) {
                         Text(
@@ -251,7 +300,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 }
 
 @Composable
-private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
+private fun WeekDayCard(d: DaySummary, selected: Boolean, onToggleFast: () -> Unit = {}, onClick: () -> Unit) {
     val tomorrow = LocalDate.now().plusDays(1).toString()
     val today = LocalDate.now().toString()
     val isTomorrow = d.date == tomorrow
@@ -267,10 +316,11 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
         selected -> primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    @OptIn(ExperimentalFoundationApi::class)
     Card(
         Modifier
             .heightIn(min = 78.dp)
-            .clickable(onClick = onClick),
+            .combinedClickable(onClick = onClick, onLongClick = onToggleFast),
         shape = Sharp,
         colors = CardDefaults.cardColors(containerColor = container),
         elevation = CardDefaults.cardElevation(if (selected) 4.dp else 1.dp),

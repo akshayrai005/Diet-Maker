@@ -34,7 +34,9 @@ data class DayPlan(
     val exercises: List<PlanExercise> = emptyList(),
     val bedtime: String = "23:00",
     val waketime: String = "07:00",
+    val workoutMinutes: Int = 60,
     val aiReview: String = "",
+    val isFast: Boolean = false,
 ) {
     val plannedKcal get() = foods.sumOf { it.kcal }
     val plannedProtein get() = foods.sumOf { it.proteinG }

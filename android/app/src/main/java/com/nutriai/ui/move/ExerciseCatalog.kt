@@ -35,19 +35,19 @@ object ExerciseCatalog {
     data class Entry(val item: ExerciseItem, val category: Category)
 
     private fun strength(name: String, muscle: String, equipment: String, cat: Category, reps: String = "8-12", sets: Int = 3) =
-        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = muscle, equipment = equipment), cat)
+        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = muscle, equipment = equipment, breathingCue = "Exhale on exertion, inhale on return"), cat)
 
     private fun body(name: String, muscle: String, cat: Category, reps: String = "10-15", sets: Int = 3) =
-        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = muscle, equipment = "bodyweight"), cat)
+        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = muscle, equipment = "bodyweight", breathingCue = "Exhale on exertion, inhale on return"), cat)
 
     private fun cardio(name: String, reps: String = "20 min") =
-        Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "cardio", muscleGroup = "cardio", equipment = "none"), Category.CARDIO)
+        Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "cardio", muscleGroup = "cardio", equipment = "none", breathingCue = "Breathe rhythmically, in through nose"), Category.CARDIO)
 
     private fun hiit(name: String, reps: String) =
-        Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "cardio", muscleGroup = "cardio", equipment = "none"), Category.HIIT)
+        Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "cardio", muscleGroup = "cardio", equipment = "none", breathingCue = "Quick breaths, exhale on effort"), Category.HIIT)
 
     private fun core(name: String, reps: String = "12-15", sets: Int = 3) =
-        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = "abs", equipment = "bodyweight"), Category.CORE)
+        Entry(ExerciseItem(name = name, sets = sets, reps = reps, type = "strength", muscleGroup = "abs", equipment = "bodyweight", breathingCue = "Exhale on crunch/hold, inhale on release"), Category.CORE)
 
     private fun mobility(name: String, muscle: String, reps: String = "45 s") =
         Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "flexibility", muscleGroup = muscle, equipment = "bodyweight"), Category.MOBILITY)
@@ -171,6 +171,16 @@ object ExerciseCatalog {
         core("Ab Wheel Rollout", reps = "8-12"),
         core("Flutter Kicks", reps = "30-45 s"),
         core("Hollow Hold", reps = "20-40 s"),
+        core("Woodchoppers (Cable)", reps = "12-15"),
+        core("Standing Oblique Crunch", reps = "15-20"),
+        core("Seated Twist", reps = "20-30"),
+        core("Windshield Wipers", reps = "10-12"),
+        core("Stomach Vacuum", reps = "15-30 s"),
+        core("V-Up", reps = "10-15"),
+        core("Toe Touch Crunch", reps = "15-20"),
+        core("Scissor Kicks", reps = "30-45 s"),
+        core("Cross Body Crunch", reps = "15-20"),
+        core("Spiderman Plank", reps = "10-12"),
 
         // ---- Cardio ----
         cardio("Treadmill Run", reps = "20-30 min"),

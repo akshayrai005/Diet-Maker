@@ -343,6 +343,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermissio
             CalorieRing(consumed = cal.consumed.toInt(), target = cal.target?.toInt(), progress = pct)
             Column(Modifier.weight(1f).padding(start = Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 QuickStat("🔥", "Remaining", if (hasTarget) "${remaining.toInt()}" else "—", "kcal", NutritionColor)
+                QuickStat("🎯", "Target", if (hasTarget) "%,d".format(cal.target!!.toInt()) else "—", "kcal", BrandAmber)
                 QuickStat("🚶", "Steps", if (stepsPermission && steps > 0) "%,d".format(steps) else "—", "", MovementColor)
             }
         }
@@ -443,6 +444,31 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 borderColor = HydrationColor,
             )
         }
+        // Row 3: Walk/Steps + Drink Water
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🚶", title = "Walk",
+                mainValue = if (stepsPermission && steps > 0) "%,d".format(steps) else "-",
+                mainUnit = "steps",
+                progress = if (stepsPermission && steps > 0) (steps / 10000f).coerceIn(0f, 1f) else 0f,
+                accentColor = BrandAmber, bgColor = CardAmberLight,
+                detail = if (stepsPermission && stepsKcal > 0) "≈ $stepsKcal kcal burned" else "Connect Health",
+                borderColor = BrandAmber,
+            )
+            val waterGlasses = ((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 250.0).toInt()
+            val waterTargetGlasses = ((dashboard.water.targetMl ?: dashboard.water.target ?: 2750.0) / 250.0).toInt()
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🥛", title = "Drink Water",
+                mainValue = "$waterGlasses/$waterTargetGlasses",
+                mainUnit = "glasses",
+                progress = (waterGlasses.toFloat() / waterTargetGlasses.coerceAtLeast(1)).coerceIn(0f, 1f),
+                accentColor = KaizenBlue, bgColor = CardBlueLight,
+                detail = "Drink more water",
+                borderColor = KaizenBlue,
+            )
+        }
     }
 }
 
@@ -478,14 +504,16 @@ private fun DomainCard(
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(Spacing.lg).heightIn(min = 140.dp), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(emoji, fontSize = 18.sp)
-                Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = accentColor)
+                Text(emoji, fontSize = 14.sp)
+                Text(title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = accentColor)
             }
-            Text(mainValue, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = accentColor)
-            if (mainUnit.isNotEmpty()) Text(mainUnit, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f))
-            KaizenProgressBar(progress = progress, color = accentColor, height = 6.dp)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(mainValue, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = accentColor)
+                if (mainUnit.isNotEmpty()) Text(mainUnit, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 2.dp))
+            }
+            KaizenProgressBar(progress = progress, color = accentColor, height = 4.dp)
             Text(detail, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), maxLines = 1)
         }
     }
