@@ -42,6 +42,8 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.R
 import com.nutriai.data.AppRepository
 import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.HeroGradientTop
+import com.nutriai.ui.theme.HeroGradientBottom
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -96,34 +98,32 @@ fun SplashScreen(onFinished: () -> Unit, viewModel: SplashViewModel = hiltViewMo
 
     Box(
         Modifier.fillMaxSize().background(
-            Brush.verticalGradient(
-                listOf(Color(0xFFF5FBF8), Color(0xFFE8F5E9), Color(0xFFFFFFFF))
-            )
+            Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom))
         ),
         contentAlignment = Alignment.Center,
     ) {
         Column(
             Modifier.fillMaxWidth().alpha(fade),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Image(
-                painter = painterResource(R.drawable.splash_kaizen),
-                contentDescription = "Kaizen - Small Habits. Big Results.",
+                painter = painterResource(R.drawable.kaizen_login),
+                contentDescription = "Kaizen",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(180.dp).clip(RoundedCornerShape(32.dp)),
+                modifier = Modifier.size(120.dp),
             )
             Text(
                 "Kaizen",
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = BrandGreen,
+                color = Color.White,
             )
             Text(
-                "Small Habits. Big Results. 🌱",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF388E3C),
+                "✨ Small Habits. Big Results. ✨",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.85f),
                 textAlign = TextAlign.Center,
             )
         }
@@ -134,20 +134,20 @@ fun SplashScreen(onFinished: () -> Unit, viewModel: SplashViewModel = hiltViewMo
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CircularProgressIndicator(
-                Modifier.size(38.dp).alpha(fade),
-                color = BrandGreen,
-                strokeWidth = 3.dp,
+                Modifier.size(32.dp).alpha(fade),
+                color = Color.White,
+                strokeWidth = 2.5.dp,
             )
             AnimatedVisibility(visible = slow) {
                 Box(
                     Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(BrandGreen.copy(alpha = 0.12f))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.15f))
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                 ) {
                     Text(
                         "🚀 Waking things up...",
-                        color = BrandGreen,
+                        color = Color.White,
                         fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium,

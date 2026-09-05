@@ -89,8 +89,8 @@ fun LoginScreen(
             enabled = !state.loading && email.isNotBlank() && password.isNotBlank(),
             onClick = { viewModel.login(email, password, onHome = onLoggedIn, onNeedsProfile = onNeedsProfile) },
         )
-        TextButton(onClick = onForgotPassword) { Text("Forgot password?", color = BrandGreen) }
-        TextButton(onClick = onGoToRegister) { Text("New here? Create an account", color = BrandGreen) }
+        TextButton(onClick = onForgotPassword) { Text("Forgot password?", color = HeroGradientTop) }
+        TextButton(onClick = onGoToRegister) { Text("New here? Create an account", color = HeroGradientTop) }
     }
 }
 
@@ -134,7 +134,7 @@ fun ForgotPasswordScreen(
                 enabled = !f.loading && email.isNotBlank() && dob.isNotBlank(),
                 onClick = { viewModel.verifyIdentity(email, dob) },
             )
-            TextButton(onClick = onBack) { Text("Back to login", color = BrandGreen) }
+            TextButton(onClick = onBack) { Text("Back to login", color = HeroGradientTop) }
         } else {
             OutlinedTextField(
                 value = newPass, onValueChange = { newPass = it }, label = { Text("New password (min 8)") }, singleLine = true,
@@ -207,7 +207,7 @@ fun RegisterScreen(
             enabled = !state.loading && email.isNotBlank() && password.length >= 8 && first.isNotBlank(),
             onClick = { viewModel.register(email, password, first, last, onRegistered) },
         )
-        TextButton(onClick = onGoToLogin) { Text("Already have an account? Log in", color = BrandGreen) }
+        TextButton(onClick = onGoToLogin) { Text("Already have an account? Log in", color = HeroGradientTop) }
     }
 }
 
@@ -241,7 +241,7 @@ private fun AuthScaffold(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(HeroGradientTop, HeroGradientBottom, MaterialTheme.colorScheme.background),
+                    listOf(HeroGradientTop, HeroGradientBottom),
                 ),
             ),
     ) {
@@ -249,41 +249,57 @@ private fun AuthScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
+                .padding(horizontal = Spacing.screenHorizontal),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(Modifier.height(48.dp))
+
             Image(
                 painter = painterResource(R.drawable.kaizen_login),
                 contentDescription = "Kaizen logo",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(120.dp),
+                modifier = Modifier.size(100.dp),
             )
+            Spacer(Modifier.height(Spacing.sm))
             Text(
                 "Kaizen",
                 color = Color.White,
-                style = MaterialTheme.typography.displayLarge,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
                 "✨ Small Habits. Big Results. ✨",
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.85f),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
             )
 
-            Spacer(Modifier.height(Spacing.md))
+            Spacer(Modifier.height(Spacing.xl))
 
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
-
-            Column(
-                Modifier.fillMaxWidth().padding(top = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            // White form card
+            androidx.compose.material3.Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(8.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
             ) {
-                content()
-                if (error != null) {
-                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Column(
+                    Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Spacer(Modifier.height(Spacing.xs))
+
+                    content()
+
+                    if (error != null) {
+                        Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
 
@@ -292,9 +308,10 @@ private fun AuthScaffold(
             Text(
                 "Educational guidance, not medical advice - consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = Color.White.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
             )
+            Spacer(Modifier.height(Spacing.xl))
         }
     }
 }

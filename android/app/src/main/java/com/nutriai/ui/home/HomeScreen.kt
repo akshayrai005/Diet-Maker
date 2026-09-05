@@ -21,10 +21,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -52,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -79,7 +76,6 @@ private const val LOG_TAB_ROUTE = "log"
 private val TABS = listOf(
     TabItem("today", "Today", Icons.Filled.Home, Icons.Outlined.Home),
     TabItem("diet", "Nutrition", Icons.Filled.Restaurant, Icons.Outlined.Restaurant),
-    TabItem(LOG_TAB_ROUTE, "Log", Icons.Filled.Add, Icons.Filled.Add),
     TabItem("move", "Move", Icons.Filled.FitnessCenter, Icons.Outlined.FitnessCenter),
     TabItem("me", "Profile", Icons.Filled.Person, Icons.Outlined.Person),
 )
@@ -196,36 +192,6 @@ private fun KaizenBottomNav(currentRoute: String, onTabSelected: (String) -> Uni
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TABS.forEach { item ->
-                if (item.route == LOG_TAB_ROUTE) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .shadow(8.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                    ),
-                                ),
-                            )
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { onTabSelected(LOG_TAB_ROUTE) },
-                            )
-                            .semantics { contentDescription = "Quick log" },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = "Quick log",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                } else {
                     val selected = currentRoute == item.route
                     val bgColor by animateColorAsState(
                         targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
@@ -266,7 +232,6 @@ private fun KaizenBottomNav(currentRoute: String, onTabSelected: (String) -> Uni
                             )
                         }
                     }
-                }
             }
         }
     }
