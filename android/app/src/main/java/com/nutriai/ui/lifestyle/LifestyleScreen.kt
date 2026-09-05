@@ -349,37 +349,36 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
         item {
             Text("🕐 Meal Timing", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
-        itemsIndexed(selected.meals) { i, row ->
-            val mealColor = MEAL_COLORS[i % MEAL_COLORS.size]
+        item {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = Sharp,
                 elevation = CardDefaults.cardElevation(2.dp),
-                border = null,
-                colors = CardDefaults.cardColors(containerColor = mealColor.copy(alpha = 0.06f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Time badge
-                    Card(
-                        shape = Sharp,
-                        colors = CardDefaults.cardColors(containerColor = mealColor.copy(alpha = 0.15f)),
-                    ) {
-                        Text(
-                            row.time,
-                            Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = mealColor,
-                            fontSize = 10.sp,
-                        )
-                    }
-                    Spacer(Modifier.width(Spacing.sm))
-                    Column(Modifier.weight(1f)) {
-                        Text(row.meal, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Text(row.food, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+                Column {
+                    selected.meals.forEachIndexed { i, row ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                row.time,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 10.sp,
+                                modifier = Modifier.width(72.dp),
+                            )
+                            Spacer(Modifier.width(Spacing.sm))
+                            Column(Modifier.weight(1f)) {
+                                Text(row.meal, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                Text(row.food, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+                            }
+                        }
+                        if (i != selected.meals.lastIndex) {
+                            androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        }
                     }
                 }
             }
