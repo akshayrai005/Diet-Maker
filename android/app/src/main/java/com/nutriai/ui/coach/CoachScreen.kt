@@ -1,6 +1,7 @@
 package com.nutriai.ui.coach
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,11 @@ import com.nutriai.ui.home.ChatViewModel
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.HeroGradientTop
+import com.nutriai.ui.theme.HeroGradientBottom
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 
 // ---------------------------------------------------------------------------
 // Premium "AI Coach" chat screen for NutriAI.
@@ -93,7 +99,7 @@ fun CoachScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = com.nutriai.ui.theme.Spacing.screenHorizontal),
     ) {
         Spacer(Modifier.height(16.dp))
         CoachHeader()
@@ -151,32 +157,39 @@ fun CoachScreen(
 
 @Composable
 private fun CoachHeader() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+    val tokens = MaterialTheme.kaizenColors
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Radius.lg))
+            .background(
+                Brush.horizontalGradient(listOf(tokens.cardGradientStart, tokens.cardGradientEnd)),
+            )
+            .padding(Spacing.lg),
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.SmartToy, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
-        Spacer(Modifier.width(14.dp))
-        Column {
-            Text(
-                "Kaizen Coach",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                "Your dietitian, in your pocket",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(Radius.sm))
+                    .background(BrandGreen.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.SmartToy, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text(
+                    "🤖 Kaizen Coach",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "💬 Your dietitian, in your pocket",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -187,6 +200,7 @@ private fun CoachHeader() {
 
 @Composable
 private fun ChatBubble(text: String, fromUser: Boolean) {
+    val tokens = MaterialTheme.kaizenColors
     val bubbleShape = if (fromUser) {
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
     } else {
@@ -196,27 +210,20 @@ private fun ChatBubble(text: String, fromUser: Boolean) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (fromUser) Arrangement.End else Arrangement.Start,
     ) {
-        Card(
-            modifier = Modifier.widthIn(max = 300.dp),
-            shape = bubbleShape,
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (fromUser) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-            ),
-        ) {
+        val bubbleMod = Modifier
+            .widthIn(max = 300.dp)
+            .clip(bubbleShape)
+            .let { m ->
+                if (fromUser) m.background(BrandGreen)
+                else m.background(Brush.verticalGradient(listOf(tokens.cardGradientStart, tokens.cardGradientEnd)))
+                    .border(1.dp, tokens.glassBorder, bubbleShape)
+            }
+        Box(modifier = bubbleMod) {
             Text(
                 text,
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (fromUser) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = if (fromUser) Color.White else MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -272,8 +279,8 @@ private fun SuggestionChips(enabled: Boolean, onPick: (String) -> Unit) {
                 label = { Text(suggestion) },
                 shape = RoundedCornerShape(20.dp),
                 colors = AssistChipDefaults.assistChipColors(
-                    containerColor = BrandGreenLight.copy(alpha = 0.14f),
-                    labelColor = BrandGreenDeep,
+                    containerColor = BrandGreen.copy(alpha = 0.1f),
+                    labelColor = BrandGreen,
                 ),
             )
         }

@@ -6,13 +6,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -47,14 +52,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.data.remote.dto.ProfileUpsertRequest
 import com.nutriai.data.remote.dto.SensitiveData
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 
 private val SEX = listOf("male" to "Male", "female" to "Female")
 private val GENDER = listOf(
@@ -175,6 +196,9 @@ private val CONTRA = listOf(
     "other" to "Other",
 )
 
+private val STEP_EMOJIS = listOf("👤", "🎯", "🏋️", "🏥", "🚀")
+private val STEP_COLORS = listOf(KaizenBlue, BrandGreen, MovementColor, KaizenCoral, KaizenLavender)
+
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
@@ -266,8 +290,6 @@ fun OnboardingScreen(
     }
 
     // Live, debounced safe-pace preview: whenever a valid target + timeframe are set, ask the server.
-    // Keying on both values restarts the effect (cancelling the pending delay) so we only fire once
-    // the user pauses; the ViewModel additionally cancels any in-flight request.
     LaunchedEffect(target, timeframeWeeks) {
         val t = target.toDoubleOrNull()
         val w = timeframeWeeks
@@ -280,7 +302,6 @@ fun OnboardingScreen(
     }
     val age = remember(dob) { ageFromDob(dob) }
     val isMinor = age != null && age < 18
-    // Don't surface aggressive cutting to minors; the server also downgrades a minor's cut.
     val physiqueOptions = remember(isMinor) {
         if (isMinor) PHYSIQUE_GOAL.filterNot { it.first == "cut" } else PHYSIQUE_GOAL
     }
@@ -343,14 +364,52 @@ fun OnboardingScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            if (editing) "Edit your profile" else steps[step],
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary,
+    val stepColor = STEP_COLORS[step.coerceIn(0, STEP_COLORS.lastIndex)]
+    val stepEmoji = STEP_EMOJIS[step.coerceIn(0, STEP_EMOJIS.lastIndex)]
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.kaizenColors.pageBackground).padding(Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        // Step header with emoji and bold color
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(stepColor),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(stepEmoji, fontSize = 22.sp)
+            }
+            Column {
+                Text(
+                    if (editing) "Edit your profile" else steps[step],
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = stepColor,
+                )
+                Text("Step ${step + 1} of ${steps.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        // Bold progress bar
+        LinearProgressIndicator(
+            progress = { (step + 1) / steps.size.toFloat() },
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            color = stepColor,
+            trackColor = stepColor.copy(alpha = 0.12f),
         )
-        LinearProgressIndicator(progress = { (step + 1) / steps.size.toFloat() }, modifier = Modifier.fillMaxWidth())
-        Text("Step ${step + 1} of ${steps.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        // Step dots
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            steps.forEachIndexed { i, _ ->
+                Box(
+                    Modifier
+                        .padding(horizontal = 4.dp)
+                        .size(if (i == step) 12.dp else 8.dp)
+                        .clip(CircleShape)
+                        .background(if (i <= step) STEP_COLORS[i] else MaterialTheme.colorScheme.surfaceVariant),
+                )
+            }
+        }
 
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
@@ -358,26 +417,32 @@ fun OnboardingScreen(
         ) {
             when (step) {
                 0 -> {
-                    Text("A few basics so everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
+                    FeatureCard(emoji = "📋", title = "A few basics", accentColor = KaizenBlue) {
+                        Text("So everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
+                    }
                     // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
-                    Label("Your body type")
+                    SectionHeader(title = "Your body type", emoji = "🧍")
                     com.nutriai.ui.bodytype.BodyTypeInlinePicker(
                         currentId = bodyTypeCurrent,
                         goalId = bodyTypeGoal,
                         onCurrent = { bodyTypeCurrent = it },
                         onGoal = { bodyTypeGoal = it },
                     )
+                    SectionHeader(title = "Measurements", emoji = "📏")
                     numberField(height, { height = it }, "Height (cm)")
                     numberField(weight, { weight = it }, "Current weight (kg)")
                     numberField(target, { target = it }, "Target weight (kg)")
-                    Text(
-                        "Body measurements (a measuring tape helps) — these let the coach see your shape, not just your weight, and focus the plan where it matters (e.g. a high waist vs chest).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    numberField(waist, { waist = it }, "Waist (cm) — at the navel")
-                    numberField(neck, { neck = it }, "Neck (cm) — optional, for body-fat %")
-                    if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) — optional, for body-fat %")
+                    GlassCard {
+                        Text(
+                            "📐 Body measurements (a measuring tape helps) - these let the coach see your shape, not just your weight, and focus the plan where it matters.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    numberField(waist, { waist = it }, "Waist (cm) - at the navel")
+                    numberField(neck, { neck = it }, "Neck (cm) - optional, for body-fat %")
+                    if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional, for body-fat %")
+                    SectionHeader(title = "Identity", emoji = "🪪")
                     DobPicker(dob) { dob = it }
                     Dropdown("Gender", GENDER, gender) { gender = it }
                     if (gender == "self_describe") {
@@ -391,30 +456,33 @@ fun OnboardingScreen(
                     }
                     Dropdown("Sex for health calculations", SEX, sex) { sex = it }
                     Text(
-                        "We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
+                        "ℹ️ We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 1 -> {
+                    SectionHeader(title = "Goals & Preferences", emoji = "🎯")
                     Dropdown("Goal", GOAL, goal) { goal = it }
 
-                    Label("Timeframe")
-                    Text(
-                        "How soon would you like to reach your target weight? We'll pace it safely - " +
-                            "picking a shorter time won't rush your body past what's healthy.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    SectionHeader(title = "Timeframe", emoji = "⏰")
+                    GlassCard {
+                        Text(
+                            "📅 How soon would you like to reach your target weight? We'll pace it safely - picking a shorter time won't rush your body past what's healthy.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                     TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
                     if (state.timeline != null) {
                         TimelinePreviewCard(state.timeline!!)
                     }
 
+                    SectionHeader(title = "Diet & Lifestyle", emoji = "🍽️")
                     Dropdown("Diet", DIET, diet) { diet = it }
                     Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it }
                     Text(
-                        "How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
+                        "🕐 How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -426,44 +494,50 @@ fun OnboardingScreen(
                     Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
                 }
                 2 -> {
+                    SectionHeader(title = "Exercise Setup", emoji = "🏋️")
                     Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
                     Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
 
-                    Label("Training split (optional)")
+                    SectionHeader(title = "Training Split", emoji = "📊")
                     TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
                     Text(
-                        "Your Move plan updates to this split.",
+                        "💡 Your Move plan updates to this split.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
+                    SectionHeader(title = "Intensity & Rest", emoji = "⚡")
                     Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
                     Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
-                    Text(
-                        "Harder isn't always better - pick what you can keep up with. We cap intensity for safety.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    GlassCard {
+                        Text(
+                            "💪 Harder isn't always better - pick what you can keep up with. We cap intensity for safety.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                     Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
 
                     // Gym membership (spec Section 5) → progressive-overload phase (Foundation→Peak).
-                    Label("Gym membership (optional)")
+                    SectionHeader(title = "Gym Membership", emoji = "🏢")
                     Dropdown("Membership duration", GYM_MONTHS, gymMonths) { gymMonths = it }
                     if (gymMonths != null) {
-                        Text("When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("📅 When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
                     }
                 }
                 3 -> {
+                    SectionHeader(title = "Health Conditions", emoji = "🏥")
                     Label("Conditions (optional)")
                     MultiChoiceChips(CONDITIONS, conditions)
-                    Label("Family history (optional)")
+                    SectionHeader(title = "Family History", emoji = "👨‍👩‍👧‍👦")
                     Text(
                         "Conditions that run in your close family - helps us flag risks earlier.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     MultiChoiceChips(FAMILY_HISTORY, familyHistory)
+                    SectionHeader(title = "Lifestyle", emoji = "🌿")
                     Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
                     Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
                     Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
@@ -471,22 +545,25 @@ fun OnboardingScreen(
                         Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
                     }
 
-                    Label("Physique goal (optional)")
-                    Text(
-                        "What would you like your training to work towards? This only tunes your targets - every option is healthy.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
-                    if (isMinor) {
+                    SectionHeader(title = "Physique Goal", emoji = "🎯")
+                    GlassCard {
                         Text(
-                            "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            "What would you like your training to work towards? This only tunes your targets - every option is healthy. 💚",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
+                    PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
+                    if (isMinor) {
+                        FeatureCard(emoji = "🛡️", title = "Under-18 Safety", accentColor = BrandAmber) {
+                            Text(
+                                "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
 
-                    Label("Muscles you'd like to bring up (optional)")
+                    SectionHeader(title = "Priority Muscles", emoji = "💪")
                     Text(
                         "Pick up to $MAX_PRIORITY_MUSCLES - we'll add a little extra volume there.",
                         style = MaterialTheme.typography.labelSmall,
@@ -495,49 +572,68 @@ fun OnboardingScreen(
                     PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                 }
                 else -> {
-                    Text("You're all set", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                    Text(
-                        "We'll build your personalised plan across Diet, Movement, Mind and Discipline - with safe, explainable targets. Small habits, big results.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        "Goal: ${labelOf(GOAL, goal)}  ·  Diet: ${labelOf(DIET, diet)}\nLevel: ${labelOf(FITNESS_LEVEL, fitnessLevel)}  ·  Intensity: ${labelOf(INTENSITY, intensity)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Spacer(Modifier.height(Spacing.lg))
+                    FeatureCard(emoji = "🎉", title = "You're All Set!", accentColor = BrandGreen) {
+                        Text(
+                            "We'll build your personalised plan across Diet, Movement, Mind and Discipline - with safe, explainable targets. Small habits, big results. 🚀",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    GlassCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text("📊 Your Summary", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandGreen)
+                            Text(
+                                "🎯 Goal: ${labelOf(GOAL, goal)}  ·  🍽️ Diet: ${labelOf(DIET, diet)}\n💪 Level: ${labelOf(FITNESS_LEVEL, fitnessLevel)}  ·  ⚡ Intensity: ${labelOf(INTENSITY, intensity)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
                 }
             }
         }
 
         state.error?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            FeatureCard(emoji = "❌", title = "Error", accentColor = KaizenCoral) {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
         }
         if (step == 0 && !canSave) {
-            Text(
-                "Fill height, weight, target and date of birth to continue.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            GlassCard {
+                Text(
+                    "📝 Fill height, weight, target and date of birth to continue.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             if (step > 0) {
-                OutlinedButton(onClick = { step-- }, modifier = Modifier.weight(1f)) { Text("Back") }
+                OutlinedButton(
+                    onClick = { step-- },
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(Radius.md),
+                ) { Text("⬅️ Back", fontWeight = FontWeight.Bold) }
             }
             if (step < lastStep) {
                 Button(
                     onClick = { if (step != 0 || canSave) step++ },
                     enabled = step != 0 || canSave,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Next") }
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(Radius.md),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = stepColor),
+                ) { Text("Next ➡️", fontWeight = FontWeight.Bold) }
             } else {
                 Button(
                     onClick = { doSave() },
                     enabled = !state.loading && canSave,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(Radius.md),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = BrandGreen),
                 ) {
-                    if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp))
-                    else Text(if (editing) "Save changes" else "Create my plan")
+                    if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp), color = Color.White)
+                    else Text(if (editing) "✅ Save changes" else "🚀 Create my plan", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -560,7 +656,7 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
-            placeholder = { Text("Tap to pick") },
+            placeholder = { Text("📅 Tap to pick") },
             trailingIcon = { androidx.compose.material3.Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.padding(end = 12.dp)) },
             modifier = Modifier.fillMaxWidth(),
         )
@@ -598,7 +694,7 @@ private fun numberField(value: String, onChange: (String) -> Unit, label: String
 
 @Composable
 private fun Label(text: String) {
-    Text(text, style = MaterialTheme.typography.labelLarge)
+    Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
 }
 
 /** A labelled dropdown (Material3 exposed menu) for single-choice selection. */
@@ -634,6 +730,10 @@ private fun MultiChoiceChips(options: List<String>, selected: MutableList<String
                 selected = isSel,
                 onClick = { if (isSel) selected.remove(opt) else selected.add(opt) },
                 label = { Text(opt.replace('_', ' ')) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = KaizenCoral,
+                    selectedLabelColor = Color.White,
+                ),
             )
         }
     }
@@ -665,8 +765,7 @@ private fun PhysiqueGoalPicker(
 }
 
 /**
- * Single-select training split as radio rows with plain-language, body-neutral labels. The value
- * may be null ("Auto"), so options are `String?` → label. Each row is ≥48dp with a contentDescription.
+ * Single-select training split as radio rows with plain-language, body-neutral labels.
  */
 @Composable
 private fun TrainingSplitPicker(
@@ -681,6 +780,7 @@ private fun TrainingSplitPicker(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
+                    .background(if (isSel) MovementColor.copy(alpha = 0.1f) else Color.Transparent)
                     .clickable { onSelect(value) }
                     .heightIn(min = 48.dp)
                     .padding(vertical = 4.dp)
@@ -689,7 +789,7 @@ private fun TrainingSplitPicker(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 RadioButton(selected = isSel, onClick = { onSelect(value) })
-                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -701,6 +801,7 @@ private fun PhysiqueOptionRow(label: String, desc: String, selected: Boolean, on
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) BrandGreen.copy(alpha = 0.1f) else Color.Transparent)
             .clickable(onClick = onClick)
             .heightIn(min = 48.dp)
             .padding(vertical = 4.dp)
@@ -710,7 +811,7 @@ private fun PhysiqueOptionRow(label: String, desc: String, selected: Boolean, on
     ) {
         RadioButton(selected = selected, onClick = onClick)
         Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
             Text(desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -733,6 +834,10 @@ private fun PriorityMusclesChips(options: List<String>, selected: MutableList<St
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .semantics { contentDescription = if (isSel) "$display, selected" else display },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MovementColor,
+                    selectedLabelColor = Color.White,
+                ),
             )
         }
     }
@@ -755,22 +860,22 @@ private fun TimeframeChips(selectedWeeks: Int?, onSelect: (Int) -> Unit) {
                     .semantics {
                         contentDescription = if (isSel) "$label, selected timeframe" else "$label timeframe"
                     },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = BrandGreen,
+                    selectedLabelColor = Color.White,
+                ),
             )
         }
     }
 }
 
 /**
- * Body-neutral preview of the server's safe-pace assessment. Encouraging, never shaming.
- * When [timeline] is blocked we show only the message (no date/kcal) in a calm tertiary tone; a
- * clamped-but-fine plan reads as a supportive "here's a sustainable pace". Disclaimer always shows.
+ * Body-neutral preview of the server's safe-pace assessment.
  */
 @Composable
 private fun TimelinePreviewCard(timeline: com.nutriai.data.remote.dto.GoalTimeline) {
-    val scheme = MaterialTheme.colorScheme
     val blocked = timeline.blocked
-    val container = if (blocked) scheme.tertiaryContainer else scheme.secondaryContainer
-    val onContainer = if (blocked) scheme.onTertiaryContainer else scheme.onSecondaryContainer
+    val accentColor = if (blocked) BrandAmber else BrandGreen
 
     // Realistic target date = today + the server's realistic weeks.
     val monthYear = remember(timeline.realisticWeeks) {
@@ -792,30 +897,27 @@ private fun TimelinePreviewCard(timeline: com.nutriai.data.remote.dto.GoalTimeli
         if (timeline.disclaimer.isNotBlank()) append(' ').append(timeline.disclaimer)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(container)
-            .heightIn(min = 48.dp)
-            .padding(16.dp)
-            .semantics { contentDescription = describe },
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+    FeatureCard(
+        emoji = if (blocked) "⚠️" else "📈",
+        title = if (blocked) "Pace Review" else "Your Timeline",
+        accentColor = accentColor,
+        modifier = Modifier.semantics { contentDescription = describe },
     ) {
         if (timeline.message.isNotBlank()) {
-            Text(timeline.message, style = MaterialTheme.typography.bodyMedium, color = onContainer)
+            Text(timeline.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
         }
         if (!blocked) {
             Text(
-                "On track for around $monthYear.",
+                "📅 On track for around $monthYear.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = onContainer,
+                fontWeight = FontWeight.SemiBold,
+                color = accentColor,
             )
             if (timeline.dailyKcalDelta != 0) {
                 Text(
-                    "≈ $kcal kcal/day $kcalWord",
+                    "🔥 ≈ $kcal kcal/day $kcalWord",
                     style = MaterialTheme.typography.labelMedium,
-                    color = onContainer,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -823,7 +925,7 @@ private fun TimelinePreviewCard(timeline: com.nutriai.data.remote.dto.GoalTimeli
             Text(
                 timeline.disclaimer,
                 style = MaterialTheme.typography.labelSmall,
-                color = onContainer.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

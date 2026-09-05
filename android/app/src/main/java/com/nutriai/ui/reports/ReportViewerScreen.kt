@@ -5,13 +5,17 @@ import android.print.PrintAttributes
 import android.print.PrintManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,6 +23,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,7 +34,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,6 +44,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,60 +125,126 @@ fun ReportViewerScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kaizenColors.pageBackground),
+    ) {
         // Controls bar
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
         ) {
-            // (Back is provided by the parent "← Me" header - no duplicate here.)
-            // Range dropdown: Weekly / Monthly
-            var rangeOpen by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(expanded = rangeOpen, onExpandedChange = { rangeOpen = it }, modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = if (state.range == "monthly") "Monthly" else "Weekly",
-                    onValueChange = {}, readOnly = true,
-                    label = { Text("Period") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rangeOpen) },
-                    modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
-                )
-                ExposedDropdownMenu(expanded = rangeOpen, onDismissRequest = { rangeOpen = false }) {
-                    DropdownMenuItem(text = { Text("Weekly") }, onClick = { viewModel.setRange("weekly"); rangeOpen = false })
-                    DropdownMenuItem(text = { Text("Monthly") }, onClick = { viewModel.setRange("monthly"); rangeOpen = false })
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    EmojiBadge(emoji = "📄", bgColor = KaizenBlue.copy(alpha = 0.15f), size = 36.dp)
+                    Text(
+                        "Report Viewer",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = KaizenBlue,
+                    )
                 }
-            }
 
-            // Count dropdown: how many weeks / months
-            var countOpen by remember { mutableStateOf(false) }
-            val unit = if (state.range == "monthly") "mo" else "wk"
-            ExposedDropdownMenuBox(expanded = countOpen, onExpandedChange = { countOpen = it }, modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = "${state.count} $unit",
-                    onValueChange = {}, readOnly = true,
-                    label = { Text("How many") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(countOpen) },
-                    modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
-                )
-                ExposedDropdownMenu(expanded = countOpen, onDismissRequest = { countOpen = false }) {
-                    listOf(1, 2, 3, 4, 6).forEach { c ->
-                        DropdownMenuItem(text = { Text("$c $unit") }, onClick = { viewModel.setCount(c); countOpen = false })
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Range dropdown: Weekly / Monthly
+                    var rangeOpen by remember { mutableStateOf(false) }
+                    ExposedDropdownMenuBox(
+                        expanded = rangeOpen,
+                        onExpandedChange = { rangeOpen = it },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        OutlinedTextField(
+                            value = if (state.range == "monthly") "📅 Monthly" else "📆 Weekly",
+                            onValueChange = {}, readOnly = true,
+                            label = { Text("Period") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rangeOpen) },
+                            shape = RoundedCornerShape(Radius.md),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = KaizenBlue,
+                                focusedLabelColor = KaizenBlue,
+                            ),
+                            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                        )
+                        ExposedDropdownMenu(expanded = rangeOpen, onDismissRequest = { rangeOpen = false }) {
+                            DropdownMenuItem(text = { Text("📆 Weekly") }, onClick = { viewModel.setRange("weekly"); rangeOpen = false })
+                            DropdownMenuItem(text = { Text("📅 Monthly") }, onClick = { viewModel.setRange("monthly"); rangeOpen = false })
+                        }
+                    }
+
+                    // Count dropdown: how many weeks / months
+                    var countOpen by remember { mutableStateOf(false) }
+                    val unit = if (state.range == "monthly") "mo" else "wk"
+                    ExposedDropdownMenuBox(
+                        expanded = countOpen,
+                        onExpandedChange = { countOpen = it },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        OutlinedTextField(
+                            value = "${state.count} $unit",
+                            onValueChange = {}, readOnly = true,
+                            label = { Text("How many") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(countOpen) },
+                            shape = RoundedCornerShape(Radius.md),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = KaizenLavender,
+                                focusedLabelColor = KaizenLavender,
+                            ),
+                            modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                        )
+                        ExposedDropdownMenu(expanded = countOpen, onDismissRequest = { countOpen = false }) {
+                            listOf(1, 2, 3, 4, 6).forEach { c ->
+                                DropdownMenuItem(text = { Text("$c $unit") }, onClick = { viewModel.setCount(c); countOpen = false })
+                            }
+                        }
                     }
                 }
-            }
 
-            TextButton(onClick = { webRef?.let { printReport(context, it) } }, enabled = state.html.isNotEmpty()) { Text("Save PDF") }
+                PrimaryButton(
+                    text = "📥 Save as PDF",
+                    onClick = { webRef?.let { printReport(context, it) } },
+                    enabled = state.html.isNotEmpty(),
+                    containerColor = BrandGreen,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
-        Box(Modifier.fillMaxSize()) {
+        // WebView area
+        Box(Modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal)) {
             if (state.error != null) {
-                Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(state.error!!, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { viewModel.load() }) { Text("Retry") }
+                FeatureCard(
+                    emoji = "⚠️",
+                    title = "Report Unavailable",
+                    accentColor = KaizenCoral,
+                    modifier = Modifier.align(Alignment.Center),
+                ) {
+                    Text(
+                        state.error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(Spacing.md))
+                    PrimaryButton(
+                        text = "🔄 Retry",
+                        onClick = { viewModel.load() },
+                        containerColor = KaizenCoral,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             } else {
                 AndroidView(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(Radius.lg)),
                     factory = { ctx ->
                         WebView(ctx).apply {
                             settings.javaScriptEnabled = false
@@ -179,7 +263,18 @@ fun ReportViewerScreen(
                 )
                 if (state.loading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                        ) {
+                            CircularProgressIndicator(color = BrandGreen)
+                            Text(
+                                "📊 Loading your report...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }

@@ -3,6 +3,8 @@ package com.nutriai.ui.splash
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,11 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -88,32 +94,63 @@ fun SplashScreen(onFinished: () -> Unit, viewModel: SplashViewModel = hiltViewMo
         onFinished()
     }
 
-    Box(Modifier.fillMaxSize().background(Color.White)) {
-        Image(
-            painter = painterResource(R.drawable.splash_kaizen),
-            contentDescription = "Kaizen - Small Habits. Big Results.",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().alpha(fade),
-        )
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(
+                listOf(Color(0xFFF5FBF8), Color(0xFFE8F5E9), Color(0xFFFFFFFF))
+            )
+        ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().alpha(fade),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.splash_kaizen),
+                contentDescription = "Kaizen - Small Habits. Big Results.",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(180.dp).clip(RoundedCornerShape(32.dp)),
+            )
+            Text(
+                "Kaizen",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = BrandGreen,
+            )
+            Text(
+                "Small Habits. Big Results. 🌱",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF388E3C),
+                textAlign = TextAlign.Center,
+            )
+        }
 
         Column(
             Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CircularProgressIndicator(
-                Modifier.size(34.dp).alpha(fade),
+                Modifier.size(38.dp).alpha(fade),
                 color = BrandGreen,
                 strokeWidth = 3.dp,
             )
             AnimatedVisibility(visible = slow) {
                 Box(
-                    Modifier.clip(RoundedCornerShape(10.dp)).background(Color(0x14000000)).padding(horizontal = 12.dp, vertical = 6.dp),
+                    Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(BrandGreen.copy(alpha = 0.12f))
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
                 ) {
                     Text(
-                        "Waking things up…",
-                        color = Color(0xFF4A574F),
+                        "🚀 Waking things up...",
+                        color = BrandGreen,
+                        fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }

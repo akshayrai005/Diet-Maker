@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,6 +54,21 @@ import com.nutriai.data.remote.dto.VitalClassification
 import com.nutriai.data.remote.dto.VitalPoint
 import com.nutriai.data.remote.dto.VitalSeries
 import com.nutriai.data.remote.dto.VitalSummaryItem
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.KaizenProgressBar
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -115,19 +131,43 @@ private fun numericPoints(series: VitalSeries): List<Double> =
         if (series.type == "bloodPressure") p.systolic?.toDouble() else p.value
     }
 
+/** Emoji for vital type. */
+private fun vitalEmoji(type: String): String = when (type) {
+    "bloodPressure" -> "🩸"
+    "restingHr" -> "❤️"
+    "weight" -> "⚖️"
+    "waist" -> "📏"
+    "fastingGlucose" -> "🍬"
+    "hba1c" -> "🧪"
+    "ldl", "hdl", "triglycerides" -> "🧈"
+    "tsh" -> "🦷"
+    "vitaminD" -> "☀️"
+    "ferritin" -> "🧲"
+    "hemoglobin" -> "🩸"
+    else -> "📊"
+}
+
 /**
- * Severity → colour. Routed through MaterialTheme.colorScheme where a slot exists; amber/orange
+ * Severity -> colour. Routed through MaterialTheme.colorScheme where a slot exists; amber/orange
  * have no theme slot so they are named constants. The chip never relies on colour alone - the
  * band text is always shown alongside.
  */
 @Composable
 private fun severityColor(severity: String): Color = when (severity) {
-    "normal" -> MaterialTheme.colorScheme.primary
+    "normal" -> BrandGreen
     "watch" -> Color(0xFFF2B705) // amber
     "elevated" -> Color(0xFFEF8A17) // orange
-    "high" -> MaterialTheme.colorScheme.error
+    "high" -> KaizenCoral
     "urgent" -> Color(0xFFB3261E) // strong red
     else -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun severityToStatus(severity: String): Status = when (severity) {
+    "normal" -> Status.Positive
+    "watch" -> Status.Caution
+    "elevated", "high", "urgent" -> Status.Critical
+    else -> Status.Information
 }
 
 // ---------------------------------------------------------------------------
@@ -273,9 +313,9 @@ private fun VitalsOverview(
     val hasAny = state.items.isNotEmpty()
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.lg),
     ) {
         if (onBack != null) {
             item {
@@ -287,52 +327,36 @@ private fun VitalsOverview(
         }
 
         item {
-            Text(
-                "Vitals & labs",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-            )
+            SectionHeader(title = "Vitals & Labs", emoji = "❤️")
         }
 
         if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = KaizenCoral) } }
         }
 
         state.error?.let { err ->
-            item { Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
+            item { Text(err, color = KaizenCoral, style = MaterialTheme.typography.bodyMedium) }
         }
 
         if (!state.loading && state.error == null && !hasAny) {
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                ) {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            "Start tracking",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                        Text(
-                            "Add your first reading to start tracking trends.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
-                        )
-                    }
-                }
+                EmptyState(
+                    title = "Start tracking",
+                    message = "Add your first reading to start tracking trends.",
+                    emoji = "📊",
+                )
             }
         }
 
-        item { SectionLabel("Body & vitals") }
+        // Body & vitals section
+        item { SectionHeader(title = "Body & Vitals", emoji = "🏋️") }
         items(BODY_VITALS.size) { i ->
             val meta = BODY_VITALS[i]
             MetricRow(meta = meta, item = byType[meta.type], onClick = { onOpen(meta.type) })
         }
 
-        item { SectionLabel("Blood labs") }
+        // Blood labs section
+        item { SectionHeader(title = "Blood Labs", emoji = "🧪") }
         items(LAB_VITALS.size) { i ->
             val meta = LAB_VITALS[i]
             MetricRow(meta = meta, item = byType[meta.type], onClick = { onOpen(meta.type) })
@@ -343,15 +367,10 @@ private fun VitalsOverview(
                 state.disclaimer,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
             )
         }
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 }
 
 @Composable
@@ -367,36 +386,44 @@ private fun MetricRow(meta: VitalMeta, item: VitalSummaryItem?, onClick: () -> U
         "${meta.label}, no readings yet. Add first reading."
     }
 
-    Card(
-        Modifier.fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = rowDesc },
-        shape = RoundedCornerShape(16.dp),
+    GlassCard(
+        modifier = Modifier.semantics { contentDescription = rowDesc },
+        onClick = onClick,
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(meta.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                if (hasData) {
-                    Text(
-                        valueText ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Text(
-                        "Add first reading",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                modifier = Modifier.weight(1f),
+            ) {
+                EmojiBadge(
+                    emoji = vitalEmoji(meta.type),
+                    bgColor = KaizenCoral.copy(alpha = 0.15f),
+                )
+                Column {
+                    Text(meta.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (hasData) {
+                        Text(
+                            valueText ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            "Add first reading",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = BrandGreen,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                 }
             }
             if (band != null && severity != null) {
-                SeverityChip(band = band, severity = severity)
+                StatusIndicator(text = band, status = severityToStatus(severity))
             } else {
                 Text("›", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -448,9 +475,9 @@ private fun VitalDetail(
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.lg),
     ) {
         item {
             TextButton(
@@ -460,13 +487,16 @@ private fun VitalDetail(
         }
 
         item {
-            Column {
-                Text(meta.label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    "Unit: ${series?.unit?.ifBlank { meta.unit } ?: meta.unit}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                EmojiBadge(emoji = vitalEmoji(meta.type), bgColor = KaizenLavender.copy(alpha = 0.2f))
+                Column {
+                    Text(meta.label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Unit: ${series?.unit?.ifBlank { meta.unit } ?: meta.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
@@ -474,25 +504,14 @@ private fun VitalDetail(
         state.savedClassification?.let { c ->
             item {
                 state.toast?.let { LaunchedEffect(it) { delay(3000); onClearToast() } }
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                ) {
-                    Row(
-                        Modifier.padding(14.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Saved", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        if (c.band.isNotBlank()) SeverityChip(band = c.band, severity = c.severity)
-                    }
+                FeatureCard(emoji = "✅", title = "Saved", accentColor = BrandGreen) {
+                    if (c.band.isNotBlank()) SeverityChip(band = c.band, severity = c.severity)
                 }
             }
         }
 
         if (state.seriesLoading && series == null) {
-            item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = KaizenBlue) } }
         }
 
         if (series != null) {
@@ -501,31 +520,30 @@ private fun VitalDetail(
             // Educational latest reading: band + guideline citation + message.
             series.latest?.let { latest ->
                 item {
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    FeatureCard(
+                        emoji = vitalEmoji(series.type),
+                        title = "Latest Reading",
+                        accentColor = KaizenBlue,
                     ) {
-                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text(
-                                    "${displayValue(series.type, latest.point)} ${series.unit}".trim(),
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                                if (latest.band.isNotBlank()) SeverityChip(band = latest.band, severity = latest.severity)
-                            }
-                            if (latest.message.isNotBlank()) {
-                                Text(latest.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.95f))
-                            }
-                            if (latest.guideline.isNotBlank()) {
-                                Text(
-                                    "Source: ${latest.guideline}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                                )
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                            Text(
+                                "${displayValue(series.type, latest.point)} ${series.unit}".trim(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (latest.band.isNotBlank()) SeverityChip(band = latest.band, severity = latest.severity)
+                        }
+                        if (latest.message.isNotBlank()) {
+                            Spacer(Modifier.height(Spacing.sm))
+                            Text(latest.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (latest.guideline.isNotBlank()) {
+                            Spacer(Modifier.height(Spacing.xs))
+                            Text(
+                                "📚 Source: ${latest.guideline}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -537,14 +555,13 @@ private fun VitalDetail(
             }
             if (chartPoints.size >= 2) {
                 item {
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-                        Column(Modifier.padding(16.dp)) {
-                            val lineColor = MaterialTheme.colorScheme.primary
-                            VitalLineChart(values = chartPoints, lineColor = lineColor)
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("${formatNum(chartPoints.min())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${formatNum(chartPoints.max())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                    FeatureCard(emoji = "📈", title = "Trend", accentColor = KaizenLavender) {
+                        val lineColor = KaizenLavender
+                        VitalLineChart(values = chartPoints, lineColor = lineColor)
+                        Spacer(Modifier.height(Spacing.sm))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${formatNum(chartPoints.min())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${formatNum(chartPoints.max())} ${series.unit}".trim(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -552,27 +569,17 @@ private fun VitalDetail(
 
             // Add reading action.
             item {
-                Card(
-                    Modifier.fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .clickable { showAdd = true }
-                        .semantics { contentDescription = "Add ${meta.label} reading" },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                ) {
-                    Text(
-                        "＋ Add reading",
-                        Modifier.fillMaxWidth().padding(14.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
+                PrimaryButton(
+                    text = "＋ Add Reading",
+                    onClick = { showAdd = true },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Add ${meta.label} reading" },
+                    containerColor = BrandGreen,
+                )
             }
 
-            // Past readings (newest first - server returns oldest→newest for the chart).
+            // Past readings (newest first - server returns oldest->newest for the chart).
             if (series.points.isNotEmpty()) {
-                item { SectionLabel("Past readings") }
+                item { SectionHeader(title = "Past Readings", emoji = "🗓️") }
                 val past = series.points.reversed()
                 items(past.size) { i ->
                     val p = past[i]
@@ -580,10 +587,10 @@ private fun VitalDetail(
                 }
             } else {
                 item {
-                    Text(
-                        "Add your first reading to start tracking trends.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    EmptyState(
+                        title = "No readings yet",
+                        message = "Add your first reading to start tracking trends.",
+                        emoji = "📊",
                     )
                 }
             }
@@ -593,7 +600,7 @@ private fun VitalDetail(
                     series.disclaimer.ifBlank { state.disclaimer },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
                 )
             }
         }
@@ -602,9 +609,9 @@ private fun VitalDetail(
 
 @Composable
 private fun PastReadingRow(type: String, unit: String, point: VitalPoint) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+    GlassCard {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -702,7 +709,7 @@ private fun AddReadingDialog(
 
     AlertDialog(
         onDismissRequest = { if (!submitting) onDismiss() },
-        title = { Text("Add ${meta.label}") },
+        title = { Text("➕ Add ${meta.label}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (meta.isBp) {
@@ -780,43 +787,42 @@ fun HomeVitalsCard(
     val byType = state.items.associateBy { it.type }
     val picks = HOME_PRIORITY.mapNotNull { byType[it] }.take(3)
 
-    Card(
-        modifier = modifier.fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onOpenVitals)
-            .semantics { contentDescription = "Vitals and labs. Open to view or add readings." },
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    FeatureCard(
+        emoji = "❤️",
+        title = "Vitals & Labs",
+        modifier = modifier.semantics { contentDescription = "Vitals and labs. Open to view or add readings." },
+        accentColor = KaizenCoral,
+        onClick = onOpenVitals,
     ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Vitals & labs", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("›", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (picks.isEmpty()) {
-                Text(
-                    "Track your vitals - blood pressure, glucose, cholesterol and more.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                picks.forEach { item ->
-                    val meta = metaFor(item.type)
+        if (picks.isEmpty()) {
+            Text(
+                "Track your vitals — blood pressure, glucose, cholesterol and more.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            picks.forEach { item ->
+                val meta = metaFor(item.type)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
+                        EmojiBadge(emoji = vitalEmoji(item.type), bgColor = KaizenCoral.copy(alpha = 0.15f), size = 28.dp)
                         Text(meta.label, style = MaterialTheme.typography.bodyMedium)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                "${displayValue(item.type, item.latest)} ${item.unit.ifBlank { meta.unit }}".trim(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            item.classification?.let { c ->
-                                if (c.band.isNotBlank()) SeverityChip(band = c.band, severity = c.severity)
-                            }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "${displayValue(item.type, item.latest)} ${item.unit.ifBlank { meta.unit }}".trim(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        item.classification?.let { c ->
+                            if (c.band.isNotBlank()) StatusIndicator(text = c.band, status = severityToStatus(c.severity))
                         }
                     }
                 }

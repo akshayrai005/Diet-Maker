@@ -1,17 +1,21 @@
 package com.nutriai.ui.bodytype
 
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +38,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.MetricBlock
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,7 +95,7 @@ val GOAL_TYPES = listOf(
     Physique("endurance", "🏃", "Lean / endurance", "Lean, high stamina", shoulder = 0.40f, waist = 0.28f, hip = 0.32f),
 )
 
-/** Auto strategy for a current→goal combination (spec Section 4 table). */
+/** Auto strategy for a current->goal combination (spec Section 4 table). */
 data class Strategy(val calories: String, val protein: String, val approach: String, val time: String)
 
 fun strategyFor(current: String?, goal: String?): Strategy = when {
@@ -124,7 +144,7 @@ class BodyTypeViewModel @Inject constructor(private val prefs: BodyTypePrefs) : 
 /**
  * Visual body-type selector (spec Section 4): pick where you are now and where you want to be, drawn
  * as silhouettes rather than words, and see the auto-calculated strategy for that combination. The
- * choice is saved on-device and shown as a current → goal motivation banner.
+ * choice is saved on-device and shown as a current -> goal motivation banner.
  */
 @Composable
 fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel = hiltViewModel()) {
@@ -133,53 +153,103 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
     val goal = GOAL_TYPES.firstOrNull { it.id == state.goal }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kaizenColors.pageBackground)
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
         item {
-            Text("Shape your body", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Where are you now, and where do you want to be?", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            com.nutriai.ui.components.ScreenHeader(
+                title = "💪 Body Type",
+                subtitle = "Where are you now, and where do you want to be?",
+            )
         }
 
-        // Motivation banner: current → goal.
+        // Motivation banner: current -> goal.
         if (current != null && goal != null) {
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                    Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        MiniFigure(current, Modifier.size(64.dp))
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("→", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            val s = strategyFor(state.current, state.goal)
-                            Text(s.approach, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, textAlign = TextAlign.Center)
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radius.lg),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(KaizenBlue, BrandGreen, KaizenLavender),
+                                ),
+                            )
+                            .padding(Spacing.lg),
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MiniFigure(current, Modifier.size(72.dp), textColor = Color.White)
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("➡️", style = MaterialTheme.typography.headlineMedium)
+                                val s = strategyFor(state.current, state.goal)
+                                Text(
+                                    s.approach,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                            MiniFigure(goal, Modifier.size(72.dp), textColor = Color.White)
                         }
-                        MiniFigure(goal, Modifier.size(64.dp))
                     }
                 }
             }
             item {
                 val s = strategyFor(state.current, state.goal)
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Your plan", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        Text("${s.calories} · ${s.protein} protein", style = MaterialTheme.typography.bodyMedium)
-                        Text("${s.approach} · ${s.time}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Estimates — your actual targets come from your full profile & goal.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FeatureCard(
+                    emoji = "📋",
+                    title = "Your Plan",
+                    accentColor = BrandGreen,
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        MetricBlock(label = "Calories", value = s.calories, color = KaizenCoral)
+                        MetricBlock(label = "Protein", value = s.protein, color = KaizenBlue)
                     }
+                    Spacer(Modifier.height(Spacing.sm))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        MetricBlock(label = "Strategy", value = s.approach, color = KaizenLavender)
+                        MetricBlock(label = "Timeline", value = s.time, color = BrandAmber)
+                    }
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(
+                        "Estimates — your actual targets come from your full profile & goal.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
 
-        item { Text("Current body type", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+        item { SectionHeader(title = "Current Body Type", emoji = "🏋️") }
         item { PhysiqueGrid(CURRENT_TYPES, state.current) { viewModel.selectCurrent(it) } }
 
-        item { Text("Goal body type", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+        item { SectionHeader(title = "Goal Body Type", emoji = "🎯") }
         item { PhysiqueGrid(GOAL_TYPES, state.goal) { viewModel.selectGoal(it) } }
     }
 }
 
 /**
- * Compact current→goal body-type picker for reuse in onboarding (spec Section 4, Step 0). Draws the
+ * Compact current->goal body-type picker for reuse in onboarding (spec Section 4, Step 0). Draws the
  * same silhouettes as the standalone screen; the caller owns the selected ids and persistence.
  */
 @Composable
@@ -190,19 +260,19 @@ fun BodyTypeInlinePicker(
     onGoal: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Where are you now?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionHeader(title = "Where are you now?", emoji = "📍")
         PhysiqueGrid(CURRENT_TYPES, currentId, onCurrent)
-        Text("Where do you want to be?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        SectionHeader(title = "Where do you want to be?", emoji = "🎯")
         PhysiqueGrid(GOAL_TYPES, goalId, onGoal)
     }
 }
 
 @Composable
 private fun PhysiqueGrid(types: List<Physique>, selectedId: String?, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         types.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 row.forEach { p -> PhysiqueCard(p, selectedId == p.id, Modifier.weight(1f)) { onSelect(p.id) } }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
@@ -212,29 +282,58 @@ private fun PhysiqueGrid(types: List<Physique>, selectedId: String?, onSelect: (
 
 @Composable
 private fun PhysiqueCard(p: Physique, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val accentColor = when (p.id) {
+        "skinny" -> KaizenBlue
+        "skinnyfat" -> BrandAmber
+        "average" -> NutritionColor
+        "overweight" -> KaizenCoral
+        "athletic", "vshape", "bodybuilder" -> KaizenLavender
+        "lean" -> BrandGreen
+        "endurance" -> MovementColor
+        else -> BrandGreen
+    }
     Card(
         modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(Radius.lg))
             .clickable(onClick = onClick)
-            .then(if (selected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)) else Modifier),
-        shape = RoundedCornerShape(16.dp),
+            .then(if (selected) Modifier.border(3.dp, accentColor, RoundedCornerShape(Radius.lg)) else Modifier),
+        shape = RoundedCornerShape(Radius.lg),
         colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = if (selected) accentColor.copy(alpha = 0.12f) else MaterialTheme.kaizenColors.elevatedSurface,
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (selected) 6.dp else 2.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(p.emoji, style = MaterialTheme.typography.displaySmall)
-            Text(p.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text(p.desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = Spacing.lg, horizontal = Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            EmojiBadge(
+                emoji = p.emoji,
+                bgColor = accentColor.copy(alpha = 0.15f),
+                size = 52.dp,
+            )
+            Text(
+                p.label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                color = if (selected) accentColor else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                p.desc,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
 
 @Composable
-private fun MiniFigure(p: Physique, modifier: Modifier = Modifier) {
+private fun MiniFigure(p: Physique, modifier: Modifier = Modifier, textColor: Color = MaterialTheme.colorScheme.onSurface) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(p.emoji, style = MaterialTheme.typography.headlineMedium)
-        Text(p.label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, maxLines = 1)
+        Text(p.label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, color = textColor)
     }
 }
-

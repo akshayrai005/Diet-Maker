@@ -6,17 +6,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -36,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -50,6 +53,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.R
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
+import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.HeroGradientTop
+import com.nutriai.ui.theme.HeroGradientBottom
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
 
 @Composable
 fun LoginScreen(
@@ -63,23 +71,17 @@ fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    AuthScaffold(title = "Welcome back", subtitle = "Log in to continue", error = state.error) {
+    AuthScaffold(title = "Welcome back 👋", subtitle = "Log in to continue your journey", error = state.error) {
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            singleLine = true,
+            value = email, onValueChange = { email = it }, label = { Text("Email") }, singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
         )
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            singleLine = true,
+            value = password, onValueChange = { password = it }, label = { Text("Password") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
         )
         PrimaryButton(
             text = "Log in",
@@ -87,8 +89,8 @@ fun LoginScreen(
             enabled = !state.loading && email.isNotBlank() && password.isNotBlank(),
             onClick = { viewModel.login(email, password, onHome = onLoggedIn, onNeedsProfile = onNeedsProfile) },
         )
-        TextButton(onClick = onForgotPassword) { Text("Forgot password?") }
-        TextButton(onClick = onGoToRegister) { Text("New here? Create an account") }
+        TextButton(onClick = onForgotPassword) { Text("Forgot password?", color = BrandGreen) }
+        TextButton(onClick = onGoToRegister) { Text("New here? Create an account", color = BrandGreen) }
     }
 }
 
@@ -101,7 +103,7 @@ fun ForgotPasswordScreen(
 ) {
     val f by viewModel.forgot.collectAsStateWithLifecycle()
     var email by rememberSaveable { mutableStateOf("") }
-    var dob by rememberSaveable { mutableStateOf("") } // yyyy-MM-dd
+    var dob by rememberSaveable { mutableStateOf("") }
     var newPass by rememberSaveable { mutableStateOf("") }
     var confirm by rememberSaveable { mutableStateOf("") }
     var showPicker by remember { mutableStateOf(false) }
@@ -109,17 +111,18 @@ fun ForgotPasswordScreen(
     DisposableEffect(Unit) { onDispose { viewModel.resetForgot() } }
 
     AuthScaffold(
-        title = "Reset password",
+        title = if (f.verified) "🔑 New password" else "🔒 Reset password",
         subtitle = if (f.verified) "Set a new password" else "Verify your identity to continue",
         error = f.error,
     ) {
         if (!f.verified) {
             OutlinedTextField(
                 value = email, onValueChange = { email = it }, label = { Text("Email") }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
             )
-            OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (dob.isBlank()) "Select your date of birth" else "Date of birth: $dob")
+            OutlinedButton(onClick = { showPicker = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm)) {
+                Text(if (dob.isBlank()) "📅 Select your date of birth" else "📅 Date of birth: $dob")
             }
             Text(
                 "We verify with your email and date of birth (the one on your profile).",
@@ -131,17 +134,19 @@ fun ForgotPasswordScreen(
                 enabled = !f.loading && email.isNotBlank() && dob.isNotBlank(),
                 onClick = { viewModel.verifyIdentity(email, dob) },
             )
-            TextButton(onClick = onBack) { Text("Back to login") }
+            TextButton(onClick = onBack) { Text("Back to login", color = BrandGreen) }
         } else {
             OutlinedTextField(
                 value = newPass, onValueChange = { newPass = it }, label = { Text("New password (min 8)") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
             )
             OutlinedTextField(
                 value = confirm, onValueChange = { confirm = it }, label = { Text("Confirm password") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
             )
             if (confirm.isNotBlank() && newPass != confirm) {
                 Text("Passwords don't match.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -184,17 +189,17 @@ fun RegisterScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    AuthScaffold(title = "Create your account", subtitle = "Start your health journey", error = state.error) {
-        OutlinedTextField(first, { first = it }, label = { Text("First name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(last, { last = it }, label = { Text("Last name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    AuthScaffold(title = "Create your account 🚀", subtitle = "Start your health journey today", error = state.error) {
+        OutlinedTextField(first, { first = it }, label = { Text("First name") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm))
+        OutlinedTextField(last, { last = it }, label = { Text("Last name") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm))
         OutlinedTextField(
             email, { email = it }, label = { Text("Email") }, singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
         )
         OutlinedTextField(
             password, { password = it }, label = { Text("Password (min 8)") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
         )
         PrimaryButton(
             text = "Sign up",
@@ -202,7 +207,7 @@ fun RegisterScreen(
             enabled = !state.loading && email.isNotBlank() && password.length >= 8 && first.isNotBlank(),
             onClick = { viewModel.register(email, password, first, last, onRegistered) },
         )
-        TextButton(onClick = onGoToLogin) { Text("Already have an account? Log in") }
+        TextButton(onClick = onGoToLogin) { Text("Already have an account? Log in", color = BrandGreen) }
     }
 }
 
@@ -211,13 +216,15 @@ private fun PrimaryButton(text: String, loading: Boolean, enabled: Boolean, onCl
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+        shape = RoundedCornerShape(Radius.md),
+        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
     ) {
         if (loading) {
             CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
         } else {
-            Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -232,58 +239,60 @@ private fun AuthScaffold(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(
+                Brush.verticalGradient(
+                    listOf(HeroGradientTop, HeroGradientBottom, MaterialTheme.colorScheme.background),
+                ),
+            ),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Image(
                 painter = painterResource(R.drawable.kaizen_login),
                 contentDescription = "Kaizen logo",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.size(132.dp),
+                modifier = Modifier.size(120.dp),
             )
             Text(
                 "Kaizen",
-                color = BrandGreen,
-                fontSize = 42.sp,
-                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.ExtraBold,
             )
             Text(
-                "Small Habits. Big Results.",
-                color = BrandGreenDeep,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+                "✨ Small Habits. Big Results. ✨",
+                color = Color.White.copy(alpha = 0.8f),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
             )
-            Text(title, color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            Spacer(Modifier.height(Spacing.md))
+
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
+
+            Column(
+                Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Column(
-                    Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    content()
-                    if (error != null) {
-                        Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                    }
+                content()
+                if (error != null) {
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
+
+            Spacer(Modifier.height(Spacing.lg))
 
             Text(
                 "Educational guidance, not medical advice - consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center,
             )
         }

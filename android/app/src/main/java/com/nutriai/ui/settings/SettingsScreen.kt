@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,6 +58,16 @@ import com.nutriai.BuildConfig
 import com.nutriai.notifications.ReminderGroup
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.EmojiBadge
 
 @Composable
 fun SettingsScreen(
@@ -109,22 +121,30 @@ fun SettingsScreen(
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxWidth().padding(horizontal = com.nutriai.ui.theme.Spacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(com.nutriai.ui.theme.Spacing.section),
-        contentPadding = PaddingValues(vertical = com.nutriai.ui.theme.Spacing.md),
+        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.section),
+        contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
         item { com.nutriai.ui.components.ScreenHeader("Settings") }
 
-        // Profile.
+        // Profile
         item {
-            Column {
-                com.nutriai.ui.components.SectionHeader("Profile")
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(state.user?.firstName?.ifBlank { null } ?: "Your account", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            FeatureCard(
+                emoji = "👤",
+                title = "Profile",
+                accentColor = KaizenBlue,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        state.user?.firstName?.ifBlank { null } ?: "Your account",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
                     state.user?.email?.takeIf { it.isNotBlank() }?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                Spacer(Modifier.height(Spacing.sm))
                 com.nutriai.ui.components.ListRow(
                     title = "Edit health profile",
                     subtitle = "Height, weight, goal, diet & conditions",
@@ -133,10 +153,13 @@ fun SettingsScreen(
             }
         }
 
-        // Notifications.
+        // Notifications
         item {
-            Column {
-                com.nutriai.ui.components.SectionHeader("Notifications")
+            FeatureCard(
+                emoji = "🔔",
+                title = "Notifications",
+                accentColor = BrandAmber,
+            ) {
                 ReminderGroup.entries.forEachIndexed { i, group ->
                     if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                     SwitchRow(
@@ -169,10 +192,13 @@ fun SettingsScreen(
             }
         }
 
-        // Appearance.
+        // Appearance
         item {
-            Column {
-                com.nutriai.ui.components.SectionHeader("Appearance")
+            FeatureCard(
+                emoji = "🎨",
+                title = "Appearance",
+                accentColor = KaizenLavender,
+            ) {
                 Text("Accent", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp)) {
                     listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
@@ -188,10 +214,13 @@ fun SettingsScreen(
             }
         }
 
-        // Privacy & data.
+        // Privacy & data
         item {
-            Column {
-                com.nutriai.ui.components.SectionHeader("Privacy & data")
+            FeatureCard(
+                emoji = "🔒",
+                title = "Privacy & Data",
+                accentColor = BrandGreen,
+            ) {
                 Text(
                     "Export a JSON backup of your profile, food & water logs and check-ins, or restore food entries from a backup.",
                     style = MaterialTheme.typography.bodySmall,
@@ -199,7 +228,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
                 com.nutriai.ui.components.ListRow(
-                    title = "Export my data",
+                    title = "📤 Export my data",
                     onClick = {
                         viewModel.exportData(
                             onBytes = { bytes ->
@@ -223,7 +252,7 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                 com.nutriai.ui.components.ListRow(
-                    title = "Import data",
+                    title = "📥 Import data",
                     subtitle = "Restore food logs from a backup",
                     onClick = { runCatching { importLauncher.launch(arrayOf("application/json")) } },
                 )
@@ -232,12 +261,15 @@ fun SettingsScreen(
 
         // Account - destructive actions isolated at the bottom, clearly marked.
         item {
-            Column {
-                com.nutriai.ui.components.SectionHeader("Account")
-                com.nutriai.ui.components.ListRow(title = "Log out", onClick = { viewModel.logout(onLoggedOut) })
+            FeatureCard(
+                emoji = "⚠️",
+                title = "Account",
+                accentColor = KaizenCoral,
+            ) {
+                com.nutriai.ui.components.ListRow(title = "🚪 Log out", onClick = { viewModel.logout(onLoggedOut) })
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                 com.nutriai.ui.components.ListRow(
-                    title = "Delete account",
+                    title = "🗑️ Delete account",
                     onClick = { showDelete = true },
                     trailing = { com.nutriai.ui.components.StatusIndicator(text = "Irreversible", status = com.nutriai.ui.components.Status.Critical) },
                 )
@@ -316,14 +348,14 @@ private fun WorkoutReminderRows(
     }
 
     SwitchRow(
-        title = "Workout pre-alert",
+        title = "🏋️ Workout pre-alert",
         subtitle = "A nudge 10 minutes before your set time",
         checked = workout,
         onCheckedChange = { workout = it; onSave(prefs.copy(workoutEnabled = it, workoutTime = "%02d:%02d".format(hour, minute))) },
     )
     if (workout) {
         com.nutriai.ui.components.ListRow(
-            title = "Workout time",
+            title = "⏰ Workout time",
             subtitle = "${fmt12(hour, minute)} - heads-up at ${fmt12(if (minute >= 10) hour else (hour + 23) % 24, (minute + 50) % 60)}",
             onClick = { showPicker = true },
         )

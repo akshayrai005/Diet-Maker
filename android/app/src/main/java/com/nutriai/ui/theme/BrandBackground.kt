@@ -9,16 +9,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-/** Deep-green brand gradient used on splash + auth screens. */
 val DarkBrandGradient: Brush = Brush.verticalGradient(
     listOf(
-        Color(0xFF06251A),
-        BrandGreenDeep,
-        Color(0xFF0D5433),
+        Color(0xFF041E14),
+        Color(0xFF0E4D36),
+        Color(0xFF176B4D),
     ),
 )
 
-/** A full-screen gradient background wrapper. */
+val LightHeroGradient: Brush = Brush.verticalGradient(
+    listOf(
+        Color(0xFF176B4D),
+        Color(0xFF1A7A57),
+        Color(0xFF43B77A),
+    ),
+)
+
 @Composable
 fun BrandGradientBox(content: @Composable BoxScope.() -> Unit) {
     Box(

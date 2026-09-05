@@ -6,8 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
@@ -36,6 +40,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -241,7 +259,6 @@ class LifestyleViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Local cache first for an instant render, then reconcile with the server (source of truth).
             _pattern.value = prefs.pattern()
             val serverId = repository.getProfile().getOrNull()?.sensitive?.eatingPattern
             if (serverId != null) {
@@ -256,7 +273,6 @@ class LifestyleViewModel @Inject constructor(
         _pattern.value = p
         viewModelScope.launch {
             prefs.setPattern(p)
-            // Push to the server so the diet generator regenerates with this pattern.
             repository.updateEatingPattern(p.id)
         }
     }
@@ -266,30 +282,28 @@ class LifestyleViewModel @Inject constructor(
 // UI
 // ---------------------------------------------------------------------------
 
-/**
- * Office & Lifestyle guide (spec Section 6 & 12): pick the eating pattern that matches your real day
- * and get tailored meal timing, plus universal office guides (canteen ordering, Sunday tiffin prep,
- * damage control, travel mode). The choice is saved on-device so it persists.
- */
+private val GUIDE_COLORS = listOf(KaizenBlue, NutritionColor, BrandAmber, KaizenLavender)
+
 @Composable
 fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel = hiltViewModel()) {
     val selected by viewModel.pattern.collectAsStateWithLifecycle()
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
         item {
-            Text("Your day, your plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "Pick the pattern that matches how you actually eat — the guide adapts to it.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            com.nutriai.ui.components.ScreenHeader(
+                title = "🌿 Lifestyle",
+                subtitle = "Pick the pattern that matches how you actually eat — the guide adapts to it.",
             )
         }
 
-        // Pattern picker.
+        // Pattern picker
+        item {
+            SectionHeader(title = "Your Eating Pattern", emoji = "🍽️")
+        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 EatingPattern.entries.chunked(2).forEach { rowItems ->
@@ -300,73 +314,125 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                                 onClick = { viewModel.select(p) },
                                 label = { Text("${p.emoji} ${p.label}", maxLines = 2) },
                                 modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(Radius.md),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = BrandGreen,
+                                    selectedLabelColor = Color.White,
+                                ),
                             )
                         }
-                        if (rowItems.size == 1) androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                        if (rowItems.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }
         }
 
+        // Selected pattern summary
         item {
-            Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("${selected.emoji} ${selected.label}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Text(selected.fits, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
-                }
+            FeatureCard(
+                emoji = selected.emoji,
+                title = selected.label,
+                accentColor = BrandGreen,
+            ) {
+                StatusIndicator(text = selected.fits, status = Status.Information)
             }
         }
 
-        // Meal timing for the selected pattern - rows, not a card per row.
-        item { Text("Meal timing", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+        // Meal timing
+        item { SectionHeader(title = "Meal Timing", emoji = "🕐") }
         itemsIndexed(selected.meals) { i, row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(row.time, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(0.32f))
-                Column(Modifier.weight(0.68f)) {
-                    Text(row.meal, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                    Text(row.food, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GlassCard {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    EmojiBadge(
+                        emoji = "🍽️",
+                        bgColor = KaizenBlue.copy(alpha = 0.2f),
+                        size = 36.dp,
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                row.meal,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            StatusIndicator(text = row.time, status = Status.Positive)
+                        }
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            row.food,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
-            if (i != selected.meals.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
         }
 
-        // Pattern-specific tips.
+        // Pattern-specific tips
         if (selected.tips.isNotEmpty()) {
-            item { Text("Tips for you", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
+            item { SectionHeader(title = "Tips for You", emoji = "💡") }
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        selected.tips.forEach { tip ->
-                            Text("• $tip", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                FeatureCard(
+                    emoji = "🎯",
+                    title = "Pattern Tips",
+                    accentColor = BrandAmber,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        selected.tips.forEachIndexed { idx, tip ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                EmojiBadge(emoji = "💪", bgColor = BrandAmber.copy(alpha = 0.2f), size = 24.dp)
+                                Text(tip, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Universal office guides (collapsible).
-        item { Text("Office & travel guides", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-        items(UNIVERSAL_GUIDES) { guide -> ExpandableGuide(guide) }
+        // Universal office guides (collapsible)
+        item { SectionHeader(title = "Office & Travel Guides", emoji = "🧳") }
+        itemsIndexed(UNIVERSAL_GUIDES.toList()) { idx, guide ->
+            ExpandableGuide(guide, accentColor = GUIDE_COLORS[idx % GUIDE_COLORS.size])
+        }
     }
 }
 
 @Composable
-private fun ExpandableGuide(guide: GuideCard) {
+private fun ExpandableGuide(guide: GuideCard, accentColor: Color = KaizenBlue) {
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        Modifier.fillMaxWidth().clickable { expanded = !expanded }.heightIn(min = 52.dp),
-        shape = RoundedCornerShape(14.dp),
+    FeatureCard(
+        emoji = guide.emoji,
+        title = guide.title,
+        accentColor = accentColor,
+        onClick = { expanded = !expanded },
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(guide.emoji, style = MaterialTheme.typography.titleMedium)
-                Text(guide.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            AnimatedVisibility(visible = expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    guide.lines.forEach { line ->
-                        Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            Text(
+                if (expanded) "▲ Collapse" else "▼ Expand",
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                guide.lines.forEach { line ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Text("  ", style = MaterialTheme.typography.bodySmall)
+                        Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

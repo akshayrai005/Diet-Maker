@@ -1,10 +1,19 @@
 package com.nutriai.ui.home
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -20,80 +29,107 @@ import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nutriai.ui.badges.BadgesScreen
 import com.nutriai.ui.barcode.BarcodeScreen
 import com.nutriai.ui.checkin.CheckinScreen
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenIconButton
-import com.nutriai.ui.components.ListRow
 import com.nutriai.ui.components.ScreenHeader
 import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.CardAmberLight
+import com.nutriai.ui.theme.CardBlueLight
+import com.nutriai.ui.theme.CardCoralLight
+import com.nutriai.ui.theme.CardGreenLight
+import com.nutriai.ui.theme.CardLavenderLight
+import com.nutriai.ui.theme.CardMintLight
+import com.nutriai.ui.theme.HeroGradientTop
+import com.nutriai.ui.theme.HeroGradientBottom
+import com.nutriai.ui.theme.HydrationColor
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.RecoveryColor
 import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import com.nutriai.ui.family.FamilyScreen
 import com.nutriai.ui.reports.ReportsScreen
 import com.nutriai.ui.body.BodyScreen
 import com.nutriai.ui.settings.SettingsScreen
 
-private data class ProfileItem(val key: String, val icon: ImageVector, val label: String, val subtitle: String)
-private data class ProfileGroup(val title: String, val items: List<ProfileItem>)
+private data class ProfileItem(val key: String, val emoji: String, val label: String, val subtitle: String, val tint: Color = BrandGreen)
+private data class ProfileGroup(val title: String, val emoji: String, val bgColor: Color, val items: List<ProfileItem>)
 
-/** Only destinations that actually exist — grouped by purpose, per Phase 2 Profile IA. */
 private val GROUPS = listOf(
     ProfileGroup(
-        "Health & Progress",
+        "Your Health", "❤️", CardCoralLight,
         listOf(
-            ProfileItem("progress", Icons.Filled.TrendingUp, "Progress", "Measurements & photos"),
-            ProfileItem("body", Icons.Filled.PhotoCamera, "Body", "Body check photos"),
-            ProfileItem("physique", Icons.Filled.Accessibility, "Body type", "Current vs. goal physique"),
-            ProfileItem("vitals", Icons.Filled.MonitorHeart, "Vitals", "Heart rate, sleep, stress"),
-            ProfileItem("history", Icons.Filled.History, "History", "Past logs & trends"),
+            ProfileItem("progress", "📈", "Progress", "Measurements & photos", NutritionColor),
+            ProfileItem("body", "📸", "Body", "Body check photos", NutritionColor),
+            ProfileItem("physique", "🏋️", "Body type", "Current vs. goal physique", MovementColor),
+            ProfileItem("vitals", "❤️", "Vitals", "Heart rate, sleep, stress", KaizenCoral),
+            ProfileItem("history", "📜", "History", "Past logs & trends", BrandGreen),
         ),
     ),
     ProfileGroup(
-        "Planning & Coaching",
+        "Your Plan", "📋", CardBlueLight,
         listOf(
-            ProfileItem("plan", Icons.Filled.EventNote, "Plan", "AI plan review"),
-            ProfileItem("coach", Icons.Filled.Chat, "Coach", "Chat with your coach"),
-            ProfileItem("checkin", Icons.Filled.MonitorWeight, "Check-in", "Weekly weigh-in"),
+            ProfileItem("plan", "📅", "Plan", "AI plan review", MovementColor),
+            ProfileItem("coach", "🤖", "Coach", "Chat with your coach", KaizenLavender),
+            ProfileItem("checkin", "⚖️", "Check-in", "Weekly weigh-in", BrandGreen),
         ),
     ),
     ProfileGroup(
-        "Wellness",
+        "Wellness", "🧘", CardLavenderLight,
         listOf(
-            ProfileItem("mind", Icons.Filled.SelfImprovement, "Mind", "Mindfulness & wellness"),
-            ProfileItem("discipline", Icons.Filled.CheckCircle, "Discipline", "Habit tracking"),
-            ProfileItem("badges", Icons.Filled.MilitaryTech, "Badges", "Achievements"),
+            ProfileItem("mind", "🧠", "Mind", "Mindfulness & wellness", RecoveryColor),
+            ProfileItem("discipline", "🎯", "Discipline", "Habit tracking", NutritionColor),
+            ProfileItem("badges", "🏅", "Badges", "Achievements", Color(0xFFF4B740)),
         ),
     ),
     ProfileGroup(
-        "Tools",
+        "Tools", "🔧", CardAmberLight,
         listOf(
-            ProfileItem("medications", Icons.Filled.Medication, "Medications", "Reminders & log"),
-            ProfileItem("family", Icons.Filled.Groups, "Family", "Shared household"),
-            ProfileItem("reports", Icons.Filled.Description, "Reports", "Download PDF"),
-            ProfileItem("barcode", Icons.Filled.QrCodeScanner, "Barcode", "Scan a product"),
+            ProfileItem("medications", "💊", "Medications", "Reminders & log", KaizenCoral),
+            ProfileItem("family", "👨‍👩‍👧", "Family", "Shared household", HydrationColor),
+            ProfileItem("reports", "📊", "Reports", "Download PDF", BrandGreen),
+            ProfileItem("barcode", "📷", "Barcode", "Scan a product", MovementColor),
         ),
     ),
     ProfileGroup(
-        "Account",
+        "Account", "⚙️", Color(0xFFF0F0F0),
         listOf(
-            ProfileItem("settings", Icons.Filled.Settings, "Settings", ""),
+            ProfileItem("settings", "⚙️", "Settings", "", Color(0xFF627069)),
         ),
     ),
 )
@@ -106,23 +142,27 @@ fun MoreScreen(
 ) {
     var selected by remember { mutableStateOf<String?>(null) }
 
-    // System back returns to the Profile menu from a sub-screen, not out to the dashboard.
     androidx.activity.compose.BackHandler(enabled = selected != null) { selected = null }
 
     when (selected) {
         null -> ProfileMenu(modifier) { selected = it }
         else -> Column(modifier.fillMaxSize()) {
-            ScreenHeader(
-                title = GROUPS.flatMap { it.items }.firstOrNull { it.key == selected }?.label ?: "Profile",
-                modifier = Modifier.padding(horizontal = Spacing.screenHorizontal),
-                action = {
-                    KaizenIconButton(
-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Profile",
-                        onClick = { selected = null },
-                    )
-                },
-            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                KaizenIconButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to Profile",
+                    onClick = { selected = null },
+                )
+                Text(
+                    GROUPS.flatMap { it.items }.firstOrNull { it.key == selected }?.label ?: "Profile",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             when (selected) {
                 "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
                 "mind" -> com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize())
@@ -152,25 +192,81 @@ fun MoreScreen(
 @Composable
 private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal),
-        verticalArrangement = Arrangement.spacedBy(Spacing.section),
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
-        ScreenHeader("Profile")
-
-        GROUPS.forEach { group ->
-            Column {
-                SectionHeader(group.title)
-                group.items.forEachIndexed { index, item ->
-                    ListRow(
-                        title = item.label,
-                        subtitle = item.subtitle.ifBlank { null },
-                        leading = { Icon(item.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp)) },
-                        trailing = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        onClick = { onSelect(item.key) },
-                    )
-                    if (index != group.items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        // Profile header with vibrant gradient
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+                .padding(horizontal = Spacing.screenHorizontal)
+                .padding(top = Spacing.xxl, bottom = Spacing.xl),
+        ) {
+            Column(
+                Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("👤", fontSize = 36.sp)
                 }
+                Spacer(Modifier.height(Spacing.md))
+                Text("Your Profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("🌟 Health & wellness hub", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f))
             }
         }
+
+        Spacer(Modifier.height(Spacing.lg))
+
+        // Groups as colored cards
+        GROUPS.forEach { group ->
+            Column(Modifier.padding(horizontal = Spacing.screenHorizontal)) {
+                SectionHeader(group.title, emoji = group.emoji)
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radius.lg),
+                    elevation = CardDefaults.cardElevation(3.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(vertical = Spacing.xs)) {
+                        group.items.forEachIndexed { index, item ->
+                            ProfileMenuRow(item = item, onClick = { onSelect(item.key) })
+                            if (index != group.items.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = 64.dp),
+                                    color = MaterialTheme.kaizenColors.divider,
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.lg))
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.xl))
+    }
+}
+
+@Composable
+private fun ProfileMenuRow(item: ProfileItem, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.rowPadding),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        EmojiBadge(emoji = item.emoji, bgColor = item.tint.copy(alpha = 0.12f), size = 40.dp)
+        Column(Modifier.weight(1f)) {
+            Text(item.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            if (item.subtitle.isNotBlank()) {
+                Text(item.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), modifier = Modifier.size(20.dp))
     }
 }

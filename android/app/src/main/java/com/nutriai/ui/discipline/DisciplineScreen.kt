@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +49,22 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.DisciplineToday
 import com.nutriai.data.remote.dto.HabitView
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.KaizenProgressBar
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +87,6 @@ class DisciplineViewModel @Inject constructor(
     fun refresh() {
         _state.value = _state.value.copy(loading = true)
         viewModelScope.launch {
-            // Feed device metrics (Health Connect) so steps/sleep habits auto-tick when the goal's hit.
             val steps = runCatching { healthConnect.readTodaySteps().toInt() }.getOrNull()?.takeIf { it > 0 }
             val sleep = runCatching { healthConnect.readLastSleepHours() }.getOrNull()
             _state.value = DisciplineState(loading = false, data = repository.disciplineToday(steps, sleep).getOrNull())
@@ -106,7 +123,7 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
     if (showAdd) {
         AlertDialog(
             onDismissRequest = { showAdd = false },
-            title = { Text("Add a habit") },
+            title = { Text("🎯 Add a habit") },
             text = {
                 OutlinedTextField(
                     value = newTitle,
@@ -127,66 +144,100 @@ fun DisciplineScreen(modifier: Modifier = Modifier, viewModel: DisciplineViewMod
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
-        item { Text("Discipline", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+        item { com.nutriai.ui.components.ScreenHeader("🎯 Discipline") }
 
         if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
         }
 
         state.data?.let { d ->
-            item { AdherenceCard(score = d.adherence.score, review = d.review) }
-
-            d.nudges.forEach { nudge ->
-                item {
-                    Card(
+            // Adherence score card
+            item {
+                FeatureCard(
+                    emoji = "🏆",
+                    title = "Today's Adherence",
+                    accentColor = KaizenLavender,
+                ) {
+                    Row(
                         Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(nudge, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onTertiaryContainer, style = MaterialTheme.typography.bodyMedium)
+                        AdherenceRing(d.adherence.score)
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text(
+                                "${d.adherence.score}%",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = KaizenLavender,
+                            )
+                            KaizenProgressBar(
+                                progress = d.adherence.score / 100f,
+                                color = KaizenLavender,
+                            )
+                            Spacer(Modifier.height(Spacing.xs))
+                            Text(
+                                d.review,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
 
-            item { Text("Today's habits", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-            itemsIndexed(d.habits) { i, habit ->
-                HabitRow(habit, onToggle = { viewModel.toggle(habit) }, onDelete = { viewModel.removeHabit(habit.id) })
-                if (i != d.habits.lastIndex) androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-            }
-            item {
-                TextButton(
-                    onClick = { showAdd = true },
-                    modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a habit" },
-                ) { Text("+ Add habit") }
-            }
-
-            if (d.adherence.topActions.isNotEmpty()) {
-                item { Text("Quick wins", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }
-                d.adherence.topActions.forEach { a ->
-                    item { Text("• $a", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            // Nudges
+            if (d.nudges.isNotEmpty()) {
+                item { SectionHeader(title = "Nudges", emoji = "💡") }
+                d.nudges.forEach { nudge ->
+                    item {
+                        GlassCard {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                EmojiBadge(emoji = "💬", bgColor = BrandAmber.copy(alpha = 0.2f), size = 32.dp)
+                                Text(nudge, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun AdherenceCard(score: Int, review: String) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            AdherenceRing(score)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Today’s adherence", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                Text(review, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f))
+            // Today's habits
+            item { SectionHeader(title = "Today's Habits", emoji = "✅") }
+            itemsIndexed(d.habits) { i, habit ->
+                HabitRow(habit, onToggle = { viewModel.toggle(habit) }, onDelete = { viewModel.removeHabit(habit.id) })
+            }
+            item {
+                PrimaryButton(
+                    text = "➕ Add Habit",
+                    onClick = { showAdd = true },
+                    containerColor = KaizenBlue,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Add a habit" },
+                )
+            }
+
+            // Quick wins
+            if (d.adherence.topActions.isNotEmpty()) {
+                item { SectionHeader(title = "Quick Wins", emoji = "🚀") }
+                d.adherence.topActions.forEach { a ->
+                    item {
+                        GlassCard {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                EmojiBadge(emoji = "⚡", bgColor = BrandAmber.copy(alpha = 0.2f), size = 28.dp)
+                                Text(a, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -194,7 +245,7 @@ private fun AdherenceCard(score: Int, review: String) {
 
 @Composable
 private fun AdherenceRing(score: Int) {
-    val accent = MaterialTheme.colorScheme.primary
+    val accent = KaizenLavender
     val track = MaterialTheme.colorScheme.surfaceVariant
     Box(
         Modifier.size(84.dp).semantics { contentDescription = "Adherence $score out of 100" },
@@ -214,43 +265,60 @@ private fun AdherenceRing(score: Int) {
 
 @Composable
 private fun HabitRow(habit: HabitView, onToggle: () -> Unit, onDelete: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Checkbox(
-            checked = habit.doneToday,
-            // Auto-tracked habits reflect the metric (steps/water/sleep) and can't be toggled by hand.
-            enabled = !habit.autoTracked,
-            onCheckedChange = { if (!habit.autoTracked) onToggle() },
-            modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}${if (habit.autoTracked) ", auto-tracked" else ""}" },
-        )
-        Column(Modifier.weight(1f)) {
-            Text(habit.title, style = MaterialTheme.typography.bodyLarge)
-            if (habit.autoTracked && habit.current != null && habit.target != null) {
-                val unit = habit.unit ?: ""
-                val cur = habit.current.toInt()
-                val tgt = habit.target.toInt()
+    val habitEmoji = when {
+        habit.doneToday -> "✅"
+        habit.autoTracked -> "🤖"
+        else -> "⬜"
+    }
+    val accentColor = if (habit.doneToday) NutritionColor else KaizenBlue
+
+    GlassCard {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Checkbox(
+                checked = habit.doneToday,
+                enabled = !habit.autoTracked,
+                onCheckedChange = { if (!habit.autoTracked) onToggle() },
+                modifier = Modifier.semantics { contentDescription = "${habit.title}, ${if (habit.doneToday) "done" else "not done"}${if (habit.autoTracked) ", auto-tracked" else ""}" },
+            )
+            Column(Modifier.weight(1f)) {
                 Text(
-                    if (habit.doneToday) "Auto: $cur/$tgt $unit" else "$cur/$tgt $unit - auto-tracks when you hit the goal",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (habit.doneToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    "$habitEmoji ${habit.title}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
                 )
+                if (habit.autoTracked && habit.current != null && habit.target != null) {
+                    val unit = habit.unit ?: ""
+                    val cur = habit.current.toInt()
+                    val tgt = habit.target.toInt()
+                    KaizenProgressBar(
+                        progress = (cur.toFloat() / tgt.coerceAtLeast(1)).coerceIn(0f, 1f),
+                        color = accentColor,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                    Text(
+                        if (habit.doneToday) "🤖 Auto: $cur/$tgt $unit" else "$cur/$tgt $unit - auto-tracks when you hit the goal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (habit.doneToday) NutritionColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            if (habit.streakDays > 0) {
+                StatusIndicator(text = "🔥 ${habit.streakDays}d", status = Status.Caution)
+            }
+            androidx.compose.material3.Icon(
+                Icons.Filled.Close,
+                contentDescription = "Delete ${habit.title}",
+                tint = KaizenCoral,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .clickable { onDelete() }
+                    .padding(6.dp)
+                    .size(18.dp),
+            )
         }
-        if (habit.streakDays > 0) {
-            com.nutriai.ui.components.StatusIndicator(text = "${habit.streakDays}d", status = com.nutriai.ui.components.Status.Caution)
-        }
-        androidx.compose.material3.Icon(
-            Icons.Filled.Close,
-            contentDescription = "Delete ${habit.title}",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .clickable { onDelete() }
-                .padding(6.dp)
-                .size(18.dp),
-        )
     }
 }

@@ -1,8 +1,12 @@
 package com.nutriai.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,6 +23,8 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton as M3IconButton
@@ -27,38 +34,118 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nutriai.ui.theme.ComponentHeight
 import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import com.nutriai.ui.theme.kaizenColors
 
-/**
- * Phase 1 shared component library. Every component here takes semantic state/data only — no
- * feature-specific business logic — so any screen can reuse them without inventing a second
- * design system (see INSTRUCTION.md, Design Consistency Lock).
- */
-
 // ---------------------------------------------------------------------------
-// Section header — a title above a group, distinct from ScreenHeader (screen-level).
+// Glass Card — elevated white card with subtle shadow
 // ---------------------------------------------------------------------------
 
 @Composable
-fun SectionHeader(title: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
+fun GlassCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Radius.lg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+    ) {
+        Box(Modifier.padding(Spacing.lg)) {
+            content()
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Feature Card — bold colored background card
+// ---------------------------------------------------------------------------
+
+@Composable
+fun FeatureCard(
+    emoji: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(Radius.lg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.08f)),
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Box(
+                    Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(accentColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(emoji, fontSize = 18.sp)
+                }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                )
+            }
+            Spacer(Modifier.height(Spacing.md))
+            content()
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Section Header with emoji
+// ---------------------------------------------------------------------------
+
+@Composable
+fun SectionHeader(title: String, modifier: Modifier = Modifier, emoji: String? = null, action: (@Composable () -> Unit)? = null) {
     Row(
-        modifier.fillMaxWidth().padding(bottom = Spacing.sm),
+        modifier.fillMaxWidth().padding(bottom = Spacing.md),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            if (emoji != null) {
+                Text(emoji, fontSize = 20.sp)
+            }
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         action?.invoke()
     }
 }
@@ -74,19 +161,21 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    containerColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.heightIn(min = ComponentHeight.touchTarget),
+        modifier = modifier.heightIn(min = ComponentHeight.buttonLarge),
         shape = RoundedCornerShape(Radius.md),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.buttonColors(containerColor = containerColor),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
     ) {
         icon?.let {
-            Icon(it, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(it, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.size(Spacing.sm))
         }
-        Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -108,15 +197,14 @@ fun SecondaryButton(
             Icon(it, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.size(Spacing.sm))
         }
-        Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 
-/** Low-emphasis text-only action — "See more", "Edit", "Add water". */
 @Composable
 fun TextAction(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(onClick = onClick, modifier = modifier) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -134,7 +222,7 @@ fun KaizenIconButton(
 }
 
 // ---------------------------------------------------------------------------
-// ListRow — the standard row for any list of items. Not a Card.
+// ListRow
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -149,9 +237,9 @@ fun ListRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = ComponentHeight.touchTarget)
+            .heightIn(min = ComponentHeight.listRow)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = Spacing.sm),
+            .padding(vertical = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -167,7 +255,7 @@ fun ListRow(
 }
 
 // ---------------------------------------------------------------------------
-// MetricBlock — a labeled number, used in grouped rows instead of one card per metric.
+// MetricBlock
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -190,7 +278,7 @@ fun MetricBlock(
 }
 
 // ---------------------------------------------------------------------------
-// ProgressBar — the one linear-progress look shared across screens.
+// ProgressBar — rounded pill
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -198,19 +286,27 @@ fun KaizenProgressBar(
     progress: Float,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
-    trackAlpha: Float = 0.15f,
-    height: Dp = 6.dp,
+    trackAlpha: Float = 0.12f,
+    height: Dp = 8.dp,
 ) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val animated by animateFloatAsState(
+        targetValue = if (shown) progress.coerceIn(0f, 1f) else 0f,
+        animationSpec = tween(durationMillis = 800),
+        label = "progress",
+    )
     LinearProgressIndicator(
-        progress = { progress.coerceIn(0f, 1f) },
+        progress = { animated },
         modifier = modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(height / 2)),
         color = color,
         trackColor = color.copy(alpha = trackAlpha),
+        strokeCap = StrokeCap.Round,
     )
 }
 
 // ---------------------------------------------------------------------------
-// StatusIndicator — color-independent status dot + label (positive/caution/critical/information).
+// StatusIndicator — pill badge
 // ---------------------------------------------------------------------------
 
 enum class Status { Positive, Caution, Critical, Information }
@@ -224,19 +320,57 @@ fun StatusIndicator(text: String, status: Status, modifier: Modifier = Modifier)
         Status.Critical -> tokens.critical
         Status.Information -> tokens.information
     }
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Spacer(
-            Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color),
-        )
-        Text(text, style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
+    Box(
+        modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+    ) {
+        Text(text, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
     }
 }
 
 // ---------------------------------------------------------------------------
-// Empty / error / loading states — one shared look, not reinvented per screen.
+// Icon Badge — rounded icon with colored bg
+// ---------------------------------------------------------------------------
+
+@Composable
+fun IconBadge(
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    size: Dp = 44.dp,
+    iconSize: Dp = 22.dp,
+) {
+    Box(
+        modifier.size(size).clip(RoundedCornerShape(14.dp)).background(color.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(iconSize))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Emoji Badge — circular emoji container
+// ---------------------------------------------------------------------------
+
+@Composable
+fun EmojiBadge(
+    emoji: String,
+    modifier: Modifier = Modifier,
+    bgColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+    size: Dp = 44.dp,
+) {
+    Box(
+        modifier.size(size).clip(RoundedCornerShape(14.dp)).background(bgColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(emoji, fontSize = (size.value * 0.45f).sp)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Empty / error / loading states
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -244,16 +378,21 @@ fun EmptyState(
     title: String,
     modifier: Modifier = Modifier,
     message: String? = null,
-    icon: ImageVector = Icons.Filled.Inbox,
+    emoji: String = "📭",
+    icon: ImageVector? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
     Column(
-        modifier.fillMaxWidth().padding(vertical = Spacing.xxl),
+        modifier.fillMaxWidth().padding(vertical = Spacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+        } else {
+            Text(emoji, fontSize = 48.sp)
+        }
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         message?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
@@ -271,19 +410,18 @@ fun ErrorState(
     Column(
         modifier.fillMaxWidth().padding(vertical = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Icon(Icons.Filled.Error, contentDescription = null, modifier = Modifier.size(28.dp), tint = tokens.critical)
+        Text("😵", fontSize = 48.sp)
         Text(message, style = MaterialTheme.typography.bodyMedium, color = tokens.critical, textAlign = TextAlign.Center)
         onRetry?.let { retry -> TextAction("Retry", retry) }
     }
 }
 
-/** Small inline loading row — spinner + label, for in-place loading (not a full skeleton screen). */
 @Composable
 fun LoadingRow(label: String = "Loading…", modifier: Modifier = Modifier) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

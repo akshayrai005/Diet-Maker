@@ -7,16 +7,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.nutriai.R
 
-/**
- * Kaizen type scale. Built on the Material 3 metrics but with bolder headings/titles, slightly
- * tighter tracking on large text, and a touch MORE size + line-height on body/label text so screens
- * feel roomier and warmer rather than cramped.
- *
- * Font: **Nunito** (SIL Open Font License) - a warm, rounded humanist family - is BUNDLED locally in
- * `res/font/` (latin subset, ~150 KB total). No runtime download / downloadable-font provider, so it
- * renders fully offline. It falls back to the system font automatically for any missing glyph. Sizes
- * are in sp, so everything still scales with the user's font-size accessibility setting.
- */
 val Nunito = FontFamily(
     Font(R.font.nunito_regular, FontWeight.Normal),
     Font(R.font.nunito_semibold, FontWeight.SemiBold),
@@ -24,7 +14,6 @@ val Nunito = FontFamily(
     Font(R.font.nunito_extrabold, FontWeight.ExtraBold),
 )
 
-/** Apply one font family to every M3 text style so the whole scale uses Nunito. */
 private fun Typography.withFamily(f: FontFamily) = copy(
     displayLarge = displayLarge.copy(fontFamily = f),
     displayMedium = displayMedium.copy(fontFamily = f),
@@ -43,23 +32,37 @@ private fun Typography.withFamily(f: FontFamily) = copy(
     labelSmall = labelSmall.copy(fontFamily = f),
 )
 
-// Base M3 metrics with Nunito applied to every style; the overrides below preserve the family.
 private val Default = Typography().withFamily(Nunito)
 
 val NutriTypography = Default.copy(
-    displayLarge = Default.displayLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-1).sp),
-    displayMedium = Default.displayMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
-    displaySmall = Default.displaySmall.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
-    headlineLarge = Default.headlineLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
-    headlineMedium = Default.headlineMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.25).sp),
-    headlineSmall = Default.headlineSmall.copy(fontWeight = FontWeight.Bold),
-    titleLarge = Default.titleLarge.copy(fontWeight = FontWeight.Bold),
-    titleMedium = Default.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-    titleSmall = Default.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-    // Roomier body/label text - a little larger with more line height for comfortable reading.
-    bodyLarge = Default.bodyLarge.copy(fontSize = 16.5.sp, lineHeight = 25.sp),
-    bodyMedium = Default.bodyMedium.copy(fontSize = 14.5.sp, lineHeight = 21.sp),
-    bodySmall = Default.bodySmall.copy(fontSize = 12.5.sp, lineHeight = 17.sp),
-    labelLarge = Default.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-    labelMedium = Default.labelMedium.copy(fontWeight = FontWeight.Medium),
+    // Hero numbers: 40sp ExtraBold
+    displayLarge = Default.displayLarge.copy(fontSize = 40.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1.5).sp, lineHeight = 48.sp),
+    // Large display: 34sp Bold
+    displayMedium = Default.displayMedium.copy(fontSize = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = (-1).sp, lineHeight = 42.sp),
+    // Screen-level metric: 28sp Bold
+    displaySmall = Default.displaySmall.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp, lineHeight = 36.sp),
+    // Screen titles: 28sp Bold
+    headlineLarge = Default.headlineLarge.copy(fontSize = 28.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp, lineHeight = 36.sp),
+    // Large section titles: 22sp Bold
+    headlineMedium = Default.headlineMedium.copy(fontSize = 22.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.25).sp, lineHeight = 30.sp),
+    // Section headings: 18sp Bold
+    headlineSmall = Default.headlineSmall.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold, lineHeight = 26.sp),
+    // Sub-section: 20sp Bold
+    titleLarge = Default.titleLarge.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, lineHeight = 28.sp),
+    // Component titles: 16sp SemiBold
+    titleMedium = Default.titleMedium.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, lineHeight = 24.sp),
+    // Small titles: 14sp SemiBold
+    titleSmall = Default.titleSmall.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp),
+    // Body: 16sp Regular
+    bodyLarge = Default.bodyLarge.copy(fontSize = 16.sp, lineHeight = 24.sp),
+    // Secondary body: 15sp Regular
+    bodyMedium = Default.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+    // Small body: 13sp
+    bodySmall = Default.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
+    // Buttons: 15sp SemiBold
+    labelLarge = Default.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp),
+    // Secondary labels: 13sp Medium
+    labelMedium = Default.labelMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp),
+    // Metadata: 12sp
+    labelSmall = Default.labelSmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
 )

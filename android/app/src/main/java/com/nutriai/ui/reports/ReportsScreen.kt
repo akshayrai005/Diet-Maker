@@ -47,10 +47,24 @@ import com.nutriai.data.AppRepository
 import java.io.File
 import com.nutriai.data.remote.dto.ReportDay
 import com.nutriai.data.remote.dto.WeeklyReport
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.MetricBlock
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -133,26 +147,37 @@ fun ReportsScreen(
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 20.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kaizenColors.pageBackground)
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
+        item {
+            com.nutriai.ui.components.ScreenHeader(
+                title = "📊 Weekly Report",
+                subtitle = "Your health journey at a glance",
+            )
+        }
+
         state.report?.let { report ->
             item { HeroSummaryCard(report) }
             // Two actions in one row: open the beautiful report, or save it as a PDF.
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    PrimaryButton(
+                        text = "📥 Download",
                         onClick = { downloadMode = true; showViewer = true },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                    ) { Text("Download", fontWeight = FontWeight.SemiBold) }
-                    androidx.compose.material3.OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        containerColor = BrandGreen,
+                    )
+                    PrimaryButton(
+                        text = "👁️ View Report",
                         onClick = { downloadMode = false; showViewer = true },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(24.dp),
-                    ) { Text("View report", fontWeight = FontWeight.SemiBold) }
+                        modifier = Modifier.weight(1f),
+                        containerColor = KaizenBlue,
+                    )
                 }
             }
         }
@@ -166,15 +191,7 @@ fun ReportsScreen(
         }
 
         state.report?.let { report ->
-            item {
-                Text(
-                    "Daily breakdown",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-                )
-            }
+            item { SectionHeader(title = "Daily Breakdown", emoji = "📊") }
             item { DaysCard(report.days) }
         }
 
@@ -185,7 +202,7 @@ fun ReportsScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
                 )
             }
         }
@@ -200,7 +217,7 @@ fun ReportsScreen(
 private fun HeroSummaryCard(report: WeeklyReport) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(Radius.xl),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
     ) {
@@ -212,31 +229,40 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                         colors = listOf(BrandGreenLight, BrandGreen, BrandGreenDeep),
                     ),
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    "Health report",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    Text("📋", style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        "Health Report",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     HeroStat(
+                        emoji = "🔥",
                         value = report.targets?.dailyKcal?.let { "${it.toInt()}" } ?: "-",
                         unit = "kcal target",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
+                        emoji = "💪",
                         value = report.targets?.proteinG?.let { "${it.toInt()}" } ?: "-",
                         unit = "g protein",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
+                        emoji = "✅",
                         value = report.adherencePct?.let { "${it.toInt()}%" } ?: "-",
                         unit = "adherence",
                         modifier = Modifier.weight(1f),
@@ -245,19 +271,22 @@ private fun HeroSummaryCard(report: WeeklyReport) {
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     HeroStat(
+                        emoji = "📏",
                         value = report.bmi?.let { String.format("%.1f", it) } ?: "-",
                         unit = "BMI",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
+                        emoji = "⚖️",
                         value = report.latestWeightKg?.let { "$it" } ?: "-",
                         unit = "kg now",
                         modifier = Modifier.weight(1f),
                     )
                     HeroStat(
+                        emoji = "📈",
                         value = report.weightDeltaKg?.let { d ->
                             val sign = if (d > 0) "+" else ""
                             "$sign$d"
@@ -270,16 +299,23 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                 report.avgKcal?.let { avg ->
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(Radius.md))
                             .background(Color.White.copy(alpha = 0.20f))
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
                     ) {
-                        Text(
-                            "Averaging ${avg.toInt()} kcal / day this week",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            Text("⚡", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Averaging ${avg.toInt()} kcal / day this week",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                            )
+                        }
                     }
                 }
             }
@@ -288,14 +324,17 @@ private fun HeroSummaryCard(report: WeeklyReport) {
 }
 
 @Composable
-private fun HeroStat(value: String, unit: String, modifier: Modifier = Modifier) {
+private fun HeroStat(value: String, unit: String, modifier: Modifier = Modifier, emoji: String = "") {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(Radius.md))
             .background(Color.White.copy(alpha = 0.16f))
-            .padding(vertical = 14.dp, horizontal = 10.dp),
+            .padding(vertical = Spacing.md, horizontal = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        if (emoji.isNotEmpty()) {
+            Text(emoji, style = MaterialTheme.typography.labelMedium)
+        }
         Text(
             value,
             style = MaterialTheme.typography.titleLarge,
@@ -316,30 +355,27 @@ private fun HeroStat(value: String, unit: String, modifier: Modifier = Modifier)
 
 @Composable
 private fun DaysCard(days: List<ReportDay>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    FeatureCard(
+        emoji = "📅",
+        title = "This Week",
+        accentColor = KaizenBlue,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-            if (days.isEmpty()) {
-                Text(
-                    "No daily entries logged yet this week.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(20.dp),
-                )
-            } else {
+        if (days.isEmpty()) {
+            EmptyState(
+                title = "No daily entries logged yet",
+                emoji = "📝",
+                message = "Start logging meals to see your daily breakdown.",
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 days.forEachIndexed { index, day ->
                     DayRow(day)
                     if (index < days.size - 1) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp)
                                 .height(1.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .background(MaterialTheme.kaizenColors.divider),
                         )
                     }
                 }
@@ -351,17 +387,23 @@ private fun DaysCard(days: List<ReportDay>) {
 @Composable
 private fun DayRow(day: ReportDay) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            day.date,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            EmojiBadge(emoji = "📆", bgColor = KaizenBlue.copy(alpha = 0.12f), size = 36.dp)
+            Text(
+                day.date,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(
                 "${day.kcal.toInt()} kcal",
                 style = MaterialTheme.typography.bodyLarge,
@@ -369,9 +411,10 @@ private fun DayRow(day: ReportDay) {
                 color = BrandGreen,
             )
             Text(
-                "  ·  ${day.proteinG.toInt()} g protein",
+                "·  ${day.proteinG.toInt()}g protein",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KaizenLavender,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
@@ -383,21 +426,17 @@ private fun DayRow(day: ReportDay) {
 
 @Composable
 private fun ReportsLoadingCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
+    GlassCard {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp, horizontal = 20.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             CircularProgressIndicator(color = BrandGreen)
             Text(
-                "Compiling your week…",
+                "📊 Compiling your week...",
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -406,46 +445,24 @@ private fun ReportsLoadingCard() {
 
 @Composable
 private fun ReportsErrorCard(message: String, onRetry: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    FeatureCard(
+        emoji = "⚠️",
+        title = "Report Unavailable",
+        accentColor = KaizenCoral,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(BrandAmber.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("📊", style = MaterialTheme.typography.headlineMedium)
-            }
-            Text(
-                "Report unavailable",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(2.dp))
-            Button(
-                onClick = onRetry,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) { Text("Try again") }
-        }
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(Spacing.md))
+        PrimaryButton(
+            text = "🔄 Try Again",
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = KaizenCoral,
+        )
     }
 }

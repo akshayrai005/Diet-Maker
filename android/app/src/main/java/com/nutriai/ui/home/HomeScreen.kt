@@ -6,15 +6,23 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -22,16 +30,15 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,36 +51,42 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 
-private data class TabItem(val route: String, val label: String, val icon: ImageVector)
+private data class TabItem(val route: String, val label: String, val iconFilled: ImageVector, val iconOutlined: ImageVector)
 
-/** "log" is not a real destination — it opens QuickLogSheet directly and is rendered specially. */
 private const val LOG_TAB_ROUTE = "log"
 
 private val TABS = listOf(
-    TabItem("today", "Today", Icons.Filled.Home),
-    TabItem("diet", "Nutrition", Icons.Filled.Restaurant),
-    TabItem(LOG_TAB_ROUTE, "Log", Icons.Filled.Add),
-    TabItem("move", "Move", Icons.Filled.FitnessCenter),
-    TabItem("me", "Profile", Icons.Filled.Person),
+    TabItem("today", "Today", Icons.Filled.Home, Icons.Outlined.Home),
+    TabItem("diet", "Nutrition", Icons.Filled.Restaurant, Icons.Outlined.Restaurant),
+    TabItem(LOG_TAB_ROUTE, "Log", Icons.Filled.Add, Icons.Filled.Add),
+    TabItem("move", "Move", Icons.Filled.FitnessCenter, Icons.Outlined.FitnessCenter),
+    TabItem("me", "Profile", Icons.Filled.Person, Icons.Outlined.Person),
 )
 
-/** Maps a notification's requested tab index to the new tab routes. */
 private fun tabRoute(index: Int): String = when (index) {
-    1 -> "move" // 5 AM workout reminder
-    2 -> "diet" // meal reminders → diet (plan/log/grocery)
+    1 -> "move"
+    2 -> "diet"
     else -> "today"
 }
 
@@ -92,7 +105,6 @@ fun HomeScreen(
         QuickLogSheet(onDismiss = { showQuickLog = false })
     }
 
-    // A notification tap (or new intent) can request a specific tab while Home is showing.
     LaunchedEffect(initialTab) {
         val route = tabRoute(initialTab)
         if (route != currentRoute) {
@@ -105,60 +117,22 @@ fun HomeScreen(
     }
 
     Scaffold(
-        // No separate FAB — the center "Log" nav item IS the quick-log entry point now.
+        containerColor = MaterialTheme.kaizenColors.pageBackground,
         bottomBar = {
-            Column {
-                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 6.dp,
-                ) {
-                    TABS.forEach { item ->
-                        if (item.route == LOG_TAB_ROUTE) {
-                            // Center action tab: doesn't navigate, opens Quick Log directly. Styled as
-                            // a raised green circle so it reads as THE action, not just another tab.
-                            NavigationBarItem(
-                                selected = false,
-                                onClick = { showQuickLog = true },
-                                icon = {
-                                    Box(
-                                        Modifier
-                                            .size(44.dp)
-                                            .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(item.icon, contentDescription = "Quick log", tint = MaterialTheme.colorScheme.onPrimary)
-                                    }
-                                },
-                                label = null,
-                                colors = NavigationBarItemDefaults.colors(indicatorColor = androidx.compose.ui.graphics.Color.Transparent),
-                            )
-                        } else {
-                            NavigationBarItem(
-                                selected = currentRoute == item.route,
-                                onClick = {
-                                    if (currentRoute != item.route) {
-                                        navController.navigate(item.route) {
-                                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    }
-                                },
-                                icon = { Icon(item.icon, contentDescription = item.label) },
-                                label = { Text(item.label) },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                            )
+            KaizenBottomNav(
+                currentRoute = currentRoute,
+                onTabSelected = { route ->
+                    if (route == LOG_TAB_ROUTE) {
+                        showQuickLog = true
+                    } else if (currentRoute != route) {
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     }
-                }
-            }
+                },
+            )
         },
     ) { padding ->
         NavHost(
@@ -200,6 +174,105 @@ fun HomeScreen(
 }
 
 @Composable
+private fun KaizenBottomNav(currentRoute: String, onTabSelected: (String) -> Unit) {
+    val tokens = MaterialTheme.kaizenColors
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(tokens.pageBackground),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(tokens.cardGradientStart, tokens.cardGradientEnd),
+                    ),
+                )
+                .padding(horizontal = Spacing.sm, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TABS.forEach { item ->
+                if (item.route == LOG_TAB_ROUTE) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .shadow(8.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    ),
+                                ),
+                            )
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onTabSelected(LOG_TAB_ROUTE) },
+                            )
+                            .semantics { contentDescription = "Quick log" },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Quick log",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                } else {
+                    val selected = currentRoute == item.route
+                    val bgColor by animateColorAsState(
+                        targetValue = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
+                        animationSpec = tween(250),
+                        label = "tabBg",
+                    )
+                    val iconColor by animateColorAsState(
+                        targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        animationSpec = tween(250),
+                        label = "navColor",
+                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(bgColor)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onTabSelected(item.route) },
+                            )
+                            .padding(horizontal = if (selected) 14.dp else 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            if (selected) item.iconFilled else item.iconOutlined,
+                            contentDescription = item.label,
+                            tint = iconColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        if (selected) {
+                            Text(
+                                item.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun DashboardTab(
     onLogout: () -> Unit,
     onCompleteProfile: () -> Unit,
@@ -211,7 +284,6 @@ private fun DashboardTab(
     var showDelete by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Health Connect step-permission request.
     val stepPerms = remember {
         setOf(
             HealthPermission.getReadPermission(StepsRecord::class),
@@ -223,7 +295,6 @@ private fun DashboardTab(
         PermissionController.createRequestPermissionResultContract(),
     ) { viewModel.loadSteps() }
 
-    // Refresh every time the Home tab becomes visible (e.g. after logging food).
     LaunchedEffect(Unit) { viewModel.refresh(); viewModel.loadSteps() }
 
     if (showDelete) {
@@ -273,7 +344,6 @@ private fun DashboardTab(
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }
                 } else {
-                    // Health Connect not installed - send them to the Play Store.
                     runCatching {
                         context.startActivity(
                             android.content.Intent(
@@ -287,12 +357,12 @@ private fun DashboardTab(
             modifier = Modifier.fillMaxSize(),
         )
         state.loading -> Column(
-            Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            Modifier.fillMaxSize().padding(Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                 Text("Waking up your coach…", style = MaterialTheme.typography.titleMedium)
             }
             Text(
@@ -301,11 +371,11 @@ private fun DashboardTab(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            com.nutriai.ui.components.SkeletonList(count = 4, lines = 3, modifier = Modifier.padding(top = 4.dp))
+            com.nutriai.ui.components.SkeletonList(count = 4, lines = 3, modifier = Modifier.padding(top = Spacing.xs))
         }
         else -> Column(
-            Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            Modifier.fillMaxSize().padding(Spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(state.error ?: "Couldn't load your dashboard.", color = MaterialTheme.colorScheme.error)
             Button(onClick = onCompleteProfile, modifier = Modifier.fillMaxWidth()) { Text("Complete profile") }

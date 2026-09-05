@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +49,22 @@ import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.MedicationDto
 import com.nutriai.data.remote.dto.MedicationRequest
 import com.nutriai.notifications.MedReminderScheduler
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -89,7 +107,6 @@ class MedicationsViewModel @Inject constructor(
             val r = repository.medications()
             _state.value = if (r.isSuccess) {
                 val env = r.getOrThrow()
-                // Keep local dose reminders in sync with the server's current list.
                 medReminderScheduler.sync(env.medications)
                 _state.value.copy(
                     loading = false,
@@ -107,7 +124,6 @@ class MedicationsViewModel @Inject constructor(
         viewModelScope.launch {
             val r = repository.setMedicationActive(med.id, active)
             if (r.isSuccess) {
-                // Reminders follow the active flag: schedule when on, cancel when off.
                 if (active) medReminderScheduler.scheduleMed(med.copy(active = true))
                 else medReminderScheduler.cancelMed(med.id)
                 load()
@@ -199,9 +215,9 @@ fun MedicationsScreen(
     val supplements = meds.filter { it.type == "supplement" }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
         item {
             Row(
@@ -209,66 +225,75 @@ fun MedicationsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Medicines & supplements", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                com.nutriai.ui.components.ScreenHeader("💊 Medicines")
                 AssistChip(
                     onClick = { showAdd = true },
-                    label = { Text("+ Add") },
+                    label = { Text("➕ Add") },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a medicine or supplement" },
                 )
             }
         }
 
-        // Disclaimer - shown prominently near the top, plain text (no card needed).
+        // Disclaimer
         item {
-            Text(
-                state.disclaimer,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            FeatureCard(
+                emoji = "⚠️",
+                title = "Disclaimer",
+                accentColor = BrandAmber,
+            ) {
+                Text(
+                    state.disclaimer,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         state.toast?.let { msg ->
             item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                ) {
-                    Text(msg, Modifier.padding(14.dp), color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Medium)
+                GlassCard {
+                    Text(
+                        "✅ $msg",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = NutritionColor,
+                    )
                 }
                 LaunchedEffect(msg) { delay(2500); viewModel.clearToast() }
             }
         }
 
         if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            item { Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
         }
 
         state.error?.let { err ->
-            item { Text(err, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
-        }
-
-        if (!state.loading && state.error == null && meds.isEmpty()) {
             item {
-                Card(
-                    Modifier.fillMaxWidth().clickable { showAdd = true }.semantics { contentDescription = "Add your first medicine or supplement" },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                ) {
-                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Nothing added yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text(
-                            "Add a medicine or supplement to track doses and get gentle reminders.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f),
-                        )
-                    }
+                FeatureCard(emoji = "😵", title = "Error", accentColor = KaizenCoral) {
+                    Text(err, style = MaterialTheme.typography.bodyMedium, color = KaizenCoral)
                 }
             }
         }
 
+        if (!state.loading && state.error == null && meds.isEmpty()) {
+            item {
+                EmptyState(
+                    title = "Nothing added yet",
+                    emoji = "💊",
+                    message = "Add a medicine or supplement to track doses and get gentle reminders.",
+                    action = {
+                        PrimaryButton(
+                            text = "➕ Add First Medicine",
+                            onClick = { showAdd = true },
+                            containerColor = BrandGreen,
+                        )
+                    },
+                )
+            }
+        }
+
         if (medsList.isNotEmpty()) {
-            item { SectionLabel("💊 Medicines") }
+            item { SectionHeader(title = "Medicines", emoji = "💊") }
             items(medsList.size) { i ->
                 MedRow(
                     med = medsList[i],
@@ -281,7 +306,7 @@ fun MedicationsScreen(
         }
 
         if (supplements.isNotEmpty()) {
-            item { SectionLabel("🌿 Supplements") }
+            item { SectionHeader(title = "Supplements", emoji = "🌿") }
             items(supplements.size) { i ->
                 MedRow(
                     med = supplements[i],
@@ -296,11 +321,6 @@ fun MedicationsScreen(
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-}
-
-@Composable
 private fun MedRow(
     med: MedicationDto,
     onToggleActive: (Boolean) -> Unit,
@@ -309,41 +329,56 @@ private fun MedRow(
     onDelete: () -> Unit,
 ) {
     val timesText = med.times.joinToString(" · ").ifBlank { "No set times" }
-    Card(
-        Modifier.fillMaxWidth().semantics {
+    val medEmoji = if (med.type == "supplement") "🌿" else "💊"
+    val accentColor = if (med.type == "supplement") NutritionColor else KaizenLavender
+
+    FeatureCard(
+        emoji = medEmoji,
+        title = med.name,
+        accentColor = accentColor,
+        modifier = Modifier.semantics {
             contentDescription = "${med.name}${med.dose?.let { ", $it" } ?: ""}, ${if (med.active) "reminders on" else "reminders off"}, taken ${med.takenToday} today"
         },
-        shape = RoundedCornerShape(16.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(med.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    med.dose?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text(timesText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    med.notes?.takeIf { it.isNotBlank() }?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            med.dose?.takeIf { it.isNotBlank() }?.let {
+                Text("💉 $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("🕐 $timesText", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            med.notes?.takeIf { it.isNotBlank() }?.let {
+                Text("📝 $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Switch(
                         checked = med.active,
                         onCheckedChange = onToggleActive,
                         modifier = Modifier.semantics { contentDescription = "Dose reminders for ${med.name}" },
                     )
-                    Text(if (med.active) "Reminders on" else "Off", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    StatusIndicator(
+                        text = if (med.active) "🔔 On" else "🔕 Off",
+                        status = if (med.active) Status.Positive else Status.Information,
+                    )
+                }
+
+                if (med.takenToday > 0) {
+                    StatusIndicator(text = "✅ Taken ${med.takenToday}x", status = Status.Positive)
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 AssistChip(
                     onClick = onTaken,
-                    label = { Text("✓ Taken${if (med.takenToday > 0) " (${med.takenToday})" else ""}") },
+                    label = { Text("✅ Taken${if (med.takenToday > 0) " (${med.takenToday})" else ""}") },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Log a dose of ${med.name} as taken" },
                 )
-                TextButton(onClick = onEdit, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Edit ${med.name}" }) { Text("Edit") }
-                TextButton(onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Remove ${med.name}" }) { Text("Remove") }
+                TextButton(onClick = onEdit, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Edit ${med.name}" }) { Text("✏️ Edit") }
+                TextButton(onClick = onDelete, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Remove ${med.name}" }) { Text("🗑️ Remove") }
             }
         }
     }
@@ -382,12 +417,12 @@ private fun MedicationDialog(
 
     AlertDialog(
         onDismissRequest = { if (!submitting) onDismiss() },
-        title = { Text(if (existing == null) "Add" else "Edit") },
+        title = { Text(if (existing == null) "➕ Add" else "✏️ Edit") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = type == "med", onClick = { type = "med" }, label = { Text("Medicine") })
-                    FilterChip(selected = type == "supplement", onClick = { type = "supplement" }, label = { Text("Supplement") })
+                    FilterChip(selected = type == "med", onClick = { type = "med" }, label = { Text("💊 Medicine") })
+                    FilterChip(selected = type == "supplement", onClick = { type = "supplement" }, label = { Text("🌿 Supplement") })
                 }
                 OutlinedTextField(
                     value = name,
@@ -404,7 +439,7 @@ private fun MedicationDialog(
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Dose" },
                 )
 
-                Text("Reminder times", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text("🕐 Reminder times", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 if (times.isEmpty()) {
                     Text("No times yet - add one to get a daily reminder.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -420,7 +455,7 @@ private fun MedicationDialog(
                 TextButton(
                     onClick = { showTimePicker = true },
                     modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a reminder time" },
-                ) { Text("+ Add time") }
+                ) { Text("➕ Add time") }
 
                 OutlinedTextField(
                     value = notes,
@@ -431,7 +466,7 @@ private fun MedicationDialog(
                 )
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Dose reminders", style = MaterialTheme.typography.bodyMedium)
+                    Text("🔔 Dose reminders", style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = active, onCheckedChange = { active = it }, modifier = Modifier.semantics { contentDescription = "Enable dose reminders" })
                 }
             }
@@ -451,7 +486,7 @@ private fun MedicationDialog(
                         ),
                     )
                 },
-            ) { Text(if (submitting) "Saving…" else "Save") }
+            ) { Text(if (submitting) "Saving..." else "Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !submitting) { Text("Cancel") } },
     )
@@ -464,7 +499,7 @@ private fun TimePickerDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit)
     val pickerState = rememberTimePickerState(initialHour = 8, initialMinute = 0, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Pick a time") },
+        title = { Text("🕐 Pick a time") },
         text = { TimePicker(state = pickerState) },
         confirmButton = {
             TextButton(onClick = {

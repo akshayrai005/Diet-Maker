@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,10 +49,24 @@ import com.nutriai.data.remote.dto.CalcResult
 import com.nutriai.data.remote.dto.FamilyMemberDto
 import com.nutriai.data.remote.dto.FamilyMemberRequest
 import com.nutriai.data.remote.dto.SensitiveData
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.MetricBlock
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -142,12 +155,15 @@ fun FamilyScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Spacer(Modifier.height(4.dp))
 
-        FamilyHeader(count = state.members.size)
+        com.nutriai.ui.components.ScreenHeader(
+            title = "👨‍👩‍👧 Family",
+            subtitle = if (state.members.size == 1) "1 member" else "${state.members.size} members",
+        )
 
         if (state.loading) {
             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
@@ -156,16 +172,47 @@ fun FamilyScreen(
         }
 
         if (state.members.isNotEmpty()) {
-            Text(
-                "Members",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            state.members.forEachIndexed { i, member ->
-                MemberCard(member = member) { viewModel.viewCalc(member.id) }
-                if (i != state.members.lastIndex) androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+            SectionHeader(title = "Members", emoji = "👥")
+            state.members.forEach { member ->
+                GlassCard {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        EmojiBadge(
+                            emoji = "🙋",
+                            bgColor = KaizenLavender.copy(alpha = 0.2f),
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                member.firstName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                member.relation?.takeIf { it.isNotBlank() } ?: "Family member",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Text(
+                            "👁️ View",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreen,
+                            modifier = Modifier.clickable { viewModel.viewCalc(member.id) },
+                        )
+                    }
+                }
             }
+        } else if (!state.loading) {
+            EmptyState(
+                title = "No family members yet",
+                emoji = "👨‍👩‍👧",
+                message = "Add your family to track their nutrition too!",
+            )
         }
 
         state.selectedCalc?.let { calc -> CalcStatCard(calc) }
@@ -210,125 +257,35 @@ fun FamilyScreen(
 }
 
 // ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun FamilyHeader(count: Int) {
-    com.nutriai.ui.components.ScreenHeader(
-        title = "Family",
-        subtitle = if (count == 1) "1 member" else "$count members",
-    )
-}
-
-// ---------------------------------------------------------------------------
-// Member row - not a decorative profile-card grid (Change 02).
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun MemberCard(member: FamilyMemberDto, onClick: () -> Unit) {
-    com.nutriai.ui.components.ListRow(
-        title = member.firstName,
-        subtitle = member.relation?.takeIf { it.isNotBlank() } ?: "Family member",
-        leading = {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(BrandGreen.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    member.firstName.trim().take(1).uppercase().ifBlank { "?" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreenDeep,
-                )
-            }
-        },
-        trailing = {
-            Text("View", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = BrandGreen)
-        },
-        onClick = onClick,
-    )
-}
-
-// ---------------------------------------------------------------------------
 // Calc stat card
 // ---------------------------------------------------------------------------
 
 @Composable
 private fun CalcStatCard(calc: CalcResult) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = BrandGreen.copy(alpha = 0.10f)),
+    FeatureCard(
+        emoji = "📊",
+        title = "Daily Targets",
+        accentColor = BrandGreen,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text(
-                "Daily targets",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StatCell("BMI", String.format("%.1f", calc.bmi), BrandGreen, Modifier.weight(1f))
-                StatCell("TDEE", "${calc.tdee.toInt()}", BrandGreenDeep, Modifier.weight(1f))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StatCell("Daily kcal", "${calc.dailyKcal.toInt()}", BrandAmber, Modifier.weight(1f))
-                StatCell("Protein", "${calc.proteinG.toInt()} g", BrandGreenLight, Modifier.weight(1f))
-            }
-            if (calc.requiresSupervision) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.errorContainer)
-                        .padding(14.dp),
-                ) {
-                    Text(
-                        "⚠️  Requires professional supervision.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                }
-            }
+            MetricBlock(label = "BMI", value = String.format("%.1f", calc.bmi), color = KaizenBlue, modifier = Modifier.weight(1f))
+            MetricBlock(label = "TDEE", value = "${calc.tdee.toInt()}", color = BrandGreenDeep, modifier = Modifier.weight(1f))
         }
-    }
-}
-
-@Composable
-private fun StatCell(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(vertical = 16.dp, horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = accent,
-        )
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Spacer(Modifier.height(Spacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            MetricBlock(label = "Daily kcal", value = "${calc.dailyKcal.toInt()}", color = BrandAmber, modifier = Modifier.weight(1f))
+            MetricBlock(label = "Protein", value = "${calc.proteinG.toInt()} g", color = KaizenLavender, modifier = Modifier.weight(1f))
+        }
+        if (calc.requiresSupervision) {
+            Spacer(Modifier.height(Spacing.md))
+            StatusIndicator(text = "⚠️ Requires professional supervision", status = Status.Critical)
+        }
     }
 }
 
@@ -352,51 +309,40 @@ private fun AddMemberCard(
     loading: Boolean,
     onSubmit: (Double, Double, Double) -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    FeatureCard(
+        emoji = "➕",
+        title = "Add a Member",
+        accentColor = KaizenBlue,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Text(
-                "Add a member",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
+            SectionHeader(title = "Basic Info", emoji = "📝")
             BrandField(firstName, onFirstName, "First name")
             BrandField(relation, onRelation, "Relation")
             BrandField(height, onHeight, "Height (cm)", number = true)
 
-            Label("Sex")
+            SectionHeader(title = "Sex", emoji = "👤")
             SingleChoiceChips(SEX, sex, onSex)
 
+            SectionHeader(title = "Body Details", emoji = "⚖️")
             BrandField(dob, onDob, "Date of birth (YYYY-MM-DD)")
             BrandField(weight, onWeight, "Current weight (kg)", number = true)
             BrandField(target, onTarget, "Target weight (kg)", number = true)
 
-            Label("Activity level")
+            SectionHeader(title = "Activity Level", emoji = "🏃")
             SingleChoiceChips(ACTIVITY, activity, onActivity)
-            Label("Goal")
+
+            SectionHeader(title = "Goal", emoji = "🎯")
             SingleChoiceChips(GOAL, goal, onGoal)
-            Label("Diet")
+
+            SectionHeader(title = "Diet", emoji = "🍲")
             SingleChoiceChips(DIET, diet, onDiet)
 
             message?.let {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(BrandGreen.copy(alpha = 0.12f))
-                        .padding(14.dp),
-                ) {
+                GlassCard {
                     Text(
-                        it,
+                        "✅ $it",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
                         color = BrandGreenDeep,
@@ -409,21 +355,15 @@ private fun AddMemberCard(
             val t = target.toDoubleOrNull()
             val valid = firstName.isNotBlank() && dob.isNotBlank() && h != null && w != null && t != null
 
-            Button(
+            PrimaryButton(
+                text = "👥 Add Member",
                 onClick = {
                     if (h != null && w != null && t != null) onSubmit(h, w, t)
                 },
                 enabled = valid && !loading,
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) {
-                Text(
-                    "Add member",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = BrandGreen,
+            )
         }
     }
 }
@@ -444,7 +384,7 @@ private fun BrandField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(Radius.md),
         keyboardOptions = if (number) {
             KeyboardOptions(keyboardType = KeyboardType.Decimal)
         } else {
@@ -456,16 +396,6 @@ private fun BrandField(
             cursorColor = BrandGreen,
         ),
         modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
-private fun Label(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -482,7 +412,7 @@ private fun SingleChoiceChips(options: List<String>, selected: String, onSelect:
                 selected = opt == selected,
                 onClick = { onSelect(opt) },
                 label = { Text(opt) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(Radius.md),
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = BrandGreen,
                     selectedLabelColor = Color.White,

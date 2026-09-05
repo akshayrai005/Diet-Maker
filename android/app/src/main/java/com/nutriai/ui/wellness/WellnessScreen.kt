@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -61,9 +64,22 @@ import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.Meditation
 import com.nutriai.data.remote.dto.Wellness
 import com.nutriai.data.remote.dto.YogaFlow
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.RecoveryColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -115,13 +131,16 @@ class WellnessViewModel @Inject constructor(
     fun clearToast() { _state.value = _state.value.copy(toast = null) }
 }
 
+private val sectionEmojis = listOf("🧘" to "Meditate", "🧘‍♀️" to "Yoga", "😌" to "Mood")
+private val sectionColors = listOf(RecoveryColor, BrandGreen, BrandAmber)
+
 @Composable
 fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var active by remember { mutableStateOf<Meditation?>(null) }
+    val tokens = MaterialTheme.kaizenColors
 
     active?.let { med ->
-        // Finishing the session (the only exit is "Done") logs it, connecting it to calories.
         MeditationSession(med, onClose = { viewModel.logSession(med.id); active = null })
         return
     }
@@ -130,26 +149,38 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
     var section by remember { mutableIntStateOf(0) }
     val labels = listOf("Meditate", "Yoga", "Mood")
 
-    Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.ScreenHeader("Mind", modifier = Modifier.padding(horizontal = 16.dp))
+    Column(modifier.fillMaxSize().background(tokens.pageBackground)) {
+        com.nutriai.ui.components.ScreenHeader("Mind", modifier = Modifier.padding(horizontal = Spacing.screenHorizontal))
+
+        // ---- Section tabs with emoji ----
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             labels.forEachIndexed { i, label ->
+                val (emoji, _) = sectionEmojis[i]
                 FilterChip(
                     selected = section == i,
                     onClick = { section = i },
-                    label = { Text(label) },
+                    label = { Text("$emoji $label") },
+                    shape = RoundedCornerShape(Radius.md),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = sectionColors[i],
+                        selectedLabelColor = Color.White,
+                    ),
                     modifier = Modifier.semantics { contentDescription = "$label section" },
                 )
             }
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = Spacing.screenHorizontal),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            contentPadding = PaddingValues(vertical = Spacing.md),
         ) {
             state.toast?.let { msg ->
                 item {
@@ -159,32 +190,35 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
             }
 
             if (state.loading) {
-                item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
+                item { Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = BrandGreen) } }
             }
 
-            // The "for right now" pick only makes sense on its matching tab.
+            // "For right now" suggestion
             state.suggestion?.let { s ->
                 val show = (section == 0 && s.meditation != null) || (section == 1 && s.yoga != null)
                 if (show) {
                     item {
-                        Card(
-                            Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                        FeatureCard(
+                            emoji = "✨",
+                            title = s.reason.ifBlank { "For right now" },
+                            accentColor = sectionColors[section],
                         ) {
-                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(s.reason.ifBlank { "For right now" }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                val picks = listOfNotNull(s.yoga?.name.takeIf { section == 1 }, s.meditation?.name.takeIf { section == 0 }).joinToString("  ·  ")
-                                if (picks.isNotBlank()) {
-                                    Text(picks, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f))
-                                }
-                                if (section == 0) {
-                                    s.meditation?.let { med ->
-                                        TextButton(
-                                            onClick = { active = med },
-                                            modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Start ${med.name}" },
-                                        ) { Text("▶ Start ${med.name}") }
-                                    }
+                            val picks = listOfNotNull(s.yoga?.name.takeIf { section == 1 }, s.meditation?.name.takeIf { section == 0 }).joinToString("  ·  ")
+                            if (picks.isNotBlank()) {
+                                Text(
+                                    picks,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = sectionColors[section],
+                                )
+                            }
+                            if (section == 0) {
+                                s.meditation?.let { med ->
+                                    Spacer(Modifier.height(Spacing.sm))
+                                    TextButton(
+                                        onClick = { active = med },
+                                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Start ${med.name}" },
+                                    ) { Text("▶ Start ${med.name}", color = sectionColors[0], fontWeight = FontWeight.Bold) }
                                 }
                             }
                         }
@@ -194,21 +228,35 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
 
             when (section) {
                 0 -> {
+                    item { SectionHeader(title = "Meditation Sessions", emoji = "🧘") }
                     if (w != null && w.meditation.isNotEmpty()) {
                         items(w.meditation, key = { it.id }) { MeditationCard(it, onOpen = { active = it }) }
                     } else if (!state.loading) {
-                        item { Text("No meditation sessions right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        item {
+                            EmptyState(
+                                title = "No meditation sessions",
+                                emoji = "🧘",
+                                message = "Check back soon for guided sessions.",
+                            )
+                        }
                     }
                 }
                 1 -> {
+                    item { SectionHeader(title = "Yoga Flows", emoji = "🧘‍♀️") }
                     if (w != null && w.yoga.isNotEmpty()) {
                         items(w.yoga, key = { it.id }) { YogaFlowCard(it, onDone = { viewModel.logSession(it.id) }) }
                     } else if (!state.loading) {
-                        item { Text("No yoga flows right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        item {
+                            EmptyState(
+                                title = "No yoga flows",
+                                emoji = "🧘‍♀️",
+                                message = "Yoga flows will appear here soon.",
+                            )
+                        }
                     }
                 }
                 else -> {
-                    // Mind pillar - daily mood / stress / sleep check-in with a supportive insight.
+                    item { SectionHeader(title = "Mood Check-in", emoji = "😌") }
                     item { com.nutriai.ui.mind.MoodCheckinCard() }
                 }
             }
@@ -217,38 +265,37 @@ fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel =
 }
 
 @Composable
-private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-}
-
-// One shared item style for every content row on the Mind page (yoga flows and
-// meditation/breathing). Same 16dp card, padding, title/meta typography and a single
-// trailing action slot, so a yoga flow and a meditation read as siblings.
-@Composable
 private fun MindItemCard(
     title: String,
     meta: String,
+    accentColor: Color,
+    emoji: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     trailing: @Composable () -> Unit = {},
     expandedContent: (@Composable () -> Unit)? = null,
 ) {
-    val shell = Modifier.fillMaxWidth().then(modifier)
-    Card(
-        modifier = if (onClick != null) shell.clickable { onClick() } else shell,
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    FeatureCard(
+        emoji = emoji,
+        title = title,
+        accentColor = accentColor,
+        onClick = onClick,
+        modifier = modifier,
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                trailing()
-            }
-            expandedContent?.invoke()
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                meta,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            trailing()
         }
+        expandedContent?.invoke()
     }
 }
 
@@ -258,16 +305,19 @@ private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
     MindItemCard(
         title = flow.name,
         meta = "${flow.focus}  ·  ${flow.durationMin} min  ·  ${flow.level}",
+        accentColor = BrandGreen,
+        emoji = "🧘‍♀️",
         onClick = { expanded = !expanded },
         trailing = {
             Text(
                 if (expanded) "▲" else "▼",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = BrandGreen,
             )
         },
         expandedContent = if (expanded) {
             {
+                Spacer(Modifier.height(Spacing.sm))
                 // Aligned table: #  |  Pose + cue  |  Hold
                 Row(Modifier.fillMaxWidth().padding(top = 2.dp)) {
                     Text("#", Modifier.size(width = 22.dp, height = 16.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -289,7 +339,7 @@ private fun YogaFlowCard(flow: YogaFlow, onDone: () -> Unit) {
                     TextButton(
                         onClick = onDone,
                         modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Mark ${flow.name} done" },
-                    ) { Text("✓ Mark done") }
+                    ) { Text("✓ Mark done", color = BrandGreen, fontWeight = FontWeight.Bold) }
                 }
             }
         } else {
@@ -303,9 +353,15 @@ private fun MeditationCard(med: Meditation, onOpen: () -> Unit) {
     MindItemCard(
         title = med.name,
         meta = "${med.goal}  ·  ${med.durationMin} min",
+        accentColor = RecoveryColor,
+        emoji = "🧘",
         onClick = onOpen,
         trailing = {
-            Text("▶", color = BrandGreen, style = MaterialTheme.typography.titleLarge)
+            EmojiBadge(
+                emoji = "▶️",
+                bgColor = RecoveryColor.copy(alpha = 0.18f),
+                size = 36.dp,
+            )
         },
     )
 }
@@ -317,6 +373,7 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
     var count by remember { mutableIntStateOf(0) }
     var scaleTarget by remember { mutableFloatStateOf(0.5f) }
     var phaseSec by remember { mutableIntStateOf(1) }
+    val tokens = MaterialTheme.kaizenColors
 
     // Spoken breathing cues so you can follow with your eyes closed.
     val context = LocalContext.current
@@ -335,8 +392,6 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
         }
     }
 
-    // Soft breathing chime - a gentle tone that rises on inhale, holds steady, falls on exhale.
-    // Generated on the fly (offline, no audio files). Independent of the voice cues.
     var tonesOn by remember { mutableStateOf(true) }
     val tonePlayer = remember { com.nutriai.util.BreathTonePlayer() }
     DisposableEffect(Unit) { onDispose { tonePlayer.stop() } }
@@ -344,9 +399,9 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
         if (tonesOn && pattern != null && phaseLabel != "Get ready") {
             val ms = (phaseSec * 1000).coerceIn(600, 2200)
             when (phaseLabel) {
-                "Breathe in" -> tonePlayer.playGlide(196.0, 392.0, ms) // rising
-                "Breathe out" -> tonePlayer.playGlide(392.0, 196.0, ms) // falling
-                "Hold" -> tonePlayer.playGlide(294.0, 294.0, 600, volume = 0.22f) // soft steady
+                "Breathe in" -> tonePlayer.playGlide(196.0, 392.0, ms)
+                "Breathe out" -> tonePlayer.playGlide(392.0, 196.0, ms)
+                "Hold" -> tonePlayer.playGlide(294.0, 294.0, 600, volume = 0.22f)
             }
         } else if (!tonesOn) {
             tonePlayer.stop()
@@ -381,35 +436,45 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
     )
 
     Column(
-        Modifier.fillMaxSize().padding(24.dp),
+        Modifier
+            .fillMaxSize()
+            .background(tokens.pageBackground)
+            .padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Text(med.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = BrandGreenDeep)
+        SectionHeader(title = med.name, emoji = "🧘")
         Text(med.goal, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         if (pattern != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    if (tonesOn) "🔔 Chime on" else "🔕 Chime off",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = BrandGreen,
-                    modifier = Modifier.clickable { tonesOn = !tonesOn },
-                )
-                Text(
-                    if (soundOn) "🔊 Voice on" else "🔇 Voice off",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = BrandGreen,
-                    modifier = Modifier.clickable { soundOn = !soundOn },
-                )
+            GlassCard {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Text(
+                        if (tonesOn) "🔔 Chime on" else "🔕 Chime off",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = RecoveryColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { tonesOn = !tonesOn },
+                    )
+                    Text(
+                        if (soundOn) "🔊 Voice on" else "🔇 Voice off",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = RecoveryColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { soundOn = !soundOn },
+                    )
+                }
             }
         }
 
         if (pattern != null) {
-            Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(vertical = Spacing.md), contentAlignment = Alignment.Center) {
                 Box(
                     Modifier.size(200.dp).scale(animScale).clip(CircleShape)
-                        .background(Brush.radialGradient(listOf(BrandGreen, BrandGreenDeep)))
+                        .background(Brush.radialGradient(listOf(RecoveryColor, KaizenLavender)))
                         .semantics { contentDescription = "Breathing guide: $phaseLabel" },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -421,25 +486,37 @@ fun MeditationSession(med: Meditation, onClose: () -> Unit) {
             }
         }
 
-        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                med.steps.forEachIndexed { i, step ->
-                    Text("${i + 1}. $step", style = MaterialTheme.typography.bodyMedium)
+        FeatureCard(
+            emoji = "📋",
+            title = "Steps",
+            accentColor = RecoveryColor,
+        ) {
+            med.steps.forEachIndexed { i, step ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    modifier = Modifier.padding(vertical = 2.dp),
+                ) {
+                    EmojiBadge(
+                        emoji = "${i + 1}️⃣",
+                        bgColor = RecoveryColor.copy(alpha = 0.15f),
+                        size = 28.dp,
+                    )
+                    Text(step, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 }
             }
         }
 
         Text(
-            "Find a comfortable position. There's no wrong way to do this.",
+            "Find a comfortable position. There's no wrong way to do this. 😌",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Done") }
+        OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("✅ Done") }
     }
 }
 
-/** Pose illustration for a yoga pose (free yoga-api). Tap to preview it large. 🧘 emoji fallback. */
+/** Pose illustration for a yoga pose (free yoga-api). Tap to preview it large. */
 @Composable
 private fun YogaPoseThumb(name: String, cue: String, modifier: Modifier = Modifier) {
     val url = remember(name) { YogaPoseMap.imageUrl(name) }
@@ -449,8 +526,8 @@ private fun YogaPoseThumb(name: String, cue: String, modifier: Modifier = Modifi
     Box(
         modifier
             .size(44.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.White)
+            .clip(RoundedCornerShape(Radius.sm))
+            .background(BrandGreen.copy(alpha = 0.08f))
             .clickable(enabled = url != null && !failed) { preview = true }
             .semantics { contentDescription = "$name pose, tap to preview" },
         contentAlignment = Alignment.Center,
@@ -476,7 +553,7 @@ private fun YogaPoseThumb(name: String, cue: String, modifier: Modifier = Modifi
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
-                        Modifier.fillMaxWidth().heightIn(min = 240.dp).clip(RoundedCornerShape(16.dp)).background(Color.White),
+                        Modifier.fillMaxWidth().heightIn(min = 240.dp).clip(RoundedCornerShape(Radius.lg)).background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) {
                         AsyncImage(

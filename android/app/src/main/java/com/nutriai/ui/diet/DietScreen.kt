@@ -1,6 +1,8 @@
 package com.nutriai.ui.diet
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,14 +13,18 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -39,13 +47,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.Dashboard
+import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.components.MetricBlock
+import com.nutriai.ui.components.ScreenHeader
 import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.TextAction
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.NutritionColor
 import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -64,10 +77,6 @@ class DietSummaryViewModel @Inject constructor(private val repository: AppReposi
     fun addWater() { viewModelScope.launch { repository.logWater(250); load() } }
 }
 
-/**
- * The Diet pillar (60%) - today's plan, food log and grocery under one tab via a segmented switcher,
- * so nothing is buried and everything diet-related is one tap from the tab root.
- */
 @Composable
 fun DietScreen(
     modifier: Modifier = Modifier,
@@ -81,10 +90,8 @@ fun DietScreen(
     LaunchedEffect(Unit) { summaryViewModel.load() }
 
     Column(modifier.fillMaxSize()) {
-        com.nutriai.ui.components.ScreenHeader("Nutrition", modifier = Modifier.padding(horizontal = Spacing.screenHorizontal))
+        ScreenHeader("🍎 Nutrition", modifier = Modifier.padding(horizontal = Spacing.screenHorizontal))
 
-        // Landing hierarchy (Phase 4, Change 01): today's intake -> meal activity (below, via
-        // sub-tabs) -> primary Log action -> hydration -> secondary tools (sub-tab chips).
         dashboard?.let { d ->
             NutritionLanding(
                 dashboard = d,
@@ -101,8 +108,12 @@ fun DietScreen(
                 FilterChip(
                     selected = section == i,
                     onClick = { section = i },
-                    label = { Text(label) },
+                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                     modifier = Modifier.semantics { contentDescription = "$label section" },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = BrandGreen.copy(alpha = 0.12f),
+                        selectedLabelColor = BrandGreen,
+                    ),
                 )
             }
         }
@@ -115,11 +126,6 @@ fun DietScreen(
     }
 }
 
-/**
- * Nutrition landing block, in the Today visual language (Phase 3): one dominant calorie summary,
- * macros as a grouped row (not three colored cards), an obvious primary Log action, and a compact
- * hydration line. No card wrapper - typography + spacing carry it (Change 01-03, 07).
- */
 @Composable
 private fun NutritionLanding(dashboard: Dashboard, onLogFood: () -> Unit, onAddWater: () -> Unit) {
     val cal = dashboard.calories
@@ -130,53 +136,75 @@ private fun NutritionLanding(dashboard: Dashboard, onLogFood: () -> Unit, onAddW
     val litersTarget = (waterTarget ?: 2500.0) / 1000.0
     val waterFraction = (waterConsumed / (waterTarget ?: 2500.0)).coerceIn(0.0, 1.0).toFloat()
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm)) {
-        // Today's intake — the dominant number (Change 02).
-        Text("Today's intake", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            "${cal.consumed.toInt()}${cal.target?.let { " / ${it.toInt()}" } ?: ""} kcal",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-        )
-        KaizenProgressBar(progress = calFraction, modifier = Modifier.padding(top = Spacing.xs), color = BrandAmber, height = 6.dp)
-
-        Spacer(Modifier.height(Spacing.lg))
-
-        // Macros — one grouped row, not three colored cards (Change 03).
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            MetricBlock(label = "Protein", value = "${(dashboard.protein.consumed ?: 0.0).toInt()}", unit = "g", color = BrandGreen)
-            MetricBlock(label = "Carbs", value = "${dashboard.macros.carbG.toInt()}", unit = "g")
-            MetricBlock(label = "Fat", value = "${dashboard.macros.fatG.toInt()}", unit = "g")
-        }
-
-        Spacer(Modifier.height(Spacing.lg))
-
-        // Primary action - the obvious way to log food, no competing buttons (Change 05).
-        Button(
-            onClick = onLogFood,
-            modifier = Modifier.fillMaxWidth().heightIn(min = com.nutriai.ui.theme.ComponentHeight.touchTarget),
-            shape = RoundedCornerShape(Radius.md),
-            colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-        ) {
-            Icon(Icons.Filled.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(Spacing.sm))
-            Text("Log food", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        }
-
-        Spacer(Modifier.height(Spacing.lg))
-
-        // Hydration — one compact line, not a giant dashboard (Change 07).
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Text("Hydration", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "${"%.1f".format(litersConsumed)} / ${"%.1f".format(litersTarget)} L",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md)) {
+        GlassCard {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Text("🔥 Today's intake", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("${cal.consumed.toInt()}", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraBold, color = NutritionColor)
+                    cal.target?.let { Text(" / ${it.toInt()} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+                KaizenProgressBar(progress = calFraction, color = NutritionColor, height = 6.dp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    MacroItem(label = "Protein", value = "${(dashboard.protein.consumed ?: 0.0).toInt()}", unit = "g", color = NutritionColor)
+                    MacroItem(label = "Carbs", value = "${dashboard.macros.carbG.toInt()}", unit = "g", color = BrandAmber)
+                    MacroItem(label = "Fat", value = "${dashboard.macros.fatG.toInt()}", unit = "g", color = KaizenCoral)
+                }
             }
-            TextAction(text = "+ Add water", onClick = onAddWater)
         }
-        KaizenProgressBar(progress = waterFraction, modifier = Modifier.padding(top = Spacing.xs), color = KaizenBlue, height = 6.dp)
+
+        Spacer(Modifier.height(Spacing.lg))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Button(
+                onClick = onLogFood,
+                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                shape = RoundedCornerShape(Radius.md),
+                colors = ButtonDefaults.buttonColors(containerColor = NutritionColor),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+            ) {
+                Icon(Icons.Filled.Restaurant, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Log food", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = onLogFood,
+                modifier = Modifier.heightIn(min = 52.dp),
+                shape = RoundedCornerShape(Radius.md),
+            ) {
+                Icon(Icons.Filled.QrCodeScanner, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.lg))
+
+        GlassCard {
+            Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Box(Modifier.size(32.dp).clip(CircleShape).background(HydrationColor.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                            Text("💧", style = MaterialTheme.typography.labelMedium)
+                        }
+                        Column {
+                            Text("💧 Hydration", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                            Text("${"%.1f".format(litersConsumed)} / ${"%.1f".format(litersTarget)} L", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    TextAction(text = "+ Add", onClick = onAddWater)
+                }
+                KaizenProgressBar(progress = waterFraction, modifier = Modifier.padding(top = Spacing.sm), color = HydrationColor, height = 4.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroItem(label: String, value: String, unit: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
+            Text(unit, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 2.dp))
+        }
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

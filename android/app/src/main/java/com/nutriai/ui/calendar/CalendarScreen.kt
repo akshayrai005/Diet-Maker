@@ -69,6 +69,25 @@ import com.nutriai.data.remote.dto.Recipe
 import com.nutriai.data.remote.dto.YogaFlow
 import com.nutriai.data.remote.dto.LastPerformance
 import com.nutriai.data.remote.dto.WorkoutDay
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.StatusIndicator
+import com.nutriai.ui.components.Status
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.RecoveryColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -124,7 +143,7 @@ class CalendarViewModel @Inject constructor(
             val lastPerf = repository.lastPerformance().getOrDefault(emptyMap())
             val adaptation = repository.adaptation().getOrNull()
             val guidance = repository.guidance().getOrNull()
-            // Phase + mood + health → the day's yoga & meditation.
+            // Phase + mood + health -> the day's yoga & meditation.
             val rec = repository.recommendWellness(currentMood).getOrNull()
             val yoga = rec?.yoga
             val meditation = rec?.meditation
@@ -313,37 +332,48 @@ fun CalendarScreen(
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.kaizenColors.pageBackground)
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
-        // Day navigation: ‹ prev / next › steps through the same dates the week strip below shows,
-        // so this defaults to (and always centers on) today without needing a full calendar.
+        // Day navigation: prev / next steps through the same dates the week strip below shows.
         if (state.dietDays.isNotEmpty() || state.workoutDays.isNotEmpty()) {
             item {
                 val dates = (state.dietDays.mapNotNull { it.date } + state.workoutDays.mapNotNull { it.date }).distinct().sorted()
                 val idx = dates.indexOf(state.selectedDate)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { if (idx > 0) viewModel.selectDate(dates[idx - 1]) }, enabled = idx > 0) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day")
-                    }
-                    Text(
-                        state.dietDays.firstOrNull { it.date == state.selectedDate }?.label
-                            ?: state.workoutDays.firstOrNull { it.date == state.selectedDate }?.label
-                            ?: "Today",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    IconButton(onClick = { if (idx in 0 until dates.lastIndex) viewModel.selectDate(dates[idx + 1]) }, enabled = idx in 0 until dates.lastIndex) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = "Next day")
+                GlassCard {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { if (idx > 0) viewModel.selectDate(dates[idx - 1]) }, enabled = idx > 0) {
+                            Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day", tint = BrandGreen)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text("📅", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                state.dietDays.firstOrNull { it.date == state.selectedDate }?.label
+                                    ?: state.workoutDays.firstOrNull { it.date == state.selectedDate }?.label
+                                    ?: "Today",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = BrandGreen,
+                            )
+                        }
+                        IconButton(onClick = { if (idx in 0 until dates.lastIndex) viewModel.selectDate(dates[idx + 1]) }, enabled = idx in 0 until dates.lastIndex) {
+                            Icon(Icons.Filled.ChevronRight, contentDescription = "Next day", tint = BrandGreen)
+                        }
                     }
                 }
             }
         }
         item {
-            Button(onClick = { viewModel.regenerate() }, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.dietDays.isEmpty()) "Generate my 7-day plan" else "Regenerate week")
-            }
+            PrimaryButton(
+                text = if (state.dietDays.isEmpty()) "✨ Generate my 7-day plan" else "🔄 Regenerate week",
+                onClick = { viewModel.regenerate() },
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = BrandGreen,
+            )
         }
 
         state.adaptation?.takeIf { it.status != "insufficient_data" }?.let { adapt ->
@@ -364,32 +394,32 @@ fun CalendarScreen(
         item { com.nutriai.ui.cycle.CycleSection() }
 
         if (state.loading) {
-            item { CircularProgressIndicator() }
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = Spacing.xxl), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandGreen)
+                }
+            }
         }
 
         if (!state.loading && state.dietDays.isEmpty() && state.workoutDays.isEmpty()) {
             item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Nothing scheduled yet", style = MaterialTheme.typography.titleMedium)
-                        val hasError = state.dietError != null || state.workoutError != null
-                        Text(
-                            if (hasError) {
-                                "First finish your health profile (Home tab → Complete profile). Then tap Generate to build your week."
-                            } else {
-                                "Tap Generate to build your personalised 7-day plan."
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
+                val hasError = state.dietError != null || state.workoutError != null
+                EmptyState(
+                    title = "Nothing scheduled yet",
+                    emoji = "📅",
+                    message = if (hasError) {
+                        "First finish your health profile (Home tab → Complete profile). Then tap Generate to build your week."
+                    } else {
+                        "Tap Generate to build your personalised 7-day plan."
+                    },
+                )
             }
         }
 
         // Week strip built from the diet-plan days.
         if (state.dietDays.isNotEmpty()) {
             item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(state.dietDays) { day ->
                         DayPill(
                             label = day.label,
@@ -419,15 +449,21 @@ fun CalendarScreen(
                     }.getOrNull()
                 } ?: (dietDay?.label ?: workoutDay?.label ?: "Selected day")
                 val fasting = (dietDay?.label ?: workoutDay?.label)?.contains("Fasting", ignoreCase = true) == true
-                Text(
-                    if (fasting) "$header · Fasting day" else header,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                GlassCard {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(if (fasting) "🌙" else "☀️", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (fasting) "$header · Fasting day" else header,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandGreen,
+                        )
+                    }
+                }
             }
 
             // Diet section.
-            item { Text("Diet", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
+            item { SectionHeader(title = "Diet", emoji = "🍲") }
             if (dietDay == null || dietDay.meals.isEmpty()) {
                 item {
                     Text(
@@ -438,64 +474,94 @@ fun CalendarScreen(
                 }
             } else {
                 items(dietDay.meals) { meal ->
-                    // A meal group - not a card, not a bordered spreadsheet (Change 07/Card Lock).
-                    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                meal.slot.replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                "Swap",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) },
-                            )
-                        }
-                        // Condition-friendliness highlights (Diabetes-friendly, Gut-friendly…).
-                        val highlights = meal.friendliness?.highlights.orEmpty()
-                        if (highlights.isNotEmpty()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                highlights.forEach { h ->
-                                    com.nutriai.ui.components.StatusIndicator(text = h, status = com.nutriai.ui.components.Status.Positive)
-                                }
-                            }
-                        }
-                        meal.items.forEachIndexed { i, mealItem ->
+                    FeatureCard(
+                        emoji = when (meal.slot.lowercase()) {
+                            "breakfast" -> "🍳"
+                            "lunch" -> "🍛"
+                            "dinner" -> "🍝"
+                            "snack", "snacks" -> "🍎"
+                            else -> "🍽️"
+                        },
+                        title = meal.slot.replaceFirstChar { it.uppercase() },
+                        accentColor = when (meal.slot.lowercase()) {
+                            "breakfast" -> BrandAmber
+                            "lunch" -> NutritionColor
+                            "dinner" -> KaizenLavender
+                            "snack", "snacks" -> KaizenCoral
+                            else -> KaizenBlue
+                        },
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             Row(
-                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
                             ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(mealItem.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                    Text("${mealItem.grams.toInt()} g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Text("${mealItem.kcal.toInt()} kcal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Icon(
-                                    Icons.Filled.MenuBook,
-                                    contentDescription = "View recipe for ${mealItem.name}",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp).clickable { viewModel.loadRecipe(mealItem.name, mealItem.foodId) },
+                                Text(
+                                    "🔀 Swap",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = KaizenCoral,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) },
                                 )
                             }
-                            if (i != meal.items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            // Condition-friendliness highlights (Diabetes-friendly, Gut-friendly...).
+                            val highlights = meal.friendliness?.highlights.orEmpty()
+                            if (highlights.isNotEmpty()) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                    highlights.forEach { h ->
+                                        StatusIndicator(text = h, status = Status.Positive)
+                                    }
+                                }
+                            }
+                            meal.items.forEachIndexed { i, mealItem ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    EmojiBadge(emoji = "🍚", bgColor = NutritionColor.copy(alpha = 0.15f), size = 32.dp)
+                                    Column(Modifier.weight(1f)) {
+                                        Text(mealItem.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                        Text("${mealItem.grams.toInt()} g", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Text(
+                                        "${mealItem.kcal.toInt()} kcal",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = BrandGreen,
+                                    )
+                                    Icon(
+                                        Icons.Filled.MenuBook,
+                                        contentDescription = "View recipe for ${mealItem.name}",
+                                        tint = KaizenBlue,
+                                        modifier = Modifier.size(22.dp).clickable { viewModel.loadRecipe(mealItem.name, mealItem.foodId) },
+                                    )
+                                }
+                                if (i != meal.items.lastIndex) HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
+                            }
                         }
                     }
                 }
                 item {
-                    Text(
-                        "Total: ${dietDay.totals.kcal.toInt()} kcal · P ${dietDay.totals.proteinG.toInt()}g",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    GlassCard {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                        ) {
+                            com.nutriai.ui.components.MetricBlock(
+                                label = "Calories",
+                                value = "${dietDay.totals.kcal.toInt()}",
+                                unit = "kcal",
+                                color = BrandGreen,
+                            )
+                            com.nutriai.ui.components.MetricBlock(
+                                label = "Protein",
+                                value = "${dietDay.totals.proteinG.toInt()}",
+                                unit = "g",
+                                color = KaizenBlue,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -503,10 +569,11 @@ fun CalendarScreen(
 
         item {
             Text(
-                "Educational guidance, not medical advice - consult a professional.",
+                "Educational guidance, not medical advice – consult a professional.",
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
             )
         }
     }
@@ -516,13 +583,18 @@ fun CalendarScreen(
 private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(recipe?.title?.ifBlank { "Recipe" } ?: "Recipe", fontWeight = FontWeight.Bold) },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("📖", style = MaterialTheme.typography.titleMedium)
+                Text(recipe?.title?.ifBlank { "Recipe" } ?: "Recipe", fontWeight = FontWeight.Bold)
+            }
+        },
         text = {
             when {
-                loading -> Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() }
+                loading -> Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator(color = BrandGreen) }
                 recipe != null -> Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     val meta = listOfNotNull(
                         recipe.timeMin?.let { "⏱ $it min" },
@@ -530,11 +602,11 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
                     ).joinToString("   ·   ")
                     if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (recipe.ingredients.isNotEmpty()) {
-                        Text("Ingredients", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        SectionHeader(title = "Ingredients", emoji = "🧂")
                         recipe.ingredients.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
                     }
                     if (recipe.steps.isNotEmpty()) {
-                        Text("Steps", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp))
+                        SectionHeader(title = "Steps", emoji = "👨‍🍳")
                         recipe.steps.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodyMedium) }
                     }
                     recipe.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -549,47 +621,50 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
 @Composable
 private fun GuidanceCard(g: Guidance) {
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    FeatureCard(
+        emoji = "💡",
+        title = "Personalized for you",
+        accentColor = KaizenLavender,
+        onClick = { expanded = !expanded },
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                Modifier.fillMaxWidth().clickable { expanded = !expanded },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Personalized for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    Text(
-                        g.summary.ifBlank { "Diet & exercise tips for your profile" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
-                    )
+        Text(
+            g.summary.ifBlank { "Diet & exercise tips for your profile" },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (expanded) {
+            Spacer(Modifier.height(Spacing.sm))
+            if (g.dietTips.isNotEmpty()) {
+                SectionHeader(title = "Diet", emoji = "🥗")
+                g.dietTips.forEach { tip ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                        EmojiBadge(emoji = "✅", bgColor = NutritionColor.copy(alpha = 0.15f), size = 24.dp)
+                        Text(tip, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    }
                 }
-                Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.bodyMedium)
             }
-            if (expanded) {
-                if (g.dietTips.isNotEmpty()) {
-                    Text("Diet", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    g.dietTips.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
+            if (g.exerciseTips.isNotEmpty()) {
+                Spacer(Modifier.height(Spacing.sm))
+                SectionHeader(title = "Exercise", emoji = "🏋️")
+                g.exerciseTips.forEach { tip ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                        EmojiBadge(emoji = "💪", bgColor = MovementColor.copy(alpha = 0.15f), size = 24.dp)
+                        Text(tip, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    }
                 }
-                if (g.exerciseTips.isNotEmpty()) {
-                    Text("Exercise", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    g.exerciseTips.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
-                }
-                Text(
-                    "Educational guidance, not medical advice.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                )
-            } else {
-                Text(
-                    "Tap to see your diet & exercise tips",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
-                )
             }
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                "Educational guidance, not medical advice.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                "Tap to see your diet & exercise tips ▼",
+                style = MaterialTheme.typography.labelSmall,
+                color = KaizenLavender,
+            )
         }
     }
 }
@@ -601,37 +676,24 @@ private fun AdaptiveInsightCard(
     onApply: () -> Unit,
 ) {
     val onTrack = adaptation.status == "on_track"
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (onTrack) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.tertiaryContainer
-            },
-        ),
+    FeatureCard(
+        emoji = if (onTrack) "🎯" else "🧭",
+        title = if (onTrack) "Coach: on track" else "Coach insight",
+        accentColor = if (onTrack) NutritionColor else BrandAmber,
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                if (onTrack) "🎯 Coach: on track" else "🧭 Coach insight",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+        Text(adaptation.message, style = MaterialTheme.typography.bodyMedium)
+        if (adaptation.status == "adjust_target") {
+            Spacer(Modifier.height(Spacing.sm))
+            PrimaryButton(
+                text = if (applying) "Applying..." else run {
+                    val sign = if (adaptation.suggestedKcalDelta >= 0) "+" else ""
+                    "Apply ($sign${adaptation.suggestedKcalDelta} kcal) & rebuild plan"
+                },
+                onClick = onApply,
+                enabled = !applying,
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = BrandAmber,
             )
-            Text(adaptation.message, style = MaterialTheme.typography.bodyMedium)
-            if (adaptation.status == "adjust_target") {
-                Button(
-                    onClick = onApply,
-                    enabled = !applying,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (applying) {
-                        CircularProgressIndicator(Modifier.width(20.dp))
-                    } else {
-                        val sign = if (adaptation.suggestedKcalDelta >= 0) "+" else ""
-                        Text("Apply ($sign${adaptation.suggestedKcalDelta} kcal) & rebuild plan")
-                    }
-                }
-            }
         }
     }
 }
@@ -645,50 +707,54 @@ private fun WorkoutWellnessCard(
     onMood: (Int) -> Unit,
     onStartMeditation: (Meditation) -> Unit,
 ) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    FeatureCard(
+        emoji = "🧘",
+        title = "Yoga & Meditation",
+        accentColor = RecoveryColor,
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Yoga & meditation - part of today's routine", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        // Mood selector - tune the session to how you feel.
+        Text("How's your mood today?", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(Spacing.xs))
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            val faces = listOf(1 to "😣", 2 to "😕", 3 to "😐", 4 to "🙂", 5 to "😄")
+            faces.forEach { (value, face) ->
+                val selected = mood == value
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(Radius.sm))
+                        .background(if (selected) RecoveryColor else RecoveryColor.copy(alpha = 0.08f))
+                        .clickable { onMood(value) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ) { Text(face, style = MaterialTheme.typography.titleMedium) }
+            }
+        }
+        reason?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(Spacing.xs))
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
 
-            // Mood selector - tune the session to how you feel.
-            Text("How's your mood today?", style = MaterialTheme.typography.labelMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                val faces = listOf(1 to "😣", 2 to "😕", 3 to "😐", 4 to "🙂", 5 to "😄")
-                faces.forEach { (value, face) ->
-                    val selected = mood == value
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
-                            .clickable { onMood(value) }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                    ) { Text(face, style = MaterialTheme.typography.titleMedium) }
+        yoga?.let { flow ->
+            Spacer(Modifier.height(Spacing.sm))
+            SectionHeader(title = "Cool-down · ${flow.name}", emoji = "🧘‍♀️")
+            flow.poses.take(5).forEach { p ->
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    EmojiBadge(emoji = "🌿", bgColor = RecoveryColor.copy(alpha = 0.15f), size = 24.dp)
+                    Text("${p.name} – ${p.hold}", style = MaterialTheme.typography.bodySmall)
                 }
             }
-            reason?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f))
-            }
-
-            yoga?.let { flow ->
-                Text("Cool-down · ${flow.name}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                flow.poses.take(5).forEach { p ->
-                    Text("• ${p.name} - ${p.hold}", style = MaterialTheme.typography.bodySmall)
+        }
+        meditation?.let { med ->
+            Spacer(Modifier.height(Spacing.sm))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(med.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                    Text("${med.durationMin} min guided breathing (voice)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            }
-            meditation?.let { med ->
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(med.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text("${med.durationMin} min guided breathing (voice)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    OutlinedButton(onClick = { onStartMeditation(med) }) { Text("▶ Start") }
-                }
+                OutlinedButton(onClick = { onStartMeditation(med) }) { Text("▶ Start") }
             }
         }
     }
@@ -703,42 +769,37 @@ private fun ExerciseRow(
     done: Boolean,
     onLog: () -> Unit,
 ) {
-    val green = MaterialTheme.colorScheme.primary
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (done) green.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-    ) {
+    GlassCard {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             // Number / done badge.
             Box(
-                Modifier.size(30.dp).clip(CircleShape).background(if (done) green else green.copy(alpha = 0.18f)),
+                Modifier.size(34.dp).clip(CircleShape).background(if (done) BrandGreen else MovementColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     if (done) "✓" else "$index",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = if (done) Color.White else green,
+                    color = if (done) Color.White else MovementColor,
                 )
             }
             Column(Modifier.weight(1f)) {
                 Text(name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                // Sets×reps pill + optional last-performance hint.
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Sets x reps pill + optional last-performance hint.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
                         prescription,
-                        Modifier.clip(RoundedCornerShape(8.dp)).background(green.copy(alpha = 0.14f)).padding(horizontal = 8.dp, vertical = 2.dp),
+                        Modifier
+                            .clip(RoundedCornerShape(Radius.sm))
+                            .background(MovementColor.copy(alpha = 0.14f))
+                            .padding(horizontal = Spacing.sm, vertical = 2.dp),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = green,
+                        color = MovementColor,
                     )
                     last?.weightKg?.let {
                         val hint = buildString {
@@ -750,7 +811,7 @@ private fun ExerciseRow(
                 }
             }
             OutlinedButton(onClick = onLog, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp)) {
-                Text(if (done) "Again" else "Log")
+                Text(if (done) "Again" else "📝 Log")
             }
         }
     }
@@ -768,11 +829,16 @@ private fun LogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log ${pending.name}") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("🏋️", style = MaterialTheme.typography.titleMedium)
+                Text("Log ${pending.name}", fontWeight = FontWeight.Bold)
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("What did you actually do? Leave blank what doesn't apply.", style = MaterialTheme.typography.bodySmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
                         value = weight,
                         onValueChange = { weight = it.filter { c -> c.isDigit() || c == '.' } },
@@ -803,7 +869,7 @@ private fun LogDialog(
         confirmButton = {
             TextButton(onClick = {
                 onConfirm(weight.toDoubleOrNull(), reps.toIntOrNull(), sets.toIntOrNull())
-            }) { Text("Save") }
+            }) { Text("✅ Save", color = BrandGreen, fontWeight = FontWeight.Bold) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
@@ -821,7 +887,7 @@ private fun DayPill(
     onClick: () -> Unit,
 ) {
     val dayNumber = date?.substringAfterLast('-')?.trimStart('0')?.ifBlank { "0" } ?: "-"
-    // Always show the real weekday (Mon/Tue…) from the date, not Yesterday/Today/Tomorrow.
+    // Always show the real weekday (Mon/Tue...) from the date, not Yesterday/Today/Tomorrow.
     val weekday = date?.let {
         runCatching {
             java.time.LocalDate.parse(it)
@@ -830,18 +896,19 @@ private fun DayPill(
         }.getOrNull()
     } ?: label
     val container = when {
-        isSelected -> MaterialTheme.colorScheme.primary
-        isToday -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
+        isSelected -> BrandGreen
+        isToday -> NutritionColor.copy(alpha = 0.15f)
+        else -> MaterialTheme.kaizenColors.elevatedSurface
     }
     val content = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        isToday -> MaterialTheme.colorScheme.onPrimaryContainer
+        isSelected -> Color.White
+        isToday -> BrandGreen
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Card(
         modifier = Modifier.width(74.dp).clickable(onClick = onClick),
+        shape = RoundedCornerShape(Radius.md),
         colors = CardDefaults.cardColors(containerColor = container),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp),
     ) {
@@ -853,6 +920,7 @@ private fun DayPill(
             Text(
                 weekday ?: "-",
                 style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                 color = content,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -867,6 +935,14 @@ private fun DayPill(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (isToday) {
+                Box(
+                    Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) Color.White else BrandGreen),
+                )
+            }
         }
     }
 }

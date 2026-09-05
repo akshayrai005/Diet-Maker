@@ -26,8 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -63,10 +61,22 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.BarcodeFood
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -150,6 +160,15 @@ class BarcodeViewModel @Inject constructor(
     }
 }
 
+private val slotEmojis = mapOf(
+    "breakfast" to "🍳",
+    "midmorning" to "☕",
+    "lunch" to "🍛",
+    "eveningsnack" to "🍪",
+    "dinner" to "🍝",
+    "bedtime" to "🌙",
+)
+
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun BarcodeScreen(
@@ -158,134 +177,155 @@ fun BarcodeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
+    val tokens = MaterialTheme.kaizenColors
 
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier
+            .fillMaxSize()
+            .background(tokens.pageBackground)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(Spacing.xs))
 
-        ScanHeader()
+        // ---- Hero header ----
+        com.nutriai.ui.components.ScreenHeader(
+            title = "📷 Barcode Scanner",
+            subtitle = "Scan packaged food and log it instantly",
+        )
 
-        // ---- Camera preview framed in a rounded brand card ----
+        FeatureCard(
+            emoji = "📦",
+            title = "Scan & Log",
+            accentColor = BrandGreen,
+        ) {
+            Text(
+                "Point, scan, and log packaged food in seconds.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // ---- Camera preview ----
+        SectionHeader(title = "Camera", emoji = "🎥")
+
         if (cameraPermission.status.isGranted) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            ) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            GlassCard {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(230.dp)
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(Radius.lg))
                             .border(
-                                width = 2.dp,
-                                brush = Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen)),
-                                shape = RoundedCornerShape(20.dp),
+                                width = 3.dp,
+                                brush = Brush.verticalGradient(listOf(NutritionColor, KaizenBlue)),
+                                shape = RoundedCornerShape(Radius.lg),
                             ),
                     ) {
                         CameraScanner(
                             onBarcode = viewModel::onScanned,
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)),
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(Radius.lg)),
                         )
                     }
-                    Text(
-                        "🎯  Point at a barcode",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = BrandGreenDeep,
-                        modifier = Modifier.padding(start = 4.dp),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        EmojiBadge(emoji = "🎯", bgColor = BrandGreen.copy(alpha = 0.15f))
+                        Text(
+                            "Point at a barcode",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = BrandGreen,
+                        )
+                    }
                 }
             }
         } else {
-            OutlinedButton(
-                onClick = { cameraPermission.launchPermissionRequest() },
-                modifier = Modifier.fillMaxWidth().height(54.dp),
-                shape = RoundedCornerShape(24.dp),
+            FeatureCard(
+                emoji = "📸",
+                title = "Camera Permission",
+                accentColor = KaizenBlue,
             ) {
-                Text("Enable camera to scan", fontWeight = FontWeight.SemiBold)
+                PrimaryButton(
+                    text = "Enable camera to scan",
+                    onClick = { cameraPermission.launchPermissionRequest() },
+                    containerColor = KaizenBlue,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
-        // ---- Manual entry card ----
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // ---- Manual entry ----
+        SectionHeader(title = "Manual Entry", emoji = "⌨️")
+
+        FeatureCard(
+            emoji = "🔢",
+            title = "Enter Barcode",
+            accentColor = KaizenLavender,
         ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(
-                    "Enter it manually",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 OutlinedTextField(
                     value = state.code,
                     onValueChange = viewModel::onCode,
                     label = { Text("Barcode number") },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(Radius.md),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BrandGreen,
-                        focusedLabelColor = BrandGreen,
-                        cursorColor = BrandGreen,
+                        focusedBorderColor = KaizenLavender,
+                        focusedLabelColor = KaizenLavender,
+                        cursorColor = KaizenLavender,
                     ),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(
+                PrimaryButton(
+                    text = "🔍 Look up",
                     onClick = { viewModel.lookup() },
                     enabled = state.code.isNotBlank() && !state.loading,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                ) {
-                    Text("Look up", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                }
+                    containerColor = KaizenLavender,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
         if (state.loading) {
-            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(vertical = Spacing.xs), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = BrandGreen)
             }
         }
 
         // ---- Found food + grams + meal + log ----
         state.food?.let { food ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                colors = CardDefaults.cardColors(containerColor = BrandGreen.copy(alpha = 0.10f)),
+            SectionHeader(title = "Found Food", emoji = "✅")
+
+            FeatureCard(
+                emoji = "🍽️",
+                title = food.name,
+                accentColor = NutritionColor,
             ) {
-                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(BrandGreen.copy(alpha = 0.18f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            androidx.compose.material3.Icon(Icons.Filled.Restaurant, contentDescription = null, tint = BrandGreenDeep)
-                        }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    ) {
+                        EmojiBadge(
+                            emoji = "🔥",
+                            bgColor = KaizenCoral.copy(alpha = 0.18f),
+                            size = 48.dp,
+                        )
+                        Column {
                             Text(
-                                food.name,
-                                style = MaterialTheme.typography.titleMedium,
+                                "${food.per100g.kcal.toInt()} kcal",
+                                style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = KaizenCoral,
                             )
                             Text(
-                                "${food.per100g.kcal.toInt()} kcal / 100 g",
-                                style = MaterialTheme.typography.bodyMedium,
+                                "per 100 g",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -294,63 +334,55 @@ fun BarcodeScreen(
                     OutlinedTextField(
                         value = state.grams,
                         onValueChange = viewModel::onGrams,
-                        label = { Text("Grams") },
+                        label = { Text("⚖️ Grams") },
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(Radius.md),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandGreen,
-                            focusedLabelColor = BrandGreen,
-                            cursorColor = BrandGreen,
+                            focusedBorderColor = NutritionColor,
+                            focusedLabelColor = NutritionColor,
+                            cursorColor = NutritionColor,
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text(
-                        "Meal",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    SectionHeader(title = "Meal Slot", emoji = "🍽️")
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         viewModel.slots.forEach { s ->
+                            val emoji = slotEmojis[s] ?: "🍽️"
                             FilterChip(
                                 selected = s == state.slot,
                                 onClick = { viewModel.onSlot(s) },
-                                label = { Text(s) },
-                                shape = RoundedCornerShape(16.dp),
+                                label = { Text("$emoji $s") },
+                                shape = RoundedCornerShape(Radius.md),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = BrandGreen,
+                                    selectedContainerColor = NutritionColor,
                                     selectedLabelColor = Color.White,
                                 ),
                             )
                         }
                     }
 
-                    Button(
+                    PrimaryButton(
+                        text = "✅ Log it",
                         onClick = { viewModel.logIt() },
                         enabled = !state.loading,
-                        modifier = Modifier.fillMaxWidth().height(54.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreenDeep),
-                    ) {
-                        Text("Log it", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    }
+                        containerColor = BrandGreenDeep,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
 
-        // ---- Friendly message (kept as-is text) ----
+        // ---- Friendly message ----
         state.message?.let {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(BrandAmber.copy(alpha = 0.14f))
-                    .padding(16.dp),
+            FeatureCard(
+                emoji = "💬",
+                title = "Status",
+                accentColor = BrandAmber,
             ) {
                 Text(
                     it,
@@ -361,44 +393,7 @@ fun BarcodeScreen(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ScanHeader() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(listOf(BrandGreenLight, BrandGreen, BrandGreenDeep)),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Scan barcode 📦",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Text(
-                    "Point, scan, and log packaged food in seconds.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
-                )
-            }
-        }
+        Spacer(Modifier.height(Spacing.sm))
     }
 }
 

@@ -1,6 +1,7 @@
 package com.nutriai.ui.history
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,9 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriai.data.AppRepository
 import com.nutriai.data.health.HealthConnectManager
 import com.nutriai.data.remote.dto.DailyHistory
+import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.HydrationColor
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,56 +85,80 @@ class HistoryViewModel @Inject constructor(
 @Composable
 fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val tokens = MaterialTheme.kaizenColors
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .background(tokens.pageBackground)
+            .padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         item {
-            Text(
-                "Your history",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            Spacer(Modifier.height(Spacing.md))
+            SectionHeader(title = "Your History", emoji = "📜")
         }
+
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(7, 30).forEach { d ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                listOf(7 to "📅", 30 to "🗓️").forEach { (d, emoji) ->
                     FilterChip(
                         selected = state.days == d,
                         onClick = { viewModel.load(d) },
-                        label = { Text("Last $d days") },
+                        label = { Text("$emoji Last $d days") },
+                        shape = RoundedCornerShape(Radius.md),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = BrandGreen,
+                            selectedLabelColor = Color.White,
+                        ),
                     )
                 }
             }
         }
 
         if (state.loading) {
-            item { Row(Modifier.fillMaxWidth().padding(40.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() } }
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(Spacing.xxxl),
+                    horizontalArrangement = Arrangement.Center,
+                ) { CircularProgressIndicator(color = BrandGreen) }
+            }
         } else {
             val h = state.history
             if (h == null || h.days.isEmpty()) {
-                item { Text("No history yet — log a few days and it'll fill in here.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item {
+                    EmptyState(
+                        title = "No history yet",
+                        emoji = "📊",
+                        message = "Log a few days and it'll fill in here.",
+                    )
+                }
             } else {
                 val dates = h.days.map { it.date }
                 val stepVals = dates.map { (state.stepsByDate[it] ?: 0L).toFloat() }
                 val stepsTotal = stepVals.sum().toLong()
 
                 item {
+                    SectionHeader(title = "Activity", emoji = "🚶")
+                }
+                item {
                     MetricChart(
                         title = "🚶 Steps",
                         subtitle = if (stepsTotal > 0) "avg ${(stepsTotal / max(1, dates.size)).toInt()}/day" else "Connect Health Connect to see steps",
                         values = stepVals,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MovementColor,
                     )
+                }
+
+                item {
+                    SectionHeader(title = "Nutrition", emoji = "🍲")
                 }
                 item {
                     MetricChart(
                         title = "🔥 Calories eaten",
                         subtitle = "avg ${(h.days.map { it.kcal }.average().takeIf { it.isFinite() } ?: 0.0).toInt()} kcal/day",
                         values = h.days.map { it.kcal.toFloat() },
-                        color = Color(0xFFEF6C56),
+                        color = KaizenCoral,
                     )
                 }
                 item {
@@ -126,7 +166,7 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                         title = "💧 Water",
                         subtitle = "avg ${(h.days.map { it.waterMl }.average().takeIf { it.isFinite() } ?: 0.0).toInt()} ml/day",
                         values = h.days.map { it.waterMl.toFloat() },
-                        color = Color(0xFF3FA7F0),
+                        color = HydrationColor,
                     )
                 }
                 item {
@@ -134,10 +174,13 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                         title = "💪 Protein",
                         subtitle = "avg ${(h.days.map { it.proteinG }.average().takeIf { it.isFinite() } ?: 0.0).toInt()} g/day",
                         values = h.days.map { it.proteinG.toFloat() },
-                        color = Color(0xFF7BC96F),
+                        color = NutritionColor,
                     )
                 }
                 if (h.weight.size >= 2) {
+                    item {
+                        SectionHeader(title = "Body", emoji = "🏋️")
+                    }
                     item {
                         val first = h.weight.first().weightKg
                         val last = h.weight.last().weightKg
@@ -146,54 +189,59 @@ fun HistoryScreen(modifier: Modifier = Modifier, viewModel: HistoryViewModel = h
                             title = "⚖️ Weight",
                             subtitle = "${last} kg · ${if (delta <= 0) "" else "+"}$delta kg over ${state.days} days",
                             values = h.weight.map { it.weightKg.toFloat() },
-                            color = Color(0xFFB07BE0),
+                            color = KaizenLavender,
                             line = true,
                         )
                     }
                 }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
+        item { Spacer(Modifier.height(Spacing.xl)) }
     }
 }
 
-/** A compact bar (or line) chart drawn on a Canvas. Bars scale to the max value in the window. */
+/** A compact bar (or line) chart drawn on a Canvas inside a FeatureCard. */
 @Composable
 private fun MetricChart(title: String, subtitle: String, values: List<Float>, color: Color, line: Boolean = false) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(12.dp))
-            val maxV = max(1f, values.maxOrNull() ?: 1f)
-            val minV = if (line) (values.minOrNull() ?: 0f) else 0f
-            val span = max(1f, maxV - minV)
-            Canvas(Modifier.fillMaxWidth().height(90.dp)) {
-                val n = values.size
-                if (n == 0) return@Canvas
-                if (line) {
-                    val step = if (n > 1) size.width / (n - 1) else size.width
-                    var prev: Offset? = null
-                    values.forEachIndexed { i, v ->
-                        val x = i * step
-                        val y = size.height - ((v - minV) / span) * size.height
-                        val p = Offset(x, y)
-                        prev?.let { drawLine(color, it, p, strokeWidth = 4f) }
-                        drawCircle(color, radius = 4f, center = p)
-                        prev = p
-                    }
-                } else {
-                    val gap = size.width / n * 0.25f
-                    val barW = size.width / n - gap
-                    values.forEachIndexed { i, v ->
-                        val bh = (v / maxV) * size.height
-                        val x = i * (barW + gap)
-                        drawRect(
-                            color = if (v > 0f) color else color.copy(alpha = 0.15f),
-                            topLeft = Offset(x, size.height - bh),
-                            size = androidx.compose.ui.geometry.Size(barW, max(bh, 1f)),
-                        )
-                    }
+    FeatureCard(
+        emoji = title.take(2),
+        title = title.drop(2).trim(),
+        accentColor = color,
+    ) {
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(Spacing.md))
+        val maxV = max(1f, values.maxOrNull() ?: 1f)
+        val minV = if (line) (values.minOrNull() ?: 0f) else 0f
+        val span = max(1f, maxV - minV)
+        Canvas(Modifier.fillMaxWidth().height(100.dp)) {
+            val n = values.size
+            if (n == 0) return@Canvas
+            if (line) {
+                val step = if (n > 1) size.width / (n - 1) else size.width
+                var prev: Offset? = null
+                values.forEachIndexed { i, v ->
+                    val x = i * step
+                    val y = size.height - ((v - minV) / span) * size.height
+                    val p = Offset(x, y)
+                    prev?.let { drawLine(color, it, p, strokeWidth = 4f) }
+                    drawCircle(color, radius = 5f, center = p)
+                    prev = p
+                }
+            } else {
+                val gap = size.width / n * 0.20f
+                val barW = size.width / n - gap
+                values.forEachIndexed { i, v ->
+                    val bh = (v / maxV) * size.height
+                    val x = i * (barW + gap)
+                    drawRect(
+                        color = if (v > 0f) color else color.copy(alpha = 0.15f),
+                        topLeft = Offset(x, size.height - bh),
+                        size = androidx.compose.ui.geometry.Size(barW, max(bh, 1f)),
+                    )
                 }
             }
         }

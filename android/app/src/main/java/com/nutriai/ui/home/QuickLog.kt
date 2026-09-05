@@ -173,10 +173,10 @@ fun QuickLogSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            Modifier.fillMaxWidth().padding(horizontal = com.nutriai.ui.theme.Spacing.screenHorizontal).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Quick log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("⚡ Quick log", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             state.toast?.let { msg ->
                 Card(
                     Modifier.fillMaxWidth(),
@@ -193,13 +193,13 @@ fun QuickLogSheet(
             }
 
             if (state.recents.isNotEmpty()) {
-                Text("Recent - tap to re-log", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text("🔄 Recent - tap to re-log", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 state.recents.forEach { entry ->
                     QuickRow("🔁", entry.foodName, "${entry.kcal.toInt()} kcal · ${entry.proteinG.toInt()}g protein") { viewModel.logRecent(entry) }
                 }
             }
 
-            Text("One-tap meals", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text("🍽️ One-tap meals", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             viewModel.combos.forEach { combo ->
                 QuickRow(combo.emoji, combo.label, combo.subtitle) { viewModel.logCombo(combo) }
             }

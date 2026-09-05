@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,6 +56,17 @@ import com.nutriai.data.remote.dto.BodyAssessment
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.BrandGreenDeep
 import com.nutriai.ui.theme.BrandGreenLight
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.util.ImageUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -133,55 +146,76 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
         item { Hero() }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            launchCamera(context, System.currentTimeMillis()) { uri -> cameraUri = uri; cameraLauncher.launch(uri) }
-                        } else {
-                            cameraPermLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Take photo") }
-                OutlinedButton(onClick = { galleryLauncher.launch("image/*") }, modifier = Modifier.weight(1f)) {
-                    Text("Choose")
+            FeatureCard(
+                emoji = "📸",
+                title = "Capture",
+                accentColor = KaizenBlue,
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    com.nutriai.ui.components.PrimaryButton(
+                        text = "📷 Take photo",
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                                launchCamera(context, System.currentTimeMillis()) { uri -> cameraUri = uri; cameraLauncher.launch(uri) }
+                            } else {
+                                cameraPermLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    com.nutriai.ui.components.SecondaryButton(
+                        text = "🖼️ Choose",
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }
 
         state.currentPhoto?.let { photo ->
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AsyncImage(
-                            model = photo,
-                            contentDescription = "Your photo",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth().aspectRatio(0.8f).clip(RoundedCornerShape(14.dp)),
-                        )
-                        Button(onClick = { viewModel.analyze() }, enabled = !state.analyzing, modifier = Modifier.fillMaxWidth()) {
-                            if (state.analyzing) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White)
-                            else Text("Analyze with AI")
-                        }
-                        Text(
-                            "Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                FeatureCard(
+                    emoji = "🖼️",
+                    title = "Your Photo",
+                    accentColor = KaizenLavender,
+                ) {
+                    AsyncImage(
+                        model = photo,
+                        contentDescription = "Your photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(0.8f).clip(RoundedCornerShape(14.dp)),
+                    )
+                    Spacer(Modifier.height(Spacing.sm))
+                    com.nutriai.ui.components.PrimaryButton(
+                        text = if (state.analyzing) "🔄 Analyzing..." else "🤖 Analyze with AI",
+                        onClick = { viewModel.analyze() },
+                        enabled = !state.analyzing,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(
+                        "🔒 Not saved anywhere. The photo is used only for this analysis and then discarded - it only leaves your phone when you tap Analyze.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
 
-        state.error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) } }
+        state.error?.let {
+            item {
+                FeatureCard(emoji = "⚠️", title = "Error", accentColor = KaizenCoral) {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
         state.assessment?.let { item { AssessmentCard(it) } }
     }
 }
@@ -190,42 +224,57 @@ fun BodyScreen(modifier: Modifier = Modifier, viewModel: BodyViewModel = hiltVie
 private fun Hero() {
     com.nutriai.ui.components.ScreenHeader(
         title = "Body Check",
-        subtitle = "A rough AI body-fat read from a photo. Nothing is saved.",
+        subtitle = "📊 A rough AI body-fat read from a photo. Nothing is saved.",
     )
 }
 
 @Composable
 private fun AssessmentCard(a: BodyAssessment) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    FeatureCard(
+        emoji = "📊",
+        title = "Assessment",
+        accentColor = BrandGreen,
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            when {
-                !a.available -> Text("AI analysis isn't enabled on the server. Your formula estimate is ${fmtPct(a.formulaEstimatePct)}.", style = MaterialTheme.typography.bodyMedium)
-                a.refused -> Text(a.reason ?: "Couldn't analyse this photo.", style = MaterialTheme.typography.bodyMedium)
-                else -> {
-                    val fromPhoto = a.source == "ai"
+        when {
+            !a.available -> Text("AI analysis isn't enabled on the server. Your formula estimate is ${fmtPct(a.formulaEstimatePct)}.", style = MaterialTheme.typography.bodyMedium)
+            a.refused -> Text(a.reason ?: "Couldn't analyse this photo.", style = MaterialTheme.typography.bodyMedium)
+            else -> {
+                val fromPhoto = a.source == "ai"
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EmojiBadge(emoji = if (fromPhoto) "📷" else "📐", bgColor = if (fromPhoto) KaizenBlue else KaizenLavender)
                     Text(
-                        if (fromPhoto) "📷 Estimated body fat (from your photo)" else "📐 Estimated body fat (from your stats)",
+                        if (fromPhoto) "Estimated body fat (from your photo)" else "Estimated body fat (from your stats)",
                         style = MaterialTheme.typography.labelLarge,
                     )
-                    Text(
-                        "${trim(a.bodyFatLow)}-${trim(a.bodyFatHigh)}%",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = BrandGreenDeep,
-                    )
-                    a.category?.takeIf { it.isNotBlank() }?.let { Text("Category: $it  ·  confidence ${a.confidence ?: "low"}", style = MaterialTheme.typography.bodySmall) }
-                    a.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    if (fromPhoto) {
-                        a.formulaEstimatePct?.let { Text("Formula (BMI-based) estimate: ${fmtPct(it)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)) }
+                }
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    "${trim(a.bodyFatLow)}-${trim(a.bodyFatHigh)}%",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = BrandGreenDeep,
+                )
+                a.category?.takeIf { it.isNotBlank() }?.let {
+                    Text("🏷️ Category: $it  ·  confidence ${a.confidence ?: "low"}", style = MaterialTheme.typography.bodySmall)
+                }
+                a.notes?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                if (fromPhoto) {
+                    a.formulaEstimatePct?.let {
+                        Text(
+                            "📐 Formula (BMI-based) estimate: ${fmtPct(it)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
-            Text(a.disclaimer, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f))
         }
+        Spacer(Modifier.height(Spacing.xs))
+        Text(
+            "⚠️ ${a.disclaimer}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

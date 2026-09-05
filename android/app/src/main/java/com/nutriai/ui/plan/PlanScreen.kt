@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +41,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.nutriai.ui.components.EmojiBadge
+import com.nutriai.ui.components.FeatureCard
+import com.nutriai.ui.components.GlassCard
+import com.nutriai.ui.components.KaizenProgressBar
+import com.nutriai.ui.components.MetricBlock
+import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.SectionHeader
+import com.nutriai.ui.theme.BrandAmber
+import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
+import com.nutriai.ui.theme.NutritionColor
+import com.nutriai.ui.theme.RecoveryColor
+import com.nutriai.ui.theme.Radius
+import com.nutriai.ui.theme.Spacing
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
@@ -61,16 +80,16 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
     if (showAddExercise) AddExerciseDialog(viewModel, onDismiss = { showAddExercise = false })
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.lg),
     ) {
-        item { com.nutriai.ui.components.ScreenHeader("Plan & review") }
+        item { SectionHeader(title = "Plan & Review", emoji = "📋") }
 
-        // Weekly grid: Mon–Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
+        // Weekly grid: Mon-Sun mini cards; tap a day to plan it. Fast day (Tue) in red.
         item {
             val week by viewModel.week.collectAsStateWithLifecycle()
-            androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 items(week) { d ->
                     WeekDayCard(d, selected = d.date == plan.date) { viewModel.switchTo(d.date) }
                 }
@@ -79,9 +98,9 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 
         // Day switch: Tomorrow (plan) / Today (track).
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("Tomorrow") })
-                FilterChip(selected = plan.date == today, onClick = { viewModel.switchTo(today) }, label = { Text("Today (track)") })
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("📅 Tomorrow") })
+                FilterChip(selected = plan.date == today, onClick = { viewModel.switchTo(today) }, label = { Text("🎯 Today (track)") })
             }
         }
 
@@ -93,84 +112,99 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             item { AdherenceCard(state) }
         }
 
-        // Trainer notes — plain field, no separate label clutter.
+        // Trainer notes
         item {
-            OutlinedTextField(
-                value = plan.trainerNotes,
-                onValueChange = { viewModel.setTrainerNotes(it) },
-                placeholder = { Text("What did your trainer say? (optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 1,
-            )
+            FeatureCard(emoji = "🗣️", title = "Trainer Notes", accentColor = KaizenLavender) {
+                OutlinedTextField(
+                    value = plan.trainerNotes,
+                    onValueChange = { viewModel.setTrainerNotes(it) },
+                    placeholder = { Text("What did your trainer say? (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 1,
+                )
+            }
         }
 
-        // Food plan — tap the header to add more; empty state IS the add action, no separate button.
-        item { Text("Food plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddFood = true }) }
+        // Food plan
+        item { SectionHeader(title = "Food Plan", emoji = "🍽️") }
         itemsIndexed(plan.foods) { i, f ->
             PlanRow(
                 title = f.name,
                 subtitle = "${f.kcal.roundToInt()} kcal · ${f.proteinG.roundToInt()}g protein",
+                emoji = "🥗",
                 onRemove = { viewModel.removeFood(i) },
             )
         }
-        item { AddRow("Tap to add food") { showAddFood = true } }
+        item {
+            PrimaryButton(
+                text = "＋ Add Food",
+                onClick = { showAddFood = true },
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = NutritionColor,
+            )
+        }
 
-        // Workout plan — same pattern.
-        item { Text("Workout plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAddExercise = true }) }
+        // Workout plan
+        item { SectionHeader(title = "Workout Plan", emoji = "💪") }
         itemsIndexed(plan.exercises) { i, e ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                    .clickable(enabled = !state.isToday) { viewModel.removeExercise(i) }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (state.isToday) {
-                    Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Text("${e.sets} × ${e.reps}${e.muscleGroup?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (!state.isToday) {
-                    Text("✕", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GlassCard {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (state.isToday) {
+                        Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
+                    }
+                    EmojiBadge(emoji = "🏋️", bgColor = MovementColor.copy(alpha = 0.15f), size = 32.dp)
+                    Spacer(Modifier.padding(start = Spacing.sm))
+                    Column(Modifier.weight(1f)) {
+                        Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text("${e.sets} × ${e.reps}${e.muscleGroup?.let { " · $it" } ?: ""}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (!state.isToday) {
+                        Text(
+                            "✕",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = KaizenCoral,
+                            modifier = Modifier.clickable { viewModel.removeExercise(i) },
+                        )
+                    }
                 }
             }
         }
-        item { AddRow("Tap to add an exercise") { showAddExercise = true } }
-
-        // Sleep.
-        item { SleepRow(plan.bedtime, plan.waketime) { b, w -> viewModel.setSleep(b, w) } }
-
-        // AI review — tappable card instead of an outlined button.
         item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .clickable(enabled = !state.reviewing) { viewModel.requestReview() }
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            PrimaryButton(
+                text = "＋ Add Exercise",
+                onClick = { showAddExercise = true },
+                modifier = Modifier.fillMaxWidth(),
+                containerColor = MovementColor,
+            )
+        }
+
+        // Sleep
+        item {
+            FeatureCard(emoji = "😴", title = "Sleep Schedule", accentColor = RecoveryColor) {
+                SleepRow(plan.bedtime, plan.waketime) { b, w -> viewModel.setSleep(b, w) }
+            }
+        }
+
+        // AI review
+        item {
+            FeatureCard(
+                emoji = "🤖",
+                title = if (state.reviewing) "Coach is reviewing…" else "Tap for Coach Review",
+                accentColor = KaizenBlue,
+                onClick = if (!state.reviewing) {{ viewModel.requestReview() }} else null,
             ) {
                 if (state.reviewing) {
-                    CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp)
-                    Text("Coach is reviewing…", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-                } else {
-                    Text("Tap to have the coach review this plan", color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                    CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp, color = KaizenBlue)
                 }
             }
         }
         if (plan.aiReview.isNotBlank()) {
             item {
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Coach review", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    }
+                FeatureCard(emoji = "💬", title = "Coach Review", accentColor = BrandGreen) {
+                    Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -180,21 +214,20 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 @Composable
 private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
     val container = when {
-        d.isFast -> MaterialTheme.colorScheme.errorContainer
-        selected -> MaterialTheme.colorScheme.primaryContainer
+        d.isFast -> KaizenCoral.copy(alpha = 0.15f)
+        selected -> KaizenBlue.copy(alpha = 0.15f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
-    val onContainer = when {
-        d.isFast -> MaterialTheme.colorScheme.onErrorContainer
-        selected -> MaterialTheme.colorScheme.onPrimaryContainer
+    val textColor = when {
+        d.isFast -> KaizenCoral
+        selected -> KaizenBlue
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Card(
         Modifier
             .heightIn(min = 78.dp)
-            .clickable(onClick = onClick)
-            .then(if (selected) Modifier else Modifier),
-        shape = RoundedCornerShape(14.dp),
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(Radius.md),
         colors = CardDefaults.cardColors(containerColor = container),
     ) {
         Column(
@@ -202,14 +235,14 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(d.dayName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = onContainer)
+            Text(d.dayName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = textColor)
             if (d.isFast) {
-                Text("Fast", style = MaterialTheme.typography.labelSmall, color = onContainer)
+                Text("🚫 Fast", style = MaterialTheme.typography.labelSmall, color = textColor)
             } else if (d.kcal > 0) {
-                Text("${d.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = onContainer)
-                Text("${d.proteinG}g P", style = MaterialTheme.typography.labelSmall, color = onContainer)
+                Text("🔥 ${d.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = textColor)
+                Text("💪 ${d.proteinG}g P", style = MaterialTheme.typography.labelSmall, color = textColor)
             } else {
-                Text("—", style = MaterialTheme.typography.labelSmall, color = onContainer.copy(alpha = 0.6f))
+                Text("—", style = MaterialTheme.typography.labelSmall, color = textColor.copy(alpha = 0.6f))
             }
         }
     }
@@ -219,88 +252,73 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
 private fun TotalsCard(state: PlanUiState) {
     val kcalPct = (state.plan.plannedKcal / state.kcalTarget).coerceIn(0.0, 1.0).toFloat()
     val proteinPct = (state.plan.plannedProtein / state.proteinTarget).coerceIn(0.0, 1.0).toFloat()
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Planned vs target", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            MetricBar("Calories", state.plan.plannedKcal.roundToInt(), state.kcalTarget.roundToInt(), "kcal", kcalPct)
-            MetricBar("Protein", state.plan.plannedProtein.roundToInt(), state.proteinTarget.roundToInt(), "g", proteinPct)
-        }
-    }
-}
+    FeatureCard(emoji = "🎯", title = "Planned vs Target", accentColor = BrandAmber) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("🔥 Calories", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text("${state.plan.plannedKcal.roundToInt()} / ${state.kcalTarget.roundToInt()} kcal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            }
+            KaizenProgressBar(progress = kcalPct, color = BrandAmber)
 
-@Composable
-private fun MetricBar(label: String, value: Int, target: Int, unit: String, pct: Float) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Text("$value / $target $unit", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("💪 Protein", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                Text("${state.plan.plannedProtein.roundToInt()} / ${state.proteinTarget.roundToInt()} g", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            }
+            KaizenProgressBar(progress = proteinPct, color = NutritionColor)
         }
-        LinearProgressIndicator(progress = { pct }, modifier = Modifier.fillMaxWidth())
     }
 }
 
 @Composable
 private fun AdherenceCard(state: PlanUiState) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Plan adherence - today", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-            Text("${state.adherence}% followed", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
-            state.actualProtein?.let {
-                Text(
-                    "Protein: ${it.roundToInt()}g actual / ${state.plan.plannedProtein.roundToInt()}g planned",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-            }
-            if (state.plan.exercises.isNotEmpty()) {
-                Text("Workout: ${state.plan.exercises.count { it.done }}/${state.plan.exercises.size} done", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
-            }
+    FeatureCard(emoji = "⚡", title = "Plan Adherence - Today", accentColor = BrandGreen) {
+        Text(
+            "${state.adherence}% followed",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = BrandGreen,
+        )
+        state.actualProtein?.let {
+            Text(
+                "💪 Protein: ${it.roundToInt()}g actual / ${state.plan.plannedProtein.roundToInt()}g planned",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (state.plan.exercises.isNotEmpty()) {
+            Text(
+                "🏋️ Workout: ${state.plan.exercises.count { it.done }}/${state.plan.exercises.size} done",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
-/** A row that's the add action itself — tap anywhere on it, no separate button. */
+/** A logged row -- tap it to remove. */
 @Composable
-private fun AddRow(label: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Text("+ $label", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-/** A logged row — tap it to remove (a small ✕ hints at that; no separate "Remove" button). */
-@Composable
-private fun PlanRow(title: String, subtitle: String, onRemove: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            .clickable(onClick = onRemove)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun PlanRow(title: String, subtitle: String, emoji: String = "🥗", onRemove: () -> Unit) {
+    GlassCard(onClick = onRemove) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            EmojiBadge(emoji = emoji, bgColor = NutritionColor.copy(alpha = 0.15f), size = 36.dp)
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("✕", style = MaterialTheme.typography.titleMedium, color = KaizenCoral)
         }
-        Text("✕", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun SleepRow(bedtime: String, waketime: String, onChange: (String, String) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedTextField(value = bedtime, onValueChange = { onChange(it, waketime) }, label = { Text("Sleep by") }, singleLine = true, modifier = Modifier.weight(1f))
-            OutlinedTextField(value = waketime, onValueChange = { onChange(bedtime, it) }, label = { Text("Wake at") }, singleLine = true, modifier = Modifier.weight(1f))
-        }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        OutlinedTextField(value = bedtime, onValueChange = { onChange(it, waketime) }, label = { Text("🌙 Sleep by") }, singleLine = true, modifier = Modifier.weight(1f))
+        OutlinedTextField(value = waketime, onValueChange = { onChange(bedtime, it) }, label = { Text("☀️ Wake at") }, singleLine = true, modifier = Modifier.weight(1f))
     }
 }
 
@@ -311,14 +329,14 @@ private fun AddFoodDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
     var protein by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add food") },
+        title = { Text("🍽️ Add Food") },
         text = {
             LazyColumn(Modifier.heightIn(max = 400.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                item { Text("Presets", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                item { Text("⭐ Presets", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 items(viewModel.foodPresets) { p ->
                     Card(
                         Modifier.fillMaxWidth().clickable { viewModel.addFood(p.name, p.kcal, p.proteinG); onDismiss() },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(Radius.sm),
                     ) {
                         Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(p.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
@@ -326,7 +344,7 @@ private fun AddFoodDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
                         }
                     }
                 }
-                item { Text("Or add custom", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                item { Text("✏️ Or add custom", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 item { OutlinedTextField(custom, { custom = it }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -355,7 +373,7 @@ private fun AddExerciseDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
     val results = remember(query, category) { ExerciseCatalog.search(query, category) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add exercise") },
+        title = { Text("💪 Add Exercise") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(query, { query = it }, label = { Text("Search, or pick a body part below") }, singleLine = true, modifier = Modifier.fillMaxWidth())
@@ -383,7 +401,7 @@ private fun AddExerciseDialog(viewModel: PlanViewModel, onDismiss: () -> Unit) {
                                 Text(ex.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                 ex.muscleGroup?.let { Text(it.replaceFirstChar { c -> c.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             }
-                            Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("+", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
                         }
                     }
                     if (results.isEmpty()) item { Text("No matches — type a name to add it.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
