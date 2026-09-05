@@ -6,7 +6,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,23 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsRun
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.Nightlight
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -56,7 +44,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -66,19 +53,14 @@ import com.nutriai.data.remote.dto.Dashboard
 import com.nutriai.ui.components.EmojiBadge
 import com.nutriai.ui.components.FeatureCard
 import com.nutriai.ui.components.GlassCard
-import com.nutriai.ui.components.IconBadge
 import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.components.ListRow
-import com.nutriai.ui.components.MetricBlock
 import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.Status
 import com.nutriai.ui.components.StatusIndicator
 import com.nutriai.ui.components.TextAction
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
-import com.nutriai.ui.theme.BrandGreenDeep
-import com.nutriai.ui.theme.BrandGreenLight
-import com.nutriai.ui.theme.BrandMint
 import com.nutriai.ui.theme.CardAmberLight
 import com.nutriai.ui.theme.CardBlueLight
 import com.nutriai.ui.theme.CardCoralLight
@@ -94,12 +76,13 @@ import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.RecoveryColor
 import com.nutriai.ui.theme.Spacing
 import com.nutriai.ui.theme.kaizenColors
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+
+private val SharpRadius = 8.dp
 
 @Composable
 fun PremiumDashboard(
@@ -152,21 +135,21 @@ fun PremiumDashboard(
         verticalArrangement = Arrangement.spacedBy(0.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = Spacing.xl),
     ) {
-        // Hero greeting with gradient
+        // Hero greeting
         item { HeroSection(greetingName = greetingName, streakDays = d.streakDays, dashboard = d) }
 
-        // Calorie ring + quick stats in horizontal scroll
+        // Calorie ring card
         item {
             Column(Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.lg)) {
                 CalorieSummaryCard(dashboard = d, steps = steps, stepsPermission = stepsPermission)
             }
         }
 
-        // Domain cards — horizontal colored cards
+        // Domain cards — 2x2 grid, NO scrolling
         item {
-            Column(Modifier.padding(top = Spacing.lg)) {
-                SectionHeader("📊 Your Day", modifier = Modifier.padding(horizontal = Spacing.screenHorizontal))
-                DomainCardsRow(
+            Column(Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.lg)) {
+                SectionHeader("Your Day", emoji = "📊")
+                DomainCardsGrid(
                     dashboard = d,
                     steps = steps,
                     stepsPermission = stepsPermission,
@@ -180,9 +163,14 @@ fun PremiumDashboard(
         // Priorities
         item {
             Column(Modifier.padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg)) {
-                SectionHeader("🎯 Priorities")
-                GlassCard {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                SectionHeader("Priorities", emoji = "🎯")
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(SharpRadius),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         PrioritiesContent(dashboard = d, todayWorkout = todayWorkout, onOpenMove = onOpenMove, onAddWater = onAddWater)
                     }
                 }
@@ -277,7 +265,7 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
                 }
                 if (streakDays > 0) {
                     Card(
-                        shape = RoundedCornerShape(Radius.md),
+                        shape = RoundedCornerShape(SharpRadius),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f)),
                         elevation = CardDefaults.cardElevation(0.dp),
                     ) {
@@ -293,7 +281,7 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
 }
 
 // ---------------------------------------------------------------------------
-// Calorie Summary — large card with ring + macros
+// Calorie Summary — sharp card with ring + macros
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -305,7 +293,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermissio
 
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radius.xl),
+        shape = RoundedCornerShape(SharpRadius),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
@@ -361,45 +349,88 @@ private fun CalorieRing(consumed: Int, target: Int?, progress: Float) {
 }
 
 // ---------------------------------------------------------------------------
-// Domain Cards — horizontal scroll of colored cards
+// Domain Cards — 2x2 grid, no horizontal scrolling
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun DomainCardsRow(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?) {
+private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?) {
     val cal = dashboard.calories
     val calPct = if (cal.target != null && cal.target > 0) (cal.consumed / cal.target).coerceIn(0.0, 1.0).toFloat() else 0f
     val proteinPct = if (dashboard.protein.target != null && dashboard.protein.target > 0) {
         (((dashboard.protein.consumed ?: 0.0) / dashboard.protein.target) * 100).toInt()
     } else null
 
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Spacing.screenHorizontal),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        DomainCard("🍎", "Nutrition", "${cal.consumed.toInt()}", "kcal", calPct, NutritionColor, CardGreenLight, proteinPct?.let { "$it% protein" } ?: "Log meals")
-        DomainCard("💪", "Movement", if (stepsPermission && steps > 0) "%,d".format(steps) else "-", if (stepsPermission && steps > 0) "steps" else "", if (stepsPermission && steps > 0) (steps / 10000f).coerceIn(0f, 1f) else 0f, MovementColor, CardBlueLight, if (stepsPermission && steps > 0) "≈ $stepsKcal kcal" else "Connect Health")
-        DomainCard("😴", "Recovery", sleepHours?.let { "$it" } ?: heartRate?.let { "$it" } ?: "-", if (sleepHours != null) "hrs" else if (heartRate != null) "bpm" else "", sleepHours?.let { (it / 8.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f, RecoveryColor, CardLavenderLight, if (sleepHours != null && heartRate != null) "$heartRate bpm" else "Track sleep")
-        DomainCard("💧", "Hydration", "${((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 250.0).toInt()}", "glasses", ((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / (dashboard.water.targetMl ?: dashboard.water.target ?: 2500.0)).coerceIn(0.0, 1.0).toFloat(), HydrationColor, CardMintLight, "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L")
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        // Row 1: Nutrition + Movement
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🍎", title = "Nutrition",
+                mainValue = "${cal.consumed.toInt()}", mainUnit = "kcal",
+                progress = calPct, accentColor = NutritionColor, bgColor = CardGreenLight,
+                detail = proteinPct?.let { "$it% protein" } ?: "Log meals",
+                borderColor = NutritionColor,
+            )
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "💪", title = "Movement",
+                mainValue = if (stepsPermission && steps > 0) "%,d".format(steps) else "-",
+                mainUnit = if (stepsPermission && steps > 0) "steps" else "",
+                progress = if (stepsPermission && steps > 0) (steps / 10000f).coerceIn(0f, 1f) else 0f,
+                accentColor = MovementColor, bgColor = CardBlueLight,
+                detail = if (stepsPermission && steps > 0) "≈ $stepsKcal kcal" else "Connect Health",
+                borderColor = MovementColor,
+            )
+        }
+        // Row 2: Recovery + Hydration
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "😴", title = "Recovery",
+                mainValue = sleepHours?.let { "$it" } ?: heartRate?.let { "$it" } ?: "-",
+                mainUnit = if (sleepHours != null) "hrs" else if (heartRate != null) "bpm" else "",
+                progress = sleepHours?.let { (it / 8.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                accentColor = RecoveryColor, bgColor = CardLavenderLight,
+                detail = if (sleepHours != null && heartRate != null) "$heartRate bpm" else "Track sleep",
+                borderColor = RecoveryColor,
+            )
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "💧", title = "Hydration",
+                mainValue = "${((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 250.0).toInt()}",
+                mainUnit = "glasses",
+                progress = ((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / (dashboard.water.targetMl ?: dashboard.water.target ?: 2500.0)).coerceIn(0.0, 1.0).toFloat(),
+                accentColor = HydrationColor, bgColor = CardMintLight,
+                detail = "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L",
+                borderColor = HydrationColor,
+            )
+        }
     }
 }
 
 @Composable
-private fun DomainCard(emoji: String, title: String, mainValue: String, mainUnit: String, progress: Float, accentColor: Color, bgColor: Color, detail: String) {
+private fun DomainCard(
+    modifier: Modifier = Modifier,
+    emoji: String, title: String, mainValue: String, mainUnit: String,
+    progress: Float, accentColor: Color, bgColor: Color, detail: String,
+    borderColor: Color,
+) {
     Card(
-        modifier = Modifier.width(150.dp),
-        shape = RoundedCornerShape(Radius.lg),
+        modifier = modifier,
+        shape = RoundedCornerShape(SharpRadius),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, borderColor.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(emoji, fontSize = 20.sp)
+                Text(emoji, fontSize = 18.sp)
                 Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = accentColor)
             }
-            Text(mainValue, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = accentColor)
+            Text(mainValue, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = accentColor)
             if (mainUnit.isNotEmpty()) Text(mainUnit, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f))
             KaizenProgressBar(progress = progress, color = accentColor, height = 6.dp)
-            Text(detail, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.6f), maxLines = 1)
+            Text(detail, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), maxLines = 1)
         }
     }
 }
@@ -446,11 +477,24 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
     val headline = rating?.biggestLever?.message?.takeIf { it.isNotBlank() } ?: coach?.greeting?.takeIf { it.isNotBlank() } ?: "Keep logging to unlock your insight."
     val supporting = coach?.prediction?.takeIf { it.isNotBlank() } ?: coach?.streak?.takeIf { it.isNotBlank() }
 
-    FeatureCard(emoji = "💡", title = "Your Insight", accentColor = KaizenLavender) {
-        Text(headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        supporting?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)) }
-        TextAction(text = if (expanded) "Hide full analysis" else "See full analysis →", onClick = onToggle)
-        if (expanded) com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach, modifier = Modifier.padding(top = Spacing.sm))
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = KaizenLavender.copy(alpha = 0.08f)),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, KaizenLavender.copy(alpha = 0.25f)),
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("💡", fontSize = 18.sp)
+                Text("Your Insight", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenLavender)
+            }
+            Spacer(Modifier.height(Spacing.md))
+            Text(headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            supporting?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp)) }
+            TextAction(text = if (expanded) "Hide full analysis" else "See full analysis →", onClick = onToggle)
+            if (expanded) com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach, modifier = Modifier.padding(top = Spacing.sm))
+        }
     }
 }
 
@@ -463,9 +507,20 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
     val order = mapOf("critical" to 0, "warning" to 1, "info" to 2)
     val sorted = flags.sortedBy { order[it.severity] ?: 3 }
     Column(Modifier.fillMaxWidth()) {
-        SectionHeader("🛡️ Health & Safety")
-        FeatureCard(emoji = "⚠️", title = "Safety Alerts", accentColor = KaizenCoral) {
-            Column {
+        SectionHeader("Health & Safety", emoji = "🛡️")
+        Card(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(SharpRadius),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = KaizenCoral.copy(alpha = 0.06f)),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, KaizenCoral.copy(alpha = 0.2f)),
+        ) {
+            Column(Modifier.padding(Spacing.lg)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("⚠️", fontSize = 18.sp)
+                    Text("Safety Alerts", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenCoral)
+                }
+                Spacer(Modifier.height(Spacing.md))
                 sorted.forEachIndexed { index, f ->
                     val status = when (f.severity) { "critical" -> Status.Critical; "warning" -> Status.Caution; else -> Status.Information }
                     Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
@@ -482,9 +537,20 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
 @Composable
 private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
     Column(Modifier.fillMaxWidth()) {
-        SectionHeader("📡 Health Signals")
-        FeatureCard(emoji = "🔍", title = "Risk Findings", accentColor = BrandAmber) {
-            Column {
+        SectionHeader("Health Signals", emoji = "📡")
+        Card(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(SharpRadius),
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.06f)),
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, BrandAmber.copy(alpha = 0.2f)),
+        ) {
+            Column(Modifier.padding(Spacing.lg)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text("🔍", fontSize = 18.sp)
+                    Text("Risk Findings", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandAmber)
+                }
+                Spacer(Modifier.height(Spacing.md))
                 findings.forEachIndexed { index, f ->
                     val status = when (f.level) { "high" -> Status.Critical; "moderate" -> Status.Caution; else -> Status.Information }
                     Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
@@ -507,8 +573,13 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
 private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded: Boolean, onToggle: () -> Unit) {
     val lowCount = mn.targets.count { it.low }
     val summary = if (lowCount == 0) "Most tracked nutrients are within target" else "$lowCount nutrient${if (lowCount > 1) "s" else ""} running low"
-    GlassCard {
-        Column {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
             ListRow(title = "💊 Vitamins & minerals", subtitle = summary, trailing = { TextAction(text = if (expanded) "Hide" else "Details →", onClick = onToggle) }, onClick = onToggle)
             if (expanded) com.nutriai.ui.analysis.MicronutrientsCard(mn, modifier = Modifier.padding(top = Spacing.sm))
         }
@@ -518,22 +589,36 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
 @Composable
 private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double?, onEdit: () -> Unit) {
     val hr = heartRate ?: manualHeartRate
-    GlassCard {
-        ListRow(
-            title = "❤️ Heart rate",
-            subtitle = when { hr != null && sleepHours != null -> "$hr bpm · ${sleepHours}h sleep"; hr != null -> "$hr bpm"; sleepHours != null -> "${sleepHours}h sleep"; else -> "No data yet" },
-            leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.12f)) },
-            trailing = { TextAction(text = "Edit →", onClick = onEdit) },
-            onClick = onEdit,
-        )
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            ListRow(
+                title = "❤️ Heart rate",
+                subtitle = when { hr != null && sleepHours != null -> "$hr bpm · ${sleepHours}h sleep"; hr != null -> "$hr bpm"; sleepHours != null -> "${sleepHours}h sleep"; else -> "No data yet" },
+                leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.12f)) },
+                trailing = { TextAction(text = "Edit →", onClick = onEdit) },
+                onClick = onEdit,
+            )
+        }
     }
 }
 
 @Composable
 private fun JourneySummaryRow(dashboard: Dashboard) {
     val next = dashboard.projection.getOrNull(1) ?: return
-    GlassCard {
-        ListRow(title = "🚀 Your journey", subtitle = "Projected ${next.weightKg} kg by ${next.label.lowercase()} at your current pace", leading = { EmojiBadge(emoji = "📈", bgColor = BrandGreen.copy(alpha = 0.12f)) })
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg)) {
+            ListRow(title = "🚀 Your journey", subtitle = "Projected ${next.weightKg} kg by ${next.label.lowercase()} at your current pace", leading = { EmojiBadge(emoji = "📈", bgColor = BrandGreen.copy(alpha = 0.12f)) })
+        }
     }
 }
 
@@ -550,12 +635,17 @@ private fun GoalMonitorSection(days: List<com.nutriai.data.remote.dto.ReportDay>
     val maxKcal = (week.maxOfOrNull { it.kcal } ?: target).coerceAtLeast(target).coerceAtLeast(1.0)
     val hit = week.count { it.kcal > 0 && it.kcal <= target * 1.1 }
 
-    SectionHeader("📅 7-Day Goal")
-    GlassCard {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    SectionHeader("7-Day Goal", emoji = "📅")
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("📊 Weekly Progress", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Box(Modifier.clip(RoundedCornerShape(20.dp)).background(NutritionColor.copy(alpha = 0.12f)).padding(horizontal = Spacing.md, vertical = Spacing.xs)) {
+                Box(Modifier.clip(RoundedCornerShape(4.dp)).background(NutritionColor.copy(alpha = 0.12f)).padding(horizontal = Spacing.md, vertical = Spacing.xs)) {
                     Text("$hit/${week.size} on target", style = MaterialTheme.typography.labelSmall, color = NutritionColor, fontWeight = FontWeight.Bold)
                 }
             }
@@ -568,7 +658,7 @@ private fun GoalMonitorSection(days: List<com.nutriai.data.remote.dto.ReportDay>
                     val barColor = when { !logged -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f); over -> CoralAccent; under -> BrandAmber; else -> NutritionColor }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                            Box(Modifier.fillMaxWidth(0.55f).fillMaxHeight(frac.coerceAtLeast(0.06f)).clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)).background(barColor))
+                            Box(Modifier.fillMaxWidth(0.55f).fillMaxHeight(frac.coerceAtLeast(0.06f)).clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)).background(barColor))
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(dayShort(day.date), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
@@ -602,7 +692,7 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (1..5).forEach { lvl ->
                         val selected = stress == lvl
-                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(Radius.sm)).background(if (selected) BrandGreen else MaterialTheme.colorScheme.surfaceVariant).clickable { stress = if (selected) null else lvl }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(SharpRadius)).background(if (selected) BrandGreen else MaterialTheme.colorScheme.surfaceVariant).clickable { stress = if (selected) null else lvl }, contentAlignment = Alignment.Center) {
                             Text("$lvl", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
                     }
@@ -612,7 +702,7 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (1..5).forEach { lvl ->
                         val selected = soreness == lvl
-                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(Radius.sm)).background(if (selected) BrandAmber else MaterialTheme.colorScheme.surfaceVariant).clickable { soreness = if (selected) null else lvl }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(SharpRadius)).background(if (selected) BrandAmber else MaterialTheme.colorScheme.surfaceVariant).clickable { soreness = if (selected) null else lvl }, contentAlignment = Alignment.Center) {
                             Text("$lvl", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
                         }
                     }
