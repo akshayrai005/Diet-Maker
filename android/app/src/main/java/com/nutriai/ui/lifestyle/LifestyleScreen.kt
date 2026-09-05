@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -286,7 +287,7 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
             Text("Pick the pattern that matches how you eat", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // Pattern picker — 2x2 grid with sharp bordered cards
+        // Pattern picker — 2x2 grid, selected = purple gradient fill
         item {
             Text("🍽️ Your Eating Pattern", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(Spacing.xs))
@@ -295,28 +296,29 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         rowItems.forEach { p ->
                             val isSel = selected == p
-                            Card(
-                                modifier = Modifier.weight(1f).clickable { viewModel.select(p) },
-                                shape = Sharp,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (isSel) BrandGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
-                                ),
-                                border = if (isSel) BorderStroke(2.dp, BrandGreen) else null,
-                                elevation = CardDefaults.cardElevation(if (isSel) 4.dp else 1.dp),
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .clip(Sharp)
+                                    .background(
+                                        if (isSel) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                        else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface))
+                                    )
+                                    .clickable { viewModel.select(p) }
+                                    .padding(horizontal = Spacing.sm, vertical = 10.dp),
                             ) {
                                 Row(
-                                    Modifier.padding(horizontal = Spacing.sm, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Text(p.emoji, fontSize = 14.sp)
+                                    Text(p.emoji, fontSize = 13.sp)
                                     Text(
                                         p.label,
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = if (isSel) FontWeight.ExtraBold else FontWeight.Medium,
-                                        color = if (isSel) BrandGreen else MaterialTheme.colorScheme.onSurface,
+                                        color = if (isSel) Color.White else MaterialTheme.colorScheme.onSurface,
                                         maxLines = 2,
-                                        lineHeight = 14.sp,
+                                        lineHeight = 13.sp,
                                     )
                                 }
                             }
@@ -327,18 +329,18 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
             }
         }
 
-        // Selected pattern info — compact
+        // Selected pattern info — plain, no border
         item {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = Sharp,
-                colors = CardDefaults.cardColors(containerColor = CardGreenLight),
-                border = BorderStroke(1.dp, BrandGreen.copy(alpha = 0.3f)),
+                elevation = CardDefaults.cardElevation(1.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             ) {
                 Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(selected.emoji, fontSize = 16.sp)
                     Column {
-                        Text(selected.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = BrandGreen)
+                        Text(selected.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Text(selected.fits, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -393,9 +395,8 @@ fun LifestyleScreen(modifier: Modifier = Modifier, viewModel: LifestyleViewModel
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.3f)),
-                    colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.06f)),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         selected.tips.forEach { tip ->
@@ -428,9 +429,8 @@ private fun ExpandableGuideCard(guide: GuideCard, accentColor: Color) {
     Card(
         Modifier.fillMaxWidth().clickable { expanded = !expanded },
         shape = Sharp,
-        elevation = CardDefaults.cardElevation(2.dp),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.3f)),
-        colors = CardDefaults.cardColors(containerColor = accentColor.copy(alpha = 0.06f)),
+        elevation = CardDefaults.cardElevation(1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(Spacing.md)) {
             Row(
