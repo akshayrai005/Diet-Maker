@@ -279,8 +279,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                 logTarget = null
             },
             onPlanTomorrow = { name ->
-                planVm.switchTo(java.time.LocalDate.now().plusDays(1).toString())
-                planVm.addExercise(name, ex.muscleGroup)
+                planVm.addExerciseToDate(java.time.LocalDate.now().plusDays(1).toString(), name, ex.muscleGroup)
             },
         )
     }
@@ -619,8 +618,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                 logTarget = null
             },
             onPlanTomorrow = { name ->
-                planVm.switchTo(java.time.LocalDate.now().plusDays(1).toString())
-                planVm.addExercise(name, ex.muscleGroup)
+                planVm.addExerciseToDate(java.time.LocalDate.now().plusDays(1).toString(), name, ex.muscleGroup)
             },
         )
     }

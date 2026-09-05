@@ -153,6 +153,16 @@ class PlanViewModel @Inject constructor(
     fun addFood(name: String, kcal: Double, proteinG: Double) = update { it.copy(foods = it.foods + PlanFood(name, kcal, proteinG)) }
     fun removeFood(index: Int) = update { it.copy(foods = it.foods.filterIndexed { i, _ -> i != index }) }
     fun addExercise(name: String, muscleGroup: String?) = update { it.copy(exercises = it.exercises + PlanExercise(name = name, muscleGroup = muscleGroup)) }
+
+    fun addExerciseToDate(date: String, name: String, muscleGroup: String?) {
+        viewModelScope.launch {
+            val existing = planStore.load(date) ?: DayPlan(date = date)
+            val updated = existing.copy(exercises = existing.exercises + PlanExercise(name = name, muscleGroup = muscleGroup))
+            planStore.save(updated)
+            if (_state.value.plan.date == date) load(date)
+            loadWeek()
+        }
+    }
     fun removeExercise(index: Int) = update { it.copy(exercises = it.exercises.filterIndexed { i, _ -> i != index }) }
     fun toggleExerciseDone(index: Int) = update {
         it.copy(exercises = it.exercises.mapIndexed { i, e -> if (i == index) e.copy(done = !e.done) else e })

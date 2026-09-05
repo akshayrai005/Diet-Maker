@@ -3,6 +3,8 @@ package com.nutriai.ui.plan
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -93,8 +95,11 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             ) {
                 Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        items(week) { d ->
+                    Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        week.forEach { d ->
                             WeekDayCard(
                                 d,
                                 selected = d.date == plan.date,
@@ -228,14 +233,12 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                             Text("💧 Hydrate — take a sip", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                         }
                     }
-                    if (!state.isToday) {
-                        Text(
-                            "✕",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = KaizenCoral,
-                            modifier = Modifier.clickable { viewModel.removeExercise(i) },
-                        )
-                    }
+                    Text(
+                        "✕",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = KaizenCoral,
+                        modifier = Modifier.clickable { viewModel.removeExercise(i) },
+                    )
                 }
             }
         }
