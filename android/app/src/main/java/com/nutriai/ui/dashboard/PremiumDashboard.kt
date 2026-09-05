@@ -147,6 +147,18 @@ fun PremiumDashboard(
             }
         }
 
+        // Macro breakdown — Protein / Carbs / Fat
+        item {
+            Row(
+                sectionPadding.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                MacroTile(Modifier.weight(1f), "💪", "Protein", (d.protein.consumed ?: 0.0).toInt(), d.protein.target?.toInt(), "g", NutritionColor, CardGreenLight)
+                MacroTile(Modifier.weight(1f), "🌾", "Carbs", d.macros.carbG.toInt(), null, "g", BrandAmber, CardAmberLight)
+                MacroTile(Modifier.weight(1f), "🥑", "Fat", d.macros.fatG.toInt(), null, "g", KaizenCoral, CardCoralLight)
+            }
+        }
+
         // Domain cards — 2x2 grid, NO scrolling
         item {
             Column(sectionPadding) {
@@ -406,6 +418,29 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 detail = "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L",
                 borderColor = HydrationColor,
             )
+        }
+    }
+}
+
+@Composable
+private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: Int, target: Int?, unit: String, color: Color, bgColor: Color) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
+    ) {
+        Column(Modifier.padding(Spacing.md), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(emoji, fontSize = 16.sp)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = color)
+                Text(unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 2.dp, start = 1.dp))
+            }
+            if (target != null) {
+                Text("/ $target$unit", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.5f))
+            }
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
