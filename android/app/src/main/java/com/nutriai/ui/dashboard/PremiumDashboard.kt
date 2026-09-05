@@ -431,14 +431,11 @@ private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: I
         colors = CardDefaults.cardColors(containerColor = bgColor),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
     ) {
-        Column(Modifier.padding(Spacing.md), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(emoji, fontSize = 16.sp)
+        Column(Modifier.padding(Spacing.sm).height(72.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(emoji, fontSize = 14.sp)
             Row(verticalAlignment = Alignment.Bottom) {
-                Text("$value", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = color)
-                Text(unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 2.dp, start = 1.dp))
-            }
-            if (target != null) {
-                Text("/ $target$unit", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.5f))
+                Text("$value", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
+                Text(if (target != null) "/$target$unit" else unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 1.dp, start = 1.dp))
             }
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
