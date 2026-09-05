@@ -179,16 +179,7 @@ fun PremiumDashboard(
             }
         }
 
-        // Insight
-        if (rating != null || coach != null) {
-            item {
-                Column(sectionPadding) {
-                    InsightSection(rating = rating, coach = coach, expanded = showFullAnalysis, onToggle = { showFullAnalysis = !showFullAnalysis })
-                }
-            }
-        }
-
-        // Vitamins
+        // Vitamins (above Insight)
         d.micronutrients?.let { mn ->
             if (mn.targets.isNotEmpty()) {
                 item {
@@ -199,10 +190,19 @@ fun PremiumDashboard(
             }
         }
 
-        // Vitals
+        // Vitals (above Insight)
         item {
             Column(sectionPadding) {
                 VitalsRow(heartRate = heartRate, manualHeartRate = manualHeartRate, sleepHours = sleepHours, onEdit = { editingVitals = true })
+            }
+        }
+
+        // Insight
+        if (rating != null || coach != null) {
+            item {
+                Column(sectionPadding) {
+                    InsightSection(rating = rating, coach = coach, expanded = showFullAnalysis, onToggle = { showFullAnalysis = !showFullAnalysis })
+                }
             }
         }
 
@@ -651,11 +651,18 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = CardGreenLight),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, NutritionColor.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
-            ListRow(title = "💊 Vitamins & minerals", subtitle = summary, trailing = { TextAction(text = if (expanded) "Hide" else "Details →", onClick = onToggle) }, onClick = onToggle)
+            ListRow(
+                title = "💊 Vitamins & minerals",
+                subtitle = summary,
+                leading = { EmojiBadge(emoji = "💊", bgColor = NutritionColor.copy(alpha = 0.12f)) },
+                trailing = { TextAction(text = if (expanded) "Hide" else "Details →", onClick = onToggle) },
+                onClick = onToggle,
+            )
             if (expanded) com.nutriai.ui.analysis.MicronutrientsCard(mn, modifier = Modifier.padding(top = Spacing.sm))
         }
     }
@@ -667,14 +674,15 @@ private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = CardCoralLight),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, CoralAccent.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(
                 title = "❤️ Heart rate",
                 subtitle = when { hr != null && sleepHours != null -> "$hr bpm · ${sleepHours}h sleep"; hr != null -> "$hr bpm"; sleepHours != null -> "${sleepHours}h sleep"; else -> "No data yet" },
-                leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.12f)) },
+                leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.15f)) },
                 trailing = { TextAction(text = "Edit →", onClick = onEdit) },
                 onClick = onEdit,
             )
@@ -688,8 +696,9 @@ private fun JourneySummaryRow(dashboard: Dashboard) {
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(3.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBlueLight),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, MovementColor.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(title = "🚀 Your journey", subtitle = "Projected ${next.weightKg} kg by ${next.label.lowercase()} at your current pace", leading = { EmojiBadge(emoji = "📈", bgColor = BrandGreen.copy(alpha = 0.12f)) })
