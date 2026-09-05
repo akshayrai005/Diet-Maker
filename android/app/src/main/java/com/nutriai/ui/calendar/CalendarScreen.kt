@@ -295,6 +295,7 @@ fun CalendarScreen(
     var showWellness by remember { mutableStateOf(false) }
 
     var activeMed by remember { mutableStateOf<com.nutriai.data.remote.dto.Meditation?>(null) }
+    var detailItem by remember { mutableStateOf<com.nutriai.data.remote.dto.MealItem?>(null) }
 
     // System back closes an open session/library overlay instead of leaving the Plan tab.
     androidx.activity.compose.BackHandler(enabled = activeMed != null || showWellness) {
@@ -329,6 +330,10 @@ fun CalendarScreen(
 
     if (state.recipeLoading || state.recipe != null) {
         RecipeDialog(loading = state.recipeLoading, recipe = state.recipe, onDismiss = { viewModel.clearRecipe() })
+    }
+
+    detailItem?.let { mi ->
+        FoodDetailDialog(item = mi, onRecipe = { viewModel.loadRecipe(mi.name, mi.foodId); detailItem = null }, onDismiss = { detailItem = null })
     }
 
     LazyColumn(
@@ -385,10 +390,15 @@ fun CalendarScreen(
             }
         }
 
-        // Week strip built from the diet-plan days.
+        // Week strip built from the diet-plan days — auto-scroll to today.
         if (state.dietDays.isNotEmpty()) {
             item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                val todayIdx = state.dietDays.indexOfFirst { it.label == "Today" }.coerceAtLeast(0)
+                val stripState = androidx.compose.foundation.lazy.rememberLazyListState()
+                androidx.compose.runtime.LaunchedEffect(todayIdx) {
+                    stripState.scrollToItem(maxOf(0, todayIdx - 1))
+                }
+                LazyRow(state = stripState, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     items(state.dietDays) { day ->
                         DayPill(
                             label = day.label,
@@ -408,29 +418,6 @@ fun CalendarScreen(
         val workoutDay = state.workoutDays.firstOrNull { it.date != null && it.date == selected }
 
         if (!state.loading && (dietDay != null || workoutDay != null)) {
-            item {
-                // Full weekday + date (e.g. "Wednesday, 22 Jul 2026"), plus any Fasting note.
-                val header = selected?.let {
-                    runCatching {
-                        java.time.LocalDate.parse(it).format(
-                            java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMM yyyy", java.util.Locale.getDefault()),
-                        )
-                    }.getOrNull()
-                } ?: (dietDay?.label ?: workoutDay?.label ?: "Selected day")
-                val fasting = (dietDay?.label ?: workoutDay?.label)?.contains("Fasting", ignoreCase = true) == true
-                GlassCard {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(if (fasting) "🌙" else "☀️", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            if (fasting) "$header · Fasting day" else header,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = BrandGreen,
-                        )
-                    }
-                }
-            }
-
             // Diet section.
             item { SectionHeader(title = "Diet", emoji = "🍲") }
             if (dietDay == null || dietDay.meals.isEmpty()) {
@@ -475,61 +462,40 @@ fun CalendarScreen(
                                 }
                             }
                             Spacer(Modifier.height(Spacing.sm))
-                            // Table header
-                            Row(Modifier.fillMaxWidth().background(mealColor.copy(alpha = 0.08f)).padding(horizontal = Spacing.sm, vertical = Spacing.xs)) {
-                                Text("Item", Modifier.weight(2.5f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor)
-                                Text("Amt", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
-                                Text("kcal", Modifier.weight(0.8f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
-                                Text("P", Modifier.weight(0.6f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = NutritionColor, textAlign = TextAlign.End)
-                                Text("C", Modifier.weight(0.6f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = BrandAmber, textAlign = TextAlign.End)
-                                Text("F", Modifier.weight(0.6f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = KaizenCoral, textAlign = TextAlign.End)
-                                Spacer(Modifier.width(26.dp))
+                            // Table header — 3 columns only
+                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)).background(mealColor.copy(alpha = 0.1f)).padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+                                Text("Item", Modifier.weight(3f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor)
+                                Text("Amount", Modifier.weight(1.2f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
+                                Text("Cal", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
                             }
                             meal.items.forEachIndexed { i, mi ->
                                 Row(
-                                    Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                                    Modifier.fillMaxWidth().clickable { detailItem = mi }.padding(horizontal = Spacing.sm, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text(mi.name, Modifier.weight(2.5f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
-                                    Text("${mi.grams.toInt()}g", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End)
-                                    Text("${mi.kcal.toInt()}", Modifier.weight(0.8f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = BrandGreen, textAlign = TextAlign.End)
-                                    Text("${mi.proteinG.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, color = NutritionColor, textAlign = TextAlign.End)
-                                    Text("${mi.carbG.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, color = BrandAmber, textAlign = TextAlign.End)
-                                    Text("${mi.fatG.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, color = KaizenCoral, textAlign = TextAlign.End)
-                                    Icon(Icons.Filled.MenuBook, contentDescription = "Recipe", tint = KaizenBlue,
-                                        modifier = Modifier.size(22.dp).clickable { viewModel.loadRecipe(mi.name, mi.foodId) })
+                                    Text(mi.name, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
+                                    Text("${mi.grams.toInt()} g", Modifier.weight(1.2f), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${mi.kcal.toInt()}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen, textAlign = TextAlign.End)
                                 }
                                 if (i != meal.items.lastIndex) HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
                             }
                             // Meal total row
                             HorizontalDivider(color = mealColor.copy(alpha = 0.3f), thickness = 1.dp)
-                            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs)) {
-                                Text("Total", Modifier.weight(2.5f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.weight(1f))
-                                Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(0.8f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen, textAlign = TextAlign.End)
-                                Text("${meal.items.sumOf { it.proteinG }.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = NutritionColor, textAlign = TextAlign.End)
-                                Text("${meal.items.sumOf { it.carbG }.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandAmber, textAlign = TextAlign.End)
-                                Text("${meal.items.sumOf { it.fatG }.toInt()}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = KaizenCoral, textAlign = TextAlign.End)
-                                Spacer(Modifier.width(26.dp))
+                            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp)) {
+                                Text("Total", Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.weight(1.2f))
+                                Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen, textAlign = TextAlign.End)
                             }
                         }
                     }
                 }
-                // Day totals
+                // Day totals — compact row matching dashboard card style
                 item {
-                    Card(
-                        Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp),
-                        colors = CardDefaults.cardColors(containerColor = BrandGreen.copy(alpha = 0.08f)),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, BrandGreen.copy(alpha = 0.3f)),
-                    ) {
-                        Row(Modifier.fillMaxWidth().padding(Spacing.md), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            com.nutriai.ui.components.MetricBlock(label = "Calories", value = "${dietDay.totals.kcal.toInt()}", unit = "kcal", color = BrandGreen)
-                            com.nutriai.ui.components.MetricBlock(label = "Protein", value = "${dietDay.totals.proteinG.toInt()}", unit = "g", color = NutritionColor)
-                            com.nutriai.ui.components.MetricBlock(label = "Carbs", value = "${dietDay.totals.carbG.toInt()}", unit = "g", color = BrandAmber)
-                            com.nutriai.ui.components.MetricBlock(label = "Fat", value = "${dietDay.totals.fatG.toInt()}", unit = "g", color = KaizenCoral)
-                        }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        DayTotalTile(Modifier.weight(1f), "🔥", "${dietDay.totals.kcal.toInt()}", "kcal", BrandGreen, com.nutriai.ui.theme.CardGreenLight)
+                        DayTotalTile(Modifier.weight(1f), "💪", "${dietDay.totals.proteinG.toInt()}g", "Protein", NutritionColor, com.nutriai.ui.theme.CardGreenLight)
+                        DayTotalTile(Modifier.weight(1f), "🌾", "${dietDay.totals.carbG.toInt()}g", "Carbs", BrandAmber, com.nutriai.ui.theme.CardAmberLight)
+                        DayTotalTile(Modifier.weight(1f), "🥑", "${dietDay.totals.fatG.toInt()}g", "Fat", KaizenCoral, com.nutriai.ui.theme.CardCoralLight)
                     }
                 }
             }
@@ -594,51 +560,93 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
 @Composable
 private fun GuidanceCard(g: Guidance) {
     var expanded by remember { mutableStateOf(false) }
-    FeatureCard(
-        emoji = "💡",
-        title = "Personalized for you",
-        accentColor = KaizenLavender,
-        onClick = { expanded = !expanded },
+    Card(
+        Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = com.nutriai.ui.theme.CardLavenderLight),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, KaizenLavender.copy(alpha = 0.3f)),
     ) {
-        Text(
-            g.summary.ifBlank { "Diet & exercise tips for your profile" },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (expanded) {
-            Spacer(Modifier.height(Spacing.sm))
-            if (g.dietTips.isNotEmpty()) {
-                SectionHeader(title = "Diet", emoji = "🥗")
-                g.dietTips.forEach { tip ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                        EmojiBadge(emoji = "✅", bgColor = NutritionColor.copy(alpha = 0.15f), size = 24.dp)
-                        Text(tip, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-            if (g.exerciseTips.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                SectionHeader(title = "Exercise", emoji = "🏋️")
-                g.exerciseTips.forEach { tip ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                        EmojiBadge(emoji = "💪", bgColor = MovementColor.copy(alpha = 0.15f), size = 24.dp)
-                        Text(tip, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                    }
-                }
+        Column(Modifier.padding(Spacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("💡", style = MaterialTheme.typography.titleMedium)
+                Text("Personalized for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenLavender)
+                Spacer(Modifier.weight(1f))
+                Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = KaizenLavender)
             }
             Spacer(Modifier.height(Spacing.xs))
-            Text(
-                "Educational guidance, not medical advice.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            Text(
-                "Tap to see your diet & exercise tips ▼",
-                style = MaterialTheme.typography.labelSmall,
-                color = KaizenLavender,
-            )
+            Text(g.summary.ifBlank { "Diet & exercise tips for your profile" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (expanded) {
+                Spacer(Modifier.height(Spacing.sm))
+                if (g.dietTips.isNotEmpty()) {
+                    Text("🥗 Diet", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = NutritionColor)
+                    g.dietTips.forEach { tip ->
+                        Text("  • $tip", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 2.dp))
+                    }
+                }
+                if (g.exerciseTips.isNotEmpty()) {
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text("🏋️ Exercise", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MovementColor)
+                    g.exerciseTips.forEach { tip ->
+                        Text("  • $tip", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 2.dp))
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun DayTotalTile(modifier: Modifier, emoji: String, value: String, label: String, color: Color, bgColor: Color) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
+    ) {
+        Column(Modifier.padding(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(emoji, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun FoodDetailDialog(item: com.nutriai.data.remote.dto.MealItem, onRecipe: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(16.dp),
+        title = {
+            Text("🍽️ ${item.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                DetailRow("Amount", "${item.grams.toInt()} g", MaterialTheme.colorScheme.onSurface)
+                DetailRow("Calories", "${item.kcal.toInt()} kcal", BrandGreen)
+                HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
+                DetailRow("💪 Protein", "${item.proteinG.toInt()} g", NutritionColor)
+                DetailRow("🌾 Carbs", "${item.carbG.toInt()} g", BrandAmber)
+                DetailRow("🥑 Fat", "${item.fatG.toInt()} g", KaizenCoral)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onRecipe) {
+                Text("📖 Recipe", color = KaizenBlue, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
+}
+
+@Composable
+private fun DetailRow(label: String, value: String, color: Color) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = color)
     }
 }
 

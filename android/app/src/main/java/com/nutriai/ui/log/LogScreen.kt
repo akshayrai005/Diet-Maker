@@ -166,51 +166,46 @@ fun LogScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp),
     ) {
-        // 1. Header
-        item { LogHeader(todayCount = state.today.size) }
-
-        // 2. Meal-slot chips
+        // 1. Header — compact
         item {
-            FeatureCard(
-                emoji = "🍽️",
-                title = "Meal",
-                accentColor = NutritionColor,
-            ) {
-                SlotChipRow(
-                    slots = viewModel.slots,
-                    selected = state.slot,
-                    onSelect = { viewModel.onSlot(it) },
-                )
-            }
+            Text("📝 log food", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (state.today.isNotEmpty()) Text("✅ ${state.today.size} logged today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // 3. Search field
+        // 2. Meal-slot chips — inline, no card wrapper
         item {
-            GlassCard {
-                SearchField(
-                    query = state.query,
-                    onQuery = { viewModel.onQuery(it) },
-                    onSearch = { viewModel.search(state.query) },
-                )
-            }
+            SlotChipRow(slots = viewModel.slots, selected = state.slot, onSelect = { viewModel.onSlot(it) })
         }
 
-        // 3b. Snap a meal (AI photo logging)
+        // 3. Search field — compact
+        item {
+            SearchField(query = state.query, onQuery = { viewModel.onQuery(it) }, onSearch = { viewModel.search(state.query) })
+        }
+
+        // 3b. Snap a meal (AI photo logging) — compact row
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                com.nutriai.ui.components.PrimaryButton(
-                    text = if (state.analyzing) "Analyzing…" else "📸 Snap a meal",
+                Button(
                     onClick = { snapMeal() },
-                    modifier = Modifier.weight(1f),
-                    icon = if (state.analyzing) null else Icons.Filled.PhotoCamera,
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
                     enabled = !state.analyzing,
-                )
-                com.nutriai.ui.components.SecondaryButton(
-                    text = "🖼️ Photo",
+                ) {
+                    if (!state.analyzing) Icon(Icons.Filled.PhotoCamera, null, Modifier.size(16.dp))
+                    Spacer(Modifier.size(4.dp))
+                    Text(if (state.analyzing) "Analyzing…" else "📸 Snap a meal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                }
+                OutlinedButton(
                     onClick = { galleryLauncher.launch("image/*") },
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Filled.PhotoLibrary,
-                )
+                    modifier = Modifier.weight(1f).height(40.dp),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(16.dp))
+                    Spacer(Modifier.size(4.dp))
+                    Text("🖼️ Photo", style = MaterialTheme.typography.labelMedium)
+                }
             }
         }
 
@@ -222,21 +217,19 @@ fun LogScreen(
             }
         }
 
-        // 3d. Recent + saved quick-log
+        // 3d. Recent + saved — compact inline chips
         if (state.recents.isNotEmpty()) {
             item {
-                FeatureCard(emoji = "🔄", title = "Recent", accentColor = KaizenBlue) {
-                    QuickRow(names = state.recents.map { it.name }) { idx ->
-                        val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) }
-                    }
+                SectionHeader(title = "Recent", emoji = "🔄")
+                QuickRow(names = state.recents.map { it.name }) { idx ->
+                    val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) }
                 }
             }
         }
         item {
-            FeatureCard(emoji = "⭐", title = "Saved", accentColor = BrandAmber) {
-                QuickRow(names = state.saved.map { it.name }, trailingLabel = "+ Custom", onTrailing = { showCustom = true }) { idx ->
-                    val s = state.saved[idx]; pendingQty = PendingQty(s.name, s.kcal) { g -> viewModel.logSaved(s, g) }
-                }
+            SectionHeader(title = "Saved", emoji = "⭐")
+            QuickRow(names = state.saved.map { it.name }, trailingLabel = "+ Custom", onTrailing = { showCustom = true }) { idx ->
+                val s = state.saved[idx]; pendingQty = PendingQty(s.name, s.kcal) { g -> viewModel.logSaved(s, g) }
             }
         }
 
@@ -286,18 +279,6 @@ fun LogScreen(
             }
         }
     }
-}
-
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun LogHeader(todayCount: Int) {
-    com.nutriai.ui.components.ScreenHeader(
-        title = "log food",
-        subtitle = if (todayCount > 0) "✅ $todayCount logged today" else null,
-    )
 }
 
 // ---------------------------------------------------------------------------
@@ -378,17 +359,16 @@ private fun SearchField(
 
 @Composable
 private fun MessageBanner(message: String) {
-    FeatureCard(
-        emoji = "✅",
-        title = "Status",
-        accentColor = BrandGreen,
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = com.nutriai.ui.theme.CardGreenLight),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BrandGreen.copy(alpha = 0.3f)),
     ) {
-        Text(
-            message,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = BrandGreenDeep,
-        )
+        Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("✅", style = MaterialTheme.typography.labelLarge)
+            Text(message, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = BrandGreenDeep)
+        }
     }
 }
 
@@ -398,37 +378,28 @@ private fun MessageBanner(message: String) {
 
 @Composable
 private fun ResultCard(food: FoodDto, onAdd: () -> Unit, onFavorite: () -> Unit) {
-    GlassCard {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
         Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            EmojiBadge(emoji = "🍽️", bgColor = NutritionColor)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    food.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    "🔥 ${food.kcal.toInt()} kcal · P ${food.proteinG.toInt()} / C ${food.carbG.toInt()} / F ${food.fatG.toInt()} per 100g",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Column(Modifier.weight(1f)) {
+                Text(food.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("🔥 ${food.kcal.toInt()} kcal · P ${food.proteinG.toInt()} / C ${food.carbG.toInt()} / F ${food.fatG.toInt()} per 100g",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(
-                Icons.Filled.StarBorder,
-                contentDescription = "Save ${food.name}",
-                tint = BrandAmber,
-                modifier = Modifier.clickable { onFavorite() }.padding(4.dp),
-            )
-            Button(
-                onClick = onAdd,
-                shape = RoundedCornerShape(18.dp),
+            Icon(Icons.Filled.StarBorder, contentDescription = null, tint = BrandAmber,
+                modifier = Modifier.size(20.dp).clickable { onFavorite() })
+            Button(onClick = onAdd, modifier = Modifier.height(32.dp), shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-            ) { Text("Add") }
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
         }
     }
 }
@@ -437,19 +408,25 @@ private data class PendingQty(val name: String, val kcalPer100: Double, val onLo
 
 @Composable
 private fun DetectedItemCard(item: VisionFoodItem, onAdd: () -> Unit) {
-    FeatureCard(
-        emoji = "🤖",
-        title = item.name,
-        accentColor = KaizenLavender,
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, KaizenLavender.copy(alpha = 0.2f)),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "≈ ${item.grams.toInt()} g · 🔥 ${(item.per100g.kcal * item.grams / 100).toInt()} kcal",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            Button(onClick = onAdd, shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)) { Text("Add") }
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            Text("🤖", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.size(Spacing.sm))
+            Column(Modifier.weight(1f)) {
+                Text(item.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("≈ ${item.grams.toInt()} g · 🔥 ${(item.per100g.kcal * item.grams / 100).toInt()} kcal",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = onAdd, modifier = Modifier.height(32.dp), shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+            ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
         }
     }
 }

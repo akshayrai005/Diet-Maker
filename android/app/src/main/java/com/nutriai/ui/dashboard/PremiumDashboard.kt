@@ -315,10 +315,6 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsPermissio
             CalorieRing(consumed = cal.consumed.toInt(), target = cal.target?.toInt(), progress = pct)
             Column(Modifier.weight(1f).padding(start = Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 QuickStat("🔥", "Remaining", if (hasTarget) "${remaining.toInt()}" else "—", "kcal", NutritionColor)
-                QuickStat("💪", "Protein", dashboard.protein.let { p ->
-                    val c = (p.consumed ?: 0.0).toInt()
-                    p.target?.let { "${c}/${it.toInt()}" } ?: "$c"
-                }, "g", KaizenBlue)
                 QuickStat("🚶", "Steps", if (stepsPermission && steps > 0) "%,d".format(steps) else "—", "", MovementColor)
             }
         }
