@@ -2,9 +2,9 @@ package com.nutriai.ui.diet
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -63,21 +64,24 @@ import com.nutriai.ui.theme.CardAmberLight
 import com.nutriai.ui.theme.CardBlueLight
 import com.nutriai.ui.theme.CardCoralLight
 import com.nutriai.ui.theme.CardGreenLight
+import com.nutriai.ui.theme.CardLavenderLight
 import com.nutriai.ui.theme.CardMintLight
 import com.nutriai.ui.theme.HeroGradientBottom
 import com.nutriai.ui.theme.HeroGradientTop
 import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
+import com.nutriai.ui.theme.KaizenLavender
+import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
 import com.nutriai.ui.theme.Spacing
+import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 private val Sharp = 8.dp
 
@@ -101,62 +105,94 @@ fun DietScreen(
     LaunchedEffect(Unit) { summaryViewModel.load() }
 
     Column(modifier.fillMaxSize()) {
-        // Bold gradient header
-        Box(
-            Modifier.fillMaxWidth()
-                .background(Brush.horizontalGradient(listOf(NutritionColor, BrandGreen)))
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.lg),
-        ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text("🍎", fontSize = 24.sp)
-                    Text("Nutrition", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+        // ── Purple gradient hero with calorie ring ──
+        dashboard?.let { d ->
+            NutritionHero(dashboard = d, onAddWater = { summaryViewModel.addWater() })
+        }
+
+        // ── Macro + Hydration 2x2 grid (matches dashboard "Your Day") ──
+        dashboard?.let { d ->
+            Column(Modifier.padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.lg)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    MacroTile(Modifier.weight(1f), "💪", "Protein", (d.protein.consumed ?: 0.0).toInt(), d.protein.target?.toInt(), "g", NutritionColor, CardGreenLight)
+                    MacroTile(Modifier.weight(1f), "🌾", "Carbs", d.macros.carbG.toInt(), null, "g", BrandAmber, CardAmberLight)
                 }
-                // Calorie mini ring in header
-                dashboard?.let { d ->
-                    val pct = if (d.calories.target != null && d.calories.target > 0) (d.calories.consumed / d.calories.target).coerceIn(0.0, 1.0).toFloat() else 0f
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        MiniCalorieRing(consumed = d.calories.consumed.toInt(), target = d.calories.target?.toInt(), progress = pct)
+                Spacer(Modifier.height(Spacing.md))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    MacroTile(Modifier.weight(1f), "🥑", "Fat", d.macros.fatG.toInt(), null, "g", KaizenCoral, CardCoralLight)
+                    HydrationTile(Modifier.weight(1f), d, onAddWater = { summaryViewModel.addWater() })
+                }
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Action buttons ──
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Button(
+                onClick = { section = 1 },
+                modifier = Modifier.weight(1f).height(44.dp),
+                shape = RoundedCornerShape(Sharp),
+                colors = ButtonDefaults.buttonColors(containerColor = NutritionColor),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
+            ) {
+                Icon(Icons.Filled.Restaurant, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(Spacing.sm))
+                Text("Log food", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = { section = 1 },
+                modifier = Modifier.height(44.dp),
+                shape = RoundedCornerShape(Sharp),
+                border = BorderStroke(2.dp, NutritionColor.copy(alpha = 0.5f)),
+            ) {
+                Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp), tint = NutritionColor)
+            }
+        }
+
+        Spacer(Modifier.height(Spacing.md))
+
+        // ── Tab bar matching dashboard style ──
+        val tabs = listOf("📅" to "Today", "📝" to "Log", "🛒" to "Grocery", "🏢" to "Office")
+        Card(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
+            shape = RoundedCornerShape(Sharp),
+            elevation = CardDefaults.cardElevation(3.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        ) {
+            Row(Modifier.fillMaxWidth().padding(Spacing.xs), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                tabs.forEachIndexed { idx, (emoji, label) ->
+                    val selected = section == idx
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (selected) Brush.horizontalGradient(listOf(HeroGradientTop, HeroGradientBottom))
+                                else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                            )
+                            .clickable { section = idx }
+                            .padding(vertical = Spacing.sm),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(emoji, fontSize = 14.sp)
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+                                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Macro strip + actions
-        dashboard?.let { d ->
-            NutritionStrip(
-                dashboard = d,
-                onLogFood = { section = 1 },
-                onAddWater = { summaryViewModel.addWater() },
-            )
-        }
-
-        // Tab bar
-        val tabs = listOf("📅 Today" to 0, "📝 Log" to 1, "🛒 Grocery" to 2, "🏢 Office" to 3)
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            tabs.forEach { (label, idx) ->
-                val selected = section == idx
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(Sharp))
-                        .background(if (selected) NutritionColor else MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable { section = idx }
-                        .padding(vertical = Spacing.sm),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        Spacer(Modifier.height(Spacing.sm))
 
         when (section) {
             0 -> com.nutriai.ui.calendar.CalendarScreen(Modifier.fillMaxSize())
@@ -167,113 +203,137 @@ fun DietScreen(
     }
 }
 
-@Composable
-private fun MiniCalorieRing(consumed: Int, target: Int?, progress: Float) {
-    var animate by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { animate = true }
-    val anim by animateFloatAsState(if (animate) progress else 0f, tween(1000), label = "ring")
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Column(horizontalAlignment = Alignment.End) {
-            Text("%,d".format(consumed), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
-            target?.let { Text("/ %,d kcal".format(it), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f)) }
-        }
-        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(40.dp)) {
-                val stroke = 5.dp.toPx()
-                val arcSize = Size(size.width - stroke, size.height - stroke)
-                val tl = Offset(stroke / 2, stroke / 2)
-                drawArc(Color.White.copy(alpha = 0.25f), -90f, 360f, false, tl, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-                drawArc(Color.White, -90f, anim * 360f, false, tl, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-            }
-            Text("🔥", fontSize = 14.sp)
-        }
-    }
-}
+// ─────────────────────────────────────────────────────────────
+// Purple gradient hero — matches dashboard hero
+// ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun NutritionStrip(dashboard: Dashboard, onLogFood: () -> Unit, onAddWater: () -> Unit) {
+private fun NutritionHero(dashboard: Dashboard, onAddWater: () -> Unit) {
     val cal = dashboard.calories
-    val waterConsumed = dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0
-    val waterTarget = dashboard.water.targetMl ?: dashboard.water.target ?: 2500.0
-    val waterFrac = (waterConsumed / waterTarget).coerceIn(0.0, 1.0).toFloat()
-    val glasses = (waterConsumed / 250.0).toInt()
-    val glassTarget = (waterTarget / 250.0).toInt()
+    val hasTarget = cal.target != null && cal.target > 0
+    val pct = if (hasTarget) (cal.consumed / cal.target!!).coerceIn(0.0, 1.0).toFloat() else 0f
+    val remaining = if (hasTarget) (cal.target!! - cal.consumed).toInt() else 0
 
-    Column(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal).padding(top = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    Box(
+        Modifier.fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(HeroGradientTop, HeroGradientBottom)))
+            .padding(horizontal = Spacing.screenHorizontal)
+            .padding(top = Spacing.lg, bottom = Spacing.xl),
     ) {
-        // 3 macro cards side by side
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            MacroCard(Modifier.weight(1f), "💪", "Protein", "${(dashboard.protein.consumed ?: 0.0).toInt()}g", dashboard.protein.target?.let { "${it.toInt()}g" }, NutritionColor, CardGreenLight)
-            MacroCard(Modifier.weight(1f), "🌾", "Carbs", "${dashboard.macros.carbG.toInt()}g", null, BrandAmber, CardAmberLight)
-            MacroCard(Modifier.weight(1f), "🥑", "Fat", "${dashboard.macros.fatG.toInt()}g", null, KaizenCoral, CardCoralLight)
-        }
-
-        // Action row: Log food + Barcode + Water
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(
-                onClick = onLogFood,
-                modifier = Modifier.weight(1f).height(42.dp),
-                shape = RoundedCornerShape(Sharp),
-                colors = ButtonDefaults.buttonColors(containerColor = NutritionColor),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-            ) {
-                Icon(Icons.Filled.Restaurant, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Log food", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            }
-            OutlinedButton(
-                onClick = onLogFood,
-                modifier = Modifier.height(42.dp),
-                shape = RoundedCornerShape(Sharp),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, NutritionColor.copy(alpha = 0.4f)),
-            ) {
-                Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(16.dp), tint = NutritionColor)
-            }
-            // Water pill
-            Card(
-                onClick = onAddWater,
-                modifier = Modifier.height(42.dp),
-                shape = RoundedCornerShape(Sharp),
-                elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(containerColor = CardMintLight),
-                border = androidx.compose.foundation.BorderStroke(1.dp, HydrationColor.copy(alpha = 0.3f)),
-            ) {
-                Row(
-                    Modifier.padding(horizontal = Spacing.md).fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Left: text info
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text("🍎 Nutrition", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Spacer(Modifier.height(Spacing.sm))
+                // Remaining badge
+                Card(
+                    shape = RoundedCornerShape(Sharp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                    elevation = CardDefaults.cardElevation(0.dp),
                 ) {
-                    Text("💧", fontSize = 14.sp)
-                    Text("$glasses/$glassTarget", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = HydrationColor)
+                    Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("🔥", fontSize = 14.sp)
+                        Text("$remaining", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        Text("left", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                    }
                 }
             }
+
+            // Right: calorie ring
+            CalorieRing(consumed = cal.consumed.toInt(), target = cal.target?.toInt(), progress = pct)
         }
     }
 }
 
 @Composable
-private fun MacroCard(modifier: Modifier, emoji: String, label: String, value: String, target: String?, color: Color, bgColor: Color) {
+private fun CalorieRing(consumed: Int, target: Int?, progress: Float) {
+    var animate by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animate = true }
+    val anim by animateFloatAsState(if (animate) progress else 0f, tween(1200), label = "ring")
+
+    Box(Modifier.size(90.dp), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(80.dp)) {
+            val stroke = 8.dp.toPx()
+            val arcSize = Size(size.width - stroke, size.height - stroke)
+            val tl = Offset(stroke / 2, stroke / 2)
+            drawArc(Color.White.copy(alpha = 0.2f), -90f, 360f, false, tl, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            drawArc(Color.White, -90f, anim * 360f, false, tl, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("%,d".format(consumed), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            target?.let { Text("/ %,d".format(it), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f)) }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Macro tile — matches dashboard domain cards exactly
+// ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: Int, target: Int?, unit: String, color: Color, bgColor: Color) {
+    val pct = if (target != null && target > 0) (value.toFloat() / target).coerceIn(0f, 1f) else 0f
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(Sharp),
-        elevation = CardDefaults.cardElevation(3.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
+        border = BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
     ) {
-        Column(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(emoji, fontSize = 16.sp)
-            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
-            if (target != null) {
-                Text("/ $target", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f))
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(emoji, fontSize = 16.sp)
+                Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = color)
             }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("$value", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = color)
+                Text(unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 4.dp, start = 2.dp))
+            }
+            if (target != null) {
+                KaizenProgressBar(progress = pct, color = color, height = 5.dp)
+                Text("/ $target$unit", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.5f))
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hydration tile — matches domain card style
+// ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun HydrationTile(modifier: Modifier, dashboard: Dashboard, onAddWater: () -> Unit) {
+    val waterConsumed = dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0
+    val waterTarget = dashboard.water.targetMl ?: dashboard.water.target ?: 2500.0
+    val glasses = (waterConsumed / 250.0).toInt()
+    val glassTarget = (waterTarget / 250.0).toInt()
+    val pct = (waterConsumed / waterTarget).coerceIn(0.0, 1.0).toFloat()
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(Sharp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = CardMintLight),
+        border = BorderStroke(1.5.dp, HydrationColor.copy(alpha = 0.3f)),
+        onClick = onAddWater,
+    ) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text("💧", fontSize = 16.sp)
+                    Text("Hydration", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = HydrationColor)
+                }
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text("$glasses", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = HydrationColor)
+                Text("glasses", style = MaterialTheme.typography.labelSmall, color = HydrationColor.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 4.dp, start = 2.dp))
+            }
+            KaizenProgressBar(progress = pct, color = HydrationColor, height = 5.dp)
+            Text("${"%.1f".format(waterConsumed / 1000.0)}L / ${"%.1f".format(waterTarget / 1000.0)}L", style = MaterialTheme.typography.labelSmall, color = HydrationColor.copy(alpha = 0.5f))
         }
     }
 }
