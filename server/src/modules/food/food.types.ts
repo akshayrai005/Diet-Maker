@@ -32,13 +32,13 @@ export const FASTING_KCAL_FACTOR = 0.4;
 
 /** Fraction of daily calories per slot (sums to 1). */
 export const SLOT_KCAL_WEIGHTS: Record<MealSlot, number> = {
-  wakeup: 0.05,
-  breakfast: 0.2,
-  midmorning: 0.1,
-  lunch: 0.3,
-  eveningsnack: 0.1,
-  dinner: 0.2,
-  bedtime: 0.05,
+  wakeup: 0.03,
+  breakfast: 0.28,
+  midmorning: 0.04,
+  lunch: 0.37,
+  eveningsnack: 0.04,
+  dinner: 0.22,
+  bedtime: 0.02,
 };
 
 export interface FoodItem {
