@@ -40,7 +40,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -79,7 +81,6 @@ import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
-import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
 import com.nutriai.ui.theme.kaizenColors
@@ -91,6 +92,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private val Sharp = RoundedCornerShape(8.dp)
+
+/** Accent color for the Move screen — follows the user's chosen accent. */
+private val MoveAccent: Color
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
@@ -255,7 +260,7 @@ internal fun estimateMinutes(reps: String, fallback: Int): Int {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel()) {
+private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel(), planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val plan = state.plan
     val today = plan?.days?.firstOrNull { it.label == "Today" } ?: plan?.days?.firstOrNull { !it.rest }
@@ -272,6 +277,10 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             onConfirm = { sets ->
                 viewModel.logSets(ex.name, shownDay?.focus, sets)
                 logTarget = null
+            },
+            onPlanTomorrow = { name ->
+                planVm.switchTo(java.time.LocalDate.now().plusDays(1).toString())
+                planVm.addExercise(name, ex.muscleGroup)
             },
         )
     }
@@ -342,7 +351,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MovementColor) } }
+            item { Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MoveAccent) } }
         }
         state.error?.let { err ->
             item { EmptyState(title = err, emoji = "🏋️") }
@@ -399,7 +408,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                                 onClick = { firstLoggable?.let { logTarget = it } },
                                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.md).height(44.dp),
                                 shape = Sharp,
-                                colors = ButtonDefaults.buttonColors(containerColor = MovementColor),
+                                colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
                             ) {
                                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(4.dp))
@@ -518,7 +527,7 @@ private fun ExerciseRow(
                 Box(
                     Modifier
                         .clip(Sharp)
-                        .background(MovementColor)
+                        .background(MoveAccent)
                         .padding(horizontal = Spacing.sm, vertical = 3.dp),
                 ) {
                     Text(repsLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
@@ -546,7 +555,7 @@ private fun ExerciseRow(
                             onClick = onLog,
                             modifier = Modifier.height(32.dp),
                             shape = Sharp,
-                            colors = ButtonDefaults.buttonColors(containerColor = MovementColor),
+                            colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                         ) { Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                     }
@@ -593,7 +602,7 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel()) {
+private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel(), planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel()) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
@@ -608,6 +617,10 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             onConfirm = { sets ->
                 viewModel.logSets(ex.name, null, sets)
                 logTarget = null
+            },
+            onPlanTomorrow = { name ->
+                planVm.switchTo(java.time.LocalDate.now().plusDays(1).toString())
+                planVm.addExercise(name, ex.muscleGroup)
             },
         )
     }
@@ -630,10 +643,10 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                     onClick = { category = c },
                     label = { Text("${c.emoji} ${c.label}", style = MaterialTheme.typography.labelSmall, fontWeight = if (category == c) FontWeight.Bold else FontWeight.Normal) },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MovementColor,
+                        selectedContainerColor = MoveAccent,
                         selectedLabelColor = Color.White,
-                        containerColor = MovementColor.copy(alpha = 0.08f),
-                        labelColor = MovementColor,
+                        containerColor = MoveAccent.copy(alpha = 0.08f),
+                        labelColor = MoveAccent,
                     ),
                 )
             }
@@ -683,7 +696,7 @@ private fun ExerciseGridCard(ex: ExerciseItem, onClick: () -> Unit, labelOverrid
             Box(
                 Modifier
                     .clip(Sharp)
-                    .background(MovementColor)
+                    .background(MoveAccent)
                     .padding(horizontal = Spacing.sm, vertical = 3.dp),
             ) {
                 Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
@@ -711,7 +724,7 @@ private class SetRow(amount: String, weight: String) {
 }
 
 @Composable
-private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (List<LoggedSet>) -> Unit) {
+private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (List<LoggedSet>) -> Unit, onPlanTomorrow: ((String) -> Unit)? = null) {
     val timed = isTimed(exercise)
     val weighted = isWeighted(exercise)
     val ns = exercise.nextSession
@@ -719,6 +732,8 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
     val defaultWeight = ns?.suggestedWeightKg?.let { trimKg(it) } ?: ""
     val singleBlock = timed && exercise.sets <= 1
     val defaultCount = if (singleBlock) 1 else (ns?.suggestedSets ?: exercise.sets).coerceIn(1, 10)
+
+    var addToPlan by remember { mutableStateOf(false) }
 
     val rows = remember(exercise.name) {
         mutableStateListOf<SetRow>().also { list ->
@@ -745,7 +760,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                 rows.forEachIndexed { i, row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            Modifier.size(22.dp).clip(CircleShape).background(MovementColor),
+                            Modifier.size(22.dp).clip(CircleShape).background(MoveAccent),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -756,6 +771,10 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                                 fontSize = 10.sp,
                             )
                         }
+                        val fieldColors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        )
                         OutlinedTextField(
                             value = row.amount,
                             onValueChange = { v -> row.amount = v.filter { c -> c.isDigit() } },
@@ -764,6 +783,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.weight(1f),
                             shape = Sharp,
+                            colors = fieldColors,
                         )
                         if (weighted) {
                             OutlinedTextField(
@@ -774,6 +794,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 shape = Sharp,
+                                colors = fieldColors,
                             )
                         }
                         if (rows.size > 1) {
@@ -788,10 +809,21 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                 }
                 if (!singleBlock) {
                     TextButton(onClick = { rows.add(SetRow(rows.lastOrNull()?.amount ?: "", rows.lastOrNull()?.weight ?: "")) }) {
-                        Text("+ Add set", color = MovementColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                        Text("+ Add set", color = MoveAccent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 if (!timed) RestTimer(compact = true)
+
+                // Plan tomorrow option
+                if (onPlanTomorrow != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { addToPlan = !addToPlan },
+                    ) {
+                        Checkbox(checked = addToPlan, onCheckedChange = { addToPlan = it })
+                        Text("📅 Also add to tomorrow's plan", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         },
         confirmButton = {
@@ -805,9 +837,12 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n)
                         }
                     }
-                    if (out.isNotEmpty()) onConfirm(out)
+                    if (out.isNotEmpty()) {
+                        onConfirm(out)
+                        if (addToPlan) onPlanTomorrow?.invoke(exercise.name)
+                    }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = MovementColor),
+                colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
                 shape = Sharp,
             ) { Text("✅ Save", fontWeight = FontWeight.Bold) }
         },
@@ -829,9 +864,9 @@ private fun WeekStrip(days: List<WorkoutDay>, selectedIndex: Int, onSelect: (Int
                 modifier = Modifier.weight(1f).clickable { onSelect(i) },
                 shape = Sharp,
                 colors = CardDefaults.cardColors(
-                    containerColor = if (selected) MovementColor
+                    containerColor = if (selected) MoveAccent
                     else if (rest) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    else MovementColor.copy(alpha = 0.1f),
+                    else MoveAccent.copy(alpha = 0.1f),
                 ),
                 elevation = CardDefaults.cardElevation(if (selected) 3.dp else 0.dp),
             ) {

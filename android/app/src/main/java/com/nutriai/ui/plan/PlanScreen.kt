@@ -252,14 +252,19 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 
 @Composable
 private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
+    val tomorrow = LocalDate.now().plusDays(1).toString()
+    val today = LocalDate.now().toString()
+    val isTomorrow = d.date == tomorrow
+    val isToday = d.date == today
+    val primary = MaterialTheme.colorScheme.primary
     val container = when {
         d.isFast -> KaizenCoral.copy(alpha = 0.15f)
-        selected -> KaizenBlue.copy(alpha = 0.15f)
+        selected -> primary.copy(alpha = 0.15f)
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val textColor = when {
         d.isFast -> KaizenCoral
-        selected -> KaizenBlue
+        selected -> primary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Card(
@@ -268,13 +273,23 @@ private fun WeekDayCard(d: DaySummary, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         shape = Sharp,
         colors = CardDefaults.cardColors(containerColor = container),
+        elevation = CardDefaults.cardElevation(if (selected) 4.dp else 1.dp),
     ) {
         Column(
             Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(d.dayName, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = textColor)
+            Text(
+                when {
+                    isToday -> "Today"
+                    isTomorrow -> "Tmrw"
+                    else -> d.dayName
+                },
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = textColor,
+            )
             if (d.isFast) {
                 Text("🚫 Fast", style = MaterialTheme.typography.labelSmall, color = textColor)
             } else if (d.kcal > 0) {
