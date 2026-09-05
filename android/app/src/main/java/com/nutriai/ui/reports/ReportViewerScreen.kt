@@ -5,7 +5,6 @@ import android.print.PrintAttributes
 import android.print.PrintManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,23 +39,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
-import com.nutriai.ui.components.EmojiBadge
-import com.nutriai.ui.components.FeatureCard
-import com.nutriai.ui.components.GlassCard
 import com.nutriai.ui.components.PrimaryButton
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
-import com.nutriai.ui.theme.Radius
 import com.nutriai.ui.theme.Spacing
-import com.nutriai.ui.theme.kaizenColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,8 +59,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private val Sharp = RoundedCornerShape(8.dp)
+
 data class ReportViewerState(
-    val range: String = "weekly", // weekly | monthly
+    val range: String = "weekly",
     val count: Int = 1,
     val html: String = "",
     val loading: Boolean = true,
@@ -96,7 +95,6 @@ class ReportViewerViewModel @Inject constructor(
     }
 }
 
-/** Renders the currently-loaded report WebView to a PDF via Android's print system. */
 private fun printReport(context: Context, web: WebView) {
     val jobName = "Kaizen Health Report"
     val pm = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
@@ -117,7 +115,6 @@ fun ReportViewerScreen(
     var pageReady by remember { mutableStateOf(false) }
     var printed by remember { mutableStateOf(false) }
 
-    // Download mode: once the beautiful report has rendered, open the Save-as-PDF sheet.
     LaunchedEffect(autoPrint, pageReady, state.html) {
         if (autoPrint && pageReady && !printed && state.html.isNotEmpty()) {
             printed = true
@@ -125,37 +122,22 @@ fun ReportViewerScreen(
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.kaizenColors.pageBackground),
-    ) {
+    Column(Modifier.fillMaxSize()) {
         // Controls bar
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+            shape = Sharp,
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    EmojiBadge(emoji = "📄", bgColor = KaizenBlue.copy(alpha = 0.15f), size = 36.dp)
-                    Text(
-                        "Report Viewer",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = KaizenBlue,
-                    )
-                }
+            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("📄 Report Viewer", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
 
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Range dropdown: Weekly / Monthly
                     var rangeOpen by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(
                         expanded = rangeOpen,
@@ -165,13 +147,10 @@ fun ReportViewerScreen(
                         OutlinedTextField(
                             value = if (state.range == "monthly") "📅 Monthly" else "📆 Weekly",
                             onValueChange = {}, readOnly = true,
-                            label = { Text("Period") },
+                            label = { Text("Period", style = MaterialTheme.typography.labelSmall) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(rangeOpen) },
-                            shape = RoundedCornerShape(Radius.md),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = KaizenBlue,
-                                focusedLabelColor = KaizenBlue,
-                            ),
+                            shape = Sharp,
+                            textStyle = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                         )
                         ExposedDropdownMenu(expanded = rangeOpen, onDismissRequest = { rangeOpen = false }) {
@@ -180,7 +159,6 @@ fun ReportViewerScreen(
                         }
                     }
 
-                    // Count dropdown: how many weeks / months
                     var countOpen by remember { mutableStateOf(false) }
                     val unit = if (state.range == "monthly") "mo" else "wk"
                     ExposedDropdownMenuBox(
@@ -191,13 +169,10 @@ fun ReportViewerScreen(
                         OutlinedTextField(
                             value = "${state.count} $unit",
                             onValueChange = {}, readOnly = true,
-                            label = { Text("How many") },
+                            label = { Text("How many", style = MaterialTheme.typography.labelSmall) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(countOpen) },
-                            shape = RoundedCornerShape(Radius.md),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = KaizenLavender,
-                                focusedLabelColor = KaizenLavender,
-                            ),
+                            shape = Sharp,
+                            textStyle = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.menuAnchor(androidx.compose.material3.MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
                         )
                         ExposedDropdownMenu(expanded = countOpen, onDismissRequest = { countOpen = false }) {
@@ -221,30 +196,28 @@ fun ReportViewerScreen(
         // WebView area
         Box(Modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal)) {
             if (state.error != null) {
-                FeatureCard(
-                    emoji = "⚠️",
-                    title = "Report Unavailable",
-                    accentColor = KaizenCoral,
+                Card(
                     modifier = Modifier.align(Alignment.Center),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    Text(
-                        state.error!!,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(Spacing.md))
-                    PrimaryButton(
-                        text = "🔄 Retry",
-                        onClick = { viewModel.load() },
-                        containerColor = KaizenCoral,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    Column(Modifier.padding(Spacing.md)) {
+                        Text("⚠️ Report Unavailable", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(Spacing.sm))
+                        Text(state.error!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(Spacing.md))
+                        PrimaryButton(
+                            text = "🔄 Retry",
+                            onClick = { viewModel.load() },
+                            containerColor = KaizenCoral,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                 }
             } else {
                 AndroidView(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(Radius.lg)),
+                    modifier = Modifier.fillMaxSize().clip(Sharp),
                     factory = { ctx ->
                         WebView(ctx).apply {
                             settings.javaScriptEnabled = false
@@ -268,12 +241,7 @@ fun ReportViewerScreen(
                             verticalArrangement = Arrangement.spacedBy(Spacing.md),
                         ) {
                             CircularProgressIndicator(color = BrandGreen)
-                            Text(
-                                "📊 Loading your report...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Text("📊 Loading your report...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
