@@ -260,13 +260,30 @@ object ExerciseCatalog {
 
     val categories: List<Category> = Category.entries
 
+    /** "What equipment do I have today" filter chips for the Library. */
+    enum class EquipmentFilter(val label: String, val emoji: String, val matches: (String?) -> Boolean) {
+        ANY("Any", "🔎", { true }),
+        NO_EQUIPMENT("No Equipment", "🚫", { it == null || it == "bodyweight" || it == "none" }),
+        BARBELL("Barbell", "🏋️", { it == "barbell" }),
+        DUMBBELL("Dumbbell", "💪", { it == "dumbbell" }),
+        CABLE("Cable", "🔗", { it == "cable" }),
+        MACHINE("Machine", "⚙️", { it == "machine" }),
+        BAND("Bands", "➰", { it == "band" }),
+        KETTLEBELL("Kettlebell", "🔔", { it == "kettlebell" }),
+    }
+
+    val equipmentFilters: List<EquipmentFilter> = EquipmentFilter.entries
+
     /**
-     * Case-insensitive search over exercise name and muscle group, optionally scoped to a [category].
-     * A blank query returns everything in the (optionally filtered) category, so the sheet always has
-     * content. Name-prefix matches (e.g. "ben" → "Bench Press") are ranked above mid-word ones.
+     * Case-insensitive search over exercise name and muscle group, optionally scoped to a
+     * [category] and an [equipment] filter ("what I have today" - excludes exercises that need
+     * equipment the user doesn't have, e.g. No Equipment hides every Cable/Barbell/Machine move).
+     * A blank query returns everything in the (optionally filtered) category, so the sheet always
+     * has content. Name-prefix matches (e.g. "ben" → "Bench Press") are ranked above mid-word ones.
      */
-    fun search(query: String, category: Category = Category.ALL): List<ExerciseItem> {
-        val scoped = if (category == Category.ALL) entries else entries.filter { it.category == category }
+    fun search(query: String, category: Category = Category.ALL, equipment: EquipmentFilter = EquipmentFilter.ANY): List<ExerciseItem> {
+        var scoped = if (category == Category.ALL) entries else entries.filter { it.category == category }
+        if (equipment != EquipmentFilter.ANY) scoped = scoped.filter { equipment.matches(it.item.equipment) }
         val q = query.trim().lowercase()
         val matched = if (q.isEmpty()) {
             scoped

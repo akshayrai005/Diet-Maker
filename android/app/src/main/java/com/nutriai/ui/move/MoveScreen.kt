@@ -683,8 +683,9 @@ private fun SwapExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit) {
 private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel(), planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel()) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
+    var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
-    val results = remember(query, category) { ExerciseCatalog.search(query, category) }
+    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, category, equipment) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
@@ -724,6 +725,22 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                         selectedLabelColor = Color.White,
                         containerColor = MoveAccent.copy(alpha = 0.08f),
                         labelColor = MoveAccent,
+                    ),
+                )
+            }
+        }
+        Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(ExerciseCatalog.equipmentFilters) { eq ->
+                FilterChip(
+                    selected = equipment == eq,
+                    onClick = { equipment = eq },
+                    label = { Text("${eq.emoji} ${eq.label}", style = MaterialTheme.typography.labelSmall, fontWeight = if (equipment == eq) FontWeight.Bold else FontWeight.Normal) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = BrandAmber,
+                        selectedLabelColor = Color.White,
+                        containerColor = BrandAmber.copy(alpha = 0.08f),
+                        labelColor = BrandAmber,
                     ),
                 )
             }
