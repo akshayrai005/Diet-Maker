@@ -301,9 +301,14 @@ export async function listCheckins(userId: string) {
     orderBy: { date: 'asc' },
   });
   return rows.map((r) => {
-    const m = r.measurementsEnc
-      ? decryptJson<{ weightKg: number; waistCm?: number }>(r.measurementsEnc)
-      : null;
+    let m: { weightKg: number; waistCm?: number } | null = null;
+    if (r.measurementsEnc) {
+      try {
+        m = decryptJson<{ weightKg: number; waistCm?: number }>(r.measurementsEnc);
+      } catch {
+        m = null;
+      }
+    }
     return {
       id: r.id,
       date: r.date,
@@ -372,11 +377,17 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
       }
     | undefined;
 
+  // One undecryptable historical row (corrupted data, a rotated/mismatched encryption key) must
+  // not take down the whole dashboard - skip that point instead of throwing.
   const weightPoints: WeightPoint[] = checkins
     .map((c) => {
       if (!c.measurementsEnc) return null;
-      const m = decryptJson<{ weightKg: number }>(c.measurementsEnc);
-      return { date: c.date.toISOString(), weightKg: m.weightKg };
+      try {
+        const m = decryptJson<{ weightKg: number }>(c.measurementsEnc);
+        return { date: c.date.toISOString(), weightKg: m.weightKg };
+      } catch {
+        return null;
+      }
     })
     .filter((p): p is WeightPoint => p !== null);
 
