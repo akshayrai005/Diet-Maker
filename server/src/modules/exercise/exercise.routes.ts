@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
 import { prisma } from '../../lib/prisma';
@@ -227,6 +228,30 @@ exerciseRouter.delete(
   asyncHandler(async (req: AuthedRequest, res) => {
     await logSvc.deleteExercise(req.user!.id, req.params.id!);
     res.status(204).end();
+  }),
+);
+
+// ---- Daily step sync (Health Connect / Google Fit) ----
+// Steps were shown on the dashboard from a fresh device read every time but never persisted
+// server-side, so nothing (like real-activity detection for TDEE) could see step history. The
+// app upserts today's count here whenever it successfully reads Health Connect.
+const stepsSyncSchema = z.object({
+  date: z.string().date(),
+  steps: z.number().int().min(0).max(200_000),
+});
+
+exerciseRouter.post(
+  '/activity/steps',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const body = stepsSyncSchema.parse(req.body);
+    const date = new Date(`${body.date}T00:00:00Z`);
+    const row = await prisma.dailySteps.upsert({
+      where: { userId_date: { userId: req.user!.id, date } },
+      create: { userId: req.user!.id, date, steps: body.steps },
+      update: { steps: body.steps },
+    });
+    res.status(201).json({ date: body.date, steps: row.steps });
   }),
 );
 

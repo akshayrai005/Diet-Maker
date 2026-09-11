@@ -64,7 +64,14 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
   const sessionSamples: ExerciseSessionSample[] = recentSessions.map((s) => ({
     dayKey: s.performedAt.toISOString().slice(0, 10),
   }));
-  const activityDetection = detectActivityLevel(reportedActivityLevel, sessionSamples, WINDOW_DAYS);
+  // Real step history (see DailySteps) matters just as much as gym sessions - someone whose real
+  // movement is daily walking rather than structured workouts deserves the same fair credit.
+  const recentSteps = await prisma.dailySteps.findMany({
+    where: { userId, date: { gte: windowStart } },
+    select: { steps: true },
+  });
+  const avgDailySteps = recentSteps.length > 0 ? recentSteps.reduce((s, r) => s + r.steps, 0) / recentSteps.length : undefined;
+  const activityDetection = detectActivityLevel(reportedActivityLevel, sessionSamples, WINDOW_DAYS, avgDailySteps);
 
   let result = computeCalcResult({
     heightCm: profile.heightCm,

@@ -47,6 +47,36 @@ describe('detectActivityLevel', () => {
     expect(gymGoer.effectiveLevel).not.toBe(nonExerciser.effectiveLevel);
     expect(nonExerciser.effectiveLevel).toBe('sedentary');
   });
+
+  it('the office-worker-with-steps scenario: no gym sessions logged, but real step history alone bumps the tier', () => {
+    // 0 sessions, but averaging 11,000 steps/day -> "active" tier by steps alone.
+    const r = detectActivityLevel('sedentary', [], 28, 11_000);
+    expect(r.sessionsPerWeek).toBe(0);
+    expect(r.inferredLevel).toBe('active');
+    expect(r.inferredFrom).toBe('steps');
+    expect(r.higherThanReported).toBe(true);
+    expect(r.effectiveLevel).toBe('active');
+  });
+
+  it('takes the HIGHER of sessions-based and steps-based tiers, not an average', () => {
+    // 5 sessions/week -> "active" by sessions; only 4,000 avg steps -> "sedentary" by steps.
+    const sessions = Array.from({ length: 20 }, (_, i) => ({ dayKey: `d${i}` }));
+    const r = detectActivityLevel('sedentary', sessions, 28, 4_000);
+    expect(r.inferredLevel).toBe('active');
+    expect(r.inferredFrom).toBe('sessions');
+  });
+
+  it('credits a high-step, no-gym-session person the same as a gym-goer at an equivalent tier', () => {
+    const stepsOnly = detectActivityLevel('sedentary', [], 28, 11_000);
+    const sessionsOnly = detectActivityLevel('sedentary', Array.from({ length: 16 }, (_, i) => ({ dayKey: `d${i}` })), 28);
+    expect(stepsOnly.effectiveLevel).toBe(sessionsOnly.effectiveLevel);
+  });
+
+  it('with no step history at all, behaves exactly as before (sessions-only)', () => {
+    const r = detectActivityLevel('sedentary', [], 28);
+    expect(r.avgDailySteps).toBeUndefined();
+    expect(r.inferredFrom).toBe('sessions');
+  });
 });
 
 describe('tdeeDeltaForLevelChange', () => {

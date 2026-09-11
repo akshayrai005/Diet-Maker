@@ -60,6 +60,7 @@ model User {
   checkins      WeeklyCheckin[]
   familyMembers FamilyMember[]
   exerciseLogs     ExerciseLog[]
+  dailySteps       DailySteps[]
   periodLogs       PeriodLog[]
   chatMessages     ChatMessage[]
   savedFoods       SavedFood[]
@@ -314,6 +315,27 @@ model ExerciseLog {
   @@index([userId, exerciseName])
   @@index([userId, sessionId])
   @@map("exercise_logs")
+}
+
+/// Daily step-count total synced from the device's Health Connect / Google Fit, one row per
+/// user per local calendar day. Never existed before - steps were shown on the dashboard from a
+/// fresh device read each time but never persisted, so nothing server-side (like real-activity
+/// detection) could see historical step patterns. Upserted by the app whenever it successfully
+/// reads today's step count.
+model DailySteps {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Local calendar day this count is for (midnight UTC of that local date - same convention as
+  /// other local-day fields in this schema).
+  date      DateTime
+  steps     Int
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_steps")
 }
 
 /// A completed mind-&-body session (yoga flow, meditation or breathing). Powers the
