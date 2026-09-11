@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -124,7 +125,25 @@ fun LogScreen(
     val scope = rememberCoroutineScope()
     var pendingQty by remember { mutableStateOf<PendingQty?>(null) }
     var showCustom by remember { mutableStateOf(false) }
+    var showBarcode by remember { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    if (showBarcode) {
+        Column(modifier.fillMaxSize()) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                IconButton(onClick = { showBarcode = false }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Text("📷 Scan Barcode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            com.nutriai.ui.barcode.BarcodeScreen(Modifier.fillMaxSize())
+        }
+        return
+    }
 
     LaunchedEffect(Unit) { viewModel.onSlot(autoSlotByTime()) }
 
@@ -196,10 +215,7 @@ fun LogScreen(
                     shape = Sharp,
                     colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.15f)),
                     border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.3f)),
-                    modifier = Modifier.size(48.dp).clickable {
-                        // Navigate to barcode screen via the More tab's barcode route
-                        // For now, trigger snap as barcode needs navigation context
-                    },
+                    modifier = Modifier.size(48.dp).clickable { showBarcode = true },
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan barcode", tint = BrandAmber, modifier = Modifier.size(24.dp))
