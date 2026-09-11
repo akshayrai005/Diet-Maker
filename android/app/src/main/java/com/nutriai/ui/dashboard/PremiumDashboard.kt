@@ -349,22 +349,23 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CalorieRing(consumed = consumed, target = target, progress = pct)
-                Column(Modifier.weight(1f).padding(start = Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    QuickStat("🏋️", "Body Need (TDEE)", "%,d".format(bodyNeed), "kcal", KaizenCoral)
-                    QuickStat("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", if (burned > 0) "%,d".format(burned) else "—", "kcal", BrandAmber)
-                    QuickStat("🎯", "Target (eat)", if (hasTarget) "%,d".format(target) else "—", "kcal", NutritionColor)
-                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CalorieMathChip("🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
-                CalorieMathChip("⏳", "Remaining", "%,d".format(remaining), MovementColor)
-                CalorieMathChip(
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                CalorieTableRow("🏋️", "Body Need (TDEE)", bodyNeed, KaizenCoral)
+                CalorieTableRow("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", burned, BrandAmber)
+                CalorieTableRow("🎯", "Target (eat)", if (hasTarget) target else null, NutritionColor)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                CalorieTableRow("🍽️", "Eaten", consumed, NutritionColor)
+                CalorieTableRow("⏳", "Remaining", remaining, MovementColor)
+                CalorieTableRow(
                     if (deficit > 0) "📉" else "📈",
                     if (deficit > 0) "Deficit" else "Surplus",
-                    "%,d".format(kotlin.math.abs(deficit)),
+                    kotlin.math.abs(deficit),
                     if (deficit > 0) BrandGreen else KaizenCoral,
                 )
             }
@@ -372,25 +373,22 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
     }
 }
 
+/** One row of the calorie table: label left, big bold value + unit right. */
 @Composable
-private fun CalorieMathChip(emoji: String, label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(emoji, fontSize = 14.sp)
-        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun QuickStat(emoji: String, label: String, value: String, unit: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(emoji, fontSize = 16.sp)
-        Column {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
-                if (unit.isNotEmpty()) Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun CalorieTableRow(emoji: String, label: String, value: Int?, color: Color) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(emoji, fontSize = 18.sp)
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                value?.let { "%,d".format(it) } ?: "—",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = color,
+            )
+            Text("kcal", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 3.dp))
         }
     }
 }
