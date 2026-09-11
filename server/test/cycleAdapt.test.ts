@@ -36,4 +36,13 @@ describe('adaptWorkoutToCycle', () => {
   it('is a no-op with no logged periods', () => {
     expect(adaptWorkoutToCycle(plan, [])).toBe(plan);
   });
+
+  it('a period day that was labelled "Today" keeps a label starting with "Today" - the Android app matches this by prefix, not equality, so it must never rename it to something else entirely', () => {
+    const todayPlan: WeeklyWorkout = {
+      ...plan,
+      days: [{ ...plan.days[0]!, label: 'Today' }],
+    };
+    const out = adaptWorkoutToCycle(todayPlan, [new Date('2026-06-01T12:00:00Z')], 5);
+    expect(out.days[0]!.label?.startsWith('Today')).toBe(true);
+  });
 });
