@@ -64,7 +64,6 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
     val state by viewModel.state.collectAsStateWithLifecycle()
     val plan = state.plan
     val tomorrow = LocalDate.now().plusDays(1).toString()
-    val dayAfterTomorrow = LocalDate.now().plusDays(2).toString()
 
     var showAddFood by remember { mutableStateOf(false) }
     var showAddExercise by remember { mutableStateOf(false) }
@@ -85,11 +84,10 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             )
         }
 
-        // Day switch — forward planning only (tomorrow / day after), not a week-long review.
+        // Forward planning only - tomorrow, not a week-long review.
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("📅 Tomorrow") })
-                FilterChip(selected = plan.date == dayAfterTomorrow, onClick = { viewModel.switchTo(dayAfterTomorrow) }, label = { Text("📆 Day after") })
+                FilterChip(selected = true, onClick = {}, label = { Text("📅 Tomorrow") })
                 FilterChip(selected = plan.isFast, onClick = { viewModel.toggleFast() }, label = { Text(if (plan.isFast) "🚫 Fasting" else "Mark fasting") })
             }
         }
@@ -230,40 +228,6 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
             }
         }
 
-        // AI review
-        item {
-            Card(
-                shape = Sharp,
-                elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = if (!state.reviewing) Modifier.clickable { viewModel.requestReview() } else Modifier,
-            ) {
-                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(
-                        if (state.reviewing) "🤖 Coach is reviewing…" else "🤖 Tap for Coach Review",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    if (state.reviewing) {
-                        CircularProgressIndicator(Modifier.heightIn(max = 18.dp), strokeWidth = 2.dp, color = KaizenBlue)
-                    }
-                }
-            }
-        }
-        if (plan.aiReview.isNotBlank()) {
-            item {
-                Card(
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text("💬 Coach Review", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Text(plan.aiReview, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-        }
     }
 }
 
