@@ -46,6 +46,7 @@ export interface ChatReply {
     | 'coach_suggest'
     | 'coach_exercise'
     | 'coach_mind'
+    | 'coach_alternative'
     | 'fallback'
     | 'llm';
   reply: string;
@@ -179,6 +180,71 @@ function slotFromMessage(msg: string): MealSlot | undefined {
   return undefined;
 }
 
+/** Food named after an "alternative to / instead of / substitute for / swap X" style phrase. */
+function extractAlternativeTarget(msg: string): string | undefined {
+  const patterns = [
+    /alternative\s*(?:of|to|for)\s+([a-z\s]+?)(?:\s+i want|\s+with|\s+that|\??$)/i,
+    /substitute\s*(?:of|to|for)\s+([a-z\s]+?)(?:\s+i want|\s+with|\s+that|\??$)/i,
+    /(?:instead of|other than|replace)\s+([a-z\s]+?)(?:\s+i want|\s+with|\s+that|\??$)/i,
+    /swap\s+([a-z\s]+?)\s+for/i,
+  ];
+  for (const p of patterns) {
+    const m = msg.match(p);
+    if (m?.[1]) return m[1].trim();
+  }
+  return undefined;
+}
+
+/** An explicit "30g protein" / "30 grams of protein" target the user named. */
+function extractTargetProteinG(msg: string): number | undefined {
+  const m = msg.match(/(\d+)\s*g(?:ram)?s?\s*(?:of\s*)?protein/i);
+  return m?.[1] ? Number(m[1]) : undefined;
+}
+
+/**
+ * "Alternative to paneer, very less quantity but 30g protein" - real computed swaps from the
+ * actual food DB (protein-per-gram ranked), not a guess. Honours an explicit protein target
+ * ("30g protein") by reporting exactly how many grams of each candidate hits it, and prefers
+ * foods matching the user's diet type when known.
+ */
+function coachAlternativeReply(ctx: ChatContext, msg: string): string | null {
+  const foods = ctx.foods;
+  if (!foods || foods.length === 0) return null;
+  const target = extractAlternativeTarget(msg);
+  if (!target) return null;
+  const targetFood = ctx.findFood(target);
+
+  const targetProteinG = extractTargetProteinG(msg);
+  const wantsLowQty = /\b(less|small|low|minimal|little)\s*(quantity|amount|portion|grams?)\b/i.test(msg);
+
+  const dietOk = (f: FoodItem): boolean => {
+    if (!ctx.dietType) return true;
+    if (ctx.dietType === 'vegan') return f.category === 'vegan';
+    if (ctx.dietType === 'vegetarian' || ctx.dietType === 'eggetarian') return f.category !== 'nonveg';
+    return true;
+  };
+
+  const candidates = foods
+    .filter((f) => f.proteinG > 0 && f.id !== targetFood?.id && dietOk(f))
+    .filter((f) => (targetFood ? f.name.toLowerCase() !== targetFood.name.toLowerCase() : true))
+    .sort((a, b) => b.proteinG / Math.max(1, b.kcal) - a.proteinG / Math.max(1, a.kcal))
+    .slice(0, 4);
+
+  if (candidates.length === 0) return null;
+
+  const proteinGoal = targetProteinG ?? targetFood?.proteinG ?? 25;
+  const lines = candidates.map((f) => {
+    const gramsNeeded = Math.round((proteinGoal / f.proteinG) * 100);
+    const kcalAtThatAmount = Math.round((f.kcal / 100) * gramsNeeded);
+    return `• ${f.name} — ~${gramsNeeded} g gives ${proteinGoal} g protein (${kcalAtThatAmount} kcal)`;
+  });
+
+  const lead = targetFood
+    ? `Higher-protein-density alternatives to ${targetFood.name}${wantsLowQty ? ' (smaller quantity, same protein)' : ''}:`
+    : `Alternatives to "${target}" ranked by protein per calorie:`;
+  return `${lead}\n${lines.join('\n')}`;
+}
+
 /** True for "suggest me a food" style questions (vs "can I eat X" which is a safety check). */
 function isSuggestQuestion(msg: string): boolean {
   return (
@@ -297,6 +363,14 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
       reply: withDisclaimer(`Hello${name}! Ask me about food ("can I eat mango?"), your targets ("how much protein?"), training ("what should I do today?"), or a body goal ("I want bigger arms").`),
       sources: [],
     };
+  }
+
+  // "Alternative to paneer, less quantity but 30g protein" - real computed swaps from the food DB.
+  // Before the generic protein/calorie keyword catch-all below, which would otherwise steal this
+  // and answer with a flat "your daily target is X" reply that ignores the actual question.
+  if (ctx.foods && extractAlternativeTarget(msg)) {
+    const r = coachAlternativeReply(ctx, msg);
+    if (r) return { intent: 'coach_alternative', reply: withDisclaimer(r), sources: [] };
   }
 
   // "What should I eat (now / for breakfast / for my iron / something cheap / no-cook)" — ranked,

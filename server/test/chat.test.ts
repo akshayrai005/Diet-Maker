@@ -32,6 +32,16 @@ describe('chat engine', () => {
     expect(r.sources).toContain('paneer');
   });
 
+  it('answers a food-alternative question with real computed swaps, not the generic target reply', () => {
+    const r = answer('alternative of paneer I want very less quantity but 30gram protein', ctx({ foods: SEED_FOODS }));
+    expect(r.intent).toBe('coach_alternative');
+    // Must NOT be the generic "your daily targets are..." fallback.
+    expect(r.reply).not.toContain('daily targets are about');
+    expect(r.reply).toContain('30 g protein');
+    // Chicken breast has far higher protein-per-kcal than paneer, so it should show up.
+    expect(r.reply.toLowerCase()).toContain('chicken');
+  });
+
   it('warns a diabetic about a high-sugar food', () => {
     const r = answer('can I eat banana?', ctx({ conditions: ['diabetes'] }));
     expect(r.intent).toBe('food_safety');

@@ -144,7 +144,7 @@ export async function chat(userId: string, message: string, firstName?: string, 
   // Intents that are grounded in server-computed data — always prefer these over the LLM.
   const DATA_INTENTS = new Set<ChatReply['intent']>([
     'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits', 'coach_plan',
-    'coach_suggest', 'coach_exercise', 'coach_mind',
+    'coach_suggest', 'coach_exercise', 'coach_mind', 'coach_alternative',
     'food_safety', 'targets', 'water', 'weight_pace',
   ]);
 
