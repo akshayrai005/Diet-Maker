@@ -1049,39 +1049,60 @@ private fun trimKg(v: Double): String = if (v == v.toLong().toDouble()) v.toLong
 private fun firstInt(reps: String): Int? = Regex("\\d+").find(reps)?.value?.toIntOrNull()
 
 @Composable
+/** Muscle-group emoji for a workout day's focus text (e.g. "Chest", "Back & Biceps", "Legs & Abs"). */
+private fun focusEmoji(focus: String): String {
+    val f = focus.lowercase()
+    return when {
+        "chest" in f -> "💥"
+        "back" in f -> "🔙"
+        "shoulder" in f -> "🎯"
+        "bicep" in f || "tricep" in f || "arm" in f -> "💪"
+        "leg" in f || "quad" in f || "hamstring" in f || "calf" in f -> "🦵"
+        "glute" in f -> "🍑"
+        "core" in f || "ab" in f -> "🧱"
+        "cardio" in f || "hiit" in f || "condition" in f -> "🏃"
+        "mobility" in f || "stretch" in f || "yoga" in f -> "🧘"
+        "full" in f || "push" in f || "pull" in f -> "🔥"
+        else -> "🏋️"
+    }
+}
+
+private val WeekdayAbbrev = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+@Composable
 private fun WeekStrip(days: List<WorkoutDay>, selectedIndex: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         days.take(7).forEachIndexed { i, d ->
             val rest = d.rest
             val selected = i == selectedIndex
-            Card(
-                modifier = Modifier.weight(1f).clickable { onSelect(i) },
-                shape = Sharp,
-                colors = CardDefaults.cardColors(
-                    containerColor = if (selected) MoveAccent
-                    else if (rest) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    else MoveAccent.copy(alpha = 0.1f),
-                ),
-                elevation = CardDefaults.cardElevation(if (selected) 3.dp else 0.dp),
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(Sharp)
+                    .background(
+                        when {
+                            selected -> MoveAccent
+                            rest -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            else -> MoveAccent.copy(alpha = 0.1f)
+                        },
+                    )
+                    .clickable { onSelect(i) }
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        if (rest) "💤" else "🏋️",
-                        fontSize = 12.sp,
-                    )
-                    Text(
-                        d.label?.take(3) ?: "D${d.dayIndex + 1}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        maxLines = 1,
-                        fontSize = 10.sp,
-                    )
-                }
+                Text(
+                    if (rest) "💤" else focusEmoji(d.focus),
+                    fontSize = 13.sp,
+                )
+                Text(
+                    WeekdayAbbrev.getOrElse(i) { "D${d.dayIndex + 1}" },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    fontSize = 10.sp,
+                )
             }
         }
     }
