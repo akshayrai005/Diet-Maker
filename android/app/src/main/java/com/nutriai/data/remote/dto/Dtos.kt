@@ -231,6 +231,13 @@ data class StrengthTrend(
 @Serializable
 data class StrengthTrendEnvelope(val trends: List<StrengthTrend> = emptyList())
 
+// ---- Daily step sync (Health Connect -> server, powers real-activity detection) ----
+@Serializable
+data class StepsSyncRequest(val date: String, val steps: Int)
+
+@Serializable
+data class StepsSyncResponse(val date: String = "", val steps: Int = 0)
+
 // ---- Workout logging (performed sets) ----
 @Serializable
 data class ExerciseLogRequest(

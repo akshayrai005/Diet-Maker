@@ -25,6 +25,7 @@ data class DashboardState(
     val heartRate: Int? = null,
     val sleepHours: Double? = null,
     val manualHeartRate: Int? = null,
+    val bloodPressure: Pair<Int, Int>? = null,
     val stress: Int? = null,
     val soreness: Int? = null,
     val safetyFlags: List<com.nutriai.data.remote.dto.Flag> = emptyList(),
@@ -79,9 +80,12 @@ class DashboardViewModel @Inject constructor(
             val available = healthConnect.isAvailable()
             val perm = if (available) healthConnect.hasStepPermission() else false
             val steps = if (perm) healthConnect.readTodaySteps() else 0L
-            // Watch vitals (heart rate + sleep) - null unless a band/watch syncs them to Health Connect.
+            // Watch vitals (heart rate + sleep + BP) - null unless a band/watch syncs them to
+            // Health Connect. Note: Health Connect has no "stress score" data type, so that stat
+            // stays manual self-entry (see vitalsStore below) - no watch can push it here.
             val hr = if (available) healthConnect.readLatestHeartRate() else null
             val sleep = if (available) healthConnect.readLastSleepHours() else null
+            val bp = if (available) healthConnect.readLatestBloodPressure() else null
             _state.value = _state.value.copy(
                 steps = steps,
                 stepsKcal = (steps * 0.04).toInt(), // ~0.04 kcal/step
@@ -89,7 +93,15 @@ class DashboardViewModel @Inject constructor(
                 stepsPermission = perm,
                 heartRate = hr,
                 sleepHours = sleep,
+                bloodPressure = bp,
             )
+            // Best-effort: persist today's step count server-side so real-activity detection
+            // (TDEE) has history to work from, not just a fresh device read every time. Silently
+            // ignored on failure - this must never block the dashboard from loading.
+            if (perm && steps > 0) {
+                val today = java.time.LocalDate.now().toString()
+                repository.syncSteps(today, steps.toInt())
+            }
             // Re-run the risk engine WITH device sleep + today's hydration so poor-sleep /
             // low-hydration signals appear alongside the profile-based ones. Only send hydration
             // in the afternoon+ - being "behind" on water first thing in the morning is normal,

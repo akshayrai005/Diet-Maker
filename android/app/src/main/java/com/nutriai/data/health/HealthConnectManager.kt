@@ -3,6 +3,7 @@ package com.nutriai.data.health
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -29,9 +30,10 @@ class HealthConnectManager @Inject constructor(
     private val stepPermissions = setOf(HealthPermission.getReadPermission(StepsRecord::class))
     private val heartPermissions = setOf(HealthPermission.getReadPermission(HeartRateRecord::class))
     private val sleepPermissions = setOf(HealthPermission.getReadPermission(SleepSessionRecord::class))
+    private val bpPermissions = setOf(HealthPermission.getReadPermission(BloodPressureRecord::class))
 
-    /** All permissions requested at once so one grant covers steps, heart rate and sleep. */
-    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions
+    /** All permissions requested at once so one grant covers steps, heart rate, sleep and BP. */
+    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -142,6 +144,28 @@ class HealthConnectManager @Inject constructor(
             val latest = resp.records.maxByOrNull { it.endTime } ?: return null
             val minutes = Duration.between(latest.startTime, latest.endTime).toMinutes()
             if (minutes <= 0) null else Math.round(minutes / 6.0) / 10.0
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Most recent blood-pressure reading (systolic/diastolic mmHg) in the last 24h, if the
+     * watch's own app (e.g. Fastrack) writes BloodPressureRecord to Health Connect. Note: Health
+     * Connect has no standard "stress score" data type - stress stays proprietary to each watch's
+     * own app and can't be read here, which is why this app's stress field is manual self-entry.
+     */
+    suspend fun readLatestBloodPressure(): Pair<Int, Int>? {
+        val client = clientOrNull() ?: return null
+        if (!granted(bpPermissions)) return null
+        return try {
+            val end = Instant.now()
+            val start = end.minus(Duration.ofHours(24))
+            val resp = client.readRecords(
+                ReadRecordsRequest(BloodPressureRecord::class, TimeRangeFilter.between(start, end)),
+            )
+            val latest = resp.records.maxByOrNull { it.time } ?: return null
+            latest.systolic.inMillimetersOfMercury.toInt() to latest.diastolic.inMillimetersOfMercury.toInt()
         } catch (e: Exception) {
             null
         }

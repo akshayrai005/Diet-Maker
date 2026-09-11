@@ -264,6 +264,7 @@ private fun DashboardTab(
             HealthPermission.getReadPermission(StepsRecord::class),
             HealthPermission.getReadPermission(HeartRateRecord::class),
             HealthPermission.getReadPermission(SleepSessionRecord::class),
+            HealthPermission.getReadPermission(androidx.health.connect.client.records.BloodPressureRecord::class),
         )
     }
     val stepLauncher = rememberLauncherForActivityResult(
@@ -271,6 +272,19 @@ private fun DashboardTab(
     ) { viewModel.loadSteps() }
 
     LaunchedEffect(Unit) { viewModel.refresh(); viewModel.loadSteps() }
+
+    // Proactively ask for Health Connect (steps/HR/sleep/BP) once, the same way the notification
+    // permission is asked on first launch - instead of waiting for the user to find "Connect" and
+    // tap it themselves. Only asks once ever (a "no" or a dismiss both count) so it never nags.
+    LaunchedEffect(state.stepsAvailable) {
+        if (!state.stepsAvailable) return@LaunchedEffect
+        val prefs = context.getSharedPreferences("kaizen_prefs", android.content.Context.MODE_PRIVATE)
+        val alreadyAsked = prefs.getBoolean("health_connect_asked", false)
+        if (!alreadyAsked && !state.stepsPermission) {
+            prefs.edit().putBoolean("health_connect_asked", true).apply()
+            runCatching { stepLauncher.launch(stepPerms) }
+        }
+    }
 
     if (showDelete) {
         AlertDialog(
@@ -303,6 +317,7 @@ private fun DashboardTab(
             heartRate = state.heartRate,
             sleepHours = state.sleepHours,
             manualHeartRate = state.manualHeartRate,
+            bloodPressure = state.bloodPressure,
             stress = state.stress,
             onSaveVitals = { hr, s, sore -> viewModel.saveManualVitals(hr, s, sore) },
             soreness = state.soreness,

@@ -38,8 +38,8 @@ import com.nutriai.data.remote.dto.RatingResult
 fun AnalysisCard(rating: RatingResult?, coach: CoachBrief?, modifier: Modifier = Modifier) {
     Card(
         modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {

@@ -100,6 +100,7 @@ fun PremiumDashboard(
     heartRate: Int? = null,
     sleepHours: Double? = null,
     manualHeartRate: Int? = null,
+    bloodPressure: Pair<Int, Int>? = null,
     stress: Int? = null,
     onSaveVitals: (Int?, Int?, Int?) -> Unit = { _, _, _ -> },
     soreness: Int? = null,
@@ -236,7 +237,7 @@ fun PremiumDashboard(
         // Vitals (above Insight)
         item {
             Column(sectionPadding) {
-                VitalsRow(heartRate = heartRate, manualHeartRate = manualHeartRate, sleepHours = sleepHours, onEdit = { editingVitals = true })
+                VitalsRow(heartRate = heartRate, manualHeartRate = manualHeartRate, sleepHours = sleepHours, bloodPressure = bloodPressure, onEdit = { editingVitals = true })
             }
         }
 
@@ -818,7 +819,7 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
 }
 
 @Composable
-private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double?, onEdit: () -> Unit) {
+private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double?, bloodPressure: Pair<Int, Int>? = null, onEdit: () -> Unit) {
     val hr = heartRate ?: manualHeartRate
     Card(
         Modifier.fillMaxWidth(),
@@ -829,7 +830,13 @@ private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(
                 title = "❤️ Heart rate",
-                subtitle = when { hr != null && sleepHours != null -> "$hr bpm · ${sleepHours}h sleep"; hr != null -> "$hr bpm"; sleepHours != null -> "${sleepHours}h sleep"; else -> "No data yet" },
+                subtitle = buildString {
+                    val parts = mutableListOf<String>()
+                    if (hr != null) parts.add("$hr bpm")
+                    if (sleepHours != null) parts.add("${sleepHours}h sleep")
+                    if (bloodPressure != null) parts.add("BP ${bloodPressure.first}/${bloodPressure.second}")
+                    append(if (parts.isEmpty()) "No data yet" else parts.joinToString(" · "))
+                },
                 leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.15f)) },
                 trailing = { TextAction(text = "Edit →", onClick = onEdit) },
                 onClick = onEdit,

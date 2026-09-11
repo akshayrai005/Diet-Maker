@@ -416,6 +416,10 @@ class AppRepository @Inject constructor(
     suspend fun deleteExerciseLog(id: String): Result<Unit> =
         runCatching { api.deleteExerciseLog(id) }
 
+    /** Best-effort sync of today's Health Connect step count, so real-activity detection has history to work from. */
+    suspend fun syncSteps(date: String, steps: Int): Result<Unit> =
+        runCatching { api.syncSteps(com.nutriai.data.remote.dto.StepsSyncRequest(date, steps)) }.map {}
+
     /** Estimated 1-rep-max over time, per exercise (from logged weighted sets). */
     suspend fun strengthTrend(): Result<List<com.nutriai.data.remote.dto.StrengthTrend>> =
         runCatching { api.strengthTrend().trends }
