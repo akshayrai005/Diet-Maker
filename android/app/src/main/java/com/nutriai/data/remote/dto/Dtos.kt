@@ -223,6 +223,12 @@ data class ExerciseLogRequest(
     val performedAt: String? = null,
     /** Groups this entry with others logged in the same mixed workout session. */
     val sessionId: String? = null,
+    /** Treadmill/walk-run speed in km/h - sharpens the calorie estimate. */
+    val speedKmh: Double? = null,
+    /** Treadmill incline as a percent grade (e.g. 8 = 8%). */
+    val inclinePct: Double? = null,
+    /** Distance covered in km. */
+    val distanceKm: Double? = null,
 )
 
 @Serializable
@@ -239,6 +245,9 @@ data class ExerciseLogDto(
     val notes: String? = null,
     /** Groups this entry with others logged in the same mixed workout session (null for older logs). */
     val sessionId: String? = null,
+    val speedKmh: Double? = null,
+    val inclinePct: Double? = null,
+    val distanceKm: Double? = null,
 )
 
 @Serializable

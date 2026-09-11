@@ -266,6 +266,9 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                         durationMin = s.durationMin,
                         notes = s.note,
                         sessionId = sessionId,
+                        speedKmh = s.speedKmh,
+                        inclinePct = s.inclinePct,
+                        distanceKm = s.distanceKm,
                     ),
                 )
                 if (r.isSuccess) { ok++; kcal += r.getOrNull()?.kcal ?: 0 }
@@ -805,11 +808,21 @@ private fun isTimed(ex: ExerciseItem): Boolean =
 private fun isWeighted(ex: ExerciseItem): Boolean =
     !isTimed(ex) && ex.type == "strength" && ex.equipment != "bodyweight"
 
+/** Treadmill/walk/run/cycle - exercises where speed+incline+distance sharpen the calorie estimate. */
+private fun isSpeedBased(ex: ExerciseItem): Boolean =
+    Regex("""treadmill|walk|run|jog|hike|cycl|bike|spin""", RegexOption.IGNORE_CASE).containsMatchIn(ex.name)
+
+private fun isTreadmill(ex: ExerciseItem): Boolean =
+    Regex("""treadmill""", RegexOption.IGNORE_CASE).containsMatchIn(ex.name)
+
 data class LoggedSet(
     val weightKg: Double? = null,
     val reps: Int? = null,
     val durationMin: Int? = null,
     val note: String? = null,
+    val speedKmh: Double? = null,
+    val inclinePct: Double? = null,
+    val distanceKm: Double? = null,
 )
 
 private class SetRow(amount: String, weight: String) {
@@ -826,8 +839,12 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
     val defaultWeight = ns?.suggestedWeightKg?.let { trimKg(it) } ?: ""
     val singleBlock = timed && exercise.sets <= 1
     val defaultCount = if (singleBlock) 1 else (ns?.suggestedSets ?: exercise.sets).coerceIn(1, 10)
+    val speedBased = singleBlock && isSpeedBased(exercise)
 
     var addToPlan by remember { mutableStateOf(false) }
+    var speedKmh by remember(exercise.name) { mutableStateOf("") }
+    var inclinePct by remember(exercise.name) { mutableStateOf("") }
+    var distanceKm by remember(exercise.name) { mutableStateOf("") }
 
     val rows = remember(exercise.name) {
         mutableStateListOf<SetRow>().also { list ->
@@ -907,6 +924,52 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                         Text("+ Add set", color = MoveAccent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
                     }
                 }
+
+                // Speed/incline/distance - only for treadmill/walk/run/cycle, sharpens the calorie
+                // estimate instead of treating every pace the same (dynamic logging per exercise type).
+                if (speedBased) {
+                    val fieldColors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    )
+                    Text("🏃 Speed & terrain (optional, sharpens kcal estimate)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = speedKmh,
+                            onValueChange = { v -> speedKmh = v.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("km/h", style = MaterialTheme.typography.labelSmall) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = Sharp,
+                            colors = fieldColors,
+                        )
+                        if (isTreadmill(exercise)) {
+                            OutlinedTextField(
+                                value = inclinePct,
+                                onValueChange = { v -> inclinePct = v.filter { c -> c.isDigit() || c == '.' } },
+                                label = { Text("Incline %", style = MaterialTheme.typography.labelSmall) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                                shape = Sharp,
+                                colors = fieldColors,
+                            )
+                        }
+                        OutlinedTextField(
+                            value = distanceKm,
+                            onValueChange = { v -> distanceKm = v.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("Distance km", style = MaterialTheme.typography.labelSmall) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = Sharp,
+                            colors = fieldColors,
+                        )
+                    }
+                }
+
                 if (!timed) RestTimer(compact = true)
 
                 // Plan tomorrow option
@@ -927,7 +990,13 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                     val out = rows.mapNotNull { r ->
                         val n = r.amount.toIntOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
                         when {
-                            singleBlock -> LoggedSet(durationMin = n, note = "$n min")
+                            singleBlock -> LoggedSet(
+                                durationMin = n,
+                                note = "$n min",
+                                speedKmh = if (speedBased) speedKmh.toDoubleOrNull() else null,
+                                inclinePct = if (speedBased) inclinePct.toDoubleOrNull() else null,
+                                distanceKm = if (speedBased) distanceKm.toDoubleOrNull() else null,
+                            )
                             timed -> LoggedSet(durationMin = maxOf(1, Math.round(n / 60.0).toInt()), note = "${n}s")
                             else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n)
                         }
