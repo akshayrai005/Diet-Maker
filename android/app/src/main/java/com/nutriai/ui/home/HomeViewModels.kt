@@ -283,6 +283,12 @@ class ChatViewModel @Inject constructor(
     }
 
     fun clearRedFlag() { _state.value = _state.value.copy(redFlagMessage = null) }
+
+    /** Wipes the whole conversation - server-side too, so it stays cleared on next app open. */
+    fun clearChat() {
+        _state.value = _state.value.copy(messages = listOf(greeting))
+        viewModelScope.launch { repository.clearChatHistory() }
+    }
 }
 
 // ---- Food logging ----

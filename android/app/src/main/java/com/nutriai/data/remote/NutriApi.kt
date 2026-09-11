@@ -174,6 +174,9 @@ interface NutriApi {
     @GET("chat/history")
     suspend fun chatHistory(): com.nutriai.data.remote.dto.ChatHistoryEnvelope
 
+    @retrofit2.http.DELETE("chat/history")
+    suspend fun clearChatHistory()
+
     // ---- Saved / recent foods ----
     @POST("foods/saved")
     suspend fun saveFood(@Body body: com.nutriai.data.remote.dto.SavedFoodRequest): com.nutriai.data.remote.dto.SavedFoodEnvelope

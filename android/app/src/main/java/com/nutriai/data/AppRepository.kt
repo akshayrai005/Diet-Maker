@@ -240,6 +240,8 @@ class AppRepository @Inject constructor(
     suspend fun chatHistory(): Result<List<com.nutriai.data.remote.dto.ChatMessageDto>> =
         runCatching { api.chatHistory().messages }
 
+    suspend fun clearChatHistory(): Result<Unit> = runCatching { api.clearChatHistory() }
+
     // ---- Saved / recent foods ----
     suspend fun saveFood(body: com.nutriai.data.remote.dto.SavedFoodRequest): Result<Unit> =
         runCatching { api.saveFood(body); Unit }

@@ -2,6 +2,7 @@ package com.nutriai.ui.coach
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -82,14 +83,44 @@ fun CoachScreen(
         if (count > 0) listState.animateScrollToItem(count - 1)
     }
 
+    var showClearConfirm by remember { mutableStateOf(false) }
+    if (showClearConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear chat?") },
+            text = { Text("This deletes the whole conversation. It can't be undone.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { viewModel.clearChat(); showClearConfirm = false }) {
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { showClearConfirm = false }) { Text("Cancel") } },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = Spacing.screenHorizontal),
     ) {
-        Spacer(Modifier.height(16.dp))
-        CoachHeader()
         Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.SmartToy, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Kaizen Coach", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+            if (messages.isNotEmpty()) {
+                androidx.compose.material3.TextButton(onClick = { showClearConfirm = true }) {
+                    Text("Clear chat", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
 
         LazyColumn(
             modifier = Modifier
@@ -137,35 +168,7 @@ fun CoachScreen(
     }
 }
 
-@Composable
-private fun CoachHeader() {
-    Card(
-        shape = Sharp,
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Row(
-            Modifier.padding(Spacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Filled.SmartToy, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
-            Spacer(Modifier.width(14.dp))
-            Column {
-                Text(
-                    "🤖 Kaizen Coach",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    "💬 Your dietitian, in your pocket",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun ChatBubble(text: String, fromUser: Boolean) {
     val bubbleShape = if (fromUser) {
@@ -173,6 +176,9 @@ private fun ChatBubble(text: String, fromUser: Boolean) {
     } else {
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
     }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (fromUser) Arrangement.End else Arrangement.Start,
@@ -181,6 +187,14 @@ private fun ChatBubble(text: String, fromUser: Boolean) {
             .widthIn(max = if (fromUser) 300.dp else 320.dp)
             .clip(bubbleShape)
             .background(if (fromUser) BrandGreen else MaterialTheme.colorScheme.surfaceVariant)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = {
+                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(text))
+                    android.widget.Toast.makeText(context, "Copied", android.widget.Toast.LENGTH_SHORT).show()
+                },
+            )
         Box(modifier = bubbleMod) {
             val contentColor = if (fromUser) Color.White else MaterialTheme.colorScheme.onSurface
             if (fromUser) {
