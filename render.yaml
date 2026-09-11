@@ -22,7 +22,9 @@ services:
       - key: HEALTH_DATA_ENCRYPTION_KEY
         sync: false          # set in Render dashboard (32-byte base64)
       - key: AI_PROVIDER
-        value: rules
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false          # set in Render dashboard (free key from console.groq.com)
       - key: USDA_FDC_API_KEY
         sync: false
       - key: CORS_ORIGINS
