@@ -32,6 +32,18 @@ describe('chat engine', () => {
     expect(r.sources).toContain('paneer');
   });
 
+  it('the structured "Review my plan" prompt is never hijacked by the suggest/targets keyword intents', () => {
+    const prompt = 'Review my plan for 2026-09-11 like a supportive gym coach. My daily targets: 1900 kcal, 130g protein. ' +
+      'Planned food (total 0 kcal, 0g protein): none yet. Available workout time: 60 min. Planned exercises: none yet. ' +
+      'Sleep 23:00-07:00. Tell me if protein/calories are on target, suggest specific Indian food swaps to fix gaps, ' +
+      'and whether the workout looks right. Keep it short and friendly.';
+    const r = answer(prompt, ctx({ foods: SEED_FOODS }));
+    // Must not be hijacked into a generic food-suggestion or bare-targets reply that ignores the
+    // actual plan (this exact prompt used to come back as "For more protein, try: Roasted chana...").
+    expect(r.intent).not.toBe('coach_suggest');
+    expect(r.intent).not.toBe('targets');
+  });
+
   it('never suggests raw/dry foods as something to just eat (they need cooking first)', () => {
     const r = answer('what should I eat for more protein', ctx({ foods: SEED_FOODS, dietType: 'vegetarian' }));
     const lower = r.reply.toLowerCase();

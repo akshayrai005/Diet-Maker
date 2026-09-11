@@ -357,6 +357,20 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
   const name = ctx.firstName ? ` ${ctx.firstName}` : '';
   const coach = ctx.coach ?? null;
 
+  // The client's structured "Coach Review" prompt (PlanViewModel.requestReview()) starts with this
+  // exact phrase. It legitimately contains words like "suggest food swaps" and "target", which
+  // would otherwise get hijacked by the keyword-matched intents below (coach_suggest, targets,
+  // etc.) and answer a completely different, out-of-context question instead of reviewing the
+  // plan. Skip the rules engine entirely and go straight to the open-ended LLM path, which has
+  // the plan details already embedded in the message itself.
+  if (/^review my plan for/.test(msg)) {
+    return {
+      intent: 'fallback',
+      reply: withDisclaimer(`I can't do a full plan review without more setup right now${name} - check your calorie/protein progress on the dashboard, and your workout plan in the Move tab.`),
+      sources: [],
+    };
+  }
+
   if (/^(hi|hello|hey|namaste|good (morning|evening|afternoon))\b/.test(msg)) {
     return {
       intent: 'greeting',
