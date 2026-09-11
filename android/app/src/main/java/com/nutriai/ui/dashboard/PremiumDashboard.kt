@@ -296,7 +296,7 @@ private fun WhyTrustThisCard() {
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Why this plan, not a guarantee", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
@@ -629,7 +629,7 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
         elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = KaizenLavender.copy(alpha = 0.12f)),
+        colors = CardDefaults.cardColors(containerColor = CardLavenderLight),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -674,7 +674,7 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
                 Box(
                     Modifier.clip(RoundedCornerShape(4.dp)).background(KaizenCoral).padding(horizontal = Spacing.md, vertical = Spacing.xs),
                 ) {
-                    Text("${sorted.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("${sorted.size} alert${if (sorted.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
                 Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = KaizenCoral)
             }
@@ -733,7 +733,7 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
                 Box(
                     Modifier.clip(RoundedCornerShape(4.dp)).background(BrandAmber).padding(horizontal = Spacing.md, vertical = Spacing.xs),
                 ) {
-                    Text("${findings.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("${findings.size} finding${if (findings.size == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
                 Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = Color(0xFFE65100))
             }
