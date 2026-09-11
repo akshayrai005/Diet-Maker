@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adaptWorkoutToCycle } from '../src/modules/exercise/cycleAdapt';
+import { adaptWorkoutToCycle, GENTLE } from '../src/modules/exercise/cycleAdapt';
 import type { WeeklyWorkout } from '../src/modules/exercise/exercise.types';
 
 const day = (date: string, rest = false) => ({
@@ -35,6 +35,14 @@ describe('adaptWorkoutToCycle', () => {
 
   it('is a no-op with no logged periods', () => {
     expect(adaptWorkoutToCycle(plan, [])).toBe(plan);
+  });
+
+  it('clears the leftover core/cardio from the original (un-eased) day - a period day should only carry the gentle recovery moves, not gentle exercises PLUS the original intense core+cardio', () => {
+    const busyDay = { ...plan.days[0]!, core: [{ name: 'Plank', sets: 3, reps: '60s', type: 'strength' as const }], cardio: { name: 'HIIT conditioning', sets: 1, reps: '6 rounds', type: 'cardio' as const } };
+    const out = adaptWorkoutToCycle({ ...plan, days: [busyDay, plan.days[1]!, plan.days[2]!] }, [new Date('2026-06-01T12:00:00Z')], 5);
+    expect(out.days[0]!.core).toEqual([]);
+    expect(out.days[0]!.cardio).toBeUndefined();
+    expect(out.days[0]!.exercises).toEqual(GENTLE);
   });
 
   it('a period day that was labelled "Today" keeps a label starting with "Today" - the Android app matches this by prefix, not equality, so it must never rename it to something else entirely', () => {

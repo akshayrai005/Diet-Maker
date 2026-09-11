@@ -6,7 +6,7 @@ const DAY_MS = 86_400_000;
 const e = (name: string, sets: number, reps: string, type: ExerciseItem['type']): ExerciseItem => ({ name, sets, reps, type });
 
 /** Gentle recovery session used on period days (low-impact + restorative). */
-const GENTLE: ExerciseItem[] = [
+export const GENTLE: ExerciseItem[] = [
   e('Easy walk', 1, '20-30 min', 'cardio'),
   e('Cat-Cow', 2, '8 breaths', 'mobility'),
   e("Child's pose", 1, '2 min', 'mobility'),
@@ -43,11 +43,16 @@ export function adaptWorkoutToCycle(plan: WeeklyWorkout, periodStarts: Date[], p
     if (phase !== 'menstrual') return d;
     adapted = true;
     const base = d.label ? d.label.replace(/ · .*/, '') : undefined;
+    // Replace the WHOLE working session, not just `exercises` - leaving the original day's
+    // core/cardio in place would mix gentle recovery moves with that day's un-eased core+cardio
+    // work (and blow past the per-day exercise-count budget enrichDays already capped to).
     return {
       ...d,
       label: base ? `${base} · Period` : 'Period',
       focus: '🌸 Period - gentle recovery',
       exercises: GENTLE,
+      core: [],
+      cardio: undefined,
     };
   });
 
