@@ -170,6 +170,7 @@ data class MoveState(
     val loading: Boolean = true,
     val plan: WeeklyWorkout? = null,
     val levelSuggestion: com.nutriai.data.remote.dto.LevelSuggestion? = null,
+    val movementStage: com.nutriai.data.remote.dto.MovementStageInfo? = null,
     val error: String? = null,
     val toast: String? = null,
     val sessionKcal: Int = 0,
@@ -193,7 +194,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             val r = repository.exercisePlanFull()
             _state.value = if (r.isSuccess) {
                 val env = r.getOrNull()
-                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, error = null)
+                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, movementStage = env?.movementStage, error = null)
             } else {
                 _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
             }
@@ -450,6 +451,37 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
         state.error?.let { err ->
             item { EmptyState(title = err, emoji = "🏋️") }
+        }
+
+        // Mobility staging - why the plan is diet-first / light-movement instead of standard.
+        state.movementStage?.takeIf { it.stage != "full" }?.let { ms ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text(if (ms.stage == "diet_first") "🍽️" else "🚶", fontSize = 16.sp)
+                            Text(
+                                if (ms.stage == "diet_first") "Diet-first phase" else "Light-movement phase",
+                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Text(ms.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ms.resumeAroundWeightKg?.let {
+                            Text(
+                                "We'll ease in more movement as you approach ~${it.toInt()} kg.",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MoveAccent,
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // Level suggestion

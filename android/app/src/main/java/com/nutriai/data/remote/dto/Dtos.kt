@@ -189,7 +189,16 @@ data class WeeklyWorkout(
 data class LevelSuggestion(val direction: String = "hold", val reason: String = "")
 
 @Serializable
-data class WorkoutEnvelope(val plan: WeeklyWorkout, val levelSuggestion: LevelSuggestion? = null)
+data class WorkoutEnvelope(val plan: WeeklyWorkout, val levelSuggestion: LevelSuggestion? = null, val movementStage: MovementStageInfo? = null)
+
+/** Why the plan is a staged diet-first/light-movement program instead of standard training. */
+@Serializable
+data class MovementStageInfo(
+    val stage: String = "full",
+    val bmi: Double = 0.0,
+    val reason: String = "",
+    val resumeAroundWeightKg: Double? = null,
+)
 
 // ---- Strength trend (estimated 1-rep-max over time, per exercise) ----
 @Serializable
