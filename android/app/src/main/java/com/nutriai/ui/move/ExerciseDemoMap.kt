@@ -247,6 +247,11 @@ object ExerciseDemoMap {
      * ("barbell bench press"). The threshold is conservative so we don't show an unrelated clip.
      */
     fun gifUrl(name: String): String? {
+        // Exact match: the ~1300 auto-generated catalog entries' names ARE dataset slugs
+        // (title-cased), so reversing that (lowercase + hyphenate) recovers the exact slug.
+        val slug = name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+        ExerciseDemoMapFull.exactSlugToId[slug]?.let { return BASE + it + ".gif" }
+
         ids[canon(name)]?.let { return BASE + it + ".gif" }
 
         val q = tokensOf(name)

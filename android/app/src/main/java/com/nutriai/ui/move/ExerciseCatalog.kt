@@ -55,8 +55,8 @@ object ExerciseCatalog {
     private fun yoga(name: String, muscle: String, reps: String = "60 s") =
         Entry(ExerciseItem(name = name, sets = 1, reps = reps, type = "flexibility", muscleGroup = muscle, equipment = "bodyweight"), Category.YOGA)
 
-    /** The full catalog, grouped by category (the pre-search order). */
-    val entries: List<Entry> = listOf(
+    /** Hand-picked, well-tuned core catalog (the pre-search order within its own entries). */
+    private val curated: List<Entry> = listOf(
         // ---- Chest ----
         strength("Barbell Bench Press", "pectorals", "barbell", Category.CHEST),
         strength("Incline Barbell Bench Press", "pectorals", "barbell", Category.CHEST),
@@ -243,6 +243,17 @@ object ExerciseCatalog {
         yoga("Sun Salutation", "spine", reps = "5 rounds"),
         yoga("Corpse Pose", "spine", reps = "5 min"),
     )
+
+    /**
+     * Full library: the hand-tuned [curated] set (kept first, with its better rep ranges) plus
+     * every remaining exercise from the ExerciseGymGifsDB demo dataset (~1300 GIFs) that isn't
+     * already covered - so the Library isn't capped at a small subset while the demo dataset has
+     * far more. Equipment/reps on the auto-added ones are inferred, not hand-tuned.
+     */
+    val entries: List<Entry> = run {
+        val seen = curated.mapTo(HashSet()) { it.item.name.lowercase() }
+        curated + ExerciseCatalogGifDb.entries.filter { seen.add(it.item.name.lowercase()) }
+    }
 
     /** Convenience: just the items (whole library) for callers that don't need the category. */
     val all: List<ExerciseItem> = entries.map { it.item }
