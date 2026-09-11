@@ -723,7 +723,7 @@ private fun <T> Dropdown(label: String, options: List<Pair<T, String>>, selected
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MultiChoiceChips(options: List<String>, selected: MutableList<String>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { opt ->
             val isSel = selected.contains(opt)
             FilterChip(
@@ -821,7 +821,7 @@ private fun PhysiqueOptionRow(label: String, desc: String, selected: Boolean, on
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PriorityMusclesChips(options: List<String>, selected: MutableList<String>, max: Int) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { opt ->
             val isSel = selected.contains(opt)
             val atLimit = selected.size >= max
@@ -847,7 +847,7 @@ private fun PriorityMusclesChips(options: List<String>, selected: MutableList<St
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimeframeChips(selectedWeeks: Int?, onSelect: (Int) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TIMEFRAMES.forEach { (months, label) ->
             val weeks = monthsToWeeks(months)
             val isSel = selectedWeeks == weeks
