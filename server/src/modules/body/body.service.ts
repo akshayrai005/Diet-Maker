@@ -8,6 +8,7 @@ import { HttpError } from '../../middleware/error';
 import type { Sex } from '../../calc/types';
 import type { SensitiveData } from '../profile/profile.schemas';
 import { navyBodyFatPct, waistHipRatio, bodyFatBand, type WhrResult } from './bodyComposition';
+import { projectMeasurement, type MeasurementKey as ProjectionKey, type MeasurementProjection, type TrendPoint } from './measurementProjection';
 
 const DISCLAIMER =
   'This is a rough estimate for motivation only - not a medical or DEXA measurement. Body composition is best tracked as a trend over time.';
@@ -272,4 +273,79 @@ export async function deletePhoto(userId: string, id: string) {
   const existing = await prisma.bodyPhoto.findFirst({ where: { id, userId } });
   if (!existing) throw new HttpError(404, 'Photo not found');
   await prisma.bodyPhoto.delete({ where: { id } });
+}
+
+// ======================================================================================
+// "Where could my body be in N months?" - see measurementProjection.ts for the honest,
+// non-fabricated methodology (trend-from-your-own-data first, heuristic-with-a-wide-range
+// fallback second, never a single confident number).
+// ======================================================================================
+
+const PROJECTION_DISCLAIMER =
+  'A rough estimate, not a guarantee - genetics, consistency and recovery all matter. Log measurements regularly and this gets more accurate (based on your own trend, not a generic formula).';
+
+const PROJECTABLE_KEYS: ProjectionKey[] = ['waistCm', 'hipCm', 'chestCm', 'armCm', 'thighCm', 'neckCm'];
+
+export interface BodyProjectionResult {
+  available: boolean;
+  reason?: string;
+  goal?: 'lose' | 'gain' | 'maintain';
+  weeklyWeightDeltaKg?: number;
+  measurements: MeasurementProjection[];
+  disclaimer: string;
+}
+
+export async function getBodyProjection(userId: string): Promise<BodyProjectionResult> {
+  const profile = await prisma.profile.findUnique({ where: { userId }, select: { goal: true, sensitiveEnc: true } });
+  const snapshot = await prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
+  if (!profile || !snapshot) {
+    return { available: false, reason: 'Complete your profile and run the calculator first.', measurements: [], disclaimer: PROJECTION_DISCLAIMER };
+  }
+  const result = snapshot.result as { safeWeeklyDeltaKg?: number };
+  const goal = (profile.goal as 'lose' | 'gain' | 'maintain') ?? 'maintain';
+  const magnitude = Math.abs(result.safeWeeklyDeltaKg ?? 0);
+  const weeklyWeightDeltaKg = goal === 'lose' ? -magnitude : goal === 'gain' ? magnitude : 0;
+
+  // Current baseline per body part: prefer the latest logged BodyMetric, else fall back to the
+  // onboarding waist/neck/hip (the only body-part values the profile itself carries).
+  const latestRow = await prisma.bodyMetric.findFirst({ where: { userId }, orderBy: { measuredAt: 'desc' } });
+  const latest = latestRow ? safeMeasure(latestRow.measurementsEnc) : {};
+  let sensitiveBaseline: Partial<Record<ProjectionKey, number>> = {};
+  if (profile.sensitiveEnc) {
+    try {
+      const s = decryptJson<SensitiveData & Partial<Record<ProjectionKey, number>>>(profile.sensitiveEnc);
+      sensitiveBaseline = { waistCm: s.waistCm, hipCm: s.hipCm, neckCm: s.neckCm };
+    } catch {
+      sensitiveBaseline = {};
+    }
+  }
+
+  // Full logged history (up to a year) for the trend path.
+  const historyRows = await prisma.bodyMetric.findMany({
+    where: { userId, measuredAt: { gte: new Date(Date.now() - 365 * 86_400_000) } },
+    orderBy: { measuredAt: 'asc' },
+  });
+  const now = Date.now();
+  const historyByKey = new Map<ProjectionKey, TrendPoint[]>();
+  for (const row of historyRows) {
+    const m = safeMeasure(row.measurementsEnc);
+    const daysAgo = Math.round((now - row.measuredAt.getTime()) / 86_400_000);
+    for (const key of PROJECTABLE_KEYS) {
+      const v = (m as Measurements)[key];
+      if (typeof v === 'number') {
+        const arr = historyByKey.get(key) ?? [];
+        arr.push({ daysAgo, valueCm: v });
+        historyByKey.set(key, arr);
+      }
+    }
+  }
+
+  const measurements: MeasurementProjection[] = [];
+  for (const key of PROJECTABLE_KEYS) {
+    const currentCm = (latest as Measurements)[key] ?? sensitiveBaseline[key];
+    if (typeof currentCm !== 'number') continue;
+    measurements.push(projectMeasurement(key, currentCm, weeklyWeightDeltaKg, historyByKey.get(key) ?? []));
+  }
+
+  return { available: true, goal, weeklyWeightDeltaKg, measurements, disclaimer: PROJECTION_DISCLAIMER };
 }

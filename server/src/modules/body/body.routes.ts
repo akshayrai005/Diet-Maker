@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { logBodyMetric, getBodyMetrics, deleteBodyMetric, addPhoto, listPhotos, deletePhoto } from './body.service';
+import { logBodyMetric, getBodyMetrics, deleteBodyMetric, addPhoto, listPhotos, deletePhoto, getBodyProjection } from './body.service';
 
 export const bodyRouter = Router();
 
@@ -67,6 +67,15 @@ bodyRouter.get(
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
     res.json({ photos: await listPhotos(req.user!.id) });
+  }),
+);
+
+/** "Where could my body be in 3/6/12 months?" - trend-based when logged, honest ranged estimate otherwise. */
+bodyRouter.get(
+  '/body/projection',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    res.json(await getBodyProjection(req.user!.id));
   }),
 );
 
