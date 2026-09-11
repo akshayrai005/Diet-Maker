@@ -93,6 +93,7 @@ fun PremiumDashboard(
     onDeleteAccount: () -> Unit,
     steps: Long = 0,
     stepsKcal: Int = 0,
+    exerciseKcal: Int = 0,
     stepsPermission: Boolean = true,
     stepsAvailable: Boolean = false,
     onConnectSteps: () -> Unit = {},
@@ -143,7 +144,7 @@ fun PremiumDashboard(
         // Calorie ring card
         item {
             Column(sectionPadding) {
-                CalorieSummaryCard(dashboard = d, steps = steps, stepsKcal = stepsKcal, stepsPermission = stepsPermission, maintenanceKcal = maintenanceKcal)
+                CalorieSummaryCard(dashboard = d, steps = steps, stepsKcal = stepsKcal, exerciseKcal = exerciseKcal, stepsPermission = stepsPermission, maintenanceKcal = maintenanceKcal)
             }
         }
 
@@ -327,13 +328,13 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int, stepsPermission: Boolean, maintenanceKcal: Double? = null) {
+private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int, exerciseKcal: Int = 0, stepsPermission: Boolean, maintenanceKcal: Double? = null) {
     val cal = dashboard.calories
     val hasTarget = cal.target != null && cal.target > 0
     val consumed = cal.consumed.toInt()
     val target = cal.target?.toInt() ?: 0
     val bodyNeed = maintenanceKcal?.toInt() ?: target
-    val burned = stepsKcal
+    val burned = stepsKcal + exerciseKcal
     val totalBudget = bodyNeed + burned
     val remaining = if (hasTarget) (target - consumed).coerceAtLeast(0) else 0
     val deficit = totalBudget - target
@@ -350,7 +351,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
                 CalorieRing(consumed = consumed, target = target, progress = pct)
                 Column(Modifier.weight(1f).padding(start = Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     QuickStat("🏋️", "Body Need (TDEE)", "%,d".format(bodyNeed), "kcal", KaizenCoral)
-                    QuickStat("🔥", "Burned (walk+exercise)", if (burned > 0) "%,d".format(burned) else "—", "kcal", BrandAmber)
+                    QuickStat("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", if (burned > 0) "%,d".format(burned) else "—", "kcal", BrandAmber)
                     QuickStat("🎯", "Target (eat)", if (hasTarget) "%,d".format(target) else "—", "kcal", NutritionColor)
                 }
             }

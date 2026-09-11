@@ -198,10 +198,15 @@ fun BarcodeScreen(
                         )
                     }
                     Text(
-                        "Point at a barcode",
+                        "📸 Hold still • good light • 15-20 cm from barcode",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = BrandGreen,
+                    )
+                    Text(
+                        "💡 Camera not scanning? Enter barcode number manually below",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -398,6 +403,11 @@ private fun CameraScanner(onBarcode: (String) -> Unit, modifier: Modifier = Modi
 
     AndroidView(
         modifier = modifier,
-        factory = { ctx -> PreviewView(ctx).apply { this.controller = controller } },
+        factory = { ctx ->
+            PreviewView(ctx).apply {
+                this.controller = controller
+                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            }
+        },
     )
 }

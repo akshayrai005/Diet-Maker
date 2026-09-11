@@ -19,6 +19,7 @@ data class DashboardState(
     val firstName: String? = null,
     val steps: Long = 0,
     val stepsKcal: Int = 0,
+    val exerciseKcal: Int = 0,
     val stepsAvailable: Boolean = false,
     val stepsPermission: Boolean = false,
     val heartRate: Int? = null,
@@ -148,6 +149,11 @@ class DashboardViewModel @Inject constructor(
             repository.exercisePlan().getOrNull()?.days?.firstOrNull { it.label == "Today" }?.let { day ->
                 _state.value = _state.value.copy(todayWorkout = day)
             }
+        }
+        // Exercise kcal burned today from the exercise log.
+        viewModelScope.launch {
+            val logs = repository.exerciseLogs(null).getOrDefault(emptyList())
+            _state.value = _state.value.copy(exerciseKcal = logs.sumOf { it.kcal ?: 0 })
         }
     }
 

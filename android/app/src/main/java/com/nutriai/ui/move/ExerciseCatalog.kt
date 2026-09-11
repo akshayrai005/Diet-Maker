@@ -123,6 +123,8 @@ object ExerciseCatalog {
         strength("Close Grip Bench Press", "triceps", "barbell", Category.ARMS),
         strength("Wrist Curl", "forearms", "dumbbell", Category.ARMS, reps = "15-20"),
         body("Bench Dips", "triceps", Category.ARMS, reps = "10-15"),
+        body("Resistance Band Curl", "biceps", Category.ARMS, reps = "12-15"),
+        body("Tricep Push-up", "triceps", Category.ARMS, reps = "8-12"),
 
         // ---- Legs ----
         strength("Barbell Back Squat", "quads", "barbell", Category.LEGS, reps = "6-10"),
@@ -143,6 +145,10 @@ object ExerciseCatalog {
         body("Jump Squat", "quads", Category.LEGS, reps = "12-15"),
         body("Wall Sit", "quads", Category.LEGS, reps = "45 s"),
         body("Calf Raise", "calves", Category.LEGS, reps = "15-25"),
+        body("Step-up", "quads", Category.LEGS, reps = "12-15"),
+        body("Reverse Lunge", "quads", Category.LEGS, reps = "10-12"),
+        body("Single Leg Squat (Pistol)", "quads", Category.LEGS, reps = "5-8"),
+        body("Lateral Lunge", "quads", Category.LEGS, reps = "10-12"),
 
         // ---- Glutes ----
         strength("Barbell Hip Thrust", "glutes", "barbell", Category.GLUTES, reps = "10-12"),
@@ -183,8 +189,10 @@ object ExerciseCatalog {
         core("Spiderman Plank", reps = "10-12"),
 
         // ---- Cardio ----
+        cardio("Treadmill Walk", reps = "20-40 min"),
         cardio("Treadmill Run", reps = "20-30 min"),
         cardio("Incline Treadmill Walk", reps = "20-30 min"),
+        cardio("Outdoor Walk", reps = "30-60 min"),
         cardio("Outdoor Running", reps = "20-40 min"),
         cardio("Brisk Walking", reps = "30-45 min"),
         cardio("Cycling", reps = "20-40 min"),
@@ -192,8 +200,10 @@ object ExerciseCatalog {
         cardio("Rowing Machine", reps = "15-20 min"),
         cardio("Elliptical", reps = "20-30 min"),
         cardio("Stair Climber", reps = "15-20 min"),
+        cardio("Stair Climbing (no machine)", reps = "15-30 min"),
         cardio("Jump Rope", reps = "10-15 min"),
         cardio("Swimming", reps = "20-30 min"),
+        cardio("Cross Trainer", reps = "20-30 min"),
 
         // ---- HIIT / conditioning ----
         hiit("Burpees", reps = "4 x 15"),
@@ -206,6 +216,8 @@ object ExerciseCatalog {
         hiit("Sled Push", reps = "6 x 20 s"),
         hiit("Thrusters", reps = "5 x 12"),
         hiit("Tabata Circuit", reps = "8 x 20 s"),
+        hiit("Bear Crawl", reps = "6 x 20 m"),
+        hiit("Shadow Boxing", reps = "6 x 2 min"),
 
         // ---- Mobility / stretching ----
         mobility("Cat-Cow Stretch", "spine"),

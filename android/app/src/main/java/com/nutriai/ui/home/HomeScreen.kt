@@ -297,6 +297,7 @@ private fun DashboardTab(
             onDeleteAccount = { showDelete = true },
             steps = state.steps,
             stepsKcal = state.stepsKcal,
+            exerciseKcal = state.exerciseKcal,
             stepsPermission = state.stepsPermission,
             stepsAvailable = state.stepsAvailable,
             heartRate = state.heartRate,

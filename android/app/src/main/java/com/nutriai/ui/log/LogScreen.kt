@@ -271,6 +271,9 @@ fun LogScreen(
             }
         }
 
+        // High-protein quick reference
+        item { HighProteinReference() }
+
         // Status message
         state.message?.let { msg ->
             item { MessageBanner(msg) }
@@ -317,6 +320,94 @@ fun LogScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// High-protein food quick reference — P/C/F per 100g, sorted by protein
+// ---------------------------------------------------------------------------
+
+private data class HighProteinFood(val name: String, val emoji: String, val p: Int, val c: Int, val f: Int, val kcal: Int)
+
+private val HIGH_PROTEIN_FOODS = listOf(
+    HighProteinFood("Chicken Breast",  "🍗", 31, 0,  4,  165),
+    HighProteinFood("Egg Whites",      "🥚", 11, 1,  0,   52),
+    HighProteinFood("Soya Chunks",     "💛", 52, 33, 1,  345),
+    HighProteinFood("Paneer",          "🧀", 18, 1, 21,  265),
+    HighProteinFood("Tofu",            "⬜", 17, 2,  9,  145),
+    HighProteinFood("Whey Protein",    "🥤", 80, 5,  4,  370),
+    HighProteinFood("Tuna (canned)",   "🐟", 30, 0,  1,  128),
+    HighProteinFood("Rohu Fish",       "🐠", 18, 0,  2,   97),
+    HighProteinFood("Eggs (whole)",    "🥚", 13, 1, 11,  155),
+    HighProteinFood("Greek Yogurt",    "🥛", 10, 4,  0,   59),
+    HighProteinFood("Moong Dal",       "🟡", 24, 59, 1,  347),
+    HighProteinFood("Lentils (cooked)","🟠", 9, 20,  0,  116),
+    HighProteinFood("Peanuts",         "🥜", 26, 16, 49, 567),
+    HighProteinFood("Almonds",         "🤎", 21, 22, 49, 579),
+    HighProteinFood("Cottage Cheese",  "🧀", 11, 3,  4,   98),
+    HighProteinFood("Milk (full fat)", "🥛", 3,  5,  4,   65),
+    HighProteinFood("Quinoa (cooked)", "🌾", 4, 22,  2,  120),
+    HighProteinFood("Oats",            "🥣", 17, 66, 7,  389),
+).sortedByDescending { it.p }
+
+@Composable
+private fun HighProteinReference() {
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+    ) {
+        Column(Modifier.padding(Spacing.md)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "💪 High Protein Foods",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NutritionColor,
+                )
+                Text(
+                    if (expanded) "▲ hide" else "▼ show",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!expanded) {
+                Text(
+                    "Tap to see P/C/F per 100g for common high-protein foods",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (expanded) {
+                Spacer(Modifier.height(Spacing.sm))
+                // Header row
+                Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
+                    Text("Food", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(2.2f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("P", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = NutritionColor)
+                    Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = BrandAmber)
+                    Text("F", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = KaizenCoral)
+                    Text("kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                HIGH_PROTEIN_FOODS.forEach { food ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${food.emoji} ${food.name}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(2.2f), maxLines = 1)
+                        Text("${food.p}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = NutritionColor)
+                        Text("${food.c}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = BrandAmber)
+                        Text("${food.f}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = KaizenCoral)
+                        Text("${food.kcal}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Text(
+                    "* per 100g • P = Protein • C = Carbs • F = Fat",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }
