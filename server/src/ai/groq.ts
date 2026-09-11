@@ -2,7 +2,10 @@ import { env } from '../lib/env';
 import { buildSystemPrompt, type AiChatContext, type AiProvider } from './provider';
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
+// llama-3.3-70b-versatile was retired from Groq's catalog; gpt-oss-120b is the current
+// closest equivalent (large, fast, free-tier available) - verify against
+// https://console.groq.com/docs/models if this ever 404s again.
+const MODEL = 'openai/gpt-oss-120b';
 const TIMEOUT_MS = 12_000;
 
 /**
