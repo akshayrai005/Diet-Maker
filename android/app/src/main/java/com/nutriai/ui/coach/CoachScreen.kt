@@ -178,16 +178,97 @@ private fun ChatBubble(text: String, fromUser: Boolean) {
         horizontalArrangement = if (fromUser) Arrangement.End else Arrangement.Start,
     ) {
         val bubbleMod = Modifier
-            .widthIn(max = 300.dp)
+            .widthIn(max = if (fromUser) 300.dp else 320.dp)
             .clip(bubbleShape)
             .background(if (fromUser) BrandGreen else MaterialTheme.colorScheme.surfaceVariant)
         Box(modifier = bubbleMod) {
-            Text(
-                text,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (fromUser) Color.White else MaterialTheme.colorScheme.onSurface,
-            )
+            val contentColor = if (fromUser) Color.White else MaterialTheme.colorScheme.onSurface
+            if (fromUser) {
+                Text(
+                    text,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                )
+            } else {
+                CoachMarkdownContent(text, contentColor, Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Minimal markdown for coach replies: **bold** spans, and a real 2-column
+// table (Exercise | Sets x Reps) for numbered exercise lists instead of the
+// raw "1. **Bench press** – 3 x 10-12" text the LLM outputs.
+// ---------------------------------------------------------------------------
+
+private val BOLD_RE = Regex("""\*\*(.+?)\*\*""")
+private val EXERCISE_LINE_RE = Regex("""^\d+\.\s*\*\*(.+?)\*\*\s*[–—-]\s*(.+)$""")
+
+private fun boldAnnotated(line: String): androidx.compose.ui.text.AnnotatedString =
+    androidx.compose.ui.text.buildAnnotatedString {
+        var last = 0
+        for (m in BOLD_RE.findAll(line)) {
+            append(line.substring(last, m.range.first))
+            val boldStart = length
+            append(m.groupValues[1])
+            addStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold), boldStart, length)
+            last = m.range.last + 1
+        }
+        append(line.substring(last))
+    }
+
+@Composable
+private fun CoachMarkdownContent(text: String, color: Color, modifier: Modifier = Modifier) {
+    val lines = text.split("\n")
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
+            val exerciseMatches = mutableListOf<Pair<String, String>>()
+            var j = i
+            while (j < lines.size) {
+                val m = EXERCISE_LINE_RE.find(lines[j]) ?: break
+                exerciseMatches.add(m.groupValues[1] to m.groupValues[2])
+                j++
+            }
+            if (exerciseMatches.isNotEmpty()) {
+                ExerciseTable(exerciseMatches, color)
+                i = j
+            } else {
+                if (line.isNotBlank()) {
+                    Text(boldAnnotated(line), style = MaterialTheme.typography.bodyMedium, color = color)
+                } else {
+                    Spacer(Modifier.height(4.dp))
+                }
+                i++
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseTable(rows: List<Pair<String, String>>, color: Color) {
+    Column(
+        Modifier
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.06f))
+            .fillMaxWidth(),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Text("Exercise", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color, modifier = Modifier.weight(1.4f))
+            Text("Sets × Reps", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color, modifier = Modifier.weight(1f))
+        }
+        rows.forEachIndexed { idx, (name, detail) ->
+            if (idx > 0) {
+                androidx.compose.material3.HorizontalDivider(color = color.copy(alpha = 0.12f))
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)) {
+                Text(name, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1.4f))
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = color.copy(alpha = 0.85f), modifier = Modifier.weight(1f))
+            }
         }
     }
 }
