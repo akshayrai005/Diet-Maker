@@ -37,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -1108,6 +1109,15 @@ private fun LogMeasurementsDialog(
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // Unfocused fields need a visible border/fill of their own - the default outline
+                // color is too low-contrast against this dialog's background, so every unfocused
+                // field looked like flat, unclickable background (only the focused one was visible).
+                val fieldColors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                )
                 BODY_METRICS.forEach { meta ->
                     OutlinedTextField(
                         value = values[meta.key] ?: "",
@@ -1115,6 +1125,7 @@ private fun LogMeasurementsDialog(
                         label = { Text("${emojiFor(meta.key)} ${meta.label} (${meta.unit})") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth().semantics { contentDescription = "${meta.label} in ${meta.unit}" },
                     )
                 }
@@ -1125,6 +1136,7 @@ private fun LogMeasurementsDialog(
                         label = { Text("📊 Body fat % (optional)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        colors = fieldColors,
                         modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Body fat percentage, optional" },
                     )
                 }
@@ -1133,6 +1145,7 @@ private fun LogMeasurementsDialog(
                     onValueChange = { dateText = it.take(10) },
                     label = { Text("📅 Date (YYYY-MM-DD)") },
                     singleLine = true,
+                    colors = fieldColors,
                     modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Measurement date" },
                 )
             }

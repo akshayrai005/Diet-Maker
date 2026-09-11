@@ -178,11 +178,27 @@ fun GroceryScreen(
                 }
             }
             if (grocery != null) {
+                val target = grocery.targetWeeklyKcal
                 Text(
-                    "${grocery.totalItems} items · ${"%,d".format(grocery.weeklyKcal)} kcal/week",
+                    if (target != null && target > 0) {
+                        "${grocery.totalItems} items · ${"%,d".format(grocery.weeklyKcal)} / ${"%,d".format(target)} kcal/week"
+                    } else {
+                        "${grocery.totalItems} items · ${"%,d".format(grocery.weeklyKcal)} kcal/week"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (target != null && target > 0) {
+                    val pct = (grocery.weeklyKcal.toDouble() / target * 100).toInt()
+                    if (pct < 90) {
+                        Text(
+                            "⚠️ This list covers ~$pct% of your weekly calorie target - some meals may rely on items you already have at home.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BrandAmber,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
             }
         }
 

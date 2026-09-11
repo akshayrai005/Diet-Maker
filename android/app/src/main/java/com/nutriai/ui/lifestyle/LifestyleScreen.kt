@@ -87,7 +87,7 @@ enum class EatingPattern(
         listOf(
             "Front-load protein: the 7:30 AM meal is the most important — never skip it.",
             "Carry the 10:30 snack in your bag the night before so you never miss it.",
-            "A slight surplus on non-fast days covers the Tuesday fast deficit.",
+            "A slight surplus on non-fast days covers the deficit on your fasting day (set in Profile).",
         ),
     ),
     HOME_ALL_DAY(
