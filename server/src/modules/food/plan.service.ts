@@ -1,16 +1,13 @@
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/error';
 import { requireCompleteProfile } from '../profile/profile.service';
-import { computeCalcResult } from '../nutrition/calcResult';
-import { ageFromDob } from '../nutrition/calc.service';
+import { computeAndSaveForUser } from '../nutrition/calc.service';
 import { generateWeekPlan, buildSwapMeal } from './planGenerator';
 import { eligibleFoods } from './foodFilter';
 import { localSunday, localToday } from '../../lib/tz';
 import { round } from '../../calc/anthropometry';
 import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets } from './food.types';
 import { SLOT_KCAL_WEIGHTS } from './food.types';
-import type { ActivityLevel, Goal } from '../../calc/types';
-import type { Condition } from '../../guardrails';
 import type { Food } from '@prisma/client';
 
 /**
@@ -57,20 +54,12 @@ export async function generateAndSavePlan(
 ) {
   const { profile, sensitive } = await requireCompleteProfile(userId);
 
-  const calc = computeCalcResult({
-    heightCm: profile.heightCm,
-    currentWeightKg: sensitive.currentWeightKg,
-    targetWeightKg: sensitive.targetWeightKg,
-    ageYears: ageFromDob(sensitive.dob),
-    sex: sensitive.sex,
-    activityLevel: profile.activityLevel as ActivityLevel,
-    goal: profile.goal as Goal,
-    waistCm: sensitive.waistCm,
-    conditions: sensitive.conditions as Condition[],
-    desiredWeeklyLossKg: sensitive.desiredWeeklyLossKg,
-    clinicianOverride: sensitive.clinicianOverride,
-    reducedMobility: profile.reducedMobility,
-  });
+  // Same authoritative calorie target the dashboard shows - goes through the activity-auto-detect
+  // and diet-ramp post-processing layers, not just the raw guardrailed calc. Computing this
+  // independently (as before) meant the diet plan could permanently undershoot the dashboard's
+  // displayed target by whatever those layers added, with no way for the user to reconcile it -
+  // even "Regenerate week" would reproduce the same lower number forever.
+  const calc = await computeAndSaveForUser(userId);
 
   const targets: PlanTargets = {
     dailyKcal: calc.dailyKcal,

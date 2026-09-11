@@ -250,6 +250,40 @@ function normaliseDayToTarget(meals: Meal[], dailyKcal: number): void {
   }
 }
 
+/**
+ * When uniform scaling (normaliseDayToTarget) still leaves the day meaningfully short - because
+ * items were already MAX_GRAMS-capped, common with high calorie targets, low-calorie-density
+ * dishes, or few meal slots (e.g. the 3-slot morning+night pattern) - adds ONE more food item to
+ * the largest meal to close most of the remaining gap, instead of silently underfeeding the day.
+ * Mutates `meals` in place. PURE besides that mutation (no I/O).
+ */
+function topUpDayToTarget(
+  meals: Meal[],
+  dailyKcal: number,
+  pool: FoodItem[],
+  dietType: string,
+  dayIndex: number,
+  usedToday: Set<string>,
+): void {
+  const currentKcal = meals.reduce((s, m) => s + m.kcal, 0);
+  const shortfall = dailyKcal - currentKcal;
+  if (shortfall < dailyKcal * 0.08) return; // close enough - not worth a whole extra item
+  const mainMeals = meals.filter((m) => MAIN_SLOTS.includes(m.slot) && m.items.length > 0);
+  const target = (mainMeals.length ? mainMeals : meals.filter((m) => m.items.length > 0)).reduce(
+    (best, m) => (best === undefined || m.kcal > best.kcal ? m : best),
+    undefined as Meal | undefined,
+  );
+  if (!target) return;
+  const candidates = candidatesForSlot(pool, target.slot, dietType).filter((f) => !usedToday.has(f.id));
+  const pick = candidates[0];
+  if (!pick) return;
+  const item = toItem(pick, gramsForKcal(pick, shortfall));
+  target.items.push(item);
+  usedToday.add(pick.id);
+  target.kcal = round(target.items.reduce((s, i) => s + i.kcal, 0), 0);
+  target.proteinG = round(target.items.reduce((s, i) => s + i.proteinG, 0), 1);
+}
+
 const LIGHT_TAGS = new Set(['fruit', 'beverage', 'light', 'probiotic', 'high-fiber']);
 
 function buildDay(
@@ -304,6 +338,12 @@ function buildDay(
   // which makes portions look unrealistically small. Nudge every item up (once) so the day lands
   // on its calorie target. Capped so no single serving blows past MAX_GRAMS.
   normaliseDayToTarget(meals, dailyKcal);
+
+  // Uniform scaling still can't close the gap when items were already MAX_GRAMS-capped at build
+  // time (common for high-calorie targets on low-calorie-density Indian dishes, or few meal slots
+  // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
+  // rather than silently leaving the day under target.
+  topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
 
   // Attach condition-friendliness scores per meal (diabetes/heart/gut/inflammation).
   const foodById = new Map(eligible.map((f) => [f.id, f]));

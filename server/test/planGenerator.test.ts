@@ -162,6 +162,17 @@ describe('generateWeekPlan', () => {
     expect(plan.days[0]!.meals.map((m) => m.slot)).toEqual(['lunch', 'eveningsnack', 'dinner']);
   });
 
+  it('a high calorie target on a FEW-slot pattern (morning+night, only 3 meals) still lands within ~10% of target - uniform scaling alone hits the 400g-per-item cap on low-density dishes and needs a top-up item to close the gap', () => {
+    for (const dailyKcal of [2200, 2478, 2800]) {
+      const plan = generateWeekPlan(SEED_FOODS, { ...targets, dailyKcal }, prefs(), { eatingPattern: 'morning_night' });
+      for (const day of plan.days) {
+        expect(day.meals.map((m) => m.slot)).toEqual(['breakfast', 'eveningsnack', 'dinner']);
+        const ratio = day.totals.kcal / dailyKcal;
+        expect(ratio, `dailyKcal=${dailyKcal} got=${day.totals.kcal}`).toBeGreaterThan(0.9);
+      }
+    }
+  });
+
   it('throws when nothing matches', () => {
     expect(() =>
       generateWeekPlan(SEED_FOODS, targets, prefs({ dietType: 'vegan', allergies: ['soy'], conditions: [] })),
