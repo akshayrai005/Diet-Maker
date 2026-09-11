@@ -8,6 +8,10 @@ object ExerciseDemoMap {
     const val BASE = "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/"
     private val stop = setOf("the", "a", "to", "of", "and", "on", "with", "up")
     private val ids: Map<String, String> = mapOf(
+        "ab rollout wheel" to "abs/barbell-standing-ab-rollerout",
+        "body hold hollow" to "abs/power-point-plank",
+        "arm chair controlled from if needed sit stand use" to "quads/smith-chair-squat",
+        "crusher skull" to "triceps/barbell-lying-triceps-extension-skull-crusher",
         "30s 90s conditioning e easy g hard hiit" to "cardio/burpee",
         "3s down push slow ups" to "pectorals/push-up",
         "abs crunch lower reverse" to "cardio/high-knee-against-wall",
