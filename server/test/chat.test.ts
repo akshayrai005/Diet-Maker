@@ -32,6 +32,13 @@ describe('chat engine', () => {
     expect(r.sources).toContain('paneer');
   });
 
+  it('never suggests raw/dry foods as something to just eat (they need cooking first)', () => {
+    const r = answer('what should I eat for more protein', ctx({ foods: SEED_FOODS, dietType: 'vegetarian' }));
+    const lower = r.reply.toLowerCase();
+    expect(lower).not.toContain('dry, uncooked');
+    expect(lower).not.toContain('raw, uncooked');
+  });
+
   it('answers a food-alternative question with real computed swaps, not the generic target reply', () => {
     const r = answer('alternative of paneer I want very less quantity but 30gram protein', ctx({ foods: SEED_FOODS }));
     expect(r.intent).toBe('coach_alternative');

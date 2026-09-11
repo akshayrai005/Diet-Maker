@@ -201,6 +201,10 @@ const rank: Record<SuitabilityVerdict, number> = { good: 0, moderate: 1, avoid: 
 export function rankSuitable(foods: FoodItem[], situation: FoodSituation, opts?: { slot?: MealSlot; limit?: number }): (Verdict & { food: FoodItem })[] {
   const slot = opts?.slot ?? situation.slot;
   const scored = foods
+    // Raw/dry entries (e.g. "Rajma (dry, uncooked)") exist so logging can distinguish raw vs
+    // cooked quantities - they need cooking first and must never be suggested as something to
+    // just eat 100g of right now. Only ready-to-eat states are offered as suggestions.
+    .filter((food) => food.state !== 'raw' && food.state !== 'dry')
     .map((food) => ({ food, ...assessFoodSuitability(food, { ...situation, slot }) }))
     .filter((v) => v.verdict !== 'avoid');
   scored.sort((a, b) => {
@@ -224,6 +228,7 @@ function toFoodItem(f: {
   mealSlots: string[]; kcal: number; proteinG: number; carbG: number; fatG: number;
   fiberG: number; sugarG: number; sodiumMg: number; glycemicIndex: number | null;
   typicalServingG: number; costTier: number; tags: string[]; allergens: string[]; prep?: string | null;
+  state?: string | null;
 }): FoodItem {
   return {
     id: f.id, name: f.name, locale: f.locale, region: f.region ?? undefined,
@@ -232,6 +237,7 @@ function toFoodItem(f: {
     sugarG: f.sugarG, sodiumMg: f.sodiumMg, glycemicIndex: f.glycemicIndex ?? undefined,
     typicalServingG: f.typicalServingG, costTier: (f.costTier as 1 | 2 | 3) ?? 2,
     tags: f.tags, allergens: f.allergens, prep: (f.prep as PrepLevel) ?? 'stove',
+    state: (f.state as FoodItem['state']) ?? 'as_is',
   };
 }
 

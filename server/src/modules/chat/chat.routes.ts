@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { chat, chatHistory } from './chat.service';
+import { chat, chatHistory, clearChatHistory } from './chat.service';
 import { getAdaptation, defaultReminders } from './adaptive.service';
 import { getMe } from '../auth/auth.service';
 import { generateAndSavePlan } from '../food/plan.service';
@@ -29,6 +29,15 @@ chatRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const messages = await chatHistory(req.user!.id);
     res.json({ messages });
+  }),
+);
+
+chatRouter.delete(
+  '/chat/history',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    await clearChatHistory(req.user!.id);
+    res.status(204).end();
   }),
 );
 

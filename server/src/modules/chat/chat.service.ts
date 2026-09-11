@@ -37,6 +37,7 @@ function toFoodItem(f: {
     typicalServingG: f.typicalServingG, costTier: (f.costTier as 1 | 2 | 3) ?? 2,
     tags: f.tags, allergens: f.allergens,
     prep: ((f as { prep?: string }).prep as FoodItem['prep']) ?? 'stove',
+    state: ((f as { state?: string }).state as FoodItem['state']) ?? 'as_is',
   };
 }
 
@@ -77,6 +78,11 @@ export async function chatHistory(userId: string, take = 40) {
     take,
   });
   return rows.reverse().map((m) => ({ id: m.id, role: m.role, content: decryptChatContent(m.content), createdAt: m.createdAt }));
+}
+
+/** Clears the whole conversation - the coach starts fresh next message (no memory of it). */
+export async function clearChatHistory(userId: string): Promise<void> {
+  await prisma.chatMessage.deleteMany({ where: { userId } });
 }
 
 export async function chat(userId: string, message: string, firstName?: string, offsetMin = 0): Promise<ChatReply> {
