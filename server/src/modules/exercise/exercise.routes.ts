@@ -12,6 +12,7 @@ import { exerciseLogSchema } from './exerciseLog.schemas';
 import * as logSvc from './exerciseLog.service';
 import { adaptWorkoutToCycle } from './cycleAdapt';
 import { recommendNextSession, suggestLevelChange, type LoggedSet } from './overload';
+import { rampFor } from './rampUp';
 import { ageFromDob } from '../nutrition/calc.service';
 import { strengthTrend } from './strength';
 
@@ -110,6 +111,28 @@ exerciseRouter.get(
                 }
               : ex;
           }),
+        })),
+      };
+    }
+
+    // New-to-training ramp-up (see rampUp.ts): ease volume in over the first 4 weeks instead of
+    // full intensity from day one, for anyone who's new to the gym or didn't say otherwise.
+    const accountAgeDays = Math.floor((Date.now() - profile.createdAt.getTime()) / 86_400_000);
+    const ramp = rampFor(s.gymMembershipMonths, accountAgeDays);
+    if (ramp) {
+      const soften = (ex: typeof plan.days[number]['exercises'][number]) => ({
+        ...ex,
+        sets: Math.max(1, Math.round(ex.sets * ramp.factor)),
+      });
+      plan = {
+        ...plan,
+        note: [plan.note, `🌱 New here - easing you in (week ${ramp.week}/4). Full intensity from week 4 as your body adapts.`]
+          .filter(Boolean)
+          .join(' '),
+        days: plan.days.map((day) => ({
+          ...day,
+          exercises: day.exercises.map(soften),
+          core: (day.core ?? []).map(soften),
         })),
       };
     }
