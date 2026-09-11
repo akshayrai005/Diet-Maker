@@ -166,6 +166,13 @@ model Food {
   allergens       String[]
   /// Kitchen access needed: none | kettle | microwave | stove. Drives PG / no-cook planning.
   prep            String   @default("stove")
+  /// Nutrition-relevant preparation state the per-100g values above are measured in:
+  /// raw | cooked | dry | prepared | as_is. "as_is" = state doesn't materially change the
+  /// nutrition profile (e.g. paneer, eggs, whey). Never mix raw/cooked quantities silently.
+  state           String   @default("as_is")
+  /// Links a raw entry to its cooked counterpart (or vice versa) so the UI can offer
+  /// "switch to cooked/raw" for the same underlying food. Null when no counterpart is seeded.
+  stateOfId       String?
   source          String   @default("seed")
   createdAt       DateTime @default(now())
 
@@ -265,10 +272,14 @@ model ExerciseLog {
   durationMin  Int? // for cardio / timed work
   kcal         Int? // estimated calories burned (server-computed, MET-based)
   notes        String?
+  /// Groups entries logged in one mixed workout (treadmill + bench press + stretching, say)
+  /// into a single session. Client-generated (UUID); null for older/standalone logs.
+  sessionId    String?
   createdAt    DateTime @default(now())
 
   @@index([userId, performedAt])
   @@index([userId, exerciseName])
+  @@index([userId, sessionId])
   @@map("exercise_logs")
 }
 

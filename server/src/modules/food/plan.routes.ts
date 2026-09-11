@@ -68,6 +68,32 @@ planRouter.get(
 );
 
 /**
+ * High-protein reference list: real DB foods ranked by protein, for the "High Protein"
+ * planning tab. Every row carries per-100g macros + fiber + state (raw/cooked/dry/prepared)
+ * so the client can sort/filter without duplicating nutrition data.
+ */
+planRouter.get(
+  '/foods/high-protein',
+  asyncHandler(async (_req, res) => {
+    const rows = await prisma.food.findMany({
+      where: { proteinG: { gte: 6 } },
+      orderBy: { proteinG: 'desc' },
+      take: 80,
+    });
+    const foods = rows.map((f) => {
+      const p = portionInfoFor({ name: f.name, tags: f.tags, category: f.category, typicalServingG: f.typicalServingG });
+      return {
+        ...f,
+        portionUnit: p.portionUnit,
+        unitGrams: p.unitGrams,
+        proteinPer100Kcal: f.kcal > 0 ? Math.round((f.proteinG / f.kcal) * 1000) / 10 : 0,
+      };
+    });
+    res.json({ foods });
+  }),
+);
+
+/**
  * Combined food search: local seed foods first, then USDA FoodData Central (when
  * USDA_FDC_API_KEY is set). Every item carries full per-100g macros so it can be logged
  * without a local DB row (USDA foods have no row).

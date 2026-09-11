@@ -27,6 +27,7 @@ export async function logExercise(userId: string, body: ExerciseLogBody) {
       durationMin: body.durationMin ?? null,
       kcal,
       notes: body.notes ?? null,
+      sessionId: body.sessionId ?? null,
     },
   });
 }

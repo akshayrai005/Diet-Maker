@@ -34,6 +34,8 @@ async function main() {
         tags: f.tags,
         allergens: f.allergens,
         prep: inferPrep(f),
+        state: f.state ?? 'as_is',
+        stateOfId: f.stateOfId ?? null,
         source: 'seed',
       },
       create: {
@@ -57,6 +59,8 @@ async function main() {
         tags: f.tags,
         allergens: f.allergens,
         prep: inferPrep(f),
+        state: f.state ?? 'as_is',
+        stateOfId: f.stateOfId ?? null,
         source: 'seed',
       },
     });

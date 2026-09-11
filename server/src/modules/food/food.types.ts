@@ -8,6 +8,14 @@ export type PrepLevel = 'none' | 'kettle' | 'microwave' | 'stove';
 export const PREP_LEVELS: PrepLevel[] = ['none', 'kettle', 'microwave', 'stove'];
 export const PREP_RANK: Record<PrepLevel, number> = { none: 0, kettle: 1, microwave: 2, stove: 3 };
 
+/**
+ * Nutrition-relevant preparation state the per-100g values are measured in. "as_is" = the
+ * state doesn't materially change the nutrition profile (paneer, eggs, whey). Raw and cooked
+ * quantities of the same food must never be treated as interchangeable — a 100g raw rice entry
+ * and a 100g cooked rice entry carry very different calories for the same "100g".
+ */
+export type FoodState = 'raw' | 'cooked' | 'dry' | 'prepared' | 'as_is';
+
 export type MealSlot =
   | 'wakeup'
   | 'breakfast'
@@ -63,6 +71,10 @@ export interface FoodItem {
   allergens: string[];
   /** Kitchen access this food needs (assemble-only → stove). Defaults to 'stove' when unknown. */
   prep?: PrepLevel;
+  /** Preparation state the values above are measured in. Defaults to 'as_is' when unset. */
+  state?: FoodState;
+  /** id of this food's raw/cooked counterpart, when one is seeded (e.g. 'rice-raw' <-> 'white-rice'). */
+  stateOfId?: string;
 }
 
 export interface PlanTargets {
