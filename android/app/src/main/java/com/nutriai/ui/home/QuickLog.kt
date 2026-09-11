@@ -67,6 +67,8 @@ private val COMBOS = listOf(
 
 data class QuickLogState(
     val recents: List<FoodLogEntry> = emptyList(),
+    /** Most recently performed exercises (name to last set) - tap to instantly repeat that set. */
+    val exerciseRecents: List<Pair<String, com.nutriai.data.remote.dto.LastPerformance>> = emptyList(),
     val toast: String? = null,
 )
 
@@ -96,6 +98,14 @@ class QuickLogViewModel @Inject constructor(private val repository: AppRepositor
             // Most recent first, de-duplicated by food name, capped at 5 for one-tap re-logging.
             val recent = entries.asReversed().distinctBy { it.foodName.lowercase() }.take(5)
             _state.value = _state.value.copy(recents = recent)
+        }
+        viewModelScope.launch {
+            val last = repository.lastPerformance().getOrDefault(emptyMap())
+            val recent = last.entries
+                .sortedByDescending { it.value.performedAt ?: "" }
+                .take(5)
+                .map { it.key to it.value }
+            _state.value = _state.value.copy(exerciseRecents = recent)
         }
     }
 
@@ -136,6 +146,22 @@ class QuickLogViewModel @Inject constructor(private val repository: AppRepositor
                 method = "quicklog",
             )
             _state.value = _state.value.copy(toast = if (r.isSuccess) "Logged ${entry.foodName} again ✅" else "Couldn't log - try again")
+            if (r.isSuccess) loadRecents()
+        }
+    }
+
+    /** Repeats the last-logged set for an exercise (same weight/reps) in one tap - no dialog. */
+    fun logExerciseRecent(name: String, perf: com.nutriai.data.remote.dto.LastPerformance) {
+        viewModelScope.launch {
+            val r = repository.logExercise(
+                com.nutriai.data.remote.dto.ExerciseLogRequest(
+                    exerciseName = name,
+                    weightKg = perf.weightKg,
+                    reps = perf.reps,
+                    sets = if (perf.reps != null) 1 else null,
+                ),
+            )
+            _state.value = _state.value.copy(toast = if (r.isSuccess) "Logged $name 🏋️" else "Couldn't log - try again")
             if (r.isSuccess) loadRecents()
         }
     }
@@ -190,6 +216,17 @@ fun QuickLogSheet(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 QuickActionCard("💧", "Log water", "+1 glass (250ml)", Modifier.weight(1f)) { viewModel.logWater() }
                 QuickActionCard("⏭️", "Skipped meal", "Mark this meal skipped", Modifier.weight(1f)) { viewModel.markSkipped() }
+            }
+
+            if (state.exerciseRecents.isNotEmpty()) {
+                Text("🏋️ Quick workout - repeat last set", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                state.exerciseRecents.forEach { (name, perf) ->
+                    val subtitle = listOfNotNull(
+                        perf.weightKg?.let { "${if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()}kg" },
+                        perf.reps?.let { "${it} reps" },
+                    ).joinToString(" × ").ifBlank { "last set" }
+                    QuickRow("🔁", name, subtitle) { viewModel.logExerciseRecent(name, perf) }
+                }
             }
 
             if (state.recents.isNotEmpty()) {
