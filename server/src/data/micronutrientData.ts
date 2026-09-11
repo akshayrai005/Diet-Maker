@@ -111,4 +111,9 @@ export const MICRONUTRIENTS_PER_100G: Record<string, Partial<Micronutrients>> = 
   'oats-raw': { ironMg: 4.7, magnesiumMg: 177, potassiumMg: 429, zincMg: 4.0, phosphorusMg: 523, manganeseMg: 4.9, vitaminB1Mg: 0.76 },
   'soya-chunks-dry': { ironMg: 15.7, folateMcg: 365, magnesiumMg: 290, potassiumMg: 2384, zincMg: 4.8, phosphorusMg: 674, calciumMg: 240 },
   'soya-chunks-cooked': { ironMg: 5.0, folateMcg: 120, magnesiumMg: 95, potassiumMg: 780, zincMg: 1.6, phosphorusMg: 220, calciumMg: 80 },
+
+  // ---- cooking fats ----
+  'cooking-oil': { vitaminEMg: 15, vitaminKMcg: 5 },
+  ghee: { vitaminAMcg: 254, vitaminEMg: 2.8, vitaminDMcg: 1.8 },
+  butter: { vitaminAMcg: 684, vitaminEMg: 2.3, vitaminDMcg: 1.5, calciumMg: 24 },
 };

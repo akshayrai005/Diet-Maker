@@ -55,6 +55,7 @@ model User {
   auditLogs     AuditLog[]
   dietPlans     DietPlan[]
   foodLogs      FoodLog[]
+  userRecipes   UserRecipe[]
   waterLogs     WaterLog[]
   checkins      WeeklyCheckin[]
   familyMembers FamilyMember[]
@@ -217,6 +218,32 @@ model DietPlan {
 
   @@index([userId])
   @@map("diet_plans")
+}
+
+/// A user-created homemade recipe (e.g. "Paneer Bhurji" - paneer + onion + tomato + oil). Nutrition
+/// is computed once from its ingredients at save time (each resolved against Food.per100g, same
+/// nutrition path as everything else) and stored as the TOTAL for the whole batch, so logging
+/// "I ate 40%" or "I ate 150g" can scale it precisely without recomputing ingredient-by-ingredient.
+model UserRecipe {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  /// [{ foodId: string, name: string, grams: number }] - what went into the batch (oil/ghee/butter
+  /// are just Food rows like anything else, so they're never silently excluded from the totals).
+  ingredients Json
+  totalGrams  Float
+  kcal        Float
+  proteinG    Float
+  carbG       Float
+  fatG        Float
+  fiberG      Float
+  sugarG      Float    @default(0)
+  sodiumMg    Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("user_recipes")
 }
 
 /// A logged food entry. Nutrition is snapshotted so history stays stable if a Food changes.

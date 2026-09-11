@@ -20,6 +20,7 @@ import { cycleRouter } from './modules/cycle/cycle.routes';
 import { wellnessRouter } from './modules/wellness/wellness.routes';
 import { visionRouter } from './modules/vision/vision.routes';
 import { recipeRouter } from './modules/recipe/recipe.routes';
+import { userRecipeRouter } from './modules/recipe/userRecipe.routes';
 import { savedFoodRouter } from './modules/food/savedFood.routes';
 import { riskRouter } from './modules/risk/risk.routes';
 import { ratingRouter } from './modules/rating/rating.routes';
@@ -88,6 +89,7 @@ export function createApp(): Express {
   api.use('/', wellnessRouter);
   api.use('/', visionRouter);
   api.use('/', recipeRouter);
+  api.use('/', userRecipeRouter);
   api.use('/', savedFoodRouter);
   api.use('/', riskRouter);
   api.use('/', ratingRouter);
