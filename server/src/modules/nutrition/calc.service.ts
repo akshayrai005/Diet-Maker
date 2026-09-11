@@ -5,6 +5,7 @@ import { physiqueNutrition, type PhysiqueGoal } from '../exercise/physique';
 import { goalTimeline } from '../../calc/goalTimeline';
 import type { ActivityLevel, Goal } from '../../calc/types';
 import type { Condition } from '../../guardrails';
+import { dietRampFor, applyDietRamp } from './dietRamp';
 
 /** Whole years between dob and now. */
 export function ageFromDob(dobISO: string, now: Date = new Date()): number {
@@ -49,7 +50,7 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     }
   }
 
-  const result = computeCalcResult({
+  let result = computeCalcResult({
     heightCm: profile.heightCm,
     currentWeightKg: sensitive.currentWeightKg,
     targetWeightKg: sensitive.targetWeightKg,
@@ -64,6 +65,32 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     reducedMobility: profile.reducedMobility,
     climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,
   });
+
+  // New-to-dieting ease-in (see dietRamp.ts): someone who just started tracking got thrown
+  // straight into the full computed deficit/surplus from day one. Blend toward maintenance for
+  // the first 2 weeks - the ramped target always sits between TDEE and the original safe target,
+  // so it can never be MORE restrictive than what computeCalcResult already cleared.
+  const gymMonths = (sensitive as { gymMembershipMonths?: number }).gymMembershipMonths;
+  const gymJoinIso = (sensitive as { gymJoinDate?: string }).gymJoinDate;
+  const startedAt = gymJoinIso ? Date.parse(gymJoinIso) : NaN;
+  const daysSinceStart = Number.isNaN(startedAt)
+    ? Math.floor((Date.now() - profile.createdAt.getTime()) / 86_400_000)
+    : Math.max(0, Math.floor((Date.now() - startedAt) / 86_400_000));
+  const ramp = dietRampFor(gymMonths, daysSinceStart);
+  if (ramp && effectiveGoal !== 'maintain') {
+    result = applyDietRamp(result, ramp);
+    result = {
+      ...result,
+      flags: [
+        ...result.flags,
+        {
+          code: 'DIET_RAMP',
+          severity: 'info',
+          message: `New here - easing your calorie target in (week ${ramp.week}/2). Full target from week 2 as you build the tracking habit.`,
+        },
+      ],
+    };
+  }
 
   await prisma.calcResultSnapshot.create({
     data: { userId, result: result as unknown as object },
