@@ -247,6 +247,11 @@ class AppRepository @Inject constructor(
         api.foodsSearch(if (q.isBlank()) null else q).foods
     }
 
+    /** Real high-protein foods from the food DB, ranked by protein - powers the High Protein tab. */
+    suspend fun highProteinFoods(): Result<List<com.nutriai.data.remote.dto.FoodDto>> = runCatching {
+        api.highProteinFoods().foods
+    }
+
     suspend fun logFood(slot: String, foodId: String, grams: Double): Result<Unit> = runCatching {
         api.logFood(FoodLogRequest(mealSlot = slot, grams = grams, foodId = foodId))
     }

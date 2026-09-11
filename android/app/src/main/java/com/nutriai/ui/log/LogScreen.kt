@@ -88,11 +88,15 @@ import com.nutriai.ui.theme.CardLavenderLight
 import com.nutriai.ui.components.EmojiBadge
 
 import com.nutriai.util.ImageUtil
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.rememberCoroutineScope
 import java.util.Calendar
+import javax.inject.Inject
 
 private val Sharp = RoundedCornerShape(8.dp)
 
@@ -272,7 +276,12 @@ fun LogScreen(
         }
 
         // High-protein quick reference
-        item { HighProteinReference() }
+        item {
+            HighProteinSection(
+                proteinLoggedToday = state.today.sumOf { it.proteinG },
+                onAdd = { food -> pendingFood = food },
+            )
+        }
 
         // Status message
         state.message?.let { msg ->
@@ -329,32 +338,76 @@ fun LogScreen(
 // High-protein food quick reference — P/C/F per 100g, sorted by protein
 // ---------------------------------------------------------------------------
 
-private data class HighProteinFood(val name: String, val emoji: String, val p: Int, val c: Int, val f: Int, val kcal: Int)
+private enum class ProteinSort(val label: String) {
+    HIGHEST_PROTEIN("Highest protein"),
+    PER_100_KCAL("Protein / 100kcal"),
+    LOWEST_KCAL("Lowest calories"),
+}
 
-private val HIGH_PROTEIN_FOODS = listOf(
-    HighProteinFood("Chicken Breast",  "🍗", 31, 0,  4,  165),
-    HighProteinFood("Egg Whites",      "🥚", 11, 1,  0,   52),
-    HighProteinFood("Soya Chunks",     "💛", 52, 33, 1,  345),
-    HighProteinFood("Paneer",          "🧀", 18, 1, 21,  265),
-    HighProteinFood("Tofu",            "⬜", 17, 2,  9,  145),
-    HighProteinFood("Whey Protein",    "🥤", 80, 5,  4,  370),
-    HighProteinFood("Tuna (canned)",   "🐟", 30, 0,  1,  128),
-    HighProteinFood("Rohu Fish",       "🐠", 18, 0,  2,   97),
-    HighProteinFood("Eggs (whole)",    "🥚", 13, 1, 11,  155),
-    HighProteinFood("Greek Yogurt",    "🥛", 10, 4,  0,   59),
-    HighProteinFood("Moong Dal",       "🟡", 24, 59, 1,  347),
-    HighProteinFood("Lentils (cooked)","🟠", 9, 20,  0,  116),
-    HighProteinFood("Peanuts",         "🥜", 26, 16, 49, 567),
-    HighProteinFood("Almonds",         "🤎", 21, 22, 49, 579),
-    HighProteinFood("Cottage Cheese",  "🧀", 11, 3,  4,   98),
-    HighProteinFood("Milk (full fat)", "🥛", 3,  5,  4,   65),
-    HighProteinFood("Quinoa (cooked)", "🌾", 4, 22,  2,  120),
-    HighProteinFood("Oats",            "🥣", 17, 66, 7,  389),
-).sortedByDescending { it.p }
+private enum class DietFilter(val label: String, val categories: Set<String>?) {
+    ALL("All", null),
+    VEG("Veg", setOf("vegan", "vegetarian", "egg")),
+    NONVEG("Non-veg", setOf("nonveg")),
+    VEGAN("Vegan", setOf("vegan")),
+}
+
+private fun stateEmoji(state: String): String = when (state) {
+    "raw" -> "🔴 raw"
+    "cooked" -> "🍳 cooked"
+    "dry" -> "🌾 dry"
+    "prepared" -> "🍲 prepared"
+    else -> ""
+}
+
+private fun categoryEmoji(category: String): String = when (category) {
+    "nonveg" -> "🍗"
+    "egg" -> "🥚"
+    "vegan" -> "🌱"
+    else -> "🥛"
+}
+
+@HiltViewModel
+class HighProteinViewModel @Inject constructor(
+    private val repository: com.nutriai.data.AppRepository,
+) : androidx.lifecycle.ViewModel() {
+    private val _foods = kotlinx.coroutines.flow.MutableStateFlow<List<FoodDto>>(emptyList())
+    val foods: kotlinx.coroutines.flow.StateFlow<List<FoodDto>> = _foods.asStateFlow()
+    private val _loading = kotlinx.coroutines.flow.MutableStateFlow(true)
+    val loading: kotlinx.coroutines.flow.StateFlow<Boolean> = _loading.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _foods.value = repository.highProteinFoods().getOrDefault(emptyList())
+            _loading.value = false
+        }
+    }
+}
 
 @Composable
-private fun HighProteinReference() {
+private fun HighProteinSection(
+    proteinLoggedToday: Double,
+    onAdd: (FoodDto) -> Unit,
+    viewModel: HighProteinViewModel = hiltViewModel(),
+) {
     var expanded by remember { mutableStateOf(false) }
+    val allFoods by viewModel.foods.collectAsStateWithLifecycle()
+    val loading by viewModel.loading.collectAsStateWithLifecycle()
+    var sort by remember { mutableStateOf(ProteinSort.HIGHEST_PROTEIN) }
+    var diet by remember { mutableStateOf(DietFilter.ALL) }
+
+    val shown = remember(allFoods, sort, diet) {
+        val allowedCategories = diet.categories
+        allFoods
+            .filter { allowedCategories == null || it.category in allowedCategories }
+            .let { list ->
+                when (sort) {
+                    ProteinSort.HIGHEST_PROTEIN -> list.sortedByDescending { it.proteinG }
+                    ProteinSort.PER_100_KCAL -> list.sortedByDescending { it.proteinPer100Kcal ?: (if (it.kcal > 0) it.proteinG / it.kcal * 100 else 0.0) }
+                    ProteinSort.LOWEST_KCAL -> list.sortedBy { it.kcal }
+                }
+            }
+    }
+
     Card(
         shape = Sharp,
         elevation = CardDefaults.cardElevation(2.dp),
@@ -377,37 +430,95 @@ private fun HighProteinReference() {
             }
             if (!expanded) {
                 Text(
-                    "Tap to see P/C/F per 100g for common high-protein foods",
+                    "${"%.0f".format(proteinLoggedToday)}g protein logged today • tap to browse & add foods",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             if (expanded) {
                 Spacer(Modifier.height(Spacing.sm))
-                // Header row
-                Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
-                    Text("Food", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(2.2f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("P", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = NutritionColor)
-                    Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = BrandAmber)
-                    Text("F", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = KaizenCoral)
-                    Text("kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.8f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                HIGH_PROTEIN_FOODS.forEach { food ->
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("${food.emoji} ${food.name}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(2.2f), maxLines = 1)
-                        Text("${food.p}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = NutritionColor)
-                        Text("${food.c}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = BrandAmber)
-                        Text("${food.f}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = KaizenCoral)
-                        Text("${food.kcal}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.8f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                // Sort chips
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    ProteinSort.values().forEach { s ->
+                        androidx.compose.material3.FilterChip(
+                            selected = sort == s,
+                            onClick = { sort = s },
+                            label = { Text(s.label, style = MaterialTheme.typography.labelSmall) },
+                            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = NutritionColor.copy(alpha = 0.18f),
+                                selectedLabelColor = NutritionColor,
+                            ),
+                        )
                     }
                 }
-                Text(
-                    "* per 100g • P = Protein • C = Carbs • F = Fat",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                Spacer(Modifier.height(6.dp))
+                // Diet filter chips
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    DietFilter.values().forEach { d ->
+                        androidx.compose.material3.FilterChip(
+                            selected = diet == d,
+                            onClick = { diet = d },
+                            label = { Text(d.label, style = MaterialTheme.typography.labelSmall) },
+                            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BrandGreen.copy(alpha = 0.18f),
+                                selectedLabelColor = BrandGreenDeep,
+                            ),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(Spacing.sm))
+
+                if (loading) {
+                    Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = NutritionColor)
+                    }
+                } else {
+                    // Header row
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
+                        Text("Food", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(2.4f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("P", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = NutritionColor)
+                        Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = BrandAmber)
+                        Text("F", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = KaizenCoral)
+                        Text("kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(28.dp))
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    shown.take(40).forEach { food ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(2.4f)) {
+                                Text("${categoryEmoji(food.category)} ${food.name}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                val stateLabel = stateEmoji(food.state)
+                                if (stateLabel.isNotBlank()) {
+                                    Text("per 100g • $stateLabel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
+                                }
+                            }
+                            Text("${food.proteinG.toInt()}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = NutritionColor)
+                            Text("${food.carbG.toInt()}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.5f), color = BrandAmber)
+                            Text("${food.fatG.toInt()}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.5f), color = KaizenCoral)
+                            Text("${food.kcal.toInt()}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            IconButton(onClick = { onAdd(food) }, modifier = Modifier.size(28.dp)) {
+                                Text("➕", fontSize = 13.sp)
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                    }
+                    if (shown.isEmpty()) {
+                        Text(
+                            "No foods match this filter yet.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = Spacing.sm),
+                        )
+                    }
+                    Text(
+                        "* per 100g unless noted • P = Protein • C = Carbs • F = Fat • tap ➕ to add",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
         }
     }

@@ -221,6 +221,8 @@ data class ExerciseLogRequest(
     val durationMin: Int? = null,
     val notes: String? = null,
     val performedAt: String? = null,
+    /** Groups this entry with others logged in the same mixed workout session. */
+    val sessionId: String? = null,
 )
 
 @Serializable
@@ -235,6 +237,8 @@ data class ExerciseLogDto(
     val durationMin: Int? = null,
     val kcal: Int? = null,
     val notes: String? = null,
+    /** Groups this entry with others logged in the same mixed workout session (null for older logs). */
+    val sessionId: String? = null,
 )
 
 @Serializable
@@ -869,6 +873,8 @@ data class WaterLogRequest(val amountMl: Int)
 data class FoodDto(
     val id: String,
     val name: String,
+    /** vegan | vegetarian | egg | nonveg (defaults to vegetarian for sources that don't send it, e.g. USDA). */
+    val category: String = "vegetarian",
     val kcal: Double,
     val proteinG: Double = 0.0,
     val carbG: Double = 0.0,
@@ -882,6 +888,12 @@ data class FoodDto(
     val portionUnit: String = "grams",
     /** Grams in one base unit of [portionUnit] (e.g. 1 egg = 50 g). */
     val unitGrams: Double = 100.0,
+    /** Preparation state the values above are measured in: raw/cooked/dry/prepared/as_is. */
+    val state: String = "as_is",
+    /** id of this food's raw/cooked counterpart, when one is seeded. */
+    val stateOfId: String? = null,
+    /** Protein grams per 100 kcal - a fairer "protein density" ranking than raw protein grams. */
+    val proteinPer100Kcal: Double? = null,
 )
 
 @Serializable

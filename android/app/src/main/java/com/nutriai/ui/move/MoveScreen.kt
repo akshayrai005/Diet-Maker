@@ -162,6 +162,9 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
 // ViewModel — unchanged business logic
 // ---------------------------------------------------------------------------
 
+/** One entry logged into the current mixed workout session (treadmill + bench press + ..., say). */
+data class SessionEntry(val name: String, val detail: String, val kcal: Int)
+
 data class MoveState(
     val loading: Boolean = true,
     val plan: WeeklyWorkout? = null,
@@ -169,6 +172,9 @@ data class MoveState(
     val error: String? = null,
     val toast: String? = null,
     val sessionKcal: Int = 0,
+    /** Non-null while a mixed workout session is in progress; shared by every exercise logged until "Complete Workout". */
+    val activeSessionId: String? = null,
+    val sessionEntries: List<SessionEntry> = emptyList(),
 )
 
 @HiltViewModel
@@ -191,19 +197,51 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         }
     }
 
+    /** Starts a new mixed workout session (treadmill + strength + stretching, all grouped). */
+    fun startWorkout() {
+        _state.value = _state.value.copy(
+            activeSessionId = java.util.UUID.randomUUID().toString(),
+            sessionKcal = 0,
+            sessionEntries = emptyList(),
+        )
+    }
+
+    /** Ensures a session is active before logging, so tapping any exercise "just works". */
+    private fun ensureSession(): String =
+        _state.value.activeSessionId ?: java.util.UUID.randomUUID().toString().also {
+            _state.value = _state.value.copy(activeSessionId = it)
+        }
+
+    /** Ends the current session; the running total stays visible until the user starts a new one. */
+    fun completeWorkout() {
+        val n = _state.value.sessionEntries.size
+        val kcal = _state.value.sessionKcal
+        _state.value = _state.value.copy(
+            activeSessionId = null,
+            toast = if (n > 0) "Workout complete: $n activit${if (n == 1) "y" else "ies"} · ~$kcal kcal 🔥" else "Workout complete",
+        )
+    }
+
     fun logEntry(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?, durationMin: Int?) {
         viewModelScope.launch {
+            val sessionId = ensureSession()
             val r = repository.logExercise(
-                ExerciseLogRequest(exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets, durationMin = durationMin),
+                ExerciseLogRequest(exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets, durationMin = durationMin, sessionId = sessionId),
             )
             if (r.isSuccess) {
                 val kcal = r.getOrNull()?.kcal ?: 0
                 val env = repository.exercisePlanFull().getOrNull()
+                val detail = listOfNotNull(
+                    weightKg?.let { "${trimKg(it)}kg" },
+                    reps?.let { "${it} reps" },
+                    durationMin?.let { "${it} min" },
+                ).joinToString(" · ")
                 _state.value = _state.value.copy(
                     plan = env?.plan ?: _state.value.plan,
                     levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
                     toast = "Logged $name - ~$kcal kcal 🔥",
                     sessionKcal = _state.value.sessionKcal + kcal,
+                    sessionEntries = _state.value.sessionEntries + SessionEntry(name, detail, kcal),
                 )
             } else {
                 _state.value = _state.value.copy(toast = "Couldn't log - try again")
@@ -214,6 +252,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
     fun logSets(name: String, focus: String?, sets: List<LoggedSet>) {
         if (sets.isEmpty()) return
         viewModelScope.launch {
+            val sessionId = ensureSession()
             var kcal = 0
             var ok = 0
             sets.forEach { s ->
@@ -226,16 +265,22 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                         sets = if (s.reps != null) 1 else null,
                         durationMin = s.durationMin,
                         notes = s.note,
+                        sessionId = sessionId,
                     ),
                 )
                 if (r.isSuccess) { ok++; kcal += r.getOrNull()?.kcal ?: 0 }
             }
             val env = repository.exercisePlanFull().getOrNull()
+            val detail = listOfNotNull(
+                if (ok > 0) "$ok set${if (ok == 1) "" else "s"}" else null,
+                sets.firstOrNull()?.durationMin?.let { "${it} min" },
+            ).joinToString(" · ")
             _state.value = _state.value.copy(
                 plan = env?.plan ?: _state.value.plan,
                 levelSuggestion = env?.levelSuggestion ?: _state.value.levelSuggestion,
                 toast = if (ok > 0) "Logged $name · $ok set${if (ok == 1) "" else "s"} · ~$kcal kcal 🔥" else "Couldn't log - try again",
                 sessionKcal = _state.value.sessionKcal + kcal,
+                sessionEntries = if (ok > 0) _state.value.sessionEntries + SessionEntry(name, detail, kcal) else _state.value.sessionEntries,
             )
         }
     }
@@ -332,8 +377,8 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
-        // Session burn
-        if (state.sessionKcal > 0) {
+        // Mixed workout session — one session can hold treadmill + strength + stretching, etc.
+        if (state.activeSessionId != null || state.sessionEntries.isNotEmpty()) {
             item {
                 Card(
                     Modifier.fillMaxWidth(),
@@ -341,9 +386,43 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     elevation = CardDefaults.cardElevation(2.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text("🔥", fontSize = 20.sp)
-                        Text("~${state.sessionKcal} kcal burned", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = KaizenCoral)
+                    Column(Modifier.padding(Spacing.md)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                Text("🔥", fontSize = 20.sp)
+                                Column {
+                                    Text(
+                                        if (state.activeSessionId != null) "Workout in progress" else "Last workout",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                    Text("~${state.sessionKcal} kcal · ${state.sessionEntries.size} activit${if (state.sessionEntries.size == 1) "y" else "ies"}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = KaizenCoral)
+                                }
+                            }
+                            if (state.activeSessionId != null) {
+                                Button(
+                                    onClick = { viewModel.completeWorkout() },
+                                    shape = Sharp,
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                ) { Text("Complete", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                            }
+                        }
+                        if (state.sessionEntries.isNotEmpty()) {
+                            Spacer(Modifier.height(Spacing.sm))
+                            state.sessionEntries.forEachIndexed { i, e ->
+                                if (i > 0) HorizontalDivider(Modifier.padding(vertical = 2.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+                                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Column {
+                                        Text("${i + 1}. ${e.name}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                                        if (e.detail.isNotBlank()) {
+                                            Text(e.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                                        }
+                                    }
+                                    Text("${e.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
                     }
                 }
             }
