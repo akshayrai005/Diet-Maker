@@ -292,14 +292,13 @@ fun PremiumDashboard(
  */
 @Composable
 private fun WhyTrustThisCard() {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(SharpRadius))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
     ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Why this plan, not a guarantee", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Text(
                 "No app can promise you'll hit an exact number by an exact date - bodies respond differently to the same plan. " +
@@ -310,6 +309,7 @@ private fun WhyTrustThisCard() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
     }
 }
 
@@ -628,7 +628,7 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = KaizenLavender.copy(alpha = 0.12f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
@@ -660,7 +660,7 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(0.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
             colors = CardDefaults.cardColors(containerColor = CardCoralLight),
         ) {
             Row(
@@ -690,7 +690,7 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(SharpRadius),
-                elevation = CardDefaults.cardElevation(0.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
                 colors = CardDefaults.cardColors(containerColor = flagBg),
             ) {
                 Row(Modifier.padding(Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
@@ -719,7 +719,7 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(0.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
             colors = CardDefaults.cardColors(containerColor = CardAmberLight),
         ) {
             Row(
@@ -749,7 +749,7 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(SharpRadius),
-                elevation = CardDefaults.cardElevation(0.dp),
+                elevation = CardDefaults.cardElevation(2.dp),
                 colors = CardDefaults.cardColors(containerColor = findBg),
             ) {
                 Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -796,7 +796,7 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardGreenLight),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
@@ -818,7 +818,7 @@ private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardCoralLight),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
@@ -839,7 +839,7 @@ private fun JourneySummaryRow(dashboard: Dashboard) {
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardBlueLight),
     ) {
         Column(Modifier.padding(Spacing.lg)) {

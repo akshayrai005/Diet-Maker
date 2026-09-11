@@ -112,7 +112,9 @@ fun StrengthTrendSection(
             state.trends.isEmpty() -> {
                 Card(
                     Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Text(
                         "Log a few weighted sets to see your strength trend.",

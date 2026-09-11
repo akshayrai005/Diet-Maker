@@ -358,31 +358,6 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
-        // Context card
-        plan?.let { p ->
-            item {
-                val context = buildString {
-                    append(p.blockLabel.ifBlank { "Training block" }).append(" · ").append(p.location).append(" · ").append(p.goal)
-                    p.note?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
-                }
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(
-                        Modifier.padding(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        Text("🎯", fontSize = 16.sp)
-                        Text(context, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            }
-        }
-
         // Toast
         state.toast?.let { msg ->
             item {
@@ -453,80 +428,6 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
         state.error?.let { err ->
             item { EmptyState(title = err, emoji = "🏋️") }
-        }
-
-        // Mobility staging - why the plan is diet-first / light-movement instead of standard.
-        state.movementStage?.takeIf { it.stage != "full" }?.let { ms ->
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Text(if (ms.stage == "diet_first") "🍽️" else "🚶", fontSize = 16.sp)
-                            Text(
-                                if (ms.stage == "diet_first") "Diet-first phase" else "Light-movement phase",
-                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        Text(ms.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        ms.resumeAroundWeightKg?.let {
-                            Text(
-                                "We'll ease in more movement as you approach ~${it.toInt()} kg.",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MoveAccent,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Split suggestion - nudge from mixed full-body sessions to a body-part split once you're past month 1.
-        state.splitSuggestion?.takeIf { it.suggestBodyPartSplit }?.let { ss ->
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Text("🎯", fontSize = 16.sp)
-                            Text("Ready for a body-part split?", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                        }
-                        ss.reason?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    }
-                }
-            }
-        }
-
-        // Level suggestion
-        state.levelSuggestion?.takeIf { it.direction == "up" || it.direction == "down" }?.let { ls ->
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(if (ls.direction == "up") "🚀" else "⚠️", fontSize = 16.sp)
-                        Column {
-                            Text(
-                                if (ls.direction == "up") "Ready to Level Up!" else "Consider Easing Down",
-                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
-                            )
-                            Text(ls.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
         }
 
         // Today's workout hero
@@ -648,6 +549,105 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         item { StrengthTrendSection(Modifier.padding(top = Spacing.xs)) }
+
+        // Program info + coaching nudges - below the actual workout, not blocking it.
+        plan?.let { p ->
+            item {
+                val context = buildString {
+                    append(p.blockLabel.ifBlank { "Training block" }).append(" · ").append(p.location).append(" · ").append(p.goal)
+                    p.note?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
+                }
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(
+                        Modifier.padding(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Text("🎯", fontSize = 16.sp)
+                        Text(context, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+
+        // Mobility staging - why the plan is diet-first / light-movement instead of standard.
+        state.movementStage?.takeIf { it.stage != "full" }?.let { ms ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text(if (ms.stage == "diet_first") "🍽️" else "🚶", fontSize = 16.sp)
+                            Text(
+                                if (ms.stage == "diet_first") "Diet-first phase" else "Light-movement phase",
+                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Text(ms.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ms.resumeAroundWeightKg?.let {
+                            Text(
+                                "We'll ease in more movement as you approach ~${it.toInt()} kg.",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MoveAccent,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Split suggestion - nudge from mixed full-body sessions to a body-part split once you're past month 1.
+        state.splitSuggestion?.takeIf { it.suggestBodyPartSplit }?.let { ss ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text("🎯", fontSize = 16.sp)
+                            Text("Ready for a body-part split?", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        }
+                        ss.reason?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                }
+            }
+        }
+
+        // Level suggestion
+        state.levelSuggestion?.takeIf { it.direction == "up" || it.direction == "down" }?.let { ls ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Row(Modifier.padding(Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(if (ls.direction == "up") "🚀" else "⚠️", fontSize = 16.sp)
+                        Column {
+                            Text(
+                                if (ls.direction == "up") "Ready to Level Up!" else "Consider Easing Down",
+                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
+                            )
+                            Text(ls.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
 
         plan?.disclaimer?.takeIf { it.isNotBlank() }?.let { d ->
             item {

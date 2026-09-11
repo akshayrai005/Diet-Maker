@@ -216,8 +216,9 @@ fun RestTimer(
     } else {
         Card(
             modifier.fillMaxWidth().semantics { contentDescription = "Rest timer between sets" },
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(8.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         ) { body() }
     }
 }
