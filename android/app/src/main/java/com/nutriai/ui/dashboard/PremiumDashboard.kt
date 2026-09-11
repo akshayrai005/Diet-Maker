@@ -349,23 +349,22 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.xl), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CalorieRing(consumed = consumed, target = target, progress = pct)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                TripleCalorieRing(bodyNeed = bodyNeed, burned = burned, target = target, consumed = consumed, remaining = remaining)
+                Column(Modifier.weight(1f).padding(start = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    QuickStat("🏋️", "Body Need (TDEE)", "%,d".format(bodyNeed), "kcal", KaizenCoral)
+                    QuickStat("🎯", "Target (eat)", if (hasTarget) "%,d".format(target) else "—", "kcal", NutritionColor)
+                    QuickStat("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", if (burned > 0) "%,d".format(burned) else "—", "kcal", BrandAmber)
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                CalorieTableRow("🏋️", "Body Need (TDEE)", bodyNeed, KaizenCoral)
-                CalorieTableRow("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", burned, BrandAmber)
-                CalorieTableRow("🎯", "Target (eat)", if (hasTarget) target else null, NutritionColor)
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                CalorieTableRow("🍽️", "Eaten", consumed, NutritionColor)
-                CalorieTableRow("⏳", "Remaining", remaining, MovementColor)
-                CalorieTableRow(
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                CalorieMathChip("🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
+                CalorieMathChip("⏳", "Remaining", "%,d".format(remaining), MovementColor)
+                CalorieMathChip(
                     if (deficit > 0) "📉" else "📈",
                     if (deficit > 0) "Deficit" else "Surplus",
-                    kotlin.math.abs(deficit),
+                    "%,d".format(kotlin.math.abs(deficit)),
                     if (deficit > 0) BrandGreen else KaizenCoral,
                 )
             }
@@ -373,45 +372,66 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
     }
 }
 
-/** One row of the calorie table: label left, big bold value + unit right. */
 @Composable
-private fun CalorieTableRow(emoji: String, label: String, value: Int?, color: Color) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(emoji, fontSize = 18.sp)
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                value?.let { "%,d".format(it) } ?: "—",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = color,
-            )
-            Text("kcal", style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 3.dp))
-        }
+private fun CalorieMathChip(emoji: String, label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(emoji, fontSize = 14.sp)
+        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun CalorieRing(consumed: Int, target: Int?, progress: Float) {
-    val ringProgress = progress.coerceIn(0f, 1f)
+private fun QuickStat(emoji: String, label: String, value: String, unit: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(emoji, fontSize = 16.sp)
+        Column {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
+                if (unit.isNotEmpty()) Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Google-Fit-style triple concentric ring: outer = Body Need (TDEE), middle = Target (eat),
+ * inner = Burned - each filled by how much of ITS OWN number has been "used" today (consumed
+ * for the need/target rings, burned itself for the burned ring vs. the body's need). Center shows
+ * kcal remaining, since that's the number that actually changes what you should do next.
+ */
+@Composable
+private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed: Int, remaining: Int) {
+    val pBodyNeed = if (bodyNeed > 0) (consumed.toFloat() / bodyNeed).coerceIn(0f, 1f) else 0f
+    val pTarget = if (target > 0) (consumed.toFloat() / target).coerceIn(0f, 1f) else 0f
+    val pBurned = if (bodyNeed > 0) (burned.toFloat() / bodyNeed).coerceIn(0f, 1f) else 0f
+
     var animate by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { animate = true }
-    val animatedProgress by animateFloatAsState(targetValue = if (animate) ringProgress else 0f, animationSpec = tween(1200), label = "ring")
+    val aBodyNeed by animateFloatAsState(targetValue = if (animate) pBodyNeed else 0f, animationSpec = tween(1200), label = "r1")
+    val aTarget by animateFloatAsState(targetValue = if (animate) pTarget else 0f, animationSpec = tween(1200), label = "r2")
+    val aBurned by animateFloatAsState(targetValue = if (animate) pBurned else 0f, animationSpec = tween(1200), label = "r3")
 
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(130.dp)) {
-        Canvas(modifier = Modifier.size(110.dp)) {
-            val stroke = 12.dp.toPx()
-            val arcSize = Size(size.width - stroke, size.height - stroke)
-            val topLeft = Offset(stroke / 2, stroke / 2)
-            drawArc(color = NutritionColor.copy(alpha = 0.12f), startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-            drawArc(color = NutritionColor, startAngle = -90f, sweepAngle = animatedProgress * 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(150.dp)) {
+        Canvas(modifier = Modifier.size(150.dp)) {
+            val stroke = 10.dp.toPx()
+            val gap = 4.dp.toPx()
+            fun ring(ringIndex: Int, color: Color, progress: Float) {
+                val inset = stroke / 2 + ringIndex * (stroke + gap)
+                val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+                val topLeft = Offset(inset, inset)
+                drawArc(color = color.copy(alpha = 0.14f), startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                drawArc(color = color, startAngle = -90f, sweepAngle = progress * 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            }
+            ring(0, KaizenCoral, aBodyNeed)
+            ring(1, NutritionColor, aTarget)
+            ring(2, BrandAmber, aBurned)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🔥", fontSize = 18.sp)
-            Text("%,d".format(consumed), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = NutritionColor)
-            Text(target?.let { "/ %,d".format(it) } ?: "kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("🔥", fontSize = 16.sp)
+            Text("%,d".format(remaining), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = NutritionColor)
+            Text("kcal left", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
