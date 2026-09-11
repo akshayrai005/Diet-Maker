@@ -417,6 +417,36 @@ private fun HighProteinSection(
     val loading by viewModel.loading.collectAsStateWithLifecycle()
     var sort by remember { mutableStateOf(ProteinSort.HIGHEST_PROTEIN) }
     var diet by remember { mutableStateOf(DietFilter.ALL) }
+    var detailFood by remember { mutableStateOf<FoodDto?>(null) }
+
+    detailFood?.let { food ->
+        AlertDialog(
+            onDismissRequest = { detailFood = null },
+            title = { Text("${categoryEmoji(food.category)} ${food.name}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val stateLabel = stateEmoji(food.state)
+                    Text(
+                        "Per 100g" + if (stateLabel.isNotBlank()) " • $stateLabel" else "",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        DetailStat("Calories", "${food.kcal.toInt()}", MaterialTheme.colorScheme.onSurface)
+                        DetailStat("Protein", "${food.proteinG.toInt()}g", NutritionColor)
+                        DetailStat("Carbs", "${food.carbG.toInt()}g", BrandAmber)
+                        DetailStat("Fat", "${food.fatG.toInt()}g", KaizenCoral)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { onAdd(food); detailFood = null }, colors = ButtonDefaults.buttonColors(containerColor = NutritionColor)) {
+                    Text("Add")
+                }
+            },
+            dismissButton = { TextButton(onClick = { detailFood = null }) { Text("Close") } },
+        )
+    }
 
     val shown = remember(allFoods, sort, diet) {
         val allowedCategories = diet.categories
@@ -498,31 +528,28 @@ private fun HighProteinSection(
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), color = NutritionColor)
                     }
                 } else {
-                    // Header row
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
-                        Text("Food", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(2.4f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("P", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = NutritionColor)
-                        Text("C", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = BrandAmber)
-                        Text("F", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = KaizenCoral)
-                        Text("kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.6f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(28.dp))
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
                     shown.take(40).forEach { food ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(2.4f)) {
-                                Text("${categoryEmoji(food.category)} ${food.name}", style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Row(
+                            Modifier.fillMaxWidth().clickable { detailFood = food }.padding(horizontal = 4.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text("${categoryEmoji(food.category)} ${food.name}", style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                Spacer(Modifier.height(2.dp))
                                 val stateLabel = stateEmoji(food.state)
-                                if (stateLabel.isNotBlank()) {
-                                    Text("per 100g • $stateLabel", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 9.sp)
-                                }
+                                Text(
+                                    "${food.kcal.toInt()} kcal" + if (stateLabel.isNotBlank()) " • $stateLabel" else "",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                            Text("${food.proteinG.toInt()}g", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f), color = NutritionColor)
-                            Text("${food.carbG.toInt()}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.5f), color = BrandAmber)
-                            Text("${food.fatG.toInt()}g", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.5f), color = KaizenCoral)
-                            Text("${food.kcal.toInt()}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.6f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            IconButton(onClick = { onAdd(food) }, modifier = Modifier.size(28.dp)) {
-                                Text("➕", fontSize = 13.sp)
+                            Box(
+                                Modifier.clip(RoundedCornerShape(6.dp)).background(NutritionColor.copy(alpha = 0.12f)).padding(horizontal = 8.dp, vertical = 4.dp),
+                            ) {
+                                Text("${food.proteinG.toInt()}g protein", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = NutritionColor)
+                            }
+                            IconButton(onClick = { onAdd(food) }, modifier = Modifier.size(32.dp)) {
+                                Text("➕", fontSize = 15.sp)
                             }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
@@ -536,7 +563,7 @@ private fun HighProteinSection(
                         )
                     }
                     Text(
-                        "* per 100g unless noted • P = Protein • C = Carbs • F = Fat • tap ➕ to add",
+                        "Tap a food for full details • tap ➕ to add",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -544,6 +571,14 @@ private fun HighProteinSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DetailStat(label: String, value: String, color: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
