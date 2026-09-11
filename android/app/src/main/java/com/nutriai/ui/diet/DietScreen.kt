@@ -148,7 +148,7 @@ fun DietScreen(
         // ── Tab content gets the rest of the screen ──
         when (section) {
             0 -> com.nutriai.ui.calendar.CalendarScreen(Modifier.fillMaxSize())
-            1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize())
+            1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize(), onLogged = { summaryViewModel.load() })
             2 -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
             else -> com.nutriai.ui.lifestyle.LifestyleScreen(Modifier.fillMaxSize())
         }

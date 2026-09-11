@@ -117,8 +117,15 @@ private fun autoSlotByTime(): String {
 fun LogScreen(
     modifier: Modifier = Modifier,
     viewModel: LogFoodViewModel = hiltViewModel(),
+    onLogged: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // The Nutrition tab's calorie header lives in a separate ViewModel that only loads once on
+    // mount - without this it silently goes stale after every log, which reads as "logging isn't
+    // working" even though the food was saved (the "✓ Logged" confirmation below it is correct).
+    LaunchedEffect(state.message) {
+        if (state.message?.startsWith("✓ Logged") == true) onLogged()
+    }
     var pendingFood by remember { mutableStateOf<FoodDto?>(null) }
 
     val context = LocalContext.current
