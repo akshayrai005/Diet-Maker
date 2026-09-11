@@ -185,7 +185,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
                     if (state.isToday) {
                         Checkbox(checked = e.done, onCheckedChange = { viewModel.toggleExerciseDone(i) })
                     }
-                    Text("🏋️", style = MaterialTheme.typography.titleMedium)
+                    com.nutriai.ui.move.ExerciseDemo(name = e.name, muscleGroup = e.muscleGroup, sizeDp = 44)
                     Spacer(Modifier.padding(start = Spacing.sm))
                     Column(Modifier.weight(1f)) {
                         Text(e.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
