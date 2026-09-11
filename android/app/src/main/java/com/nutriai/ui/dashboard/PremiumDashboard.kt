@@ -174,6 +174,7 @@ fun PremiumDashboard(
                     sleepHours = sleepHours,
                     heartRate = heartRate ?: manualHeartRate,
                     bodyFatPct = bodyFatPct,
+                    bloodPressure = bloodPressure,
                 )
             }
         }
@@ -480,7 +481,7 @@ private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed:
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?, bodyFatPct: Double? = null) {
+private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?, bodyFatPct: Double? = null, bloodPressure: Pair<Int, Int>? = null) {
     val cal = dashboard.calories
     val calPct = if (cal.target != null && cal.target > 0) (cal.consumed / cal.target).coerceIn(0.0, 1.0).toFloat() else 0f
     val proteinPct = if (dashboard.protein.target != null && dashboard.protein.target > 0) {
@@ -530,6 +531,29 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 accentColor = HydrationColor, bgColor = CardMintLight,
                 detail = "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L",
                 borderColor = HydrationColor,
+            )
+        }
+        // Row 3: Blood Pressure + Streak
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🩺", title = "Blood Pressure",
+                mainValue = bloodPressure?.let { "${it.first}/${it.second}" } ?: "-",
+                mainUnit = "",
+                progress = bloodPressure?.let { ((it.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                accentColor = KaizenCoral, bgColor = CardCoralLight,
+                detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
+                borderColor = KaizenCoral,
+            )
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🔥", title = "Streak",
+                mainValue = "${dashboard.streakDays}",
+                mainUnit = if (dashboard.streakDays == 1) "day" else "days",
+                progress = (dashboard.streakDays / 30f).coerceIn(0f, 1f),
+                accentColor = BrandAmber, bgColor = CardAmberLight,
+                detail = if (dashboard.streakDays > 0) "Keep it going" else "Log today to start",
+                borderColor = BrandAmber,
             )
         }
     }
