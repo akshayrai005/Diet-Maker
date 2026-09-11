@@ -302,9 +302,15 @@ export async function getBodyProjection(userId: string): Promise<BodyProjectionR
     return { available: false, reason: 'Complete your profile and run the calculator first.', measurements: [], disclaimer: PROJECTION_DISCLAIMER };
   }
   const result = snapshot.result as { safeWeeklyDeltaKg?: number };
-  const goal = (profile.goal as 'lose' | 'gain' | 'maintain') ?? 'maintain';
-  const magnitude = Math.abs(result.safeWeeklyDeltaKg ?? 0);
-  const weeklyWeightDeltaKg = goal === 'lose' ? -magnitude : goal === 'gain' ? magnitude : 0;
+  // safeWeeklyDeltaKg is already signed correctly (negative = losing, positive = gaining) by the
+  // authoritative calc pipeline, which resolves the REAL effective goal - accounting for a
+  // physique goal (e.g. recomp) or a "reach target weight by N weeks" timeline, either of which
+  // can imply real weight loss even when the raw profile.goal dropdown still says "maintain".
+  // Re-deriving the sign from raw profile.goal here threw that away and silently showed a flat
+  // "no change" projection for anyone whose real intent came from those other two paths.
+  const weeklyWeightDeltaKg = result.safeWeeklyDeltaKg ?? 0;
+  const goal: 'lose' | 'gain' | 'maintain' =
+    weeklyWeightDeltaKg < -0.01 ? 'lose' : weeklyWeightDeltaKg > 0.01 ? 'gain' : 'maintain';
 
   // Current baseline per body part: prefer the latest logged BodyMetric, else fall back to the
   // onboarding waist/neck/hip (the only body-part values the profile itself carries).
