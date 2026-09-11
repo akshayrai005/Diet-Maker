@@ -384,6 +384,8 @@ private fun CalorieMathChip(emoji: String, label: String, value: String, color: 
 @Composable
 private fun QuickStat(emoji: String, label: String, value: String, unit: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // Legend dot in the SAME color as this stat's ring, so it's obvious which ring is which.
+        Box(Modifier.size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(color))
         Text(emoji, fontSize = 16.sp)
         Column {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
