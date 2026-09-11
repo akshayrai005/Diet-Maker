@@ -118,6 +118,7 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
         // Workout duration
         item {
             Card(
+                modifier = Modifier.fillMaxWidth(),
                 shape = Sharp,
                 elevation = CardDefaults.cardElevation(2.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
