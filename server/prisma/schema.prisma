@@ -275,6 +275,12 @@ model ExerciseLog {
   /// Groups entries logged in one mixed workout (treadmill + bench press + stretching, say)
   /// into a single session. Client-generated (UUID); null for older/standalone logs.
   sessionId    String?
+  /// Treadmill/walk-run speed in km/h - sharpens the calorie estimate (walking vs running MET).
+  speedKmh     Float?
+  /// Treadmill incline as a percent grade (e.g. 8 = 8%) - raises the estimate for uphill work.
+  inclinePct   Float?
+  /// Distance covered in km (treadmill, outdoor walk/run/cycle).
+  distanceKm   Float?
   createdAt    DateTime @default(now())
 
   @@index([userId, performedAt])

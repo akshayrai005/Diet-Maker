@@ -12,6 +12,12 @@ export const exerciseLogSchema = z.object({
   performedAt: z.string().datetime().optional(),
   /** Groups this entry with others logged in the same mixed workout session (client-generated id). */
   sessionId: z.string().max(64).optional(),
+  /** Treadmill/walk-run speed in km/h. */
+  speedKmh: z.number().min(0).max(60).optional(),
+  /** Treadmill incline as a percent grade. */
+  inclinePct: z.number().min(0).max(40).optional(),
+  /** Distance covered in km. */
+  distanceKm: z.number().min(0).max(300).optional(),
 });
 
 export type ExerciseLogBody = z.infer<typeof exerciseLogSchema>;

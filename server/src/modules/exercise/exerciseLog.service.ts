@@ -14,6 +14,9 @@ export async function logExercise(userId: string, body: ExerciseLogBody) {
     weightKg: body.weightKg ?? null,
     durationMin: body.durationMin ?? null,
     bodyWeightKg,
+    speedKmh: body.speedKmh ?? null,
+    inclinePct: body.inclinePct ?? null,
+    distanceKm: body.distanceKm ?? null,
   });
   return prisma.exerciseLog.create({
     data: {
@@ -28,6 +31,9 @@ export async function logExercise(userId: string, body: ExerciseLogBody) {
       kcal,
       notes: body.notes ?? null,
       sessionId: body.sessionId ?? null,
+      speedKmh: body.speedKmh ?? null,
+      inclinePct: body.inclinePct ?? null,
+      distanceKm: body.distanceKm ?? null,
     },
   });
 }

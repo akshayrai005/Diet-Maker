@@ -97,4 +97,18 @@ export const MICRONUTRIENTS_PER_100G: Record<string, Partial<Micronutrients>> = 
   'whey-shake': { calciumMg: 200, phosphorusMg: 130, potassiumMg: 180, magnesiumMg: 20, zincMg: 1.0, vitaminB12Mcg: 0.6 },
   'roasted-makhana': { magnesiumMg: 210, potassiumMg: 500, phosphorusMg: 280, calciumMg: 60, ironMg: 1.4, manganeseMg: 1.3 },
   'dry-fruits-mix': { ironMg: 3.0, magnesiumMg: 150, potassiumMg: 600, zincMg: 2.8, phosphorusMg: 320, copperMcg: 1100, manganeseMg: 2.2, vitaminEMg: 7.0, folateMcg: 60 },
+
+  // ---- raw / dry counterparts (uncooked basis - values are naturally higher per 100g than the
+  // cooked entry since cooking adds water weight) ----
+  'white-rice-raw': { ironMg: 0.8, magnesiumMg: 25, potassiumMg: 115, zincMg: 1.1, phosphorusMg: 115, manganeseMg: 1.1 },
+  'brown-rice-raw': { ironMg: 1.5, magnesiumMg: 143, potassiumMg: 223, zincMg: 2.0, phosphorusMg: 333, manganeseMg: 3.7, vitaminB3Mg: 5.1, seleniumMcg: 9.8 },
+  'toor-dal-raw': { ironMg: 5.2, folateMcg: 456, magnesiumMg: 183, potassiumMg: 1392, zincMg: 2.8, phosphorusMg: 367 },
+  'moong-dal-raw': { ironMg: 4.4, folateMcg: 549, magnesiumMg: 189, potassiumMg: 1246, zincMg: 2.7, phosphorusMg: 367 },
+  'masoor-dal-raw': { ironMg: 7.5, folateMcg: 479, magnesiumMg: 122, potassiumMg: 955, zincMg: 4.8, phosphorusMg: 281, copperMcg: 750 },
+  'rajma-raw': { ironMg: 6.7, folateMcg: 394, magnesiumMg: 140, potassiumMg: 1359, zincMg: 2.8, phosphorusMg: 407 },
+  'chicken-breast-raw': { ironMg: 0.7, vitaminB12Mcg: 0.3, vitaminB3Mg: 10, vitaminB6Mg: 0.6, phosphorusMg: 200, zincMg: 0.7, seleniumMcg: 22, potassiumMg: 220 },
+  'quinoa-raw': { ironMg: 4.6, folateMcg: 184, magnesiumMg: 197, potassiumMg: 563, zincMg: 3.1, phosphorusMg: 457, manganeseMg: 2.0 },
+  'oats-raw': { ironMg: 4.7, magnesiumMg: 177, potassiumMg: 429, zincMg: 4.0, phosphorusMg: 523, manganeseMg: 4.9, vitaminB1Mg: 0.76 },
+  'soya-chunks-dry': { ironMg: 15.7, folateMcg: 365, magnesiumMg: 290, potassiumMg: 2384, zincMg: 4.8, phosphorusMg: 674, calciumMg: 240 },
+  'soya-chunks-cooked': { ironMg: 5.0, folateMcg: 120, magnesiumMg: 95, potassiumMg: 780, zincMg: 1.6, phosphorusMg: 220, calciumMg: 80 },
 };
