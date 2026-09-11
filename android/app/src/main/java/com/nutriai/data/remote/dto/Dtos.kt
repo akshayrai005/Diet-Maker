@@ -831,6 +831,40 @@ data class SavedFood(
     val sodiumMg: Double = 0.0,
 )
 
+// ---- Homemade recipe builder ----
+@Serializable
+data class RecipeIngredientDto(val foodId: String, val name: String = "", val grams: Double)
+
+@Serializable
+data class CreateRecipeRequest(val name: String, val ingredients: List<RecipeIngredientInput>)
+
+@Serializable
+data class RecipeIngredientInput(val foodId: String, val grams: Double)
+
+@Serializable
+data class UserRecipeDto(
+    val id: String,
+    val name: String,
+    val ingredients: List<RecipeIngredientDto> = emptyList(),
+    val totalGrams: Double,
+    val kcal: Double,
+    val proteinG: Double,
+    val carbG: Double,
+    val fatG: Double,
+    val fiberG: Double,
+    val sugarG: Double = 0.0,
+    val sodiumMg: Double = 0.0,
+)
+
+@Serializable
+data class UserRecipeEnvelope(val recipe: UserRecipeDto)
+
+@Serializable
+data class UserRecipesEnvelope(val recipes: List<UserRecipeDto> = emptyList())
+
+@Serializable
+data class LogRecipeRequest(val mealSlot: String, val percent: Double? = null, val grams: Double? = null)
+
 @Serializable
 data class SavedFoodsEnvelope(val foods: List<SavedFood> = emptyList())
 

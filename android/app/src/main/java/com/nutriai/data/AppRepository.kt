@@ -224,6 +224,18 @@ class AppRepository @Inject constructor(
     suspend fun recipe(food: String, foodId: String?): Result<com.nutriai.data.remote.dto.Recipe> =
         runCatching { api.recipe(food, foodId).recipe }
 
+    // ---- Homemade recipe builder ----
+    suspend fun createRecipe(name: String, ingredients: List<com.nutriai.data.remote.dto.RecipeIngredientInput>): Result<com.nutriai.data.remote.dto.UserRecipeDto> =
+        runCatching { api.createRecipe(com.nutriai.data.remote.dto.CreateRecipeRequest(name, ingredients)).recipe }
+
+    suspend fun userRecipes(): Result<List<com.nutriai.data.remote.dto.UserRecipeDto>> =
+        runCatching { api.userRecipes().recipes }
+
+    suspend fun deleteRecipe(id: String): Result<Unit> = runCatching { api.deleteRecipe(id) }
+
+    suspend fun logRecipe(id: String, mealSlot: String, percent: Double? = null, grams: Double? = null): Result<Unit> =
+        runCatching { api.logRecipe(id, com.nutriai.data.remote.dto.LogRecipeRequest(mealSlot, percent, grams)) }
+
     // ---- Chat history ----
     suspend fun chatHistory(): Result<List<com.nutriai.data.remote.dto.ChatMessageDto>> =
         runCatching { api.chatHistory().messages }

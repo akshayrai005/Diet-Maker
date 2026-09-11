@@ -157,6 +157,19 @@ interface NutriApi {
     @GET("recipe")
     suspend fun recipe(@Query("food") food: String, @Query("foodId") foodId: String?): com.nutriai.data.remote.dto.RecipeEnvelope
 
+    // ---- Homemade recipe builder ----
+    @POST("recipes")
+    suspend fun createRecipe(@Body body: com.nutriai.data.remote.dto.CreateRecipeRequest): com.nutriai.data.remote.dto.UserRecipeEnvelope
+
+    @GET("recipes")
+    suspend fun userRecipes(): com.nutriai.data.remote.dto.UserRecipesEnvelope
+
+    @retrofit2.http.DELETE("recipes/{id}")
+    suspend fun deleteRecipe(@Path("id") id: String)
+
+    @POST("recipes/{id}/log")
+    suspend fun logRecipe(@Path("id") id: String, @Body body: com.nutriai.data.remote.dto.LogRecipeRequest)
+
     // ---- Chat history ----
     @GET("chat/history")
     suspend fun chatHistory(): com.nutriai.data.remote.dto.ChatHistoryEnvelope
