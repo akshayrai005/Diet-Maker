@@ -14,6 +14,7 @@ import * as logSvc from './exerciseLog.service';
 import { adaptWorkoutToCycle } from './cycleAdapt';
 import { recommendNextSession, suggestLevelChange, type LoggedSet } from './overload';
 import { rampFor } from './rampUp';
+import { defaultTrainingSplit, suggestSplitUpgrade } from './splitSuggestion';
 import { ageFromDob } from '../nutrition/calc.service';
 import { strengthTrend } from './strength';
 
@@ -57,6 +58,10 @@ exerciseRouter.get(
       currentWeightKg: s.currentWeightKg,
     });
 
+    const explicitSplit = (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit;
+    const effectiveSplit = explicitSplit ?? defaultTrainingSplit(goal, s.gymMembershipMonths);
+    const splitSuggestion = suggestSplitUpgrade(explicitSplit, s.gymMembershipMonths);
+
     let plan = staging.stage !== 'full'
       ? generateStagedMovementPlan(staging.stage, {
           restDayOfWeek: s.workoutRestDay,
@@ -72,7 +77,8 @@ exerciseRouter.get(
           under18,
           medicalCaution,
           // Selectable training split (Chest/Back/... , PPL, Upper-Lower, Full-body) + priority muscles.
-          split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
+          // Unset -> mixed full-body sessions for the first month, then a body-part split (see splitSuggestion.ts).
+          split: effectiveSplit,
           priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
         });
 
@@ -182,7 +188,7 @@ exerciseRouter.get(
     // Auto promotion/demotion nudge so the app can prompt "level up / ease down".
     const levelSuggestion = suggestLevelChange(history, currentLevel);
 
-    res.json({ plan, levelSuggestion, movementStage: staging });
+    res.json({ plan, levelSuggestion, movementStage: staging, splitSuggestion });
   }),
 );
 
