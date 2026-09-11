@@ -81,7 +81,8 @@ class PlanViewModel @Inject constructor(
 
     init {
         loadTargets()
-        load(LocalDate.now().toString())
+        // This screen only plans ahead (tomorrow / day after) - it's not a today/this-week review.
+        load(LocalDate.now().plusDays(1).toString())
         loadWeek()
     }
 

@@ -63,8 +63,8 @@ private val Sharp = RoundedCornerShape(8.dp)
 fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val plan = state.plan
-    val today = LocalDate.now().toString()
     val tomorrow = LocalDate.now().plusDays(1).toString()
+    val dayAfterTomorrow = LocalDate.now().plusDays(2).toString()
 
     var showAddFood by remember { mutableStateOf(false) }
     var showAddExercise by remember { mutableStateOf(false) }
@@ -79,58 +79,23 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
     ) {
         item {
             Text(
-                "📋 Plan & Review",
+                "📋 Plan Ahead",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
             )
         }
 
-        // Weekly grid inside card
-        item {
-            val week by viewModel.week.collectAsStateWithLifecycle()
-            Card(
-                shape = Sharp,
-                elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            ) {
-                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        week.forEach { d ->
-                            WeekDayCard(
-                                d,
-                                selected = d.date == plan.date,
-                                onToggleFast = { viewModel.switchTo(d.date); viewModel.toggleFast() },
-                            ) { viewModel.switchTo(d.date) }
-                        }
-                    }
-                    Text(
-                        "Long-press a day to toggle fasting",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    )
-                }
-            }
-        }
-
-        // Day switch
+        // Day switch — forward planning only (tomorrow / day after), not a week-long review.
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                FilterChip(selected = plan.date == today, onClick = { viewModel.switchTo(today) }, label = { Text("🎯 Today") })
                 FilterChip(selected = plan.date == tomorrow, onClick = { viewModel.switchTo(tomorrow) }, label = { Text("📅 Tomorrow") })
+                FilterChip(selected = plan.date == dayAfterTomorrow, onClick = { viewModel.switchTo(dayAfterTomorrow) }, label = { Text("📆 Day after") })
+                FilterChip(selected = plan.isFast, onClick = { viewModel.toggleFast() }, label = { Text(if (plan.isFast) "🚫 Fasting" else "Mark fasting") })
             }
         }
 
         // Live totals vs target
         item { TotalsCard(state) }
-
-        // Plan-vs-actual
-        if (state.isToday && (plan.foods.isNotEmpty() || plan.exercises.isNotEmpty())) {
-            item { AdherenceCard(state) }
-        }
 
         // Trainer notes
         item {
@@ -303,59 +268,6 @@ fun PlanScreen(modifier: Modifier = Modifier, viewModel: PlanViewModel = hiltVie
 }
 
 @Composable
-private fun WeekDayCard(d: DaySummary, selected: Boolean, onToggleFast: () -> Unit = {}, onClick: () -> Unit) {
-    val tomorrow = LocalDate.now().plusDays(1).toString()
-    val today = LocalDate.now().toString()
-    val isTomorrow = d.date == tomorrow
-    val isToday = d.date == today
-    val primary = MaterialTheme.colorScheme.primary
-    val container = when {
-        d.isFast -> KaizenCoral.copy(alpha = 0.15f)
-        selected -> primary.copy(alpha = 0.15f)
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val textColor = when {
-        d.isFast -> KaizenCoral
-        selected -> primary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    @OptIn(ExperimentalFoundationApi::class)
-    Card(
-        Modifier
-            .heightIn(min = 78.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onToggleFast),
-        shape = Sharp,
-        colors = CardDefaults.cardColors(containerColor = container),
-        elevation = CardDefaults.cardElevation(if (selected) 4.dp else 1.dp),
-    ) {
-        Column(
-            Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                when {
-                    isToday -> "Today"
-                    isTomorrow -> "Tmrw"
-                    else -> d.dayName
-                },
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = textColor,
-            )
-            if (d.isFast) {
-                Text("🚫 Fast", style = MaterialTheme.typography.labelSmall, color = textColor)
-            } else if (d.kcal > 0) {
-                Text("🔥 ${d.kcal} kcal", style = MaterialTheme.typography.labelSmall, color = textColor)
-                Text("💪 ${d.proteinG}g P", style = MaterialTheme.typography.labelSmall, color = textColor)
-            } else {
-                Text("—", style = MaterialTheme.typography.labelSmall, color = textColor.copy(alpha = 0.6f))
-            }
-        }
-    }
-}
-
-@Composable
 private fun TotalsCard(state: PlanUiState) {
     val kcalPct = (state.plan.plannedKcal / state.kcalTarget).coerceIn(0.0, 1.0).toFloat()
     val proteinPct = (state.plan.plannedProtein / state.proteinTarget).coerceIn(0.0, 1.0).toFloat()
@@ -377,39 +289,6 @@ private fun TotalsCard(state: PlanUiState) {
                 Text("${state.plan.plannedProtein.roundToInt()} / ${state.proteinTarget.roundToInt()} g", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             }
             KaizenProgressBar(progress = proteinPct, color = NutritionColor)
-        }
-    }
-}
-
-@Composable
-private fun AdherenceCard(state: PlanUiState) {
-    Card(
-        shape = Sharp,
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text("⚡ Plan Adherence - Today", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text(
-                "${state.adherence}% followed",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = BrandGreen,
-            )
-            state.actualProtein?.let {
-                Text(
-                    "💪 Protein: ${it.roundToInt()}g actual / ${state.plan.plannedProtein.roundToInt()}g planned",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (state.plan.exercises.isNotEmpty()) {
-                Text(
-                    "🏋️ Workout: ${state.plan.exercises.count { it.done }}/${state.plan.exercises.size} done",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
