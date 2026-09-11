@@ -398,14 +398,15 @@ private fun QuickStat(emoji: String, label: String, value: String, unit: String,
 }
 
 /**
- * Google-Fit-style triple concentric ring: outer = Body Need (TDEE), middle = Target (eat),
- * inner = Burned - each filled by how much of ITS OWN number has been "used" today (consumed
- * for the need/target rings, burned itself for the burned ring vs. the body's need). Center shows
- * kcal remaining, since that's the number that actually changes what you should do next.
+ * Google-Fit-style triple concentric ring: outer = Burned, middle = Target (eat), inner = Body
+ * Need (TDEE). Target/Burned are real daily progress (how much eaten toward the goal, how much
+ * burned so far) so they fill proportionally. Body Need is a FIXED number - not something that
+ * fills up through the day - so it's always drawn as a full reference ring, not a near-empty
+ * sliver based on how little you've eaten yet. Center shows kcal remaining.
  */
 @Composable
 private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed: Int, remaining: Int) {
-    val pBodyNeed = if (bodyNeed > 0) (consumed.toFloat() / bodyNeed).coerceIn(0f, 1f) else 0f
+    val pBodyNeed = if (bodyNeed > 0) 1f else 0f
     val pTarget = if (target > 0) (consumed.toFloat() / target).coerceIn(0f, 1f) else 0f
     val pBurned = if (bodyNeed > 0) (burned.toFloat() / bodyNeed).coerceIn(0f, 1f) else 0f
 
