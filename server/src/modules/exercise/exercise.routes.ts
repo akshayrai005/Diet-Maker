@@ -5,7 +5,8 @@ import { prisma } from '../../lib/prisma';
 import { decryptJson } from '../../lib/crypto';
 import { HttpError } from '../../middleware/error';
 import type { SensitiveData } from '../profile/profile.schemas';
-import { generateWeeklyWorkout } from './workoutGenerator';
+import { generateWeeklyWorkout, generateStagedMovementPlan } from './workoutGenerator';
+import { determineMovementStage } from './mobilityStaging';
 import { localSunday, localToday, tzOffsetMin } from '../../lib/tz';
 import type { BodyGoal, ExerciseLocation, FitnessLevel } from './exercise.types';
 import { exerciseLogSchema } from './exerciseLog.schemas';
@@ -45,18 +46,35 @@ exerciseRouter.get(
     const medicalCaution = (s.conditions?.length ?? 0) > 0 || profile.reducedMobility;
 
     const offset = tzOffsetMin(req);
-    let plan = generateWeeklyWorkout(goal, location, {
-      restDayOfWeek: s.workoutRestDay,
-      startDate: localSunday(offset),
-      today: localToday(offset),
-      fitnessLevel: currentLevel,
-      intensity: s.intensityPreference,
-      under18,
-      medicalCaution,
-      // Selectable training split (Chest/Back/... , PPL, Upper-Lower, Full-body) + priority muscles.
-      split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
-      priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
+
+    // Mobility staging (see mobilityStaging.ts): a general gate for ANY reported mobility
+    // limitation, not one specific condition. When staged, the whole plan is a dedicated
+    // zero/low-impact program instead of the normal split - "gentle" volume-scaling on a
+    // bodyweight-squat template isn't actually safe for someone this applies to.
+    const staging = determineMovementStage({
+      reducedMobility: profile.reducedMobility,
+      heightCm: profile.heightCm,
+      currentWeightKg: s.currentWeightKg,
     });
+
+    let plan = staging.stage !== 'full'
+      ? generateStagedMovementPlan(staging.stage, {
+          restDayOfWeek: s.workoutRestDay,
+          startDate: localSunday(offset),
+          today: localToday(offset),
+        })
+      : generateWeeklyWorkout(goal, location, {
+          restDayOfWeek: s.workoutRestDay,
+          startDate: localSunday(offset),
+          today: localToday(offset),
+          fitnessLevel: currentLevel,
+          intensity: s.intensityPreference,
+          under18,
+          medicalCaution,
+          // Selectable training split (Chest/Back/... , PPL, Upper-Lower, Full-body) + priority muscles.
+          split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
+          priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
+        });
 
     // Period-aware: for female profiles, ease period days to gentle recovery.
     if (s.sex === 'female') {
@@ -164,7 +182,7 @@ exerciseRouter.get(
     // Auto promotion/demotion nudge so the app can prompt "level up / ease down".
     const levelSuggestion = suggestLevelChange(history, currentLevel);
 
-    res.json({ plan, levelSuggestion });
+    res.json({ plan, levelSuggestion, movementStage: staging });
   }),
 );
 

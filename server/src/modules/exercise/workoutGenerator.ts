@@ -534,6 +534,107 @@ export function generateWeeklyWorkout(
   return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution });
 }
 
+// ---------------------------------------------------------------------------------------------
+// Staged movement plans (mobilityStaging.ts) - for anyone who reported a mobility limitation and
+// is at a weight where standing/joint-loading exercise (squats, lunges, jumping, even the "gentle"
+// warm-ups above, which still include bodyweight squats and jumping jacks unconditionally) isn't
+// safe to hand out yet. Built from scratch, NOT via enrichDays/warmupFor/cooldownFor, since those
+// always include standing/impact moves regardless of the medicalCaution flag - this needs to
+// guarantee zero joint-loading content, not just fewer sets of it.
+// ---------------------------------------------------------------------------------------------
+
+const DIET_FIRST_DAYS: DayTemplate[] = [
+  { focus: 'Seated Mobility', exercises: [
+    m('Deep diaphragmatic breathing', 3, '2 min'),
+    m('Seated shoulder rolls', 2, '10 each way'),
+    m('Seated marching (gentle knee lift)', 2, '10 each side'),
+    m('Seated ankle pumps & circles', 2, '15 each foot'),
+  ] },
+  { focus: 'Seated Upper Body', exercises: [
+    m('Seated arm circles', 2, '10 each way'),
+    m('Seated overhead reach & stretch', 2, '8'),
+    m('Wrist & finger stretches', 2, '30s'),
+    m('Deep diaphragmatic breathing', 2, '2 min'),
+  ] },
+  { focus: 'Gentle Stretch & Breathing', exercises: [
+    m('Seated neck rolls', 2, '5 each way'),
+    m('Seated gentle torso twist', 2, '8 each side'),
+    m('Seated forward reach (hamstring ease)', 2, '30s'),
+    m('Slow diaphragmatic breathing', 3, '2 min'),
+  ] },
+];
+
+const LIGHT_MOVEMENT_DAYS: DayTemplate[] = [
+  { focus: 'Easy Walk + Chair Stand', exercises: [
+    c('Easy-paced walk (flat ground, self-paced)', 1, '10-15 min'),
+    s('Sit-to-stand from a chair (controlled, use arms if needed)', 2, '8'),
+    m('Standing calf raise (holding support)', 2, '10'),
+  ] },
+  { focus: 'Standing Mobility', exercises: [
+    s('Wall push-ups', 2, '10'),
+    m('Standing marching in place (low impact)', 2, '30s'),
+    m('Standing side bends (holding support)', 2, '8 each side'),
+  ] },
+  { focus: 'Walk + Gentle Strength', exercises: [
+    c('Easy-paced walk (flat ground, self-paced)', 1, '10-20 min'),
+    s('Seated leg extension (light, controlled)', 2, '10 each leg'),
+    m('Standing hip circles (holding support)', 2, '8 each way'),
+  ] },
+];
+
+/**
+ * Zero/low-impact plan for a mobility-staged user (see mobilityStaging.ts). Never includes
+ * squats, lunges, jumping, or any move requiring full unsupported standing balance in the
+ * 'diet_first' stage; 'light_movement' adds short self-paced walking and chair-assisted standing
+ * work only.
+ */
+export function generateStagedMovementPlan(
+  stage: 'diet_first' | 'light_movement',
+  options: Pick<WorkoutOptions, 'restDayOfWeek' | 'startDate' | 'today' | 'days'> = {},
+): WeeklyWorkout {
+  const templates = stage === 'diet_first' ? DIET_FIRST_DAYS : LIGHT_MOVEMENT_DAYS;
+  const dayCount = options.days ?? 7;
+  const days: WorkoutDay[] = [];
+  let t = 0;
+  for (let d = 0; d < dayCount; d++) {
+    let date: string | undefined;
+    let weekday = d;
+    let baseLabel: string | undefined;
+    if (options.startDate) {
+      const dt = new Date(options.startDate.getTime() + d * 86_400_000);
+      weekday = dt.getUTCDay();
+      date = dt.toISOString().slice(0, 10);
+      baseLabel = labelFor(dt, options.today ?? options.startDate);
+    }
+    const isRest = options.restDayOfWeek !== undefined && weekday === options.restDayOfWeek;
+    if (isRest) {
+      days.push({
+        dayIndex: d, date, label: baseLabel ? `${baseLabel} · Rest` : 'Rest', focus: 'Rest & recovery', rest: true,
+        exercises: [m('Slow diaphragmatic breathing', 3, '3 min'), m('Gentle seated stretching', 1, '5 min')],
+      });
+    } else {
+      const tmpl = templates[t % templates.length]!;
+      t++;
+      days.push({
+        dayIndex: d, date, label: baseLabel, focus: tmpl.focus, rest: false,
+        exercises: tmpl.exercises.map((ex) => ({ ...ex, ...annotate(ex.name) })),
+      });
+    }
+  }
+  const note = stage === 'diet_first'
+    ? '🍽️ Diet-first phase: seated/zero-impact movement only while your plan focuses on nutrition. No squats, lunges or standing balance work yet - that comes back once your weight is in a joint-friendlier range.'
+    : '🚶 Light-movement phase: short self-paced walks and chair-assisted standing work, still no squats/lunges/jumping. Diet is still doing most of the work here.';
+  return {
+    location: 'home',
+    goal: 'fatloss',
+    days,
+    block: 0,
+    blockLabel: stage === 'diet_first' ? 'Diet-first phase' : 'Light-movement phase',
+    note,
+    disclaimer: DISCLAIMER,
+  };
+}
+
 // ---- Warm-up / cool-down / cardio / substitutions (PURE) ----
 
 const w = (name: string, reps: string): ExerciseItem => ({ name, sets: 1, reps, type: 'mobility', equipment: 'bodyweight' });
