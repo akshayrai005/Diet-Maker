@@ -397,12 +397,12 @@ private fun SummaryStat(modifier: Modifier, emoji: String, value: String, label:
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            Modifier.padding(vertical = Spacing.sm),
+            Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(emoji, style = MaterialTheme.typography.labelMedium)
-            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
