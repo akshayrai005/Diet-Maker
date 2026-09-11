@@ -311,6 +311,7 @@ private fun DashboardTab(
             weekDays = state.weekDays,
             weekKcalTarget = state.weekKcalTarget,
             maintenanceKcal = state.maintenanceKcal,
+            bodyFatPct = state.bodyFatPct,
             coach = state.coach,
             rating = state.rating,
             todayWorkout = state.todayWorkout,

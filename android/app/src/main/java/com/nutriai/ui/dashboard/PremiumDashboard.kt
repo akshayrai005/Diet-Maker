@@ -108,6 +108,7 @@ fun PremiumDashboard(
     weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
     weekKcalTarget: Double? = null,
     maintenanceKcal: Double? = null,
+    bodyFatPct: Double? = null,
     coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     rating: com.nutriai.data.remote.dto.RatingResult? = null,
     todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
@@ -171,6 +172,7 @@ fun PremiumDashboard(
                     stepsKcal = stepsKcal,
                     sleepHours = sleepHours,
                     heartRate = heartRate ?: manualHeartRate,
+                    bodyFatPct = bodyFatPct,
                 )
             }
         }
@@ -421,7 +423,7 @@ private fun CalorieRing(consumed: Int, target: Int?, progress: Float) {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?) {
+private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?, bodyFatPct: Double? = null) {
     val cal = dashboard.calories
     val calPct = if (cal.target != null && cal.target > 0) (cal.consumed / cal.target).coerceIn(0.0, 1.0).toFloat() else 0f
     val proteinPct = if (dashboard.protein.target != null && dashboard.protein.target > 0) {
@@ -450,16 +452,16 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 borderColor = MovementColor,
             )
         }
-        // Row 2: Recovery + Hydration
+        // Row 2: Body + Hydration
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             DomainCard(
                 modifier = Modifier.weight(1f),
-                emoji = "😴", title = "Recovery",
-                mainValue = sleepHours?.let { "$it" } ?: heartRate?.let { "$it" } ?: "-",
-                mainUnit = if (sleepHours != null) "hrs" else if (heartRate != null) "bpm" else "",
-                progress = sleepHours?.let { (it / 8.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                emoji = "📐", title = "Body",
+                mainValue = dashboard.bmi?.let { "%.1f".format(it) } ?: "-",
+                mainUnit = if (dashboard.bmi != null) "BMI" else "",
+                progress = dashboard.bmi?.let { ((it - 18.5) / (30.0 - 18.5)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
                 accentColor = RecoveryColor, bgColor = CardLavenderLight,
-                detail = if (sleepHours != null && heartRate != null) "$heartRate bpm" else "Track sleep",
+                detail = bodyFatPct?.let { "%.1f%% body fat".format(it) } ?: "Add measurements",
                 borderColor = RecoveryColor,
             )
             DomainCard(

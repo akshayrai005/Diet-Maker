@@ -32,6 +32,8 @@ data class DashboardState(
     val weekDays: List<com.nutriai.data.remote.dto.ReportDay> = emptyList(),
     val weekKcalTarget: Double? = null,
     val maintenanceKcal: Double? = null, // TDEE - what the body burns/day
+    val bmi: Double? = null,
+    val bodyFatPct: Double? = null,
     val coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     val rating: com.nutriai.data.remote.dto.RatingResult? = null,
     /** Today's training day from the workout plan (null if rest day / no plan yet). */
@@ -120,6 +122,8 @@ class DashboardViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     safetyFlags = calc.flags.filter { it.code != "DISCLAIMER" },
                     maintenanceKcal = calc.tdee,
+                    bmi = calc.bmi,
+                    bodyFatPct = calc.bodyFatEstimate,
                 )
             }
         }

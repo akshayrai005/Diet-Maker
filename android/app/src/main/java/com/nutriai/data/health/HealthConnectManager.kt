@@ -6,7 +6,6 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -48,45 +47,67 @@ class HealthConnectManager @Inject constructor(
     /** True if at least the steps permission is granted (used to show the connected state). */
     suspend fun hasStepPermission(): Boolean = granted(stepPermissions)
 
-    /** Total steps today (device local day), de-duplicated across sources. 0 if unavailable/denied. */
+    /**
+     * Reads every StepsRecord in [start, end), following pagination. Health Connect's own
+     * COUNT_TOTAL aggregate merges/dedupes overlapping records across sources (phone + watch),
+     * which can under-report when the phone sat still (e.g. on a rack) while a watch tracked the
+     * walk - so we read raw records instead and let the caller pick the best source per day.
+     */
+    private suspend fun readAllStepsRecords(client: HealthConnectClient, start: Instant, end: Instant): List<StepsRecord> {
+        val all = mutableListOf<StepsRecord>()
+        var pageToken: String? = null
+        do {
+            val resp = client.readRecords(
+                ReadRecordsRequest(
+                    StepsRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                    pageToken = pageToken,
+                ),
+            )
+            all.addAll(resp.records)
+            pageToken = resp.pageToken?.takeIf { it.isNotEmpty() }
+        } while (pageToken != null)
+        return all
+    }
+
+    /**
+     * Total steps today (device local day). When multiple sources report (e.g. phone + a synced
+     * watch), takes the HIGHEST per-source total rather than Health Connect's merged total, so a
+     * watch worn on a walk (while the phone sat on a rack) isn't undercounted.
+     */
     suspend fun readTodaySteps(): Long {
         val client = clientOrNull() ?: return 0L
         if (!granted(stepPermissions)) return 0L
         return try {
             val zone = ZoneId.systemDefault()
             val start = LocalDate.now().atStartOfDay(zone).toInstant()
-            val response = client.aggregate(
-                AggregateRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(start, Instant.now()),
-                ),
-            )
-            response[StepsRecord.COUNT_TOTAL] ?: 0L
+            val records = readAllStepsRecords(client, start, Instant.now())
+            records.groupBy { it.metadata.dataOrigin.packageName }
+                .maxOfOrNull { (_, recs) -> recs.sumOf { it.count } } ?: 0L
         } catch (e: Exception) {
             0L
         }
     }
 
     /**
-     * Steps per day for the last `days` days, keyed by local date "YYYY-MM-DD". Empty when
+     * Steps per day for the last `days` days, keyed by local date "YYYY-MM-DD" - the HIGHEST
+     * per-source total for that day (phone vs. watch), not a merged total. Empty when
      * unavailable/denied. Powers the step-history chart (Health Connect keeps ~30 days locally).
      */
     suspend fun readDailySteps(days: Int): Map<String, Long> {
         val client = clientOrNull() ?: return emptyMap()
         if (!granted(stepPermissions)) return emptyMap()
         return try {
-            val end = java.time.LocalDateTime.now()
-            val start = end.toLocalDate().minusDays((days - 1).toLong()).atStartOfDay()
-            val response = client.aggregateGroupByPeriod(
-                androidx.health.connect.client.request.AggregateGroupByPeriodRequest(
-                    metrics = setOf(StepsRecord.COUNT_TOTAL),
-                    timeRangeFilter = TimeRangeFilter.between(start, end),
-                    timeRangeSlicer = java.time.Period.ofDays(1),
-                ),
-            )
-            response.associate { bucket ->
-                bucket.startTime.toLocalDate().toString() to (bucket.result[StepsRecord.COUNT_TOTAL] ?: 0L)
-            }
+            val zone = ZoneId.systemDefault()
+            val end = LocalDate.now().plusDays(1).atStartOfDay(zone).toInstant()
+            val start = LocalDate.now().minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant()
+            val records = readAllStepsRecords(client, start, end)
+            records
+                .groupBy { it.startTime.atZone(zone).toLocalDate().toString() to it.metadata.dataOrigin.packageName }
+                .mapValues { (_, recs) -> recs.sumOf { it.count } }
+                .entries
+                .groupBy({ it.key.first }, { it.value })
+                .mapValues { (_, totals) -> totals.max() }
         } catch (e: Exception) {
             emptyMap()
         }
