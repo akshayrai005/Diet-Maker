@@ -6,6 +6,7 @@ import { goalTimeline } from '../../calc/goalTimeline';
 import type { ActivityLevel, Goal } from '../../calc/types';
 import type { Condition } from '../../guardrails';
 import { dietRampFor, applyDietRamp } from './dietRamp';
+import { detectActivityLevel, tdeeDeltaForLevelChange, type ExerciseSessionSample } from './activityAutoDetect';
 
 /** Whole years between dob and now. */
 export function ageFromDob(dobISO: string, now: Date = new Date()): number {
@@ -50,13 +51,28 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     }
   }
 
+  const reportedActivityLevel = profile.activityLevel as ActivityLevel;
+
+  // Real logged workouts over the trailing 28 days, not the one-time onboarding self-report -
+  // so a consistent gym-goer's TDEE reflects actual behavior instead of a static answer.
+  const WINDOW_DAYS = 28;
+  const windowStart = new Date(Date.now() - WINDOW_DAYS * 86_400_000);
+  const recentSessions = await prisma.exerciseLog.findMany({
+    where: { userId, performedAt: { gte: windowStart } },
+    select: { performedAt: true },
+  });
+  const sessionSamples: ExerciseSessionSample[] = recentSessions.map((s) => ({
+    dayKey: s.performedAt.toISOString().slice(0, 10),
+  }));
+  const activityDetection = detectActivityLevel(reportedActivityLevel, sessionSamples, WINDOW_DAYS);
+
   let result = computeCalcResult({
     heightCm: profile.heightCm,
     currentWeightKg: sensitive.currentWeightKg,
     targetWeightKg: sensitive.targetWeightKg,
     ageYears,
     sex: sensitive.sex,
-    activityLevel: profile.activityLevel as ActivityLevel,
+    activityLevel: activityDetection.effectiveLevel,
     goal: effectiveGoal,
     waistCm: sensitive.waistCm,
     conditions: sensitive.conditions as Condition[],
@@ -65,6 +81,33 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     reducedMobility: profile.reducedMobility,
     climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,
   });
+
+  if (activityDetection.higherThanReported) {
+    const deltaKcal = tdeeDeltaForLevelChange(result.bmr, reportedActivityLevel, activityDetection.effectiveLevel);
+    result = {
+      ...result,
+      flags: [
+        ...result.flags,
+        {
+          code: 'ACTIVITY_AUTO_BUMP',
+          severity: 'info',
+          message: `You've been logging ${activityDetection.sessionsPerWeek}x/week of workouts - more than your "${reportedActivityLevel}" setting, so we raised your calorie budget by ~${deltaKcal} kcal/day to match. Update your activity level in Profile to make this permanent.`,
+        },
+      ],
+    };
+  } else if (activityDetection.lowerThanReported) {
+    result = {
+      ...result,
+      flags: [
+        ...result.flags,
+        {
+          code: 'ACTIVITY_STALE',
+          severity: 'info',
+          message: `Your activity is set to "${reportedActivityLevel}" but we haven't seen logged workouts matching that lately. Your calorie target is unchanged, but consider updating your activity level in Profile for a more accurate plan.`,
+        },
+      ],
+    };
+  }
 
   // New-to-dieting ease-in (see dietRamp.ts): someone who just started tracking got thrown
   // straight into the full computed deficit/surplus from day one. Blend toward maintenance for
