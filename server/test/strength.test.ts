@@ -95,9 +95,10 @@ describe('every routine has a visible core/abs block', () => {
     }
   });
 
-  it('advanced gets more core volume than beginner', () => {
-    const beg = training({ fitnessLevel: 'beginner' })[0]!.core!.length;
-    const adv = training({ fitnessLevel: 'advanced' })[0]!.core!.length;
+  it('advanced gets more core volume (total sets) than beginner - item count is capped the same for both to keep the day realistic, sets scale by level instead', () => {
+    const totalSets = (core: { sets: number }[]) => core.reduce((sum, e) => sum + e.sets, 0);
+    const beg = totalSets(training({ fitnessLevel: 'beginner' })[0]!.core!);
+    const adv = totalSets(training({ fitnessLevel: 'advanced' })[0]!.core!);
     expect(adv).toBeGreaterThan(beg);
   });
 
@@ -130,12 +131,15 @@ describe('selectable training splits', () => {
     expect(focuses('full_body').every((x) => /full-body/.test(x))).toBe(true);
   });
 
-  it('full_body (gym, non-beginner) has ~12 exercises covering all major groups', () => {
+  it('full_body (gym, non-beginner) stays within the realistic per-day exercise budget while still spreading across multiple muscle groups', () => {
     const day = generateWeeklyWorkout('muscular', 'gym', { split: 'full_body', fitnessLevel: 'intermediate' })
       .days.find((d) => !d.rest)!;
-    expect(day.exercises.length).toBeGreaterThanOrEqual(10);
-    const groups = new Set(day.exercises.map((e) => e.muscleGroup));
-    for (const g of ['chest', 'back', 'shoulders', 'legs']) expect(groups.has(g)).toBe(true);
+    // Capped to a doable session (see LEVEL_TOTAL_WORKING in workoutGenerator.ts), not the old
+    // ~12-exercise "hit everything" list - 3 sets/exercise at a real gym makes that infeasible.
+    expect(day.exercises.length).toBeLessThanOrEqual(4);
+    // Still diversified across groups (round-robin selection), not collapsed onto just one.
+    const groups = new Set(day.exercises.map((e) => e.muscleGroup).filter(Boolean));
+    expect(groups.size).toBeGreaterThanOrEqual(2);
   });
   it('splits work for home too, and every day still gets warm-up + core', () => {
     const days = generateWeeklyWorkout('muscular', 'home', { split: 'push_pull_legs' }).days.filter((d) => !d.rest);

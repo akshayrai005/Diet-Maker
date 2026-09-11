@@ -391,16 +391,6 @@ function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equ
   return eq !== undefined ? { equipment: eq } : {};
 }
 
-/** A light mobility/cardio finisher appended for advanced lifters / beast intensity. */
-const FINISHER: ExerciseItem = {
-  name: 'Conditioning finisher',
-  sets: 1,
-  reps: '3 rounds',
-  type: 'cardio',
-  cue: 'push the pace but keep clean form',
-  muscleGroup: 'full body',
-  equipment: 'bodyweight',
-};
 
 /** Rest-guidance text tuned to level + intensity. */
 function restGuidance(level: FitnessLevel, intensity: IntensityPreference): string {
@@ -422,7 +412,6 @@ function applyScaling(
   intensity: IntensityPreference,
 ): WeeklyWorkout {
   const factor = INTENSITY_SET_FACTOR[intensity];
-  const addFinisher = level !== 'beginner' && (level === 'advanced' || intensity === 'beast');
 
   const days: WorkoutDay[] = plan.days.map((day) => {
     if (day.rest) {
@@ -430,11 +419,10 @@ function applyScaling(
       return { ...day, exercises: day.exercises.map((ex) => ({ ...ex, ...annotate(ex.name) })) };
     }
 
-    // Pad a SHORT day's main block up to the target so the user always has ~7 to pick 5 from.
-    // Never trims a day that already offers more (e.g. the full-body split's ~12).
+    // Pad a SHORT day's main block up so there's enough to choose from before enrichDays applies
+    // the level's total working-exercise budget (main + core + cardio - see LEVEL_TOTAL_WORKING).
     const padded = padMain(day.focus, day.exercises, TARGET_MAIN_EXERCISES);
-    let items = padded.map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
-    if (addFinisher) items = [...items, { ...FINISHER }];
+    const items = padded.map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
 
     return { ...day, exercises: items };
   });
@@ -692,16 +680,81 @@ function coreFor(level: FitnessLevel, gentle: boolean): ExerciseItem[] {
   }
 }
 
+/**
+ * Total WORKING exercises (main lifts + core + cardio - not warmup/cooldown, which are short prep
+ * movements, not sets to complete) a real session should hold, by level. Doing 3 sets per exercise
+ * at a real gym with rest between sets makes 14-15 separate exercises impossible in one session -
+ * cap it to a handful of high-impact movements instead of padding the list out. Deliberately
+ * generalizes across every goal/split, not one specific program.
+ */
+const LEVEL_TOTAL_WORKING: Record<FitnessLevel, number> = {
+  beginner: 5,
+  intermediate: 6,
+  advanced: 7,
+};
+
+/**
+ * Trims a main-exercise list to `count`, round-robining one exercise per muscle group at a time
+ * (in the order groups first appear) instead of taking a naive first-N slice - so a multi-group
+ * day (e.g. a full-body split) keeps one hit per major group instead of collapsing onto whichever
+ * group happened to be listed first in the template. PURE.
+ */
+function selectDiverse(items: ExerciseItem[], count: number): ExerciseItem[] {
+  if (items.length <= count) return items;
+  const byGroup = new Map<string, ExerciseItem[]>();
+  const groupOrder: string[] = [];
+  for (const item of items) {
+    const g = item.muscleGroup ?? '_';
+    if (!byGroup.has(g)) {
+      byGroup.set(g, []);
+      groupOrder.push(g);
+    }
+    byGroup.get(g)!.push(item);
+  }
+  const out: ExerciseItem[] = [];
+  for (let round = 0; out.length < count; round++) {
+    let addedThisRound = false;
+    for (const g of groupOrder) {
+      if (out.length >= count) break;
+      const arr = byGroup.get(g)!;
+      if (round < arr.length) {
+        out.push(arr[round]!);
+        addedThisRound = true;
+      }
+    }
+    if (!addedThisRound) break;
+  }
+  return out;
+}
+
+/** Trims main/core/cardio down to the level's total working-exercise budget. PURE. Cardio always kept (1 slot); core capped at 2 slots; remaining budget goes to the main lifts, spread across muscle groups. */
+function capWorkingExercises(
+  main: ExerciseItem[],
+  core: ExerciseItem[],
+  cardio: ExerciseItem,
+  budget: number,
+): { main: ExerciseItem[]; core: ExerciseItem[]; cardio: ExerciseItem } {
+  const cardioSlots = 1;
+  const coreSlots = Math.min(core.length, 2);
+  const mainSlots = Math.max(1, budget - cardioSlots - coreSlots);
+  return { main: selectDiverse(main, mainSlots), core: core.slice(0, coreSlots), cardio };
+}
+
 function enrichDays(plan: WeeklyWorkout, opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean }): WeeklyWorkout {
   const gentle = !!opts.medicalCaution;
+  const budget = LEVEL_TOTAL_WORKING[opts.level];
   const days: WorkoutDay[] = plan.days.map((day) => {
     if (day.rest) return day;
+    const mainAnnotated = day.exercises.map(withSubstitutions);
+    const coreAnnotated = coreFor(opts.level, gentle).map(withSubstitutions);
+    const cardio = cardioFor(opts.intensity, opts.medicalCaution);
+    const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget);
     return {
       ...day,
       warmup: warmupFor(day.focus),
-      exercises: day.exercises.map(withSubstitutions),
-      core: coreFor(opts.level, gentle).map(withSubstitutions),
-      cardio: cardioFor(opts.intensity, opts.medicalCaution),
+      exercises: capped.main,
+      core: capped.core,
+      cardio: capped.cardio,
       cooldown: cooldownFor(day.focus),
     };
   });

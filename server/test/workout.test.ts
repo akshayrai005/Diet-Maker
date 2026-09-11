@@ -55,4 +55,35 @@ describe('workout generator', () => {
     expect(plan.days[0]!.date).toBe('2026-07-22');
     expect(plan.days[1]!.label).toBe('Tomorrow');
   });
+
+  it('caps total working exercises (main+core+cardio, not warmup/cooldown) to a realistic 5-7 per day, across every goal/location/level/split', () => {
+    const goals: Array<'muscular' | 'athletic' | 'fatloss'> = ['muscular', 'athletic', 'fatloss'];
+    const locations: Array<'gym' | 'home' | 'none'> = ['gym', 'home', 'none'];
+    const levels: Array<'beginner' | 'intermediate' | 'advanced'> = ['beginner', 'intermediate', 'advanced'];
+    const splits: Array<'full_body' | 'push_pull_legs' | 'upper_lower' | 'body_part' | 'fat_loss' | undefined> = [
+      undefined, 'full_body', 'push_pull_legs', 'upper_lower', 'body_part', 'fat_loss',
+    ];
+    for (const goal of goals) {
+      for (const location of locations) {
+        for (const level of levels) {
+          for (const split of splits) {
+            const plan = generateWeeklyWorkout(goal, location, { fitnessLevel: level, split });
+            for (const day of plan.days.filter((d) => !d.rest)) {
+              const working = day.exercises.length + (day.core?.length ?? 0) + (day.cardio ? 1 : 0);
+              expect(working, `${goal}/${location}/${level}/${split}/${day.focus}`).toBeLessThanOrEqual(7);
+              expect(working, `${goal}/${location}/${level}/${split}/${day.focus}`).toBeGreaterThanOrEqual(3);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it('total displayed items (incl. warmup/cooldown) never balloons to 14-15+ on a normal day', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', { fitnessLevel: 'advanced', intensity: 'beast' });
+    for (const day of plan.days.filter((d) => !d.rest)) {
+      const total = day.exercises.length + (day.core?.length ?? 0) + (day.cardio ? 1 : 0) + (day.warmup?.length ?? 0) + (day.cooldown?.length ?? 0);
+      expect(total).toBeLessThanOrEqual(14);
+    }
+  });
 });

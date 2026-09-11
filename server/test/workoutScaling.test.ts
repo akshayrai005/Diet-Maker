@@ -87,10 +87,11 @@ describe('workout scaling — level + intensity change the plan', () => {
     }
   });
 
-  it('pads every training day to a 7-exercise menu (pick any ~5)', () => {
+  it('caps main exercises within the level total working-exercise budget (main+core+cardio, see workout.test.ts)', () => {
     const plan = generateWeeklyWorkout('fatloss', 'home', { startDate: start, fitnessLevel: 'intermediate' });
     for (const day of plan.days.filter((d) => !d.rest)) {
-      expect(day.exercises.length).toBe(7);
+      expect(day.exercises.length).toBeGreaterThan(0);
+      expect(day.exercises.length).toBeLessThanOrEqual(6);
     }
   });
 
@@ -104,23 +105,22 @@ describe('workout scaling — level + intensity change the plan', () => {
   });
 });
 
-describe('workout scaling — finisher', () => {
+describe('workout scaling — cardio finisher (guaranteed conditioning slot, replaces the old appended finisher)', () => {
   const start = new Date('2026-07-19T00:00:00Z');
 
-  it('advanced/beast appends ONE finisher on every non-rest day, never on rest days', () => {
+  it('every non-rest day carries exactly one cardio/conditioning element; rest days carry none', () => {
     const plan = generateWeeklyWorkout('muscular', 'gym', {
       startDate: start,
       restDayOfWeek: 0,
       fitnessLevel: 'advanced',
     });
     for (const day of plan.days) {
-      const finishers = day.exercises.filter((e) => e.name === 'Conditioning finisher');
-      if (day.rest) expect(finishers).toHaveLength(0);
-      else expect(finishers).toHaveLength(1);
+      if (day.rest) expect(day.cardio).toBeUndefined();
+      else expect(day.cardio).toBeDefined();
     }
   });
 
-  it('beginner never gets a finisher', () => {
+  it('beginner also gets a (steady-state, not HIIT) cardio element - no "Conditioning finisher" name lingers anywhere', () => {
     const plan = generateWeeklyWorkout('muscular', 'gym', {
       startDate: start,
       fitnessLevel: 'beginner',
@@ -178,12 +178,21 @@ describe('workout scaling — under-18 safety cap forces beast down', () => {
 
 describe('workout scaling — form cues / annotations', () => {
   // athletic:gym is a single (non-rotating) block, so names are deterministic across dates.
-  const plan = generateWeeklyWorkout('athletic', 'gym', {});
-  const byName = new Map(allTraining(plan).map((e) => [e.name, e]));
+  // 'advanced' gives the widest main-exercise budget so more of the template's named lifts survive capping.
+  // muscular:gym's dedicated bro-split days are single-muscle-group, so its early exercises (e.g.
+  // "Barbell row" on Back day) reliably survive the diverse-selection cap too - merge both plans'
+  // exercises so this stays a pure lookup-table check on annotate(), independent of which specific
+  // day layout happens to keep which named lift.
+  const planA = generateWeeklyWorkout('athletic', 'gym', { fitnessLevel: 'advanced' });
+  const planB = generateWeeklyWorkout('muscular', 'gym', { fitnessLevel: 'advanced' });
+  const allExercises = (p: WeeklyWorkout) => [...allTraining(p), ...p.days.filter((d) => !d.rest).flatMap((d) => d.core ?? [])];
+  const byName = new Map([...allExercises(planA), ...allExercises(planB)].map((e) => [e.name, e]));
 
   it('attaches muscleGroup + short cue for common movements', () => {
     expect(byName.get('Bench press')?.muscleGroup).toBe('chest');
-    expect(byName.get('Barbell row')?.muscleGroup).toBe('back');
+    // "Lat pulldown" is the back day's first-listed exercise, so it reliably survives the
+    // diverse-selection cap regardless of how many other back exercises get trimmed.
+    expect(byName.get('Lat pulldown')?.muscleGroup).toBe('back');
     expect(byName.get('Back squat')?.muscleGroup).toBe('legs');
     expect(byName.get('Romanian deadlift')?.muscleGroup).toBe('posterior chain');
     expect(byName.get('Overhead press')?.muscleGroup).toBe('shoulders');
@@ -195,13 +204,14 @@ describe('workout scaling — form cues / annotations', () => {
   });
 
   it('derives equipment where the name reveals it, undefined otherwise', () => {
-    expect(byName.get('Barbell row')?.equipment).toBe('barbell');
+    // "Barbell bench press" is the chest day's first-listed exercise - always survives the cap.
+    expect(byName.get('Barbell bench press')?.equipment).toBe('barbell');
     expect(byName.get('Plank')?.equipment).toBe('bodyweight');
   });
 
   it('leaves unknown movements unannotated (no cue)', () => {
     // "Battle ropes" is not in the lookup table.
-    const ropes = allTraining(plan).find((e) => e.name === 'Battle ropes');
+    const ropes = allTraining(planA).find((e) => e.name === 'Battle ropes');
     if (ropes) expect(ropes.cue).toBeUndefined();
   });
 });
