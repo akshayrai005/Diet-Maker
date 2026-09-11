@@ -424,9 +424,9 @@ private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed:
                 drawArc(color = color.copy(alpha = 0.14f), startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                 drawArc(color = color, startAngle = -90f, sweepAngle = progress * 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
             }
-            ring(0, KaizenCoral, aBodyNeed)
+            ring(0, BrandAmber, aBurned)
             ring(1, NutritionColor, aTarget)
-            ring(2, BrandAmber, aBurned)
+            ring(2, KaizenCoral, aBodyNeed)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("🔥", fontSize = 16.sp)
