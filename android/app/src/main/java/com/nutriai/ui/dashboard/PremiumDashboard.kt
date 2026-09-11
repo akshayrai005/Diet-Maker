@@ -486,13 +486,17 @@ private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: I
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(Spacing.sm).height(72.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Column(
+            Modifier.fillMaxWidth().padding(Spacing.sm).height(72.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text(emoji, fontSize = 14.sp)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text("$value", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
                 Text(if (target != null) "/$target$unit" else unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 1.dp, start = 1.dp))
             }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
