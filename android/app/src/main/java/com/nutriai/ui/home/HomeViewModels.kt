@@ -150,7 +150,8 @@ class DashboardViewModel @Inject constructor(
         }
         // Today's workout (for the "Today: Chest + Triceps" card up top).
         viewModelScope.launch {
-            repository.exercisePlan().getOrNull()?.days?.firstOrNull { it.label == "Today" }?.let { day ->
+            // Prefix match, not equality: a period day relabels to "Today · Period" (still today).
+            repository.exercisePlan().getOrNull()?.days?.firstOrNull { it.label?.startsWith("Today") == true }?.let { day ->
                 _state.value = _state.value.copy(todayWorkout = day)
             }
         }

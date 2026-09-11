@@ -74,7 +74,7 @@ private val GROUPS = listOf(
     ProfileGroup(
         "Your Plan", "📋",
         listOf(
-            ProfileItem("plan", "📅", "Plan", "AI plan review", MovementColor),
+            ProfileItem("plan", "📅", "Plan", "Plan tomorrow's food & workout", MovementColor),
             ProfileItem("coach", "🤖", "Coach", "Chat with your coach", KaizenLavender),
             ProfileItem("checkin", "⚖️", "Check-in", "Weekly weigh-in", BrandGreen),
         ),

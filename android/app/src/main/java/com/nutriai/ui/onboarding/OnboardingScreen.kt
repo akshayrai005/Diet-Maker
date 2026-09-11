@@ -146,13 +146,14 @@ private val DIET = listOf(
 )
 private val EX_LOC = listOf("gym" to "Gym", "home" to "Home", "none" to "No workouts")
 private val BODY_GOAL = listOf("fatloss" to "Fat loss", "athletic" to "Athletic / lean", "muscular" to "Muscular")
-// Training split: value → plain-language, body-neutral label. null = auto (server picks from goal).
+// Training split: value → plain-language, body-neutral label. null = auto (server picks: mixed
+// full-body sessions for your first month at the gym, then a body-part split as you advance).
 private val TRAINING_SPLIT: List<Pair<String?, String>> = listOf(
-    null to "Auto (based on my goal)",
-    "body_part" to "Body-part split - Chest / Back / Shoulders / Arms / Legs",
+    null to "Auto (mixed for month 1, then body-part split as you advance)",
+    "full_body" to "Full-body mixed session - machines, dumbbells, cardio in one visit (recommended for month 1)",
+    "body_part" to "Body-part split - Chest / Back / Shoulders / Arms / Legs (once training feels routine, ~1 month+)",
     "push_pull_legs" to "Push / Pull / Legs",
     "upper_lower" to "Upper / Lower",
-    "full_body" to "Full-body (3 days/week)",
     "fat_loss" to "Fat-loss circuits",
 )
 private val DAYS: List<Pair<Int?, String>> = listOf(

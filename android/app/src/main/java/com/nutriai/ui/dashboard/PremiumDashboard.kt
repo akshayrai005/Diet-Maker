@@ -271,6 +271,8 @@ fun PremiumDashboard(
             item { Column(sectionPadding) { RiskRows(findings = riskFindings) } }
         }
 
+        item { Column(sectionPadding) { WhyTrustThisCard() } }
+
         item {
             Text(
                 "Educational guidance, not medical advice - consult a professional.",
@@ -280,6 +282,34 @@ fun PremiumDashboard(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
         }
+    }
+}
+
+/**
+ * Honest answer to "why should I follow this app / is my goal guaranteed": no target here is
+ * a promise, but the plan is grounded in your real data and adjusts as your real behavior
+ * changes - not a generic template.
+ */
+@Composable
+private fun WhyTrustThisCard() {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(SharpRadius))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+            Text("Why this plan, not a guarantee", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(
+                "No app can promise you'll hit an exact number by an exact date - bodies respond differently to the same plan. " +
+                    "What this one does: computes your targets from your real height, weight, age and medical flags (not a generic template), " +
+                    "adjusts your calorie budget as your logged workouts actually change, stages your exercise plan around real limitations " +
+                    "like mobility or medical conditions instead of pushing a one-size routine, and keeps every target inside safety guardrails. " +
+                    "Follow it consistently and it will move you in the right direction - the pace is the part that varies.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
     }
 }
 
@@ -590,14 +620,16 @@ private fun PriorityRow(emoji: String, emojiColor: Color, title: String, subtitl
 @Composable
 private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, coach: com.nutriai.data.remote.dto.CoachBrief?, expanded: Boolean, onToggle: () -> Unit) {
     val headline = rating?.biggestLever?.message?.takeIf { it.isNotBlank() } ?: coach?.greeting?.takeIf { it.isNotBlank() } ?: "Keep logging to unlock your insight."
-    val supporting = coach?.prediction?.takeIf { it.isNotBlank() } ?: coach?.streak?.takeIf { it.isNotBlank() }
+    // A confident weight-trend prediction reads as contradictory right under "no data yet" - only
+    // show it once there's actually a rating pillar established.
+    val noPillarData = headline.startsWith("No pillar data yet")
+    val supporting = (coach?.prediction?.takeIf { it.isNotBlank() && !noPillarData } ?: coach?.streak?.takeIf { it.isNotBlank() })
 
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(containerColor = KaizenLavender.copy(alpha = 0.08f)),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, KaizenLavender.copy(alpha = 0.25f)),
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = KaizenLavender.copy(alpha = 0.12f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -619,6 +651,7 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
 
 @Composable
 private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
+    var expanded by remember { mutableStateOf(true) }
     val order = mapOf("critical" to 0, "warning" to 1, "info" to 2)
     val sorted = flags.sortedBy { order[it.severity] ?: 3 }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -627,12 +660,11 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(5.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
             colors = CardDefaults.cardColors(containerColor = CardCoralLight),
-            border = androidx.compose.foundation.BorderStroke(2.dp, KaizenCoral.copy(alpha = 0.4f)),
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = Spacing.lg, vertical = Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
@@ -644,10 +676,11 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
                 ) {
                     Text("${sorted.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
+                Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = KaizenCoral)
             }
         }
         // Each flag as its own card
-        sorted.forEach { f ->
+        if (expanded) sorted.forEach { f ->
             val (flagColor, flagBg) = when (f.severity) {
                 "critical" -> KaizenCoral to CardCoralLight
                 "warning" -> BrandAmber to CardAmberLight
@@ -657,9 +690,8 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(SharpRadius),
-                elevation = CardDefaults.cardElevation(3.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = flagBg),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, flagColor.copy(alpha = 0.35f)),
             ) {
                 Row(Modifier.padding(Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.Top) {
                     Box(
@@ -680,18 +712,18 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
 
 @Composable
 private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
+    var expanded by remember { mutableStateOf(true) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionHeader("Health Signals", emoji = "📡")
         // Header card
         Card(
             Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(SharpRadius),
-            elevation = CardDefaults.cardElevation(5.dp),
+            elevation = CardDefaults.cardElevation(0.dp),
             colors = CardDefaults.cardColors(containerColor = CardAmberLight),
-            border = androidx.compose.foundation.BorderStroke(2.dp, BrandAmber.copy(alpha = 0.4f)),
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = Spacing.lg, vertical = Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
@@ -703,10 +735,11 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
                 ) {
                     Text("${findings.size}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                 }
+                Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = Color(0xFFE65100))
             }
         }
         // Each finding as its own colorful card
-        findings.forEach { f ->
+        if (expanded) findings.forEach { f ->
             val (findColor, findBg) = when (f.level) {
                 "high" -> KaizenCoral to CardCoralLight
                 "moderate" -> BrandAmber to CardAmberLight
@@ -716,9 +749,8 @@ private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
             Card(
                 Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(SharpRadius),
-                elevation = CardDefaults.cardElevation(3.dp),
+                elevation = CardDefaults.cardElevation(0.dp),
                 colors = CardDefaults.cardColors(containerColor = findBg),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, findColor.copy(alpha = 0.35f)),
             ) {
                 Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -764,9 +796,8 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = CardGreenLight),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, NutritionColor.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(
@@ -787,9 +818,8 @@ private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = CardCoralLight),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, CoralAccent.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(
@@ -809,9 +839,8 @@ private fun JourneySummaryRow(dashboard: Dashboard) {
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(4.dp),
+        elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = CardBlueLight),
-        border = androidx.compose.foundation.BorderStroke(1.5.dp, MovementColor.copy(alpha = 0.3f)),
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(title = "🚀 Your journey", subtitle = "Projected ${next.weightKg} kg by ${next.label.lowercase()} at your current pace", leading = { EmojiBadge(emoji = "📈", bgColor = BrandGreen.copy(alpha = 0.12f)) })

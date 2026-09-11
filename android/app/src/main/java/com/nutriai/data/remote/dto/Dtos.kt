@@ -189,7 +189,12 @@ data class WeeklyWorkout(
 data class LevelSuggestion(val direction: String = "hold", val reason: String = "")
 
 @Serializable
-data class WorkoutEnvelope(val plan: WeeklyWorkout, val levelSuggestion: LevelSuggestion? = null, val movementStage: MovementStageInfo? = null)
+data class WorkoutEnvelope(
+    val plan: WeeklyWorkout,
+    val levelSuggestion: LevelSuggestion? = null,
+    val movementStage: MovementStageInfo? = null,
+    val splitSuggestion: SplitSuggestion? = null,
+)
 
 /** Why the plan is a staged diet-first/light-movement program instead of standard training. */
 @Serializable
@@ -198,6 +203,13 @@ data class MovementStageInfo(
     val bmi: Double = 0.0,
     val reason: String = "",
     val resumeAroundWeightKg: Double? = null,
+)
+
+/** Nudge to move from a mixed full-body session to a dedicated body-part split, once training tenure warrants it. */
+@Serializable
+data class SplitSuggestion(
+    val suggestBodyPartSplit: Boolean = false,
+    val reason: String? = null,
 )
 
 // ---- Strength trend (estimated 1-rep-max over time, per exercise) ----

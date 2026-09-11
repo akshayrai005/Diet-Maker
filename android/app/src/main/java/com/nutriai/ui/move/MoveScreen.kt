@@ -171,6 +171,7 @@ data class MoveState(
     val plan: WeeklyWorkout? = null,
     val levelSuggestion: com.nutriai.data.remote.dto.LevelSuggestion? = null,
     val movementStage: com.nutriai.data.remote.dto.MovementStageInfo? = null,
+    val splitSuggestion: com.nutriai.data.remote.dto.SplitSuggestion? = null,
     val error: String? = null,
     val toast: String? = null,
     val sessionKcal: Int = 0,
@@ -194,7 +195,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             val r = repository.exercisePlanFull()
             _state.value = if (r.isSuccess) {
                 val env = r.getOrNull()
-                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, movementStage = env?.movementStage, error = null)
+                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, movementStage = env?.movementStage, splitSuggestion = env?.splitSuggestion, error = null)
             } else {
                 _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
             }
@@ -326,7 +327,8 @@ internal fun estimateMinutes(reps: String, fallback: Int): Int {
 private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel(), planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val plan = state.plan
-    val today = plan?.days?.firstOrNull { it.label == "Today" } ?: plan?.days?.firstOrNull { !it.rest }
+    // Prefix match, not equality: a period day relabels to "Today · Period" (still today).
+    val today = plan?.days?.firstOrNull { it.label?.startsWith("Today") == true } ?: plan?.days?.firstOrNull { !it.rest }
     var selectedIdx by remember(plan) { mutableStateOf<Int?>(null) }
     val shownDay = selectedIdx?.let { i -> plan?.days?.getOrNull(i) } ?: today
 
@@ -479,6 +481,26 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                                 color = MoveAccent,
                             )
                         }
+                    }
+                }
+            }
+        }
+
+        // Split suggestion - nudge from mixed full-body sessions to a body-part split once you're past month 1.
+        state.splitSuggestion?.takeIf { it.suggestBodyPartSplit }?.let { ss ->
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text("🎯", fontSize = 16.sp)
+                            Text("Ready for a body-part split?", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        }
+                        ss.reason?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
             }

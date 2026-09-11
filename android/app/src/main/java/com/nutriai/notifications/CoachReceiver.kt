@@ -110,7 +110,8 @@ class CoachReceiver : BroadcastReceiver() {
     private suspend fun maybePostMissedGym(context: Context, repo: AppRepository) {
         val env = repo.exercisePlanFull().getOrNull() ?: return
         val days = env.plan.days
-        val todayDay = days.firstOrNull { it.label == "Today" } ?: return
+        // Prefix match, not equality: a period day relabels to "Today · Period" (still today).
+        val todayDay = days.firstOrNull { it.label?.startsWith("Today") == true } ?: return
         val hasContent = todayDay.exercises.isNotEmpty() || todayDay.warmup.isNotEmpty() ||
             todayDay.core.isNotEmpty() || todayDay.cardio != null || todayDay.cooldown.isNotEmpty()
         if (todayDay.rest || !hasContent) return // rest day - nothing to miss.

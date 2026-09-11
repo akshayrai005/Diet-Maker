@@ -155,9 +155,10 @@ class CalendarViewModel @Inject constructor(
 
             // Default the selection to the "Today" diet day when present,
             // otherwise the first day, otherwise a "Today" workout day.
-            val defaultDate = dietDays.firstOrNull { it.label == "Today" }?.date
+            // Prefix match, not equality: a period day relabels the workout day to "Today · Period" (still today).
+            val defaultDate = dietDays.firstOrNull { it.label?.startsWith("Today") == true }?.date
                 ?: dietDays.firstOrNull { it.date != null }?.date
-                ?: workoutDays.firstOrNull { it.label == "Today" }?.date
+                ?: workoutDays.firstOrNull { it.label?.startsWith("Today") == true }?.date
                 ?: workoutDays.firstOrNull { it.date != null }?.date
 
             val logs = defaultDate?.let { repository.exerciseLogs(it).getOrDefault(emptyList()) }.orEmpty()
@@ -284,6 +285,18 @@ private data class PendingLog(
     val reps: String,
     val sets: String,
 )
+
+/** Human-readable meal slot name (server sends compact slugs like "eveningsnack", "midmorning"). */
+private fun mealSlotLabel(slot: String): String = when (slot.lowercase()) {
+    "wakeup" -> "Wake-up"
+    "breakfast" -> "Breakfast"
+    "midmorning" -> "Mid-morning"
+    "lunch" -> "Lunch"
+    "eveningsnack" -> "Evening Snack"
+    "dinner" -> "Dinner"
+    "bedtime" -> "Bedtime"
+    else -> slot.replaceFirstChar { it.uppercase() }
+}
 
 // ---- UI ----
 @Composable
@@ -441,15 +454,14 @@ fun CalendarScreen(
                     Card(
                         Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(4.dp),
+                        elevation = CardDefaults.cardElevation(0.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, mealColor.copy(alpha = 0.3f)),
                     ) {
                         Column(Modifier.padding(Spacing.md)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     Text(mealEmoji, style = MaterialTheme.typography.titleMedium)
-                                    Text(meal.slot.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = mealColor)
+                                    Text(mealSlotLabel(meal.slot), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = mealColor)
                                 }
                                 Text("🔀 Swap", style = MaterialTheme.typography.labelMedium, color = KaizenCoral, fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) })
