@@ -487,6 +487,9 @@ class AppRepository @Inject constructor(
     suspend fun deleteBodyMetric(id: String): Result<Unit> =
         runCatching { api.deleteBodyMetric(id); Unit }
 
+    suspend fun bodyProjection(): Result<com.nutriai.data.remote.dto.BodyProjection> =
+        runCatching { api.bodyProjection() }
+
     suspend fun addBodyPhoto(localRef: String, caption: String? = null): Result<com.nutriai.data.remote.dto.BodyPhotoDto> =
         runCatching { api.addBodyPhoto(com.nutriai.data.remote.dto.BodyPhotoRequest(localRef, caption)).photo }
 

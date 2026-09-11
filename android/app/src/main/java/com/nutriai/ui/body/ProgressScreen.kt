@@ -186,6 +186,7 @@ data class ProgressUiState(
     val savingPhoto: Boolean = false,
     val pendingPhotoRef: String? = null,
     val toast: String? = null,
+    val projection: com.nutriai.data.remote.dto.BodyProjection? = null,
 )
 
 @HiltViewModel
@@ -202,6 +203,7 @@ class ProgressViewModel @Inject constructor(
         _state.value = _state.value.copy(consentGiven = prefs.getBoolean("photo_consent", false))
         loadSeries()
         loadPhotos()
+        loadProjection()
     }
 
     fun loadSeries() {
@@ -213,6 +215,12 @@ class ProgressViewModel @Inject constructor(
             } else {
                 _state.value.copy(loading = false, error = "Couldn't load your progress.")
             }
+        }
+    }
+
+    private fun loadProjection() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(projection = repository.bodyProjection().getOrNull())
         }
     }
 
@@ -237,6 +245,7 @@ class ProgressViewModel @Inject constructor(
                     toast = "Measurements saved",
                 )
                 loadSeries()
+                loadProjection()
             } else {
                 _state.value = _state.value.copy(submitting = false, toast = "Couldn't save - try again")
             }
@@ -493,6 +502,12 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             if (trends.isNotEmpty()) {
                 item { Text("📈 Changes over time", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
                 items(trends.size) { i -> TrendRow(trends[i]) }
+            }
+
+            // ---- "Where could I be in 3/6/12 months" projection ----
+            state.projection?.takeIf { it.available && it.measurements.isNotEmpty() }?.let { proj ->
+                item { Text("🔮 Where you could be", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                item { ProjectionCard(proj) }
             }
 
             // ---- Measurement log: delete a wrong / test entry ----
@@ -819,6 +834,60 @@ private fun TrendRow(trend: com.nutriai.data.remote.dto.BodyTrend) {
                 }
             }
             Text(deltaText, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colorFor(trend.key))
+        }
+    }
+}
+
+/**
+ * "Where could I be in 3/6/12 months" - always shown as a RANGE, never a single confident number,
+ * and labelled by source: "your trend" (from the user's own logged history) vs "estimate" (a
+ * conservative heuristic ballpark when there isn't enough logged history yet).
+ */
+@Composable
+private fun ProjectionCard(proj: com.nutriai.data.remote.dto.BodyProjection) {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            proj.measurements.forEach { m ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(emojiFor(m.key), style = MaterialTheme.typography.titleMedium)
+                        Text(labelFor(m.key), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            if (m.source == "trend") "your trend" else "estimate",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        "Now: ${formatNum(m.currentCm)} cm",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        m.milestones.forEach { ms ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${ms.months}mo", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    "${formatNum(ms.lowCm)}–${formatNum(ms.highCm)}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colorFor(m.key),
+                                )
+                            }
+                        }
+                    }
+                }
+                if (m != proj.measurements.last()) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+            }
+            Text(
+                proj.disclaimer,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            )
         }
     }
 }

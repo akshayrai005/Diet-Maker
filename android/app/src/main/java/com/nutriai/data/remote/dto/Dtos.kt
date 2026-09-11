@@ -1335,6 +1335,29 @@ data class BodyMetricResponse(
     val whr: Whr? = null,
 )
 
+// ---- Body measurement projection ("where could I be in 3/6/12 months") ----
+@Serializable
+data class ProjectionMilestone(val months: Int, val lowCm: Double, val highCm: Double)
+
+@Serializable
+data class MeasurementProjection(
+    val key: String,
+    val currentCm: Double,
+    /** "trend" = extrapolated from the user's own logged history; "estimate" = heuristic fallback. */
+    val source: String,
+    val milestones: List<ProjectionMilestone> = emptyList(),
+)
+
+@Serializable
+data class BodyProjection(
+    val available: Boolean = false,
+    val reason: String? = null,
+    val goal: String? = null,
+    val weeklyWeightDeltaKg: Double? = null,
+    val measurements: List<MeasurementProjection> = emptyList(),
+    val disclaimer: String = "",
+)
+
 /** Progress-photo metadata. The image bytes live ON DEVICE only (referenced by `localRef`). */
 @Serializable
 data class BodyPhotoDto(
