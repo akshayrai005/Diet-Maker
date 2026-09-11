@@ -294,7 +294,7 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
   if (/^(hi|hello|hey|namaste|good (morning|evening|afternoon))\b/.test(msg)) {
     return {
       intent: 'greeting',
-      reply: withDisclaimer(`Hello${name}! Ask me things like "how much protein should I eat?", "can I eat mango?", or "how fast can I lose weight?".`),
+      reply: withDisclaimer(`Hello${name}! Ask me about food ("can I eat mango?"), your targets ("how much protein?"), training ("what should I do today?"), or a body goal ("I want bigger arms").`),
       sources: [],
     };
   }
@@ -441,14 +441,34 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
   if (/help|what can you|how do you/.test(msg)) {
     return {
       intent: 'help',
-      reply: withDisclaimer('I can check whether a specific food fits your plan, tell you your calorie/protein/water targets, and explain a safe weight-loss pace. For medical questions, please see a professional.'),
+      reply: withDisclaimer('I can check whether a specific food fits your plan, tell you your calorie/protein/water targets, explain a safe weight-loss pace, and tell you how your training is going. For medical questions, please see a professional.'),
+      sources: [],
+    };
+  }
+
+  // Fitness / body-transformation questions the deterministic engine has no data-backed answer
+  // for ("what should I train today", "I want bigger arms", "how do I get abs") - without an LLM
+  // configured we can't generate a real plan, so point the user to where that answer actually
+  // lives instead of a flat "ask about food" dead end.
+  if (/\b(train|training|workout|exercise|gym|muscle|abs|arms?|chest|biceps?|triceps?|shred|bulk|bulking|cutting|tone|toned|physique|body\s?shape|shape my body|get fit|fitness|lift|lifting)\b/.test(msg)) {
+    const e = ctx.coach?.exercise;
+    const todayLine = e
+      ? e.rest
+        ? "Today's a rest day on your plan."
+        : e.todayFocus
+          ? `Today's focus on your plan is ${e.todayFocus}.`
+          : "You've got a workout on your plan today."
+      : "Generate a plan in the Move tab if you haven't yet.";
+    return {
+      intent: 'fallback',
+      reply: withDisclaimer(`I can't build you a custom training answer right now${name} - ${todayLine} Open the Move tab for your full exercise plan and log, or the Progress tab to track body measurements toward a goal (e.g. arms, waist).`),
       sources: [],
     };
   }
 
   return {
     intent: 'fallback',
-    reply: withDisclaimer(`I'm a rules-based diet assistant${name}. Try asking about a specific food ("can I eat paneer?"), your targets ("how much protein?"), or weight-loss pace.`),
+    reply: withDisclaimer(`I'm your diet & fitness coach${name}. Try asking about a specific food ("can I eat paneer?"), your targets ("how much protein?"), weight-loss pace, or your training.`),
     sources: [],
   };
 }
