@@ -122,10 +122,40 @@ class PlanViewModel @Inject constructor(
     fun load(date: String) {
         viewModelScope.launch {
             val saved = planStore.load(date)
-            val plan = saved ?: DayPlan(date = date)
+            val plan = if (saved != null) saved else {
+                // First time this date is opened - auto-fill from the already-generated diet plan
+                // and workout plan instead of starting empty and making the user re-add everything
+                // by hand. Saved immediately so it becomes the user's editable copy from here on
+                // (their edits/removals are never overwritten by a later auto-fill).
+                val built = buildAutoPlan(date)
+                if (built.foods.isNotEmpty() || built.exercises.isNotEmpty()) {
+                    planStore.save(built)
+                    loadWeek()
+                }
+                built
+            }
             _state.value = _state.value.copy(plan = plan, actualKcal = null, actualProtein = null)
             if (date == LocalDate.now().toString()) refreshActual()
         }
+    }
+
+    /** Pulls this date's meals from the generated diet plan and exercises from the generated
+     * workout plan, so a never-opened day starts pre-filled instead of blank. */
+    private suspend fun buildAutoPlan(date: String): DayPlan {
+        val dietDay = repository.latestPlan().getOrNull()?.days?.firstOrNull { it.date == date }
+        val foods = dietDay?.meals?.flatMap { meal ->
+            meal.items.map { PlanFood(name = it.name, kcal = it.kcal, proteinG = it.proteinG, slot = meal.slot) }
+        } ?: emptyList()
+
+        val workoutDay = repository.exercisePlanFull().getOrNull()?.plan?.days?.firstOrNull { it.date == date }
+        val exercises = if (workoutDay != null && !workoutDay.rest) {
+            (workoutDay.warmup + workoutDay.exercises + workoutDay.core + listOfNotNull(workoutDay.cardio) + workoutDay.cooldown)
+                .map { ex -> PlanExercise(name = ex.name, sets = ex.sets, reps = ex.reps, muscleGroup = ex.muscleGroup) }
+        } else {
+            emptyList()
+        }
+
+        return DayPlan(date = date, foods = foods, exercises = exercises)
     }
 
     fun switchTo(date: String) = load(date)
