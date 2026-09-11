@@ -76,6 +76,7 @@ import com.nutriai.data.remote.dto.ExerciseLogRequest
 import com.nutriai.data.remote.dto.WeeklyWorkout
 import com.nutriai.data.remote.dto.WorkoutDay
 import com.nutriai.ui.components.EmptyState
+import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
@@ -175,6 +176,8 @@ data class MoveState(
     /** Non-null while a mixed workout session is in progress; shared by every exercise logged until "Complete Workout". */
     val activeSessionId: String? = null,
     val sessionEntries: List<SessionEntry> = emptyList(),
+    /** Lower-cased names of exercises actually logged today - drives "planned vs actual" adherence. */
+    val todayLoggedNames: Set<String> = emptySet(),
 )
 
 @HiltViewModel
@@ -194,6 +197,15 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             } else {
                 _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
             }
+        }
+        refreshTodayLogged()
+    }
+
+    /** Refreshes what's actually been logged today, for the planned-vs-actual adherence chip. */
+    private fun refreshTodayLogged() {
+        viewModelScope.launch {
+            val names = repository.exerciseLogs(null).getOrDefault(emptyList()).map { it.exerciseName.lowercase().trim() }.toSet()
+            _state.value = _state.value.copy(todayLoggedNames = names)
         }
     }
 
@@ -243,6 +255,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                     sessionKcal = _state.value.sessionKcal + kcal,
                     sessionEntries = _state.value.sessionEntries + SessionEntry(name, detail, kcal),
                 )
+                refreshTodayLogged()
             } else {
                 _state.value = _state.value.copy(toast = "Couldn't log - try again")
             }
@@ -285,6 +298,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                 sessionKcal = _state.value.sessionKcal + kcal,
                 sessionEntries = if (ok > 0) _state.value.sessionEntries + SessionEntry(name, detail, kcal) else _state.value.sessionEntries,
             )
+            if (ok > 0) refreshTodayLogged()
         }
     }
 
@@ -482,6 +496,22 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                         )
+
+                        // Planned-vs-actual adherence - only meaningful for TODAY's own plan, not
+                        // a different day the user is just previewing in the week strip.
+                        if (!day.rest && hasContent && day === today) {
+                            val planned = (day.warmup + day.exercises + day.core + listOfNotNull(day.cardio) + day.cooldown)
+                                .distinctBy { it.name.lowercase().trim() }
+                            val done = planned.count { it.name.lowercase().trim() in state.todayLoggedNames }
+                            if (planned.isNotEmpty()) {
+                                val adherencePct = (done * 100) / planned.size
+                                Spacer(Modifier.height(Spacing.xs))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    KaizenProgressBar(progress = done.toFloat() / planned.size, color = if (adherencePct >= 100) BrandGreen else MoveAccent, modifier = Modifier.weight(1f))
+                                    Text("$done/${planned.size} · $adherencePct%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
 
                         if (!day.rest && hasContent) {
                             val firstLoggable = day.warmup.firstOrNull() ?: day.exercises.firstOrNull() ?: day.core.firstOrNull() ?: day.cardio ?: day.cooldown.firstOrNull()
