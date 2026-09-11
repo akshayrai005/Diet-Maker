@@ -143,7 +143,16 @@ class PlanViewModel @Inject constructor(
     /** Pulls this date's meals from the generated diet plan and exercises from the generated
      * workout plan, so a never-opened day starts pre-filled instead of blank. */
     private suspend fun buildAutoPlan(date: String): DayPlan {
-        val dietDay = repository.latestPlan().getOrNull()?.days?.firstOrNull { it.date == date }
+        var dietPlan = repository.latestPlan().getOrNull()
+        var dietDay = dietPlan?.days?.firstOrNull { it.date == date }
+        if (dietDay == null) {
+            // The cached diet plan is only refreshed when the user explicitly regenerates it - if
+            // it was made a few days ago its date range may no longer reach this date (e.g. it
+            // doesn't cover "day after tomorrow" anymore). Regenerate once and retry, instead of
+            // silently leaving the day blank when a plan does actually exist.
+            dietPlan = repository.generatePlan().getOrNull() ?: dietPlan
+            dietDay = dietPlan?.days?.firstOrNull { it.date == date }
+        }
         val foods = dietDay?.meals?.flatMap { meal ->
             meal.items.map { PlanFood(name = it.name, kcal = it.kcal, proteinG = it.proteinG, slot = meal.slot) }
         } ?: emptyList()
