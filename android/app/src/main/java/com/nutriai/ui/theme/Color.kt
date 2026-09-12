@@ -51,6 +51,21 @@ val CardRoseLight = Color(0xFFF6E4E9)
 val CardLavenderLight = Color(0xFFEDE7F6)
 val CardMintLight = Color(0xFFE0F7FA)
 
+// ---- "Your Day" grid — 6 cards, deliberately spread across the wheel (not the muted
+// pastel brand tokens above, which cluster too close together at low saturation) ----
+val GridGreen = Color(0xFF2E7D32)
+val GridGreenLight = Color(0xFFE1F0E2)
+val GridOrange = Color(0xFFEF6C00)
+val GridOrangeLight = Color(0xFFFCE7D3)
+val GridPurple = Color(0xFF6A1B9A)
+val GridPurpleLight = Color(0xFFEDE0F2)
+val GridBlue = Color(0xFF0277BD)
+val GridBlueLight = Color(0xFFDCEEF9)
+val GridPink = Color(0xFFAD1457)
+val GridPinkLight = Color(0xFFF6DDE7)
+val GridRed = Color(0xFFC62828)
+val GridRedLight = Color(0xFFF7DEDE)
+
 // ---- Semantic status roles ----
 val PositiveLight = Color(0xFF00C896)
 val PositiveDark = Color(0xFF00E5A8)

@@ -75,6 +75,18 @@ import com.nutriai.ui.theme.KaizenRose
 import com.nutriai.ui.theme.CoralAccent
 import com.nutriai.ui.theme.HydrationColor
 import com.nutriai.ui.theme.CardTealLight
+import com.nutriai.ui.theme.GridGreen
+import com.nutriai.ui.theme.GridGreenLight
+import com.nutriai.ui.theme.GridOrange
+import com.nutriai.ui.theme.GridOrangeLight
+import com.nutriai.ui.theme.GridPurple
+import com.nutriai.ui.theme.GridPurpleLight
+import com.nutriai.ui.theme.GridBlue
+import com.nutriai.ui.theme.GridBlueLight
+import com.nutriai.ui.theme.GridPink
+import com.nutriai.ui.theme.GridPinkLight
+import com.nutriai.ui.theme.GridRed
+import com.nutriai.ui.theme.GridRedLight
 import com.nutriai.ui.theme.KaizenBlue
 import com.nutriai.ui.theme.KaizenTeal
 import com.nutriai.ui.theme.KaizenCoral
@@ -558,9 +570,9 @@ private fun DomainCardsGrid(
                 modifier = Modifier.weight(1f),
                 emoji = "🍎", title = "Nutrition",
                 mainValue = "${cal.consumed.toInt()}", mainUnit = "kcal",
-                progress = calPct, accentColor = NutritionColor, bgColor = CardGreenLight,
+                progress = calPct, accentColor = GridGreen, bgColor = GridGreenLight,
                 detail = proteinPct?.let { "$it% protein" } ?: "Log meals",
-                borderColor = NutritionColor,
+                borderColor = GridGreen,
                 onQuickAction = onOpenDietLog,
             )
             DomainCard(
@@ -569,13 +581,13 @@ private fun DomainCardsGrid(
                 mainValue = if (stepsPermission) "%,d".format(steps) else "-",
                 mainUnit = if (stepsPermission) "steps" else "",
                 progress = if (stepsPermission) (steps / 10000f).coerceIn(0f, 1f) else 0f,
-                accentColor = BrandAmber, bgColor = CardAmberLight,
+                accentColor = GridOrange, bgColor = GridOrangeLight,
                 detail = when {
                     stepsPermission && steps > 0 -> "≈ $stepsKcal kcal"
                     stepsPermission -> "No steps yet today"
                     else -> "Connect Health"
                 },
-                borderColor = BrandAmber,
+                borderColor = GridOrange,
                 onQuickAction = onOpenMove,
             )
         }
@@ -587,9 +599,9 @@ private fun DomainCardsGrid(
                 mainValue = dashboard.bmi?.let { "%.1f".format(it) } ?: "-",
                 mainUnit = if (dashboard.bmi != null) "BMI" else "",
                 progress = dashboard.bmi?.let { ((it - 18.5) / (30.0 - 18.5)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                accentColor = RecoveryColor, bgColor = CardLavenderLight,
+                accentColor = GridPurple, bgColor = GridPurpleLight,
                 detail = bodyFatPct?.let { "%.1f%% body fat".format(it) } ?: "Add measurements",
-                borderColor = RecoveryColor,
+                borderColor = GridPurple,
                 onQuickAction = onOpenProgress,
             )
             DomainCard(
@@ -598,9 +610,9 @@ private fun DomainCardsGrid(
                 mainValue = "${((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 250.0).toInt()}",
                 mainUnit = "glasses",
                 progress = ((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / (dashboard.water.targetMl ?: dashboard.water.target ?: 2500.0)).coerceIn(0.0, 1.0).toFloat(),
-                accentColor = KaizenBlue, bgColor = CardBlueLight,
+                accentColor = GridBlue, bgColor = GridBlueLight,
                 detail = "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L",
-                borderColor = KaizenBlue,
+                borderColor = GridBlue,
                 onQuickAction = onAddWater,
             )
         }
@@ -613,9 +625,9 @@ private fun DomainCardsGrid(
                     mainValue = bloodPressure?.let { "${it.first}/${it.second}" } ?: "-",
                     mainUnit = "",
                     progress = bloodPressure?.let { ((it.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                    accentColor = KaizenCoral, bgColor = CardCoralLight,
+                    accentColor = GridPink, bgColor = GridPinkLight,
                     detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
-                    borderColor = KaizenCoral,
+                    borderColor = GridPink,
                     onQuickAction = onOpenVitals,
                 )
             } else {
@@ -627,9 +639,9 @@ private fun DomainCardsGrid(
                     mainValue = "$oxygenSaturation",
                     mainUnit = "%",
                     progress = ((oxygenSaturation - 90) / 10.0).coerceIn(0.0, 1.0).toFloat(),
-                    accentColor = KaizenRose, bgColor = CardRoseLight,
+                    accentColor = GridPink, bgColor = GridPinkLight,
                     detail = "SpO2",
-                    borderColor = KaizenRose,
+                    borderColor = GridPink,
                     onQuickAction = onOpenVitals,
                 )
             }
@@ -639,9 +651,9 @@ private fun DomainCardsGrid(
                 mainValue = heartRate?.let { "$it" } ?: "-",
                 mainUnit = if (heartRate != null) "bpm" else "",
                 progress = heartRate?.let { ((it - 50) / (120.0 - 50)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                accentColor = KaizenCoral, bgColor = CardCoralLight,
+                accentColor = GridRed, bgColor = GridRedLight,
                 detail = if (heartRate != null) "Resting" else "Needs a synced watch reading",
-                borderColor = KaizenCoral,
+                borderColor = GridRed,
                 onQuickAction = onOpenVitals,
             )
         }
