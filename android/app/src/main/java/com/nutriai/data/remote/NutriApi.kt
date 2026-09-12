@@ -199,6 +199,9 @@ interface NutriApi {
     @GET("foods/search")
     suspend fun foodsSearch(@Query("q") q: String?): FoodsEnvelope
 
+    @POST("foods/ai-estimate")
+    suspend fun aiEstimateFood(@Body body: com.nutriai.data.remote.dto.AiEstimateFoodRequest): com.nutriai.data.remote.dto.FoodEnvelope
+
     @GET("foods/high-protein")
     suspend fun highProteinFoods(): FoodsEnvelope
 

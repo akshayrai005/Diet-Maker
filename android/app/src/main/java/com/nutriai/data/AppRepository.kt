@@ -261,6 +261,12 @@ class AppRepository @Inject constructor(
         api.foodsSearch(if (q.isBlank()) null else q).foods
     }
 
+    /** AI-estimates and permanently saves a Food row for an ingredient the catalog/USDA lacks
+     * (e.g. raw "bajra flour") - the returned food can be used immediately as a recipe ingredient. */
+    suspend fun aiEstimateFood(name: String): Result<com.nutriai.data.remote.dto.FoodDto> = runCatching {
+        api.aiEstimateFood(com.nutriai.data.remote.dto.AiEstimateFoodRequest(name)).food
+    }
+
     /** Real high-protein foods from the food DB, ranked by protein - powers the High Protein tab. */
     suspend fun highProteinFoods(): Result<List<com.nutriai.data.remote.dto.FoodDto>> = runCatching {
         api.highProteinFoods().foods

@@ -987,6 +987,12 @@ data class FoodDto(
 @Serializable
 data class FoodsEnvelope(val foods: List<FoodDto> = emptyList())
 
+@Serializable
+data class FoodEnvelope(val food: FoodDto)
+
+@Serializable
+data class AiEstimateFoodRequest(val name: String)
+
 // ---- Weekly check-ins ----
 @Serializable
 data class CheckinRequest(
