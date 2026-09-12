@@ -78,6 +78,7 @@ import com.nutriai.ui.components.SectionHeader
 import com.nutriai.ui.components.StatusIndicator
 import com.nutriai.ui.components.Status
 import com.nutriai.ui.components.PrimaryButton
+import com.nutriai.ui.components.TextAction
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
@@ -358,14 +359,17 @@ fun CalendarScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
-        // Regenerate button
-        item {
-            PrimaryButton(
-                text = if (state.dietDays.isEmpty()) "✨ Generate my 7-day plan" else "🔄 Regenerate week",
-                onClick = { viewModel.regenerate() },
-                modifier = Modifier.fillMaxWidth(),
-                containerColor = BrandGreen,
-            )
+        // Regenerate button — only full-width when there's no plan yet; once a plan exists,
+        // a compact action next to the Diet header (below) covers it instead.
+        if (state.dietDays.isEmpty()) {
+            item {
+                PrimaryButton(
+                    text = "✨ Generate my 7-day plan",
+                    onClick = { viewModel.regenerate() },
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = BrandGreen,
+                )
+            }
         }
 
         state.adaptation?.takeIf { it.status != "insufficient_data" }?.let { adapt ->
@@ -432,7 +436,15 @@ fun CalendarScreen(
 
         if (!state.loading && (dietDay != null || workoutDay != null)) {
             // Diet section.
-            item { SectionHeader(title = "Diet", emoji = "🍲") }
+            item {
+                SectionHeader(
+                    title = "Diet",
+                    emoji = "🍲",
+                    action = {
+                        TextAction(text = "🔄 Regenerate week", onClick = { viewModel.regenerate() })
+                    },
+                )
+            }
             if (dietDay == null || dietDay.meals.isEmpty()) {
                 item {
                     Text(
