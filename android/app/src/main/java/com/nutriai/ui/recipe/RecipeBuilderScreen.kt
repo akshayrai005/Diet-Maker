@@ -306,9 +306,9 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
     val previewKcal = (recipe.kcal * factor * previewGrams / 100).toInt()
 
     RecipeDialogScaffold(title = "Log · ${recipe.name}", emoji = "🍽️", onDismiss = onDismiss) {
-        Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = CardGreenLight)) {
+        Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
             Column(Modifier.padding(Spacing.md)) {
-                Text("How much did you eat?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                Text("⚖️ How much did you eat?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     FilterChip(
                         selected = mode == "percent", onClick = { mode = "percent" }, label = { Text("% of batch") }, shape = Sharp,
@@ -391,19 +391,21 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
     val ingredients = remember { androidx.compose.runtime.mutableStateListOf<DraftIngredient>() }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // Ratio mode: enter parts (e.g. 2:1:1:1) + a total batch weight instead of typing each
-    // ingredient's grams by hand - grams are computed proportionally from the parts.
+    // Ratio mode: enter parts (e.g. 2:1:1:1) + a total batch weight to auto-fill each
+    // ingredient's grams - but the grams field stays a normal, manually-editable field
+    // afterward, so you can set the ratio AND then hand-tune the exact quantity.
     var ratioMode by remember { mutableStateOf(false) }
     var batchWeight by remember { mutableStateOf("500") }
-    val totalParts = ingredients.sumOf { it.parts.toDoubleOrNull() ?: 0.0 }
-    fun gramsFor(ing: DraftIngredient): Double =
-        if (ratioMode) {
-            val bw = batchWeight.toDoubleOrNull() ?: 0.0
+    fun recalcFromRatio() {
+        val bw = batchWeight.toDoubleOrNull() ?: 0.0
+        val totalParts = ingredients.sumOf { it.parts.toDoubleOrNull() ?: 0.0 }
+        if (totalParts <= 0) return
+        ingredients.forEachIndexed { i, ing ->
             val p = ing.parts.toDoubleOrNull() ?: 0.0
-            if (totalParts > 0) bw * p / totalParts else 0.0
-        } else {
-            ing.grams.toDoubleOrNull() ?: 0.0
+            ingredients[i] = ing.copy(grams = "${(bw * p / totalParts).toInt()}")
         }
+    }
+    fun gramsFor(ing: DraftIngredient): Double = ing.grams.toDoubleOrNull() ?: 0.0
 
     val totalKcal = ingredients.sumOf { it.food.kcal * gramsFor(it) / 100 }
     val totalGrams = ingredients.sumOf { gramsFor(it) }
@@ -423,7 +425,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
             }
         }
 
-        Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = CardGreenLight), elevation = CardDefaults.cardElevation(2.dp)) {
+        Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
             Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("⚖️ How do you want to enter quantities?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -439,7 +441,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                 if (ratioMode) {
                     OutlinedTextField(
                         value = batchWeight,
-                        onValueChange = { v -> batchWeight = v.filter { it.isDigit() } },
+                        onValueChange = { v -> batchWeight = v.filter { it.isDigit() }; recalcFromRatio() },
                         label = { Text("Total batch weight (g)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -448,7 +450,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                         colors = fieldColors(),
                     )
                     Text(
-                        "Enter each ingredient's ratio part below (e.g. wheat 2, bajra 1, ragi 1, jowar 1) - grams are split automatically from the batch weight.",
+                        "Enter each ingredient's ratio part below (e.g. wheat 2, bajra 1, ragi 1, jowar 1) to auto-fill grams - then you can still hand-edit the exact grams for each one.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -481,6 +483,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                             .clip(RoundedCornerShape(6.dp))
                             .clickable {
                                 ingredients.add(DraftIngredient(f, "100"))
+                                if (ratioMode) recalcFromRatio()
                                 query = ""; results = emptyList()
                             }
                             .padding(vertical = 8.dp, horizontal = 8.dp),
@@ -506,6 +509,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                                     aiEstimating = false
                                     if (f != null) {
                                         ingredients.add(DraftIngredient(f, "100"))
+                                        if (ratioMode) recalcFromRatio()
                                         query = ""; results = emptyList()
                                     } else {
                                         aiError = "Couldn't estimate \"$q\" - try a more specific name."
@@ -539,27 +543,28 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                             if (ratioMode) {
                                 OutlinedTextField(
                                     value = ing.parts,
-                                    onValueChange = { v -> ingredients[i] = ing.copy(parts = v.filter { it.isDigit() }) },
+                                    onValueChange = { v ->
+                                        ingredients[i] = ing.copy(parts = v.filter { it.isDigit() })
+                                        recalcFromRatio()
+                                    },
                                     label = { Text("parts", style = MaterialTheme.typography.labelSmall) },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.width(78.dp),
-                                    shape = Sharp,
-                                    colors = fieldColors(),
-                                )
-                                Text("≈${gramsFor(ing).toInt()}g", style = MaterialTheme.typography.labelSmall, color = NutritionColor, fontWeight = FontWeight.Bold, modifier = Modifier.width(56.dp))
-                            } else {
-                                OutlinedTextField(
-                                    value = ing.grams,
-                                    onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
-                                    label = { Text("g", style = MaterialTheme.typography.labelSmall) },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.width(84.dp),
+                                    modifier = Modifier.width(70.dp),
                                     shape = Sharp,
                                     colors = fieldColors(),
                                 )
                             }
+                            OutlinedTextField(
+                                value = ing.grams,
+                                onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
+                                label = { Text("g", style = MaterialTheme.typography.labelSmall) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.width(80.dp),
+                                shape = Sharp,
+                                colors = fieldColors(),
+                            )
                             IconButton(onClick = { ingredients.removeAt(i) }, modifier = Modifier.height(32.dp).width(32.dp)) {
                                 Icon(Icons.Filled.Close, contentDescription = "Remove", tint = KaizenCoral, modifier = Modifier.height(16.dp))
                             }
