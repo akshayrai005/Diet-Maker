@@ -410,6 +410,9 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
     fun gramsFor(ing: DraftIngredient): Double = ing.grams.toDoubleOrNull() ?: 0.0
 
     val totalKcal = ingredients.sumOf { it.food.kcal * gramsFor(it) / 100 }
+    val totalProtein = ingredients.sumOf { it.food.proteinG * gramsFor(it) / 100 }
+    val totalCarb = ingredients.sumOf { it.food.carbG * gramsFor(it) / 100 }
+    val totalFat = ingredients.sumOf { it.food.fatG * gramsFor(it) / 100 }
     val totalGrams = ingredients.sumOf { gramsFor(it) }
 
     RecipeDialogScaffold(title = "New Recipe", emoji = "🍳", onDismiss = onDismiss) {
@@ -545,47 +548,63 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
             ingredients.forEachIndexed { i, ing ->
                 val color = palette[i % palette.size]
                 Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        Text(ing.food.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color, modifier = Modifier.weight(1f), maxLines = 1)
-                        if (ratioMode) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                ing.food.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(onClick = { ingredients.removeAt(i) }, modifier = Modifier.height(28.dp).width(28.dp)) {
+                                Icon(Icons.Filled.Close, contentDescription = "Remove", tint = KaizenCoral, modifier = Modifier.height(16.dp))
+                            }
+                        }
+                        Spacer(Modifier.height(Spacing.xs))
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                            if (ratioMode) {
+                                OutlinedTextField(
+                                    value = ing.parts,
+                                    onValueChange = { v ->
+                                        ingredients[i] = ing.copy(parts = v.filter { it.isDigit() })
+                                        recalcFromRatio()
+                                    },
+                                    label = { Text("Ratio", style = MaterialTheme.typography.labelSmall) },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.width(80.dp),
+                                    shape = Sharp,
+                                    colors = fieldColors(),
+                                )
+                            }
                             OutlinedTextField(
-                                value = ing.parts,
-                                onValueChange = { v ->
-                                    ingredients[i] = ing.copy(parts = v.filter { it.isDigit() })
-                                    recalcFromRatio()
-                                },
-                                label = { Text("parts", style = MaterialTheme.typography.labelSmall) },
+                                value = ing.grams,
+                                onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
+                                label = { Text("Grams", style = MaterialTheme.typography.labelSmall) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.width(70.dp),
+                                modifier = Modifier.width(90.dp),
                                 shape = Sharp,
                                 colors = fieldColors(),
                             )
-                        }
-                        OutlinedTextField(
-                            value = ing.grams,
-                            onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
-                            label = { Text("g", style = MaterialTheme.typography.labelSmall) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.width(80.dp),
-                            shape = Sharp,
-                            colors = fieldColors(),
-                        )
-                        IconButton(onClick = { ingredients.removeAt(i) }, modifier = Modifier.height(32.dp).width(32.dp)) {
-                            Icon(Icons.Filled.Close, contentDescription = "Remove", tint = KaizenCoral, modifier = Modifier.height(16.dp))
                         }
                     }
                 }
             }
             Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
-                Text(
-                    "Total: ${totalGrams.toInt()} g · ~${totalKcal.toInt()} kcal",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = BrandGreen,
-                    modifier = Modifier.padding(Spacing.md),
-                )
+                Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        "Total mix: ${totalGrams.toInt()} g",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        RecipeStat("🔥", "${totalKcal.toInt()}", "kcal", KaizenCoral, Modifier.weight(1f))
+                        RecipeStat("💪", "${totalProtein.toInt()}g", "protein", NutritionColor, Modifier.weight(1f))
+                        RecipeStat("🌾", "${totalCarb.toInt()}g", "carbs", BrandAmber, Modifier.weight(1f))
+                        RecipeStat("🥑", "${totalFat.toInt()}g", "fat", KaizenLavender, Modifier.weight(1f))
+                    }
+                }
             }
         }
 
