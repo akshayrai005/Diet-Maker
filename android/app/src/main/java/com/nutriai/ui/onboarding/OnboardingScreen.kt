@@ -186,7 +186,7 @@ private val PHYSIQUE_GOAL: List<Pair<String, Pair<String, String>>> = listOf(
     "maintain" to ("Maintain" to "Keep your current physique."),
 )
 private val PRIORITY_MUSCLES = listOf("shoulders", "back", "chest", "arms", "legs", "glutes", "core")
-private const val MAX_PRIORITY_MUSCLES = 4
+private const val MAX_PRIORITY_MUSCLES = 7
 private val FREQ = listOf("no" to "No", "occasional" to "Occasionally", "regular" to "Regularly")
 private val CONTRA = listOf(
     "none" to "None",
@@ -212,6 +212,11 @@ fun OnboardingScreen(
     var waist by remember { mutableStateOf("") }
     var neck by remember { mutableStateOf("") }
     var hip by remember { mutableStateOf("") }
+    var chest by remember { mutableStateOf("") }
+    var arm by remember { mutableStateOf("") }
+    var targetWaist by remember { mutableStateOf("") }
+    var targetChest by remember { mutableStateOf("") }
+    var targetArm by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var sex by remember { mutableStateOf("male") }
@@ -258,6 +263,11 @@ fun OnboardingScreen(
             waist = s.waistCm?.let { fmt(it) } ?: waist
             neck = s.neckCm?.let { fmt(it) } ?: neck
             hip = s.hipCm?.let { fmt(it) } ?: hip
+            chest = s.chestCm?.let { fmt(it) } ?: chest
+            arm = s.armCm?.let { fmt(it) } ?: arm
+            targetWaist = s.targetWaistCm?.let { fmt(it) } ?: targetWaist
+            targetChest = s.targetChestCm?.let { fmt(it) } ?: targetChest
+            targetArm = s.targetArmCm?.let { fmt(it) } ?: targetArm
             dob = s.dob
             sex = s.sex.ifBlank { sex }
             gender = s.gender ?: s.sex.ifBlank { gender }
@@ -340,6 +350,11 @@ fun OnboardingScreen(
                         waistCm = waist.toDoubleOrNull(),
                         neckCm = neck.toDoubleOrNull(),
                         hipCm = hip.toDoubleOrNull(),
+                        chestCm = chest.toDoubleOrNull(),
+                        armCm = arm.toDoubleOrNull(),
+                        targetWaistCm = targetWaist.toDoubleOrNull(),
+                        targetChestCm = targetChest.toDoubleOrNull(),
+                        targetArmCm = targetArm.toDoubleOrNull(),
                         conditions = conditions.toList(),
                         familyHistory = familyHistory.toList(),
                         fastDayOfWeek = fastDay,
@@ -441,8 +456,20 @@ fun OnboardingScreen(
                         )
                     }
                     numberField(waist, { waist = it }, "Waist (cm) - at the navel")
+                    numberField(chest, { chest = it }, "Chest (cm) - optional")
+                    numberField(arm, { arm = it }, "Arm / bicep (cm) - optional, flexed")
                     numberField(neck, { neck = it }, "Neck (cm) - optional, for body-fat %")
                     if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional, for body-fat %")
+                    GlassCard {
+                        Text(
+                            "🎯 Where do you want to end up? Set target measurements and we'll show your progress toward them, not just the scale.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional")
+                    numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional")
+                    numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional")
                     SectionHeader(title = "Identity", emoji = "🪪")
                     DobPicker(dob) { dob = it }
                     Dropdown("Gender", GENDER, gender) { gender = it }
@@ -566,7 +593,7 @@ fun OnboardingScreen(
 
                     SectionHeader(title = "Priority Muscles", emoji = "💪")
                     Text(
-                        "Pick up to $MAX_PRIORITY_MUSCLES - we'll add a little extra volume there.",
+                        "Pick any you want extra focus on - we'll add a little extra volume there.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
