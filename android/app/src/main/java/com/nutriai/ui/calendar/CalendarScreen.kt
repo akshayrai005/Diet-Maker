@@ -443,11 +443,16 @@ fun CalendarScreen(
                         }
                         if (!state.loading && (dietDay != null || workoutDay != null)) {
                             SectionHeader(
-                                title = "Diet",
+                                title = "Suggested Plan",
                                 emoji = "🍲",
                                 action = {
                                     TextAction(text = "🔄 Regenerate week", onClick = { viewModel.regenerate() })
                                 },
+                            )
+                            Text(
+                                "What to eat today, not what you've logged - log actual meals in the Log tab.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -524,7 +529,11 @@ fun CalendarScreen(
                         }
                     }
                 }
-                // Day totals — compact row matching dashboard card style
+                // Plan totals — compact row matching dashboard card style. These are the SUGGESTED
+                // plan's totals, not what's actually been logged (see the note above).
+                item {
+                    Text("Planned total for today", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         DayTotalTile(Modifier.weight(1f), "🔥", "${dietDay.totals.kcal.toInt()}", "kcal", BrandGreen, com.nutriai.ui.theme.CardGreenLight)

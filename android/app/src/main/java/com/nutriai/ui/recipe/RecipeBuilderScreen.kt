@@ -311,11 +311,13 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
                 Text("⚖️ How much did you eat?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                 Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     FilterChip(
-                        selected = mode == "percent", onClick = { mode = "percent" }, label = { Text("% of batch") }, shape = Sharp,
+                        selected = mode == "percent", onClick = { mode = "percent" }, label = { Text("% of batch", textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                        shape = Sharp, modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = BrandGreen, selectedLabelColor = Color.White),
                     )
                     FilterChip(
-                        selected = mode == "grams", onClick = { mode = "grams" }, label = { Text("Exact grams") }, shape = Sharp,
+                        selected = mode == "grams", onClick = { mode = "grams" }, label = { Text("Exact grams", textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                        shape = Sharp, modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = BrandGreen, selectedLabelColor = Color.White),
                     )
                 }
@@ -428,13 +430,15 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
         Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
             Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("⚖️ How do you want to enter quantities?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     FilterChip(
-                        selected = !ratioMode, onClick = { ratioMode = false }, label = { Text("Grams per item") }, shape = Sharp,
+                        selected = !ratioMode, onClick = { ratioMode = false }, label = { Text("Grams per item", textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                        shape = Sharp, modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = BrandGreen, selectedLabelColor = Color.White),
                     )
                     FilterChip(
-                        selected = ratioMode, onClick = { ratioMode = true }, label = { Text("Ratio (2:1:1:1)") }, shape = Sharp,
+                        selected = ratioMode, onClick = { ratioMode = true }, label = { Text("Ratio (2:1:1:1)", textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+                        shape = Sharp, modifier = Modifier.weight(1f),
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = BrandGreen, selectedLabelColor = Color.White),
                     )
                 }
@@ -496,7 +500,9 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                 }
                 // Not in the catalog (e.g. raw "bajra flour" - only finished dishes are seeded) -
                 // ask the AI to estimate it and save it as a real, searchable Food from now on.
-                if (query.length >= 2 && results.isEmpty() && !aiEstimating) {
+                // Requires at least one letter - guards against a stray number (e.g. mistyping the
+                // batch weight into this box) getting "estimated" and added as a fake ingredient.
+                if (query.length >= 2 && query.any { it.isLetter() } && results.isEmpty() && !aiEstimating) {
                     Row(
                         Modifier.fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
@@ -534,46 +540,52 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
         }
 
         if (ingredients.isNotEmpty()) {
-            Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
-                Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text("📋 Your mix", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                    ingredients.forEachIndexed { i, ing ->
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Text(ing.food.name, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1)
-                            if (ratioMode) {
-                                OutlinedTextField(
-                                    value = ing.parts,
-                                    onValueChange = { v ->
-                                        ingredients[i] = ing.copy(parts = v.filter { it.isDigit() })
-                                        recalcFromRatio()
-                                    },
-                                    label = { Text("parts", style = MaterialTheme.typography.labelSmall) },
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.width(70.dp),
-                                    shape = Sharp,
-                                    colors = fieldColors(),
-                                )
-                            }
+            val palette = listOf(BrandGreen, BrandAmber, KaizenLavender, NutritionColor, KaizenCoral)
+            Text("📋 Your mix", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            ingredients.forEachIndexed { i, ing ->
+                val color = palette[i % palette.size]
+                Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)), elevation = CardDefaults.cardElevation(0.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(ing.food.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = color, modifier = Modifier.weight(1f), maxLines = 1)
+                        if (ratioMode) {
                             OutlinedTextField(
-                                value = ing.grams,
-                                onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
-                                label = { Text("g", style = MaterialTheme.typography.labelSmall) },
+                                value = ing.parts,
+                                onValueChange = { v ->
+                                    ingredients[i] = ing.copy(parts = v.filter { it.isDigit() })
+                                    recalcFromRatio()
+                                },
+                                label = { Text("parts", style = MaterialTheme.typography.labelSmall) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.width(80.dp),
+                                modifier = Modifier.width(70.dp),
                                 shape = Sharp,
                                 colors = fieldColors(),
                             )
-                            IconButton(onClick = { ingredients.removeAt(i) }, modifier = Modifier.height(32.dp).width(32.dp)) {
-                                Icon(Icons.Filled.Close, contentDescription = "Remove", tint = KaizenCoral, modifier = Modifier.height(16.dp))
-                            }
                         }
-                        if (i < ingredients.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        OutlinedTextField(
+                            value = ing.grams,
+                            onValueChange = { v -> ingredients[i] = ing.copy(grams = v.filter { it.isDigit() }) },
+                            label = { Text("g", style = MaterialTheme.typography.labelSmall) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.width(80.dp),
+                            shape = Sharp,
+                            colors = fieldColors(),
+                        )
+                        IconButton(onClick = { ingredients.removeAt(i) }, modifier = Modifier.height(32.dp).width(32.dp)) {
+                            Icon(Icons.Filled.Close, contentDescription = "Remove", tint = KaizenCoral, modifier = Modifier.height(16.dp))
+                        }
                     }
-                    HorizontalDivider()
-                    Text("Total: ${totalGrams.toInt()} g · ~${totalKcal.toInt()} kcal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen)
                 }
+            }
+            Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
+                Text(
+                    "Total: ${totalGrams.toInt()} g · ~${totalKcal.toInt()} kcal",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = BrandGreen,
+                    modifier = Modifier.padding(Spacing.md),
+                )
             }
         }
 
