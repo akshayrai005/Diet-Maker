@@ -26,6 +26,8 @@ val KaizenCoral = Color(0xFFFF6B6B)
 val KaizenCoralContainer = Color(0xFFFFEBEE)
 val KaizenBlue = Color(0xFF2196F3)
 val KaizenBlueContainer = Color(0xFFE3F2FD)
+val KaizenTeal = Color(0xFF00897B)
+val CardTealLight = Color(0xFFE0F2F1)
 val KaizenInk = Color(0xFF1A1A2E)
 
 // Surface system — LIGHT mode first

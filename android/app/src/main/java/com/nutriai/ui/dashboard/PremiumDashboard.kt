@@ -74,7 +74,9 @@ import com.nutriai.ui.theme.CardRoseLight
 import com.nutriai.ui.theme.KaizenRose
 import com.nutriai.ui.theme.CoralAccent
 import com.nutriai.ui.theme.HydrationColor
+import com.nutriai.ui.theme.CardTealLight
 import com.nutriai.ui.theme.KaizenBlue
+import com.nutriai.ui.theme.KaizenTeal
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.MovementColor
@@ -177,7 +179,6 @@ fun PremiumDashboard(
                     bodyFatPct = bodyFatPct,
                     bloodPressure = bloodPressure,
                     oxygenSaturation = oxygenSaturation,
-                    stress = stress,
                     onAddWater = onAddWater,
                     onOpenDietLog = onOpenDietLog,
                     onOpenMove = onOpenMove,
@@ -426,19 +427,19 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
-                StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", NutritionColor)
+                StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", KaizenCoral)
                 StatCell(
                     Modifier.weight(1f),
                     if (deficit > 0) "📉" else "📈",
                     if (deficit > 0) "Deficit" else "Surplus",
                     "%,d".format(kotlin.math.abs(deficit)),
-                    if (deficit > 0) BrandGreen else KaizenCoral,
+                    KaizenCoral,
                 )
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
-                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", BrandAmber)
-                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), MovementColor)
+                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
+                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
+                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenBlue)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(
@@ -448,8 +449,20 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
                     dashboard.protein.target?.let { "${(dashboard.protein.consumed ?: 0.0).toInt()}/${it.toInt()}g" } ?: "${(dashboard.protein.consumed ?: 0.0).toInt()}g",
                     NutritionColor,
                 )
-                StatCell(Modifier.weight(1f), "🌾", "Carbs", "${dashboard.macros.carbG.toInt()}g", BrandAmber)
-                StatCell(Modifier.weight(1f), "🥑", "Fat", "${dashboard.macros.fatG.toInt()}g", KaizenCoral)
+                StatCell(
+                    Modifier.weight(1f),
+                    "🌾",
+                    "Carbs",
+                    dashboard.macros.carbTargetG?.let { "${dashboard.macros.carbG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.carbG.toInt()}g",
+                    NutritionColor,
+                )
+                StatCell(
+                    Modifier.weight(1f),
+                    "🥑",
+                    "Fat",
+                    dashboard.macros.fatTargetG?.let { "${dashboard.macros.fatG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.fatG.toInt()}g",
+                    NutritionColor,
+                )
             }
         }
     }
@@ -526,7 +539,6 @@ private fun DomainCardsGrid(
     bodyFatPct: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
-    stress: Int? = null,
     onAddWater: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenMove: () -> Unit = {},
@@ -615,9 +627,9 @@ private fun DomainCardsGrid(
                     mainValue = "$oxygenSaturation",
                     mainUnit = "%",
                     progress = ((oxygenSaturation - 90) / 10.0).coerceIn(0.0, 1.0).toFloat(),
-                    accentColor = KaizenBlue, bgColor = CardBlueLight,
+                    accentColor = KaizenTeal, bgColor = CardTealLight,
                     detail = "SpO2",
-                    borderColor = KaizenBlue,
+                    borderColor = KaizenTeal,
                     onQuickAction = onOpenVitals,
                 )
             }
@@ -633,30 +645,21 @@ private fun DomainCardsGrid(
                 onQuickAction = onOpenVitals,
             )
         }
-        // Row 4: Sleep + Stress
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            DomainCard(
-                modifier = Modifier.weight(1f),
-                emoji = "😴", title = "Sleep",
-                mainValue = sleepHours?.let { "$it" } ?: "-",
-                mainUnit = if (sleepHours != null) "hrs" else "",
-                progress = sleepHours?.let { (it / 8.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                accentColor = KaizenLavender, bgColor = CardLavenderLight,
-                detail = if (sleepHours != null) "Last night" else "Needs a synced watch reading",
-                borderColor = KaizenLavender,
-                onQuickAction = onOpenVitals,
-            )
-            DomainCard(
-                modifier = Modifier.weight(1f),
-                emoji = "🧘", title = "Stress",
-                mainValue = stress?.let { "$it" } ?: "-",
-                mainUnit = if (stress != null) "/5" else "",
-                progress = stress?.let { (it / 5.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                accentColor = KaizenCoral, bgColor = CardCoralLight,
-                detail = if (stress != null) "Self-reported" else "Log it in Vitals",
-                borderColor = KaizenCoral,
-                onQuickAction = onOpenVitals,
-            )
+        // Row 4: Sleep — only shown once there's real data, not as a permanent dead tile.
+        if (sleepHours != null) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                DomainCard(
+                    modifier = Modifier.weight(1f),
+                    emoji = "😴", title = "Sleep",
+                    mainValue = "$sleepHours",
+                    mainUnit = "hrs",
+                    progress = (sleepHours / 8.0).coerceIn(0.0, 1.0).toFloat(),
+                    accentColor = KaizenLavender, bgColor = CardLavenderLight,
+                    detail = "Last night",
+                    borderColor = KaizenLavender,
+                    onQuickAction = onOpenVitals,
+                )
+            }
         }
     }
 }

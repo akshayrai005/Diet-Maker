@@ -365,7 +365,9 @@ data class WeightTrend(val latestKg: Double? = null, val firstKg: Double? = null
 @Serializable
 data class DashMacros(
     val carbG: Double = 0.0,
+    val carbTargetG: Double? = null,
     val fatG: Double = 0.0,
+    val fatTargetG: Double? = null,
     val fiberG: Double = 0.0,
     val sugarG: Double = 0.0,
     val sodiumMg: Double = 0.0,
