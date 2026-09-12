@@ -519,7 +519,7 @@ export function generateWeeklyWorkout(
   // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
   const prioritised = applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
   // Exercise depth: warm-up + core/abs + cool-down + a cardio element + per-exercise substitutions.
-  return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution });
+  return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution, split: options.split });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -733,22 +733,31 @@ function capWorkingExercises(
   core: ExerciseItem[],
   cardio: ExerciseItem,
   budget: number,
+  /** Body-part split days train ONE muscle group with a hand-curated exercise count already
+   * sized to `budget` - core/cardio shouldn't eat into that same small pool (that's what
+   * squeezed a 5-exercise Chest day down to 2). Give main lifts the full budget and let
+   * core/cardio ride along as their own small addition instead of competing for it. */
+  dedicatedMuscleDay = false,
 ): { main: ExerciseItem[]; core: ExerciseItem[]; cardio: ExerciseItem } {
   const cardioSlots = 1;
   const coreSlots = Math.min(core.length, 2);
-  const mainSlots = Math.max(1, budget - cardioSlots - coreSlots);
+  const mainSlots = dedicatedMuscleDay ? Math.max(1, budget) : Math.max(1, budget - cardioSlots - coreSlots);
   return { main: selectDiverse(main, mainSlots), core: core.slice(0, coreSlots), cardio };
 }
 
-function enrichDays(plan: WeeklyWorkout, opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean }): WeeklyWorkout {
+function enrichDays(
+  plan: WeeklyWorkout,
+  opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean; split?: TrainingSplit },
+): WeeklyWorkout {
   const gentle = !!opts.medicalCaution;
   const budget = LEVEL_TOTAL_WORKING[opts.level];
+  const dedicatedMuscleDay = opts.split === 'body_part';
   const days: WorkoutDay[] = plan.days.map((day) => {
     if (day.rest) return day;
     const mainAnnotated = day.exercises.map(withSubstitutions);
     const coreAnnotated = coreFor(opts.level, gentle).map(withSubstitutions);
     const cardio = cardioFor(opts.intensity, opts.medicalCaution);
-    const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget);
+    const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);
     return {
       ...day,
       warmup: warmupFor(day.focus),
