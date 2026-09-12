@@ -415,8 +415,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
             }
             KaizenProgressBar(progress = pct, color = NutritionColor, height = 10.dp)
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
                 StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", NutritionColor)
                 StatCell(
@@ -427,14 +426,12 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
                     if (deficit > 0) BrandGreen else KaizenCoral,
                 )
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
                 StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", BrandAmber)
                 StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), MovementColor)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(
                     Modifier.weight(1f),
                     "💪",
@@ -451,7 +448,13 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
 
 @Composable
 private fun StatCell(modifier: Modifier = Modifier, emoji: String, label: String, value: String, color: Color) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(SharpRadius))
+            .background(color.copy(alpha = 0.08f))
+            .padding(vertical = Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(emoji, fontSize = 14.sp)
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
