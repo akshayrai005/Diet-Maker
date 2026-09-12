@@ -80,6 +80,7 @@ import com.nutriai.ui.components.Status
 import com.nutriai.ui.components.PrimaryButton
 import com.nutriai.ui.components.TextAction
 import com.nutriai.ui.theme.BrandGreen
+import com.nutriai.ui.theme.BrandGreenDark
 import com.nutriai.ui.theme.KaizenCoral
 import com.nutriai.ui.theme.KaizenLavender
 import com.nutriai.ui.theme.KaizenBlue
@@ -408,43 +409,53 @@ fun CalendarScreen(
             }
         }
 
-        // Week strip built from the diet-plan days — auto-scroll to today.
-        if (state.dietDays.isNotEmpty()) {
-            item {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    state.dietDays.forEach { day ->
-                        DayPill(
-                            label = day.label,
-                            date = day.date,
-                            isToday = day.label == "Today",
-                            isSelected = day.date != null && day.date == state.selectedDate,
-                            onClick = { day.date?.let { viewModel.selectDate(it) } },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        }
-
         // Selected day's combined report.
         val selected = state.selectedDate
         val dietDay = state.dietDays.firstOrNull { it.date != null && it.date == selected }
         val workoutDay = state.workoutDays.firstOrNull { it.date != null && it.date == selected }
 
-        if (!state.loading && (dietDay != null || workoutDay != null)) {
-            // Diet section.
+        // Week strip + Diet header, grouped in one card instead of floating on the page background.
+        if (state.dietDays.isNotEmpty() || (!state.loading && (dietDay != null || workoutDay != null))) {
             item {
-                SectionHeader(
-                    title = "Diet",
-                    emoji = "🍲",
-                    action = {
-                        TextAction(text = "🔄 Regenerate week", onClick = { viewModel.regenerate() })
-                    },
-                )
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radius.md),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        if (state.dietDays.isNotEmpty()) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                state.dietDays.forEach { day ->
+                                    DayPill(
+                                        label = day.label,
+                                        date = day.date,
+                                        isToday = day.label == "Today",
+                                        isSelected = day.date != null && day.date == state.selectedDate,
+                                        onClick = { day.date?.let { viewModel.selectDate(it) } },
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                        if (!state.loading && (dietDay != null || workoutDay != null)) {
+                            SectionHeader(
+                                title = "Diet",
+                                emoji = "🍲",
+                                action = {
+                                    TextAction(text = "🔄 Regenerate week", onClick = { viewModel.regenerate() })
+                                },
+                            )
+                        }
+                    }
+                }
             }
+        }
+
+        if (!state.loading && (dietDay != null || workoutDay != null)) {
             if (dietDay == null || dietDay.meals.isEmpty()) {
                 item {
                     Text(
@@ -901,7 +912,7 @@ private fun DayPill(
         }.getOrNull()
     } ?: label
     val container = when {
-        isSelected -> BrandGreen
+        isSelected -> BrandGreenDark
         isToday -> NutritionColor.copy(alpha = 0.15f)
         else -> MaterialTheme.kaizenColors.elevatedSurface
     }
