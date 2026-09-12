@@ -1040,6 +1040,11 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 OutlinedTextField(value = hrText, onValueChange = { hrText = it.filter { c -> c.isDigit() }.take(3) }, label = { Text("Resting heart rate (bpm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
                 Text("😰 How stressed do you feel today?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Got a 0-100 stress score from your watch? 1 = <25 (calm), 2 = 25-45, 3 = 45-65 (normal), 4 = 65-85, 5 = 85+ (high)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (1..5).forEach { lvl ->
                         val selected = stress == lvl
