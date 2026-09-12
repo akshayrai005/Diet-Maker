@@ -26,6 +26,7 @@ data class DashboardState(
     val sleepHours: Double? = null,
     val manualHeartRate: Int? = null,
     val bloodPressure: Pair<Int, Int>? = null,
+    val oxygenSaturation: Int? = null,
     val stress: Int? = null,
     val soreness: Int? = null,
     val safetyFlags: List<com.nutriai.data.remote.dto.Flag> = emptyList(),
@@ -86,6 +87,7 @@ class DashboardViewModel @Inject constructor(
             val hr = if (available) healthConnect.readLatestHeartRate() else null
             val sleep = if (available) healthConnect.readLastSleepHours() else null
             val bp = if (available) healthConnect.readLatestBloodPressure() else null
+            val spo2 = if (available) healthConnect.readLatestOxygenSaturation() else null
             _state.value = _state.value.copy(
                 steps = steps,
                 stepsKcal = (steps * 0.04).toInt(), // ~0.04 kcal/step
@@ -94,6 +96,7 @@ class DashboardViewModel @Inject constructor(
                 heartRate = hr,
                 sleepHours = sleep,
                 bloodPressure = bp,
+                oxygenSaturation = spo2,
             )
             // Best-effort: persist today's step count server-side so real-activity detection
             // (TDEE) has history to work from, not just a fresh device read every time. Silently

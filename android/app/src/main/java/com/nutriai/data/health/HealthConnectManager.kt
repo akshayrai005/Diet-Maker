@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -31,9 +32,10 @@ class HealthConnectManager @Inject constructor(
     private val heartPermissions = setOf(HealthPermission.getReadPermission(HeartRateRecord::class))
     private val sleepPermissions = setOf(HealthPermission.getReadPermission(SleepSessionRecord::class))
     private val bpPermissions = setOf(HealthPermission.getReadPermission(BloodPressureRecord::class))
+    private val spo2Permissions = setOf(HealthPermission.getReadPermission(OxygenSaturationRecord::class))
 
-    /** All permissions requested at once so one grant covers steps, heart rate, sleep and BP. */
-    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions
+    /** All permissions requested at once so one grant covers steps, heart rate, sleep, BP and SpO2. */
+    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions + spo2Permissions
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -166,6 +168,27 @@ class HealthConnectManager @Inject constructor(
             )
             val latest = resp.records.maxByOrNull { it.time } ?: return null
             latest.systolic.inMillimetersOfMercury.toInt() to latest.diastolic.inMillimetersOfMercury.toInt()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Most recent blood-oxygen (SpO2 %) reading in the last 24h. Many budget fitness watches
+     * (e.g. Fastrack) measure SpO2 but not blood pressure - this is the real signal to show when
+     * BP isn't available from the paired device.
+     */
+    suspend fun readLatestOxygenSaturation(): Int? {
+        val client = clientOrNull() ?: return null
+        if (!granted(spo2Permissions)) return null
+        return try {
+            val end = Instant.now()
+            val start = end.minus(Duration.ofHours(24))
+            val resp = client.readRecords(
+                ReadRecordsRequest(OxygenSaturationRecord::class, TimeRangeFilter.between(start, end)),
+            )
+            val latest = resp.records.maxByOrNull { it.time } ?: return null
+            latest.percentage.value.toInt()
         } catch (e: Exception) {
             null
         }

@@ -105,6 +105,7 @@ fun PremiumDashboard(
     sleepHours: Double? = null,
     manualHeartRate: Int? = null,
     bloodPressure: Pair<Int, Int>? = null,
+    oxygenSaturation: Int? = null,
     stress: Int? = null,
     onSaveVitals: (Int?, Int?, Int?) -> Unit = { _, _, _ -> },
     soreness: Int? = null,
@@ -175,6 +176,7 @@ fun PremiumDashboard(
                     heartRate = heartRate ?: manualHeartRate,
                     bodyFatPct = bodyFatPct,
                     bloodPressure = bloodPressure,
+                    oxygenSaturation = oxygenSaturation,
                     onAddWater = onAddWater,
                     onOpenDietLog = onOpenDietLog,
                     onOpenMove = onOpenMove,
@@ -522,6 +524,7 @@ private fun DomainCardsGrid(
     heartRate: Int?,
     bodyFatPct: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
+    oxygenSaturation: Int? = null,
     onAddWater: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenMove: () -> Unit = {},
@@ -587,19 +590,35 @@ private fun DomainCardsGrid(
                 onQuickAction = onAddWater,
             )
         }
-        // Row 3: Blood Pressure + Heart Rate
+        // Row 3: Blood Pressure (or Blood Oxygen, if that's what the watch actually supports) + Heart Rate
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            DomainCard(
-                modifier = Modifier.weight(1f),
-                emoji = "🩺", title = "Blood Pressure",
-                mainValue = bloodPressure?.let { "${it.first}/${it.second}" } ?: "-",
-                mainUnit = "",
-                progress = bloodPressure?.let { ((it.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
-                accentColor = KaizenCoral, bgColor = CardCoralLight,
-                detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
-                borderColor = KaizenCoral,
-                onQuickAction = onOpenVitals,
-            )
+            if (bloodPressure != null || oxygenSaturation == null) {
+                DomainCard(
+                    modifier = Modifier.weight(1f),
+                    emoji = "🩺", title = "Blood Pressure",
+                    mainValue = bloodPressure?.let { "${it.first}/${it.second}" } ?: "-",
+                    mainUnit = "",
+                    progress = bloodPressure?.let { ((it.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                    accentColor = KaizenCoral, bgColor = CardCoralLight,
+                    detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
+                    borderColor = KaizenCoral,
+                    onQuickAction = onOpenVitals,
+                )
+            } else {
+                // No BP data, but the watch does report SpO2 - show the real signal instead of
+                // a permanently-dead "needs a synced watch" card.
+                DomainCard(
+                    modifier = Modifier.weight(1f),
+                    emoji = "🫁", title = "Blood Oxygen",
+                    mainValue = "$oxygenSaturation",
+                    mainUnit = "%",
+                    progress = ((oxygenSaturation - 90) / 10.0).coerceIn(0.0, 1.0).toFloat(),
+                    accentColor = KaizenBlue, bgColor = CardBlueLight,
+                    detail = "SpO2",
+                    borderColor = KaizenBlue,
+                    onQuickAction = onOpenVitals,
+                )
+            }
             DomainCard(
                 modifier = Modifier.weight(1f),
                 emoji = "❤️", title = "Heart rate",
