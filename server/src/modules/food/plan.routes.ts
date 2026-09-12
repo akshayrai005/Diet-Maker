@@ -135,7 +135,11 @@ planRouter.get(
   }),
 );
 
-const aiEstimateSchema = z.object({ name: z.string().min(2).max(80) });
+const aiEstimateSchema = z.object({
+  // Requires a letter - rejects a stray number (e.g. a batch-weight value mistyped into the
+  // ingredient search box) from being "estimated" and saved as a fake Food row.
+  name: z.string().min(2).max(80).regex(/[a-zA-Z]/, 'Must contain a food name, not just numbers'),
+});
 
 /**
  * Falls back to an LLM estimate when neither the local catalog nor USDA has an ingredient
