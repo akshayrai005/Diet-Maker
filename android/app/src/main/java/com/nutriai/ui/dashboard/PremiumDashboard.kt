@@ -118,10 +118,11 @@ fun PremiumDashboard(
     heartRate: Int? = null,
     sleepHours: Double? = null,
     manualHeartRate: Int? = null,
+    manualSleepHours: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
     stress: Int? = null,
-    onSaveVitals: (Int?, Int?, Int?) -> Unit = { _, _, _ -> },
+    onSaveVitals: (Int?, Int?, Int?, Double?) -> Unit = { _, _, _, _ -> },
     soreness: Int? = null,
     safetyFlags: List<com.nutriai.data.remote.dto.Flag> = emptyList(),
     riskFindings: List<com.nutriai.data.remote.dto.RiskFinding> = emptyList(),
@@ -150,8 +151,9 @@ fun PremiumDashboard(
             initialHr = manualHeartRate,
             initialStress = stress,
             initialSoreness = soreness,
+            initialSleepHours = manualSleepHours,
             onDismiss = { editingVitals = false },
-            onSave = { newHr, newStress, newSoreness -> onSaveVitals(newHr, newStress, newSoreness); editingVitals = false },
+            onSave = { newHr, newStress, newSoreness, newSleep -> onSaveVitals(newHr, newStress, newSoreness, newSleep); editingVitals = false },
         )
     }
 
@@ -1044,8 +1046,9 @@ private fun dayShort(date: String): String = runCatching {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoreness: Int? = null, onDismiss: () -> Unit, onSave: (Int?, Int?, Int?) -> Unit) {
+private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoreness: Int? = null, initialSleepHours: Double? = null, onDismiss: () -> Unit, onSave: (Int?, Int?, Int?, Double?) -> Unit) {
     var hrText by remember { mutableStateOf(initialHr?.toString() ?: "") }
+    var sleepText by remember { mutableStateOf(initialSleepHours?.let { if (it == it.toInt().toDouble()) "${it.toInt()}" else "$it" } ?: "") }
     var stress by remember { mutableStateOf(initialStress) }
     var soreness by remember { mutableStateOf(initialSoreness) }
     AlertDialog(
@@ -1054,6 +1057,13 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                 OutlinedTextField(value = hrText, onValueChange = { hrText = it.filter { c -> c.isDigit() }.take(3) }, label = { Text("Resting heart rate (bpm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                OutlinedTextField(
+                    value = sleepText,
+                    onValueChange = { sleepText = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+                    label = { Text("Hours slept last night") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                )
                 Text("😰 How stressed do you feel today?", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     "Got a 0-100 stress score from your watch? 1 = <25 (calm), 2 = 25-45, 3 = 45-65 (normal), 4 = 65-85, 5 = 85+ (high)",
@@ -1080,7 +1090,7 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(hrText.toIntOrNull(), stress, soreness) }) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onSave(hrText.toIntOrNull(), stress, soreness, sleepText.toDoubleOrNull()) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

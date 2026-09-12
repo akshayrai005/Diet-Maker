@@ -24,6 +24,7 @@ data class DashboardState(
     val stepsPermission: Boolean = false,
     val heartRate: Int? = null,
     val sleepHours: Double? = null,
+    val manualSleepHours: Double? = null,
     val manualHeartRate: Int? = null,
     val bloodPressure: Pair<Int, Int>? = null,
     val oxygenSaturation: Int? = null,
@@ -63,14 +64,14 @@ class DashboardViewModel @Inject constructor(
         // Manually-entered vitals (for watches that don't sync to Health Connect).
         viewModelScope.launch {
             vitalsStore.vitals.collect { v ->
-                _state.value = _state.value.copy(manualHeartRate = v.heartRate, stress = v.stress, soreness = v.soreness)
+                _state.value = _state.value.copy(manualHeartRate = v.heartRate, stress = v.stress, soreness = v.soreness, manualSleepHours = v.sleepHours)
             }
         }
     }
 
-    fun saveManualVitals(heartRate: Int?, stress: Int?, soreness: Int? = null) {
+    fun saveManualVitals(heartRate: Int?, stress: Int?, soreness: Int? = null, sleepHours: Double? = null) {
         viewModelScope.launch {
-            vitalsStore.save(heartRate, stress, soreness, System.currentTimeMillis())
+            vitalsStore.save(heartRate, stress, soreness, sleepHours, System.currentTimeMillis())
             if (soreness != null && soreness >= 3) refresh()
         }
     }

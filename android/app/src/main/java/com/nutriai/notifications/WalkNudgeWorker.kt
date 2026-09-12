@@ -82,7 +82,10 @@ class WalkNudgeWorker(
     companion object {
         const val UNIQUE_NAME = "kaizen_walk_nudge"
         private const val NOTIF_ID = 990001
-        /** Fewer steps than this since the last ~90-min check counts as "stagnant". */
-        private const val MOVED_THRESHOLD_STEPS = 300L
+        // Health Connect can lag real steps by a while (the watch/phone's data source syncs on
+        // its own schedule, not instantly) - a low bar here means a partial, late-arriving sync
+        // still counts as "moved" instead of firing a false "you've been still" nudge while the
+        // user is actually walking. Trades a few missed real nudges for far fewer false ones.
+        private const val MOVED_THRESHOLD_STEPS = 80L
     }
 }
