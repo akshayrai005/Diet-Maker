@@ -372,6 +372,8 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     | {
         dailyKcal: number;
         proteinG: number;
+        carbG: number;
+        fatG: number;
         waterMl: number;
         bmi: number;
         projection?: { label: string; weeks: number; weightKg: number; bmi: number }[];
@@ -396,6 +398,8 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     ? {
         dailyKcal: fastingToday ? Math.round(result.dailyKcal * FASTING_KCAL_FACTOR) : result.dailyKcal,
         proteinG: result.proteinG,
+        carbG: result.carbG,
+        fatG: result.fatG,
         waterMl: result.waterMl,
       }
     : null;

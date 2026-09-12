@@ -100,7 +100,7 @@ export function weightTrend(points: WeightPoint[]) {
 }
 
 export interface DashboardInput {
-  targets: { dailyKcal: number; proteinG: number; waterMl: number } | null;
+  targets: { dailyKcal: number; proteinG: number; carbG?: number; fatG?: number; waterMl: number } | null;
   todayTotals: NutritionTotals;
   waterTodayMl: number;
   logDayKeys: string[];
@@ -171,7 +171,9 @@ export function buildDashboard(input: DashboardInput) {
     },
     macros: {
       carbG: todayTotals.carbG,
+      carbTargetG: targets?.carbG ?? null,
       fatG: todayTotals.fatG,
+      fatTargetG: targets?.fatG ?? null,
       fiberG: todayTotals.fiberG,
       sugarG: todayTotals.sugarG,
       sodiumMg: todayTotals.sodiumMg,
