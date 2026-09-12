@@ -18,6 +18,7 @@ import { FASTING_KCAL_FACTOR } from '../food/food.types';
 import type { SensitiveData } from '../profile/profile.schemas';
 import type { Sex } from '../../calc/types';
 import { localDayKey } from '../../lib/tz';
+import { computePhasePlan } from '../nutrition/phasePlan';
 
 /** Food-source guidance for each nutrient's deficiency (IFCT-informed, educational). */
 const DEFICIENCY_TIPS: Record<MicronutrientKey, string> = {
@@ -399,6 +400,11 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
       }
     : null;
 
+  const targetTimeframeWeeks = (sensitive as { targetTimeframeWeeks?: number } | undefined)?.targetTimeframeWeeks;
+  const phasePlan = profile
+    ? computePhasePlan(profile.createdAt, targetTimeframeWeeks ?? null, now)
+    : null;
+
   return buildDashboard({
     targets: dashTargets,
     fastingToday,
@@ -411,5 +417,6 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
     projection: result?.projection ?? [],
     burnedTodayKcal: (exerciseBurn._sum.kcal ?? 0) + wellnessBurn,
     micronutrients,
+    phasePlan,
   });
 }

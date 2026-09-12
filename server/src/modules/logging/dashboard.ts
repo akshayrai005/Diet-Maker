@@ -1,4 +1,5 @@
 import { round } from '../../calc/anthropometry';
+import type { PhasePlanResult } from '../nutrition/phasePlan';
 
 export interface NutritionTotals {
   kcal: number;
@@ -112,6 +113,8 @@ export interface DashboardInput {
   micronutrients?: MicronutrientBlock;
   /** True when today is the user's weekly fasting day (target already reduced). */
   fastingToday?: boolean;
+  /** Fixed-calendar-month phase (fat-loss -> shape -> muscle-build), informational only. */
+  phasePlan?: PhasePlanResult | null;
 }
 
 export interface MicronutrientTargetView {
@@ -179,5 +182,6 @@ export function buildDashboard(input: DashboardInput) {
     projection: input.projection ?? [],
     micronutrients: input.micronutrients ?? null,
     fastingToday: input.fastingToday ?? false,
+    phasePlan: input.phasePlan ?? null,
   };
 }
