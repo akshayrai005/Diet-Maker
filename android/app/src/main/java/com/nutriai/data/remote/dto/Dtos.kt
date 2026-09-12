@@ -392,6 +392,20 @@ data class Dashboard(
     val projection: List<ProjectionPoint> = emptyList(),
     val micronutrients: Micronutrients? = null,
     val fastingToday: Boolean = false,
+    val phasePlan: PhasePlan? = null,
+)
+
+@Serializable
+data class PhasePlan(
+    val phase: String,
+    val phaseLabel: String,
+    val phaseIndex: Int,
+    val phaseCount: Int,
+    val weekInPhase: Int,
+    val weeksInPhase: Int,
+    val weeksElapsed: Int,
+    val totalWeeks: Int,
+    val weeksRemaining: Int,
 )
 
 @Serializable

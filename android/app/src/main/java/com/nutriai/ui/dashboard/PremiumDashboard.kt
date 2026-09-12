@@ -157,6 +157,11 @@ fun PremiumDashboard(
             }
         }
 
+        // Phase plan — which stage of the stated timeline you're in (fat-loss/shape/muscle).
+        d.phasePlan?.let { phase ->
+            item { Column(sectionPadding) { PhasePlanCard(phase) } }
+        }
+
         // Domain cards — 2x2 grid, NO scrolling
         item {
             Column(sectionPadding) {
@@ -459,6 +464,46 @@ private fun StatCell(modifier: Modifier = Modifier, emoji: String, label: String
         Text(emoji, fontSize = 14.sp)
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun PhasePlanCard(phase: com.nutriai.data.remote.dto.PhasePlan) {
+    val emoji = when (phase.phase) {
+        "fat_loss" -> "🔥"
+        "shape" -> "🎯"
+        else -> "💪"
+    }
+    val color = when (phase.phase) {
+        "fat_loss" -> KaizenCoral
+        "shape" -> NutritionColor
+        else -> KaizenLavender
+    }
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            EmojiBadge(emoji = emoji, bgColor = color.copy(alpha = 0.12f))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Phase ${phase.phaseIndex}/${phase.phaseCount} · ${phase.phaseLabel}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Week ${phase.weekInPhase} of ${phase.weeksInPhase} in this phase · ${phase.weeksRemaining}w left overall",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
