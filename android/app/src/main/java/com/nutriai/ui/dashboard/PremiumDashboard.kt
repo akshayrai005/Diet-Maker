@@ -504,11 +504,15 @@ private fun DomainCardsGrid(
             DomainCard(
                 modifier = Modifier.weight(1f),
                 emoji = "💪", title = "Movement",
-                mainValue = if (stepsPermission && steps > 0) "%,d".format(steps) else "-",
-                mainUnit = if (stepsPermission && steps > 0) "steps" else "",
-                progress = if (stepsPermission && steps > 0) (steps / 10000f).coerceIn(0f, 1f) else 0f,
+                mainValue = if (stepsPermission) "%,d".format(steps) else "-",
+                mainUnit = if (stepsPermission) "steps" else "",
+                progress = if (stepsPermission) (steps / 10000f).coerceIn(0f, 1f) else 0f,
                 accentColor = MovementColor, bgColor = CardBlueLight,
-                detail = if (stepsPermission && steps > 0) "≈ $stepsKcal kcal" else "Connect Health",
+                detail = when {
+                    stepsPermission && steps > 0 -> "≈ $stepsKcal kcal"
+                    stepsPermission -> "No steps yet today"
+                    else -> "Connect Health"
+                },
                 borderColor = MovementColor,
                 onQuickAction = onOpenMove,
             )
