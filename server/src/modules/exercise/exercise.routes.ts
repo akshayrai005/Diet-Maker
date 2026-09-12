@@ -268,3 +268,47 @@ exerciseRouter.get(
     res.json({ trends: strengthTrend(logs) });
   }),
 );
+
+// ---- "My Gym" - a user-curated quick-access subset of the exercise library, so logging a
+// workout doesn't require searching the full ~1500-exercise catalog every session. Name-keyed
+// to match the client's ExerciseCatalog entries (there's no server-side exercise table).
+
+const gymFavoriteSchema = z.object({ exerciseName: z.string().min(1).max(120) });
+
+exerciseRouter.get(
+  '/gym-favorites',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const rows = await prisma.gymFavorite.findMany({
+      where: { userId: req.user!.id },
+      orderBy: { createdAt: 'asc' },
+      select: { exerciseName: true },
+    });
+    res.json({ exerciseNames: rows.map((r) => r.exerciseName) });
+  }),
+);
+
+exerciseRouter.post(
+  '/gym-favorites',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const { exerciseName } = gymFavoriteSchema.parse(req.body);
+    await prisma.gymFavorite.upsert({
+      where: { userId_exerciseName: { userId: req.user!.id, exerciseName } },
+      create: { userId: req.user!.id, exerciseName },
+      update: {},
+    });
+    res.status(201).json({ exerciseName });
+  }),
+);
+
+exerciseRouter.delete(
+  '/gym-favorites/:exerciseName',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    await prisma.gymFavorite.deleteMany({
+      where: { userId: req.user!.id, exerciseName: req.params.exerciseName },
+    });
+    res.status(204).end();
+  }),
+);

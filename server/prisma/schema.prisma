@@ -73,8 +73,24 @@ model User {
   medicationLogs   MedicationLog[]
   bodyMetrics      BodyMetric[]
   bodyPhotos       BodyPhoto[]
+  gymFavorites     GymFavorite[]
 
   @@map("users")
+}
+
+/// The exercises a user has marked as "at my gym" - a quick-access subset of the exercise
+/// library (client-side, name-keyed) so logging a workout doesn't require searching ~1500
+/// exercises every time. exerciseName matches the client's ExerciseCatalog entry name exactly.
+model GymFavorite {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseName String
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, exerciseName])
+  @@index([userId])
+  @@map("gym_favorites")
 }
 
 /// A family member owned by a User — each has its own encrypted health profile and gets
