@@ -32,6 +32,7 @@ model AppMeta {
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
+  phone        String?  @unique
   passwordHash String
   firstName    String
   lastName     String

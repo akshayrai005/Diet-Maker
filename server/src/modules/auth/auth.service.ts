@@ -22,12 +22,14 @@ export interface RegisterInput {
   password: string;
   firstName: string;
   lastName: string;
+  phone?: string;
 }
 
 function publicUser(u: User) {
   return {
     id: u.id,
     email: u.email,
+    phone: u.phone,
     firstName: u.firstName,
     lastName: u.lastName,
     role: u.role,
@@ -64,6 +66,7 @@ export async function register(input: RegisterInput) {
   const user = await prisma.user.create({
     data: {
       email,
+      phone: input.phone?.trim() || null,
       passwordHash: await hashPassword(input.password),
       firstName: input.firstName.trim(),
       lastName: input.lastName.trim(),

@@ -57,6 +57,11 @@ export const sensitiveSchema = z.object({
   chestCm: z.number().positive().max(300).optional(),
   hipCm: z.number().positive().max(300).optional(),
   neckCm: z.number().positive().max(300).optional(),
+  armCm: z.number().positive().max(100).optional(),
+  /** Goal measurements - what the user wants to reach, shown alongside current on Progress. */
+  targetWaistCm: z.number().positive().max(300).optional(),
+  targetChestCm: z.number().positive().max(300).optional(),
+  targetArmCm: z.number().positive().max(100).optional(),
   bloodPressure: z.string().max(20).optional(),
   restingHr: z.number().int().positive().max(250).optional(),
   bloodSugar: z.number().positive().max(1000).optional(),
