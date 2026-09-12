@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -116,6 +118,8 @@ fun PremiumDashboard(
     onOpenVitals: () -> Unit = {},
     onOpenMove: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
+    onOpenDietLog: () -> Unit = {},
+    onOpenProgress: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
@@ -175,6 +179,11 @@ fun PremiumDashboard(
                     heartRate = heartRate ?: manualHeartRate,
                     bodyFatPct = bodyFatPct,
                     bloodPressure = bloodPressure,
+                    onAddWater = onAddWater,
+                    onOpenDietLog = onOpenDietLog,
+                    onOpenMove = onOpenMove,
+                    onOpenProgress = onOpenProgress,
+                    onOpenVitals = onOpenVitals,
                 )
             }
         }
@@ -190,7 +199,7 @@ fun PremiumDashboard(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        PrioritiesContent(dashboard = d, todayWorkout = todayWorkout, onOpenMove = onOpenMove, onAddWater = onAddWater)
+                        PrioritiesContent(dashboard = d, todayWorkout = todayWorkout, onOpenMove = onOpenMove)
                     }
                 }
             }
@@ -238,7 +247,7 @@ fun PremiumDashboard(
         // Vitals (above Insight)
         item {
             Column(sectionPadding) {
-                VitalsRow(heartRate = heartRate, manualHeartRate = manualHeartRate, sleepHours = sleepHours, bloodPressure = bloodPressure, onEdit = { editingVitals = true })
+                VitalsRow(sleepHours = sleepHours, bloodPressure = bloodPressure, onEdit = { editingVitals = true })
             }
         }
 
@@ -481,14 +490,28 @@ private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed:
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: Boolean, stepsKcal: Int, sleepHours: Double?, heartRate: Int?, bodyFatPct: Double? = null, bloodPressure: Pair<Int, Int>? = null) {
+private fun DomainCardsGrid(
+    dashboard: Dashboard,
+    steps: Long,
+    stepsPermission: Boolean,
+    stepsKcal: Int,
+    sleepHours: Double?,
+    heartRate: Int?,
+    bodyFatPct: Double? = null,
+    bloodPressure: Pair<Int, Int>? = null,
+    onAddWater: () -> Unit = {},
+    onOpenDietLog: () -> Unit = {},
+    onOpenMove: () -> Unit = {},
+    onOpenProgress: () -> Unit = {},
+    onOpenVitals: () -> Unit = {},
+) {
     val cal = dashboard.calories
     val calPct = if (cal.target != null && cal.target > 0) (cal.consumed / cal.target).coerceIn(0.0, 1.0).toFloat() else 0f
     val proteinPct = if (dashboard.protein.target != null && dashboard.protein.target > 0) {
         (((dashboard.protein.consumed ?: 0.0) / dashboard.protein.target) * 100).toInt()
     } else null
 
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         // Row 1: Nutrition + Movement
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             DomainCard(
@@ -498,6 +521,7 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 progress = calPct, accentColor = NutritionColor, bgColor = CardGreenLight,
                 detail = proteinPct?.let { "$it% protein" } ?: "Log meals",
                 borderColor = NutritionColor,
+                onQuickAction = onOpenDietLog,
             )
             DomainCard(
                 modifier = Modifier.weight(1f),
@@ -508,6 +532,7 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 accentColor = MovementColor, bgColor = CardBlueLight,
                 detail = if (stepsPermission && steps > 0) "≈ $stepsKcal kcal" else "Connect Health",
                 borderColor = MovementColor,
+                onQuickAction = onOpenMove,
             )
         }
         // Row 2: Body + Hydration
@@ -521,6 +546,7 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 accentColor = RecoveryColor, bgColor = CardLavenderLight,
                 detail = bodyFatPct?.let { "%.1f%% body fat".format(it) } ?: "Add measurements",
                 borderColor = RecoveryColor,
+                onQuickAction = onOpenProgress,
             )
             DomainCard(
                 modifier = Modifier.weight(1f),
@@ -531,9 +557,10 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 accentColor = HydrationColor, bgColor = CardMintLight,
                 detail = "${"%.1f".format((dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0) / 1000.0)}L",
                 borderColor = HydrationColor,
+                onQuickAction = onAddWater,
             )
         }
-        // Row 3: Blood Pressure + Streak
+        // Row 3: Blood Pressure + Heart Rate
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             DomainCard(
                 modifier = Modifier.weight(1f),
@@ -544,16 +571,18 @@ private fun DomainCardsGrid(dashboard: Dashboard, steps: Long, stepsPermission: 
                 accentColor = KaizenCoral, bgColor = CardCoralLight,
                 detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
                 borderColor = KaizenCoral,
+                onQuickAction = onOpenVitals,
             )
             DomainCard(
                 modifier = Modifier.weight(1f),
-                emoji = "🔥", title = "Streak",
-                mainValue = "${dashboard.streakDays}",
-                mainUnit = if (dashboard.streakDays == 1) "day" else "days",
-                progress = (dashboard.streakDays / 30f).coerceIn(0f, 1f),
+                emoji = "❤️", title = "Heart rate",
+                mainValue = heartRate?.let { "$it" } ?: "-",
+                mainUnit = if (heartRate != null) "bpm" else "",
+                progress = heartRate?.let { ((it - 50) / (120.0 - 50)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
                 accentColor = BrandAmber, bgColor = CardAmberLight,
-                detail = if (dashboard.streakDays > 0) "Keep it going" else "Log today to start",
+                detail = if (heartRate != null) "Resting" else "Needs a synced watch reading",
                 borderColor = BrandAmber,
+                onQuickAction = onOpenVitals,
             )
         }
     }
@@ -588,6 +617,7 @@ private fun DomainCard(
     emoji: String, title: String, mainValue: String, mainUnit: String,
     progress: Float, accentColor: Color, bgColor: Color, detail: String,
     borderColor: Color,
+    onQuickAction: (() -> Unit)? = null,
 ) {
     Card(
         modifier = modifier,
@@ -595,16 +625,31 @@ private fun DomainCard(
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(emoji, fontSize = 14.sp)
-                Text(title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = accentColor)
+        Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(emoji, fontSize = 14.sp)
+                    Text(title, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = accentColor)
+                }
+                if (onQuickAction != null) {
+                    Box(
+                        Modifier
+                            .size(20.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(accentColor.copy(alpha = 0.15f))
+                            .clickable(onClick = onQuickAction)
+                            .semantics { contentDescription = "$title quick action" },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("+", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = accentColor)
+                    }
+                }
             }
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(mainValue, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = accentColor)
-                if (mainUnit.isNotEmpty()) Text(mainUnit, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 2.dp))
+                Text(mainValue, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = accentColor)
+                if (mainUnit.isNotEmpty()) Text(mainUnit, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 1.dp))
             }
-            KaizenProgressBar(progress = progress, color = accentColor, height = 4.dp)
+            KaizenProgressBar(progress = progress, color = accentColor, height = 3.dp)
             Text(detail, style = MaterialTheme.typography.labelSmall, color = accentColor.copy(alpha = 0.7f), maxLines = 1)
         }
     }
@@ -615,16 +660,12 @@ private fun DomainCard(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun PrioritiesContent(dashboard: Dashboard, todayWorkout: com.nutriai.data.remote.dto.WorkoutDay?, onOpenMove: () -> Unit, onAddWater: () -> Unit) {
+private fun PrioritiesContent(dashboard: Dashboard, todayWorkout: com.nutriai.data.remote.dto.WorkoutDay?, onOpenMove: () -> Unit) {
     val mealsLogged = dashboard.calories.consumed > 0
-    val waterConsumed = dashboard.water.consumedMl ?: dashboard.water.consumed ?: 0.0
-    val waterTarget = dashboard.water.targetMl ?: dashboard.water.target
 
     PriorityRow("🏋️", MovementColor, "Complete today's workout", when { todayWorkout == null -> "Generate your plan in Move"; todayWorkout.rest -> "Rest day — recovery"; else -> todayWorkout.focus }, if (todayWorkout?.rest == true) "Rest" else "Open", if (todayWorkout?.rest == true) Status.Positive else Status.Information, onOpenMove)
     HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
     PriorityRow("🍽️", NutritionColor, "Log today's meals", if (mealsLogged) "${dashboard.calories.consumed.toInt()} kcal logged" else "Nothing logged yet", if (mealsLogged) "Started" else "Pending", if (mealsLogged) Status.Positive else Status.Caution)
-    HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
-    PriorityRow(emoji = "💧", emojiColor = HydrationColor, title = "Drink more water", subtitle = "${(waterConsumed / 250.0).toInt()}${waterTarget?.let { "/${(it / 250.0).toInt()}" } ?: ""} glasses", trailing = { TextAction(text = "+ Add", onClick = onAddWater) })
 }
 
 @Composable
@@ -843,8 +884,7 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
 }
 
 @Composable
-private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double?, bloodPressure: Pair<Int, Int>? = null, onEdit: () -> Unit) {
-    val hr = heartRate ?: manualHeartRate
+private fun VitalsRow(sleepHours: Double?, bloodPressure: Pair<Int, Int>? = null, onEdit: () -> Unit) {
     Card(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(SharpRadius),
@@ -853,15 +893,14 @@ private fun VitalsRow(heartRate: Int?, manualHeartRate: Int?, sleepHours: Double
     ) {
         Column(Modifier.padding(Spacing.lg)) {
             ListRow(
-                title = "❤️ Heart rate",
+                title = "🛌 Sleep & BP",
                 subtitle = buildString {
                     val parts = mutableListOf<String>()
-                    if (hr != null) parts.add("$hr bpm")
                     if (sleepHours != null) parts.add("${sleepHours}h sleep")
                     if (bloodPressure != null) parts.add("BP ${bloodPressure.first}/${bloodPressure.second}")
                     append(if (parts.isEmpty()) "No data yet" else parts.joinToString(" · "))
                 },
-                leading = { EmojiBadge(emoji = "❤️", bgColor = CoralAccent.copy(alpha = 0.15f)) },
+                leading = { EmojiBadge(emoji = "🛌", bgColor = CoralAccent.copy(alpha = 0.15f)) },
                 trailing = { TextAction(text = "Edit →", onClick = onEdit) },
                 onClick = onEdit,
             )

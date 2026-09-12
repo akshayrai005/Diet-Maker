@@ -148,6 +148,20 @@ fun HomeScreen(
                             restoreState = true
                         }
                     },
+                    onOpenDietLog = {
+                        navController.navigate("diet") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onOpenProgress = {
+                        navController.navigate("me") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onOpenPlan = { navController.navigate("me/plan") { launchSingleTop = true } },
                 )
             }
@@ -252,6 +266,8 @@ private fun DashboardTab(
     onCompleteProfile: () -> Unit,
     onOpenVitals: () -> Unit = {},
     onOpenMove: () -> Unit = {},
+    onOpenDietLog: () -> Unit = {},
+    onOpenProgress: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
@@ -332,6 +348,8 @@ private fun DashboardTab(
             todayWorkout = state.todayWorkout,
             onOpenVitals = onOpenVitals,
             onOpenMove = onOpenMove,
+            onOpenDietLog = onOpenDietLog,
+            onOpenProgress = onOpenProgress,
             onOpenPlan = onOpenPlan,
             onConnectSteps = {
                 if (state.stepsAvailable) {
