@@ -157,18 +157,6 @@ fun PremiumDashboard(
             }
         }
 
-        // Macro breakdown — Protein / Carbs / Fat
-        item {
-            Row(
-                sectionPadding.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                MacroTile(Modifier.weight(1f), "💪", "Protein", (d.protein.consumed ?: 0.0).toInt(), d.protein.target?.toInt(), "g", NutritionColor, CardGreenLight)
-                MacroTile(Modifier.weight(1f), "🌾", "Carbs", d.macros.carbG.toInt(), null, "g", BrandAmber, CardAmberLight)
-                MacroTile(Modifier.weight(1f), "🥑", "Fat", d.macros.fatG.toInt(), null, "g", KaizenCoral, CardCoralLight)
-            }
-        }
-
         // Domain cards — 2x2 grid, NO scrolling
         item {
             Column(sectionPadding) {
@@ -418,95 +406,58 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                TripleCalorieRing(bodyNeed = bodyNeed, burned = burned, target = target, consumed = consumed, remaining = remaining)
-                Column(Modifier.weight(1f).padding(start = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    QuickStat("🏋️", "Body Need (TDEE)", "%,d".format(bodyNeed), "kcal", KaizenCoral)
-                    QuickStat("🎯", "Target (eat)", if (hasTarget) "%,d".format(target) else "—", "kcal", NutritionColor)
-                    QuickStat("🔥", "Burned (${if (stepsKcal > 0 && exerciseKcal > 0) "walk + gym" else if (exerciseKcal > 0) "gym" else "walk"})", if (burned > 0) "%,d".format(burned) else "—", "kcal", BrandAmber)
-                }
+            // Line, not ring — progress toward today's eating target, value at the end of the line.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text("🔥", fontSize = 18.sp)
+                Text("kcal left", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                Text("%,d".format(remaining), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = NutritionColor)
             }
+            KaizenProgressBar(progress = pct, color = NutritionColor, height = 10.dp)
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                CalorieMathChip("🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
-                CalorieMathChip("⏳", "Remaining", "%,d".format(remaining), MovementColor)
-                CalorieMathChip(
+                StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
+                StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", NutritionColor)
+                StatCell(
+                    Modifier.weight(1f),
                     if (deficit > 0) "📉" else "📈",
                     if (deficit > 0) "Deficit" else "Surplus",
                     "%,d".format(kotlin.math.abs(deficit)),
                     if (deficit > 0) BrandGreen else KaizenCoral,
                 )
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), NutritionColor)
+                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", BrandAmber)
+                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), MovementColor)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                StatCell(
+                    Modifier.weight(1f),
+                    "💪",
+                    "Protein",
+                    dashboard.protein.target?.let { "${(dashboard.protein.consumed ?: 0.0).toInt()}/${it.toInt()}g" } ?: "${(dashboard.protein.consumed ?: 0.0).toInt()}g",
+                    NutritionColor,
+                )
+                StatCell(Modifier.weight(1f), "🌾", "Carbs", "${dashboard.macros.carbG.toInt()}g", BrandAmber)
+                StatCell(Modifier.weight(1f), "🥑", "Fat", "${dashboard.macros.fatG.toInt()}g", KaizenCoral)
+            }
         }
     }
 }
 
 @Composable
-private fun CalorieMathChip(emoji: String, label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun StatCell(modifier: Modifier = Modifier, emoji: String, label: String, value: String, color: Color) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(emoji, fontSize = 14.sp)
         Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-@Composable
-private fun QuickStat(emoji: String, label: String, value: String, unit: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        // Legend dot in the SAME color as this stat's ring, so it's obvious which ring is which.
-        Box(Modifier.size(9.dp).clip(androidx.compose.foundation.shape.CircleShape).background(color))
-        Text(emoji, fontSize = 16.sp)
-        Column {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = color)
-                if (unit.isNotEmpty()) Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-/**
- * Google-Fit-style triple concentric ring: outer = Burned, middle = Target (eat), inner = Body
- * Need (TDEE). Target/Burned are real daily progress (how much eaten toward the goal, how much
- * burned so far) so they fill proportionally. Body Need is a FIXED number - not something that
- * fills up through the day - so it's always drawn as a full reference ring, not a near-empty
- * sliver based on how little you've eaten yet. Center shows kcal remaining.
- */
-@Composable
-private fun TripleCalorieRing(bodyNeed: Int, burned: Int, target: Int, consumed: Int, remaining: Int) {
-    val pBodyNeed = if (bodyNeed > 0) 1f else 0f
-    val pTarget = if (target > 0) (consumed.toFloat() / target).coerceIn(0f, 1f) else 0f
-    val pBurned = if (bodyNeed > 0) (burned.toFloat() / bodyNeed).coerceIn(0f, 1f) else 0f
-
-    var animate by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { animate = true }
-    val aBodyNeed by animateFloatAsState(targetValue = if (animate) pBodyNeed else 0f, animationSpec = tween(1200), label = "r1")
-    val aTarget by animateFloatAsState(targetValue = if (animate) pTarget else 0f, animationSpec = tween(1200), label = "r2")
-    val aBurned by animateFloatAsState(targetValue = if (animate) pBurned else 0f, animationSpec = tween(1200), label = "r3")
-
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(150.dp)) {
-        Canvas(modifier = Modifier.size(150.dp)) {
-            val stroke = 10.dp.toPx()
-            val gap = 4.dp.toPx()
-            fun ring(ringIndex: Int, color: Color, progress: Float) {
-                val inset = stroke / 2 + ringIndex * (stroke + gap)
-                val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-                val topLeft = Offset(inset, inset)
-                drawArc(color = color.copy(alpha = 0.14f), startAngle = -90f, sweepAngle = 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-                drawArc(color = color, startAngle = -90f, sweepAngle = progress * 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
-            }
-            ring(0, BrandAmber, aBurned)
-            ring(1, NutritionColor, aTarget)
-            ring(2, KaizenCoral, aBodyNeed)
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("🔥", fontSize = 16.sp)
-            Text("%,d".format(remaining), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = NutritionColor)
-            Text("kcal left", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Domain Cards — 2x2 grid, no horizontal scrolling
@@ -607,29 +558,6 @@ private fun DomainCardsGrid(
                 borderColor = BrandAmber,
                 onQuickAction = onOpenVitals,
             )
-        }
-    }
-}
-
-@Composable
-private fun MacroTile(modifier: Modifier, emoji: String, label: String, value: Int, target: Int?, unit: String, color: Color, bgColor: Color) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(Spacing.sm).height(72.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(emoji, fontSize = 14.sp)
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text("$value", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
-                Text(if (target != null) "/$target$unit" else unit, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.6f), modifier = Modifier.padding(bottom = 1.dp, start = 1.dp))
-            }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
