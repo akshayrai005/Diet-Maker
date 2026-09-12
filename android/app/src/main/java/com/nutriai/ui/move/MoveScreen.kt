@@ -28,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,7 +75,6 @@ import com.nutriai.data.remote.dto.ExerciseLogRequest
 import com.nutriai.data.remote.dto.WeeklyWorkout
 import com.nutriai.data.remote.dto.WorkoutDay
 import com.nutriai.ui.components.EmptyState
-import com.nutriai.ui.components.KaizenProgressBar
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
@@ -430,26 +428,28 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             item { EmptyState(title = err, emoji = "🏋️") }
         }
 
-        // Today's workout hero
+        // Today's focus — a slim status strip (day name + adherence). Actually starting or
+        // logging an exercise happens on its own row further down, so no button here.
         shownDay?.let { day ->
             val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
             item {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
-                    elevation = CardDefaults.cardElevation(2.dp),
+                    elevation = CardDefaults.cardElevation(1.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
-                    Column(Modifier.padding(Spacing.md)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Text(if (day.rest || !hasContent) "💤" else "💪", fontSize = 20.sp)
-                            Text("Today's Workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Spacer(Modifier.height(4.dp))
+                    Row(
+                        Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Text(if (day.rest || !hasContent) "💤" else "💪", fontSize = 16.sp)
                         Text(
                             if (day.rest || !hasContent) "Rest day 🧘" else day.focus,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
                         )
 
                         // Planned-vs-actual adherence - only meaningful for TODAY's own plan, not
@@ -460,25 +460,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                             val done = planned.count { it.name.lowercase().trim() in state.todayLoggedNames }
                             if (planned.isNotEmpty()) {
                                 val adherencePct = (done * 100) / planned.size
-                                Spacer(Modifier.height(Spacing.xs))
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    KaizenProgressBar(progress = done.toFloat() / planned.size, color = if (adherencePct >= 100) BrandGreen else MoveAccent, modifier = Modifier.weight(1f))
-                                    Text("$done/${planned.size} · $adherencePct%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
-
-                        if (!day.rest && hasContent) {
-                            val firstLoggable = day.warmup.firstOrNull() ?: day.exercises.firstOrNull() ?: day.core.firstOrNull() ?: day.cardio ?: day.cooldown.firstOrNull()
-                            Button(
-                                onClick = { firstLoggable?.let { logTarget = it } },
-                                modifier = Modifier.fillMaxWidth().padding(top = Spacing.md).height(44.dp),
-                                shape = Sharp,
-                                colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
-                            ) {
-                                Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("Start workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text("$done/${planned.size} · $adherencePct%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

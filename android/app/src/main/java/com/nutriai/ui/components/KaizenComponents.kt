@@ -239,7 +239,7 @@ fun ListRow(
             .fillMaxWidth()
             .heightIn(min = ComponentHeight.listRow)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = Spacing.md),
+            .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

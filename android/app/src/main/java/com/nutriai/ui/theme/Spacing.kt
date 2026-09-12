@@ -27,5 +27,5 @@ object Radius {
 object ComponentHeight {
     val touchTarget = 48.dp
     val buttonLarge = 56.dp
-    val listRow = 56.dp
+    val listRow = 40.dp
 }

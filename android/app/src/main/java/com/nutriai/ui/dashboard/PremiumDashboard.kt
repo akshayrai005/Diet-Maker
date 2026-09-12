@@ -141,7 +141,7 @@ fun PremiumDashboard(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = Spacing.xxl),
     ) {
         // Hero greeting
@@ -215,7 +215,7 @@ fun PremiumDashboard(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Row(
-                        Modifier.fillMaxWidth().padding(Spacing.lg),
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -870,7 +870,7 @@ private fun VitaminsRow(mn: com.nutriai.data.remote.dto.Micronutrients, expanded
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardGreenLight),
     ) {
-        Column(Modifier.padding(Spacing.lg)) {
+        Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
             ListRow(
                 title = "💊 Vitamins & minerals",
                 subtitle = summary,
@@ -891,7 +891,7 @@ private fun VitalsRow(sleepHours: Double?, bloodPressure: Pair<Int, Int>? = null
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardCoralLight),
     ) {
-        Column(Modifier.padding(Spacing.lg)) {
+        Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
             ListRow(
                 title = "🛌 Sleep & BP",
                 subtitle = buildString {
@@ -917,7 +917,7 @@ private fun JourneySummaryRow(dashboard: Dashboard) {
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = CardBlueLight),
     ) {
-        Column(Modifier.padding(Spacing.lg)) {
+        Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
             ListRow(title = "🚀 Your journey", subtitle = "Projected ${next.weightKg} kg by ${next.label.lowercase()} at your current pace", leading = { EmojiBadge(emoji = "📈", bgColor = BrandGreen.copy(alpha = 0.12f)) })
         }
     }
