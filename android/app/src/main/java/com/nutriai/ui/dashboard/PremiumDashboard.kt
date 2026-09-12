@@ -121,6 +121,7 @@ fun PremiumDashboard(
     manualSleepHours: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
+    bodyTemperature: Double? = null,
     stress: Int? = null,
     onSaveVitals: (Int?, Int?, Int?, Double?) -> Unit = { _, _, _, _ -> },
     soreness: Int? = null,
@@ -193,6 +194,7 @@ fun PremiumDashboard(
                     bodyFatPct = bodyFatPct,
                     bloodPressure = bloodPressure,
                     oxygenSaturation = oxygenSaturation,
+                    bodyTemperature = bodyTemperature,
                     onAddWater = onAddWater,
                     onOpenDietLog = onOpenDietLog,
                     onOpenMove = onOpenMove,
@@ -553,6 +555,7 @@ private fun DomainCardsGrid(
     bodyFatPct: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
+    bodyTemperature: Double? = null,
     onAddWater: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenMove: () -> Unit = {},
@@ -618,24 +621,22 @@ private fun DomainCardsGrid(
                 onQuickAction = onAddWater,
             )
         }
-        // Row 3: Blood Pressure (or Blood Oxygen, if that's what the watch actually supports) + Heart Rate
+        // Row 3: whichever secondary vital the paired watch actually supports (BP > SpO2 > body
+        // temperature), or nothing at all if the device reports none of them - + Heart Rate.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            if (bloodPressure != null || oxygenSaturation == null) {
-                DomainCard(
+            when {
+                bloodPressure != null -> DomainCard(
                     modifier = Modifier.weight(1f),
                     emoji = "🩺", title = "Blood Pressure",
-                    mainValue = bloodPressure?.let { "${it.first}/${it.second}" } ?: "-",
+                    mainValue = "${bloodPressure.first}/${bloodPressure.second}",
                     mainUnit = "",
-                    progress = bloodPressure?.let { ((it.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                    progress = ((bloodPressure.first - 90) / (140.0 - 90)).coerceIn(0.0, 1.0).toFloat(),
                     accentColor = GridPink, bgColor = GridPinkLight,
-                    detail = if (bloodPressure != null) "mmHg" else "Needs a synced watch reading",
+                    detail = "mmHg",
                     borderColor = GridPink,
                     onQuickAction = onOpenVitals,
                 )
-            } else {
-                // No BP data, but the watch does report SpO2 - show the real signal instead of
-                // a permanently-dead "needs a synced watch" card.
-                DomainCard(
+                oxygenSaturation != null -> DomainCard(
                     modifier = Modifier.weight(1f),
                     emoji = "🫁", title = "Blood Oxygen",
                     mainValue = "$oxygenSaturation",
@@ -646,6 +647,19 @@ private fun DomainCardsGrid(
                     borderColor = GridPink,
                     onQuickAction = onOpenVitals,
                 )
+                bodyTemperature != null -> DomainCard(
+                    modifier = Modifier.weight(1f),
+                    emoji = "🌡️", title = "Body Temp",
+                    mainValue = "$bodyTemperature",
+                    mainUnit = "°C",
+                    progress = ((bodyTemperature - 35.5) / (37.5 - 35.5)).coerceIn(0.0, 1.0).toFloat(),
+                    accentColor = GridPink, bgColor = GridPinkLight,
+                    detail = "Skin temp",
+                    borderColor = GridPink,
+                    onQuickAction = onOpenVitals,
+                )
+                // None of BP/SpO2/temp are available from this watch - don't waste the slot on a
+                // permanently-dead card; Heart Rate below just takes the row.
             }
             DomainCard(
                 modifier = Modifier.weight(1f),

@@ -351,6 +351,7 @@ private fun DashboardTab(
             manualSleepHours = state.manualSleepHours,
             bloodPressure = state.bloodPressure,
             oxygenSaturation = state.oxygenSaturation,
+            bodyTemperature = state.bodyTemperature,
             stress = state.stress,
             onSaveVitals = { hr, s, sore, sleep -> viewModel.saveManualVitals(hr, s, sore, sleep) },
             soreness = state.soreness,

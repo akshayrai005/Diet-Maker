@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BloodPressureRecord
+import androidx.health.connect.client.records.BodyTemperatureRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -33,9 +34,10 @@ class HealthConnectManager @Inject constructor(
     private val sleepPermissions = setOf(HealthPermission.getReadPermission(SleepSessionRecord::class))
     private val bpPermissions = setOf(HealthPermission.getReadPermission(BloodPressureRecord::class))
     private val spo2Permissions = setOf(HealthPermission.getReadPermission(OxygenSaturationRecord::class))
+    private val tempPermissions = setOf(HealthPermission.getReadPermission(BodyTemperatureRecord::class))
 
-    /** All permissions requested at once so one grant covers steps, heart rate, sleep, BP and SpO2. */
-    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions + spo2Permissions
+    /** All permissions requested at once so one grant covers steps, heart rate, sleep, BP, SpO2 and temp. */
+    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions + spo2Permissions + tempPermissions
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -189,6 +191,26 @@ class HealthConnectManager @Inject constructor(
             )
             val latest = resp.records.maxByOrNull { it.time } ?: return null
             latest.percentage.value.toInt()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Most recent body temperature (°C) reading in the last 24h - a third fallback for that grid
+     * slot when a watch has neither BP nor SpO2 but does measure skin/body temperature.
+     */
+    suspend fun readLatestBodyTemperature(): Double? {
+        val client = clientOrNull() ?: return null
+        if (!granted(tempPermissions)) return null
+        return try {
+            val end = Instant.now()
+            val start = end.minus(Duration.ofHours(24))
+            val resp = client.readRecords(
+                ReadRecordsRequest(BodyTemperatureRecord::class, TimeRangeFilter.between(start, end)),
+            )
+            val latest = resp.records.maxByOrNull { it.time } ?: return null
+            Math.round(latest.temperature.inCelsius * 10) / 10.0
         } catch (e: Exception) {
             null
         }
