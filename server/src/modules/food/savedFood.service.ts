@@ -12,6 +12,8 @@ export const savedFoodSchema = z.object({
   fiberG: z.number().nonnegative().max(100).default(0),
   sugarG: z.number().nonnegative().max(100).default(0),
   sodiumMg: z.number().nonnegative().max(10000).default(0),
+  /** Present when this entry is filling a gap Open Food Facts didn't have. */
+  barcode: z.string().min(4).max(32).optional(),
 });
 export type SavedFoodBody = z.infer<typeof savedFoodSchema>;
 

@@ -12,7 +12,7 @@ export interface BarcodeFood {
     sugarG: number;
     sodiumMg: number;
   };
-  source: 'openfoodfacts';
+  source: 'openfoodfacts' | 'saved';
 }
 
 const OFF_URL = 'https://world.openfoodfacts.org/api/v2/product';

@@ -540,9 +540,13 @@ model SavedFood {
   fiberG    Float    @default(0)
   sugarG    Float    @default(0)
   sodiumMg  Float    @default(0)
+  /// Set when this entry was added to fill a barcode Open Food Facts didn't have - lets a
+  /// re-scan of the same product resolve instantly next time instead of 404ing again.
+  barcode   String?
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([userId, barcode])
   @@map("saved_foods")
 }
 

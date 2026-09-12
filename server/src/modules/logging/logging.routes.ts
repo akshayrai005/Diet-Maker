@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { prisma } from '../../lib/prisma';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
 import {
@@ -129,12 +130,28 @@ loggingRouter.get(
   }),
 );
 
-// ---- Barcode (Open Food Facts, no key) ----
+// ---- Barcode (the user's own saved products first, then Open Food Facts) ----
 loggingRouter.get(
   '/barcode/:code',
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
-    const food = await lookupBarcode(req.params.code!);
+    const code = req.params.code!;
+    const saved = await prisma.savedFood.findFirst({ where: { userId: req.user!.id, barcode: code } });
+    if (saved) {
+      res.json({
+        food: {
+          code,
+          name: saved.name,
+          per100g: {
+            kcal: saved.kcal, proteinG: saved.proteinG, carbG: saved.carbG, fatG: saved.fatG,
+            fiberG: saved.fiberG, sugarG: saved.sugarG, sodiumMg: saved.sodiumMg,
+          },
+          source: 'saved',
+        },
+      });
+      return;
+    }
+    const food = await lookupBarcode(code);
     res.json({ food });
   }),
 );
