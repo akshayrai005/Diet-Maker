@@ -350,26 +350,27 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
         Modifier.fillMaxWidth()
             .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
             .padding(horizontal = Spacing.screenHorizontal)
-            .padding(top = Spacing.xxl, bottom = Spacing.xl),
+            .padding(vertical = Spacing.md),
     ) {
-        Column(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Column {
-                    Text("$greetEmoji $greeting,", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.85f))
-                    Text(greetingName ?: "there", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color.White)
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(today.format(DateTimeFormatter.ofPattern("EEEE, d MMMM")), style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                }
-                if (streakDays > 0) {
-                    Card(
-                        shape = RoundedCornerShape(SharpRadius),
-                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f)),
-                        elevation = CardDefaults.cardElevation(0.dp),
-                    ) {
-                        Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("🔥", fontSize = 20.sp)
-                            Text("${streakDays}d", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text(
+                    "$greetEmoji $greeting, ${greetingName ?: "there"}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+                Text(today.format(DateTimeFormatter.ofPattern("EEEE, d MMMM")), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+            }
+            if (streakDays > 0) {
+                Card(
+                    shape = RoundedCornerShape(SharpRadius),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                ) {
+                    Row(Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("🔥", fontSize = 16.sp)
+                        Text("${streakDays}d", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
                     }
                 }
             }
