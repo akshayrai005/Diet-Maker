@@ -44,6 +44,8 @@ val CardGreenLight = Color(0xFFE8F5E9)
 val CardBlueLight = Color(0xFFE3F2FD)
 val CardCoralLight = Color(0xFFFFEBEE)
 val CardAmberLight = Color(0xFFFFF8E1)
+val KaizenRose = Color(0xFFB0546B)
+val CardRoseLight = Color(0xFFF6E4E9)
 val CardLavenderLight = Color(0xFFEDE7F6)
 val CardMintLight = Color(0xFFE0F7FA)
 
