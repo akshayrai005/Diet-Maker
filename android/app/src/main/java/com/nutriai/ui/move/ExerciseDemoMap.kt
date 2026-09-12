@@ -241,20 +241,42 @@ object ExerciseDemoMap {
         ids.entries.map { e -> e.key.split(" ").filter { it.isNotEmpty() }.toSet() to e.value }
     }
 
+    /**
+     * The FULL dataset's ~1300 slugs, keyed by the same canonical (word-order-independent) form as
+     * [canon] - so a curated name like "Incline Dumbbell Fly" still exact-matches the dataset's
+     * "dumbbell-incline-fly" even though the word order differs. Without this, that mismatch fell
+     * through to the small curated fuzzy map below and could land on a completely different
+     * exercise (e.g. a biceps curl demo for a chest fly) since that map only has ~200 entries and
+     * tie-breaks arbitrarily on partial token overlap.
+     */
+    private val canonicalFullIndex: Map<String, String> by lazy {
+        val out = HashMap<String, String>()
+        for ((slug, id) in ExerciseDemoMapFull.exactSlugToId) {
+            val key = canon(slug.replace('-', ' '))
+            out.putIfAbsent(key, id) // first-registered wins on rare canonical collisions
+        }
+        out
+    }
+
     private fun tokensOf(name: String): Set<String> =
         canon(name).split(" ").filter { it.isNotEmpty() }.toSet()
 
     /**
      * Animated GIF url for an exercise name, or null when we truly have no close demo (→ diagram
-     * fallback). Tries an exact canonical match first, then a fuzzy TOKEN-OVERLAP match so names the
-     * generator never saw verbatim ("Incline Barbell Bench Press") still resolve to the nearest demo
-     * ("barbell bench press"). The threshold is conservative so we don't show an unrelated clip.
+     * fallback). Tries an exact slug match, then a canonical (word-order-independent) exact match
+     * against the FULL dataset, then a fuzzy TOKEN-OVERLAP match against the small curated map so
+     * names the generator never saw verbatim still resolve to the nearest demo. The fuzzy threshold
+     * is conservative so we don't show an unrelated clip.
      */
     fun gifUrl(name: String): String? {
         // Exact match: the ~1300 auto-generated catalog entries' names ARE dataset slugs
         // (title-cased), so reversing that (lowercase + hyphenate) recovers the exact slug.
         val slug = name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
         ExerciseDemoMapFull.exactSlugToId[slug]?.let { return BASE + it + ".gif" }
+
+        // Same exercise, different word order (curated names aren't always slug-order) - e.g.
+        // "Incline Dumbbell Fly" vs the dataset's "dumbbell-incline-fly".
+        canonicalFullIndex[canon(name)]?.let { return BASE + it + ".gif" }
 
         ids[canon(name)]?.let { return BASE + it + ".gif" }
 
