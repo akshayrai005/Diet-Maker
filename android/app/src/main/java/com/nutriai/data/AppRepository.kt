@@ -430,6 +430,16 @@ class AppRepository @Inject constructor(
     suspend fun strengthTrend(): Result<List<com.nutriai.data.remote.dto.StrengthTrend>> =
         runCatching { api.strengthTrend().trends }
 
+    // ---- "My Gym" favorites ----
+    suspend fun gymFavorites(): Result<List<String>> =
+        runCatching { api.gymFavorites().exerciseNames }
+
+    suspend fun addGymFavorite(exerciseName: String): Result<Unit> =
+        runCatching { api.addGymFavorite(com.nutriai.data.remote.dto.GymFavoriteRequest(exerciseName)) }
+
+    suspend fun removeGymFavorite(exerciseName: String): Result<Unit> =
+        runCatching { api.removeGymFavorite(exerciseName) }
+
     // ---- Vitals & labs ----
     suspend fun logVital(
         type: String,

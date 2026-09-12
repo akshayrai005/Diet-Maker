@@ -297,6 +297,16 @@ interface NutriApi {
     @GET("exercise/strength-trend")
     suspend fun strengthTrend(): com.nutriai.data.remote.dto.StrengthTrendEnvelope
 
+    // ---- "My Gym" favorites ----
+    @GET("gym-favorites")
+    suspend fun gymFavorites(): com.nutriai.data.remote.dto.GymFavoritesResponse
+
+    @POST("gym-favorites")
+    suspend fun addGymFavorite(@Body body: com.nutriai.data.remote.dto.GymFavoriteRequest)
+
+    @retrofit2.http.DELETE("gym-favorites/{exerciseName}")
+    suspend fun removeGymFavorite(@retrofit2.http.Path("exerciseName") exerciseName: String)
+
     // ---- Vitals & labs ----
     @POST("vitals")
     suspend fun logVital(@Body body: com.nutriai.data.remote.dto.LogVitalRequest): com.nutriai.data.remote.dto.LogVitalResponse
