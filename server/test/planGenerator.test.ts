@@ -113,6 +113,20 @@ describe('generateWeekPlan', () => {
     }
   });
 
+  it('a veg (or vegan/eggetarian) users generated week plan never contains a nonveg food, end to end', () => {
+    const byId = new Map(SEED_FOODS.map((f) => [f.id, f]));
+    for (const dietType of ['veg', 'vegetarian', 'vegan', 'eggetarian'] as const) {
+      const plan = generateWeekPlan(SEED_FOODS, targets, prefs({ dietType }));
+      for (const day of plan.days) {
+        for (const item of day.meals.flatMap((m) => m.items)) {
+          const food = byId.get(item.foodId);
+          expect(food?.category).not.toBe('nonveg');
+          if (dietType !== 'eggetarian') expect(food?.category).not.toBe('egg');
+        }
+      }
+    }
+  });
+
   it('never puts two grains in one main meal (staple + dal/sabzi, not roti + rice)', () => {
     const byId = new Map(SEED_FOODS.map((f) => [f.id, f]));
     const isGrain = (id: string) => byId.get(id)?.tags.includes('grain') ?? false;
