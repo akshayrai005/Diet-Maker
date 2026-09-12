@@ -16,7 +16,7 @@ accountRouter.get(
   }),
 );
 
-/** Soft-delete the account (restorable by logging in within the grace window). */
+/** Permanently deletes the account and all its data immediately. No grace window or restore. */
 accountRouter.delete(
   '/me',
   requireAuth,
