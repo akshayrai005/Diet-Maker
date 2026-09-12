@@ -317,10 +317,19 @@ export async function getBodyProjection(userId: string): Promise<BodyProjectionR
   const latestRow = await prisma.bodyMetric.findFirst({ where: { userId }, orderBy: { measuredAt: 'desc' } });
   const latest = latestRow ? safeMeasure(latestRow.measurementsEnc) : {};
   let sensitiveBaseline: Partial<Record<ProjectionKey, number>> = {};
+  let recompMuscleTargetKeys = new Set<ProjectionKey>();
   if (profile.sensitiveEnc) {
     try {
       const s = decryptJson<SensitiveData & Partial<Record<ProjectionKey, number>>>(profile.sensitiveEnc);
-      sensitiveBaseline = { waistCm: s.waistCm, hipCm: s.hipCm, neckCm: s.neckCm };
+      sensitiveBaseline = { waistCm: s.waistCm, hipCm: s.hipCm, chestCm: s.chestCm, armCm: s.armCm, neckCm: s.neckCm };
+      // Recomp/lean-bulk: priority-muscle body parts should hold/build even while total weight
+      // trends down, not inherit the same fat-loss shrink rate as the waist. Only chest/arm have a
+      // direct measurement key (shoulders/back aren't independently tracked here).
+      if (s.physiqueGoal === 'recomp' || s.physiqueGoal === 'lean_bulk') {
+        const priority = s.priorityMuscles ?? [];
+        if (priority.includes('chest')) recompMuscleTargetKeys.add('chestCm');
+        if (priority.includes('arms')) recompMuscleTargetKeys.add('armCm');
+      }
     } catch {
       sensitiveBaseline = {};
     }
@@ -350,7 +359,9 @@ export async function getBodyProjection(userId: string): Promise<BodyProjectionR
   for (const key of PROJECTABLE_KEYS) {
     const currentCm = (latest as Measurements)[key] ?? sensitiveBaseline[key];
     if (typeof currentCm !== 'number') continue;
-    measurements.push(projectMeasurement(key, currentCm, weeklyWeightDeltaKg, historyByKey.get(key) ?? []));
+    measurements.push(
+      projectMeasurement(key, currentCm, weeklyWeightDeltaKg, historyByKey.get(key) ?? [], undefined, recompMuscleTargetKeys.has(key)),
+    );
   }
 
   return { available: true, goal, weeklyWeightDeltaKg, measurements, disclaimer: PROJECTION_DISCLAIMER };

@@ -41,6 +41,24 @@ describe('projectMeasurement - heuristic path (no logged history)', () => {
   });
 });
 
+describe('projectMeasurement - recomp muscle-target override', () => {
+  it('holds/grows a priority-muscle body part even while overall weight is trending down', () => {
+    // Losing weight overall, but chest is a recomp priority target.
+    const p = projectMeasurement('chestCm', 97, -0.4, [], [3, 6, 12], true);
+    expect(p.source).toBe('estimate');
+    for (const m of p.milestones) {
+      expect(m.lowCm).toBeGreaterThanOrEqual(97); // never shrinks
+    }
+  });
+
+  it('still shrinks a non-priority body part (waist) during the same recomp deficit', () => {
+    const p = projectMeasurement('waistCm', 91, -0.4, [], [3, 6, 12], false);
+    for (const m of p.milestones) {
+      expect(m.highCm).toBeLessThan(91);
+    }
+  });
+});
+
 describe('projectMeasurement - trend path (real logged history)', () => {
   it('extrapolates the users OWN observed shrink rate, ignoring the heuristic entirely', () => {
     // Waist went 95 -> 90 cm over 60 days = -0.5 cm/week trend.

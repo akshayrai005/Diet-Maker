@@ -86,12 +86,23 @@ function trendSlopeCmPerWeek(points: TrendPoint[]): number | null {
  * losing, positive = gaining) from the user's current safe target - used only for the heuristic
  * fallback when there's no real trend to extrapolate.
  */
+/**
+ * Natural-beginner lean-muscle-gain rate (kg/week) used ONLY for priority-muscle body parts during
+ * a recomp/lean-bulk goal, so those parts don't inherit the overall fat-loss shrink rate just
+ * because total bodyweight is trending down. Conservative and deliberately independent of
+ * `weeklyWeightDeltaKg` - recomp means losing fat while holding or slowly building trained muscle,
+ * not shrinking everywhere uniformly.
+ */
+const RECOMP_MUSCLE_GAIN_KG_PER_WEEK = 0.1;
+
 export function projectMeasurement(
   key: MeasurementKey,
   currentCm: number,
   weeklyWeightDeltaKg: number,
   history: TrendPoint[] = [],
   milestoneMonths: number[] = [3, 6, 12],
+  /** True when this body part is a priority-muscle target under a recomp/lean-bulk goal. */
+  isRecompMuscleTarget = false,
 ): MeasurementProjection {
   const slope = trendSlopeCmPerWeek(history);
 
@@ -107,10 +118,11 @@ export function projectMeasurement(
     return { key, currentCm, source: 'trend', milestones };
   }
 
-  const cmPerKg = weeklyWeightDeltaKg < 0 ? FAT_LOSS_CM_PER_KG[key] : MUSCLE_GAIN_CM_PER_KG[key];
+  const effectiveWeeklyDeltaKg = isRecompMuscleTarget ? RECOMP_MUSCLE_GAIN_KG_PER_WEEK : weeklyWeightDeltaKg;
+  const cmPerKg = effectiveWeeklyDeltaKg < 0 ? FAT_LOSS_CM_PER_KG[key] : MUSCLE_GAIN_CM_PER_KG[key];
   const milestones = milestoneMonths.map((months) => {
     const weeks = MONTHS_TO_WEEKS(months);
-    const totalKgChange = weeklyWeightDeltaKg * weeks;
+    const totalKgChange = effectiveWeeklyDeltaKg * weeks;
     const change = totalKgChange * cmPerKg;
     // Wider ±30% band for the heuristic path - it's a population-level ballpark, not this
     // person's measured pattern.
