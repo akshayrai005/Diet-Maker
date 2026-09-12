@@ -76,7 +76,7 @@ function matchesPriority(muscleGroup: string, priorities: string[]): boolean {
  * (balance preserved). Returns the plan unchanged if there are no priorities. Appends an explaining note.
  */
 export function applyMusclePriority(plan: WeeklyWorkout, priorities: string[] | undefined, maxSets: number): WeeklyWorkout {
-  const prio = (priorities ?? []).filter((p) => typeof p === 'string' && p.trim()).slice(0, 4);
+  const prio = (priorities ?? []).filter((p) => typeof p === 'string' && p.trim()).slice(0, 7);
   if (prio.length === 0) return plan;
 
   let boosted = false;
