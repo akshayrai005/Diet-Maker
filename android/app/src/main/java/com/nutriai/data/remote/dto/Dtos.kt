@@ -860,6 +860,7 @@ data class SavedFoodRequest(
     val fiberG: Double = 0.0,
     val sugarG: Double = 0.0,
     val sodiumMg: Double = 0.0,
+    val barcode: String? = null,
 )
 
 @Serializable

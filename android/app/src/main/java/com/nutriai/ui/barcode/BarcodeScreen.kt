@@ -76,10 +76,19 @@ private val Sharp = RoundedCornerShape(8.dp)
 data class BarcodeState(
     val code: String = "",
     val food: BarcodeFood? = null,
-    val grams: String = "100",
+    /** Blank, not pre-filled - forces a deliberate "how much did I actually eat" entry instead
+     * of silently defaulting to 100g of a product that might be a 1kg pack. */
+    val grams: String = "",
     val slot: String = "breakfast",
     val loading: Boolean = false,
     val message: String? = null,
+    /** True once a lookup 404s - offers "add it manually" instead of a dead end. */
+    val notFound: Boolean = false,
+    val manualName: String = "",
+    val manualKcal: String = "",
+    val manualProtein: String = "",
+    val manualCarb: String = "",
+    val manualFat: String = "",
 )
 
 @HiltViewModel
@@ -115,17 +124,54 @@ class BarcodeViewModel @Inject constructor(
     fun lookup() {
         val code = _state.value.code
         if (code.isBlank()) return
-        _state.value = _state.value.copy(loading = true, message = null, food = null)
+        _state.value = _state.value.copy(loading = true, message = null, food = null, notFound = false)
         viewModelScope.launch {
             val r = repository.barcode(code)
             _state.value = if (r.isSuccess) {
-                _state.value.copy(loading = false, food = r.getOrNull())
+                _state.value.copy(loading = false, food = r.getOrNull(), notFound = false)
             } else {
                 _state.value.copy(
                     loading = false,
                     food = null,
-                    message = "Couldn't find that barcode. Try again, or search the food by name in the Log tab.",
+                    notFound = true,
+                    message = "Couldn't find that barcode. Add it below so it's remembered next time, or search by name in the Log tab.",
                 )
+            }
+        }
+    }
+
+    fun onManualField(name: String? = null, kcal: String? = null, protein: String? = null, carb: String? = null, fat: String? = null) {
+        val st = _state.value
+        _state.value = st.copy(
+            manualName = name ?: st.manualName,
+            manualKcal = kcal ?: st.manualKcal,
+            manualProtein = protein ?: st.manualProtein,
+            manualCarb = carb ?: st.manualCarb,
+            manualFat = fat ?: st.manualFat,
+        )
+    }
+
+    /** Saves a user-entered product against this barcode - found instantly on the next scan. */
+    fun saveManualProduct() {
+        val st = _state.value
+        val name = st.manualName.trim()
+        val kcal = st.manualKcal.toDoubleOrNull()
+        if (name.isBlank() || kcal == null) return
+        _state.value = st.copy(loading = true, message = null)
+        viewModelScope.launch {
+            val body = com.nutriai.data.remote.dto.SavedFoodRequest(
+                name = name,
+                kcal = kcal,
+                proteinG = st.manualProtein.toDoubleOrNull() ?: 0.0,
+                carbG = st.manualCarb.toDoubleOrNull() ?: 0.0,
+                fatG = st.manualFat.toDoubleOrNull() ?: 0.0,
+                barcode = st.code,
+            )
+            val r = repository.saveFood(body)
+            if (r.isSuccess) {
+                lookup() // re-fetch: the barcode endpoint now finds this saved entry first
+            } else {
+                _state.value = _state.value.copy(loading = false, message = r.exceptionOrNull()?.message ?: "Could not save")
             }
         }
     }
@@ -146,6 +192,14 @@ class BarcodeViewModel @Inject constructor(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun BarcodeMacroStat(emoji: String, label: String, grams: Double, color: Color) {
+    Column {
+        Text("$emoji ${grams.let { if (it == it.toInt().toDouble()) "${it.toInt()}" else "%.1f".format(it) }}g", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -298,12 +352,25 @@ fun BarcodeScreen(
                         }
                     }
 
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        BarcodeMacroStat("💪", "Protein", food.per100g.proteinG, NutritionColor)
+                        BarcodeMacroStat("🌾", "Carbs", food.per100g.carbG, BrandAmber)
+                        BarcodeMacroStat("🥑", "Fat", food.per100g.fatG, KaizenCoral)
+                    }
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 
+                    Text(
+                        "⚠️ How much did you actually eat? The barcode is for the whole pack, not one serving.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BrandAmber,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     OutlinedTextField(
                         value = state.grams,
                         onValueChange = viewModel::onGrams,
-                        label = { Text("Grams") },
+                        label = { Text("Grams you ate (not the pack size)") },
+                        placeholder = { Text("e.g. 50") },
                         singleLine = true,
                         shape = Sharp,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -338,7 +405,7 @@ fun BarcodeScreen(
                     PrimaryButton(
                         text = "Log it",
                         onClick = { viewModel.logIt() },
-                        enabled = !state.loading,
+                        enabled = !state.loading && (state.grams.toIntOrNull() ?: 0) > 0,
                         containerColor = BrandGreenDeep,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -360,6 +427,79 @@ fun BarcodeScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(Spacing.lg),
                 )
+            }
+        }
+
+        // ---- Add product manually (fills the gap for next time) ----
+        if (state.notFound) {
+            Text("✍️ Add This Product", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Card(
+                shape = Sharp,
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                    Text(
+                        "Enter the nutrition facts per 100 g from the pack label - saved against this barcode so it's found instantly next time you scan it.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedTextField(
+                        value = state.manualName,
+                        onValueChange = { viewModel.onManualField(name = it) },
+                        label = { Text("Product name") },
+                        singleLine = true,
+                        shape = Sharp,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedTextField(
+                            value = state.manualKcal,
+                            onValueChange = { viewModel.onManualField(kcal = it.filter { c -> c.isDigit() || c == '.' }) },
+                            label = { Text("kcal/100g") },
+                            singleLine = true,
+                            shape = Sharp,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = state.manualProtein,
+                            onValueChange = { viewModel.onManualField(protein = it.filter { c -> c.isDigit() || c == '.' }) },
+                            label = { Text("Protein g") },
+                            singleLine = true,
+                            shape = Sharp,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedTextField(
+                            value = state.manualCarb,
+                            onValueChange = { viewModel.onManualField(carb = it.filter { c -> c.isDigit() || c == '.' }) },
+                            label = { Text("Carbs g") },
+                            singleLine = true,
+                            shape = Sharp,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = state.manualFat,
+                            onValueChange = { viewModel.onManualField(fat = it.filter { c -> c.isDigit() || c == '.' }) },
+                            label = { Text("Fat g") },
+                            singleLine = true,
+                            shape = Sharp,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    PrimaryButton(
+                        text = "Save product",
+                        onClick = { viewModel.saveManualProduct() },
+                        enabled = !state.loading && state.manualName.isNotBlank() && state.manualKcal.toDoubleOrNull() != null,
+                        containerColor = KaizenLavender,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
 
