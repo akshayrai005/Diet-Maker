@@ -177,6 +177,7 @@ fun PremiumDashboard(
                     bodyFatPct = bodyFatPct,
                     bloodPressure = bloodPressure,
                     oxygenSaturation = oxygenSaturation,
+                    stress = stress,
                     onAddWater = onAddWater,
                     onOpenDietLog = onOpenDietLog,
                     onOpenMove = onOpenMove,
@@ -525,6 +526,7 @@ private fun DomainCardsGrid(
     bodyFatPct: Double? = null,
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
+    stress: Int? = null,
     onAddWater: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenMove: () -> Unit = {},
@@ -628,6 +630,31 @@ private fun DomainCardsGrid(
                 accentColor = BrandAmber, bgColor = CardAmberLight,
                 detail = if (heartRate != null) "Resting" else "Needs a synced watch reading",
                 borderColor = BrandAmber,
+                onQuickAction = onOpenVitals,
+            )
+        }
+        // Row 4: Sleep + Stress
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "😴", title = "Sleep",
+                mainValue = sleepHours?.let { "$it" } ?: "-",
+                mainUnit = if (sleepHours != null) "hrs" else "",
+                progress = sleepHours?.let { (it / 8.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                accentColor = KaizenLavender, bgColor = CardLavenderLight,
+                detail = if (sleepHours != null) "Last night" else "Needs a synced watch reading",
+                borderColor = KaizenLavender,
+                onQuickAction = onOpenVitals,
+            )
+            DomainCard(
+                modifier = Modifier.weight(1f),
+                emoji = "🧘", title = "Stress",
+                mainValue = stress?.let { "$it" } ?: "-",
+                mainUnit = if (stress != null) "/5" else "",
+                progress = stress?.let { (it / 5.0).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
+                accentColor = KaizenCoral, bgColor = CardCoralLight,
+                detail = if (stress != null) "Self-reported" else "Log it in Vitals",
+                borderColor = KaizenCoral,
                 onQuickAction = onOpenVitals,
             )
         }
