@@ -62,8 +62,8 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun register(email: String, password: String, first: String, last: String, onSuccess: () -> Unit) {
-        execute(onSuccess) { repository.register(email.trim(), password, first.trim(), last.trim()) }
+    fun register(email: String, password: String, first: String, last: String, phone: String?, onSuccess: () -> Unit) {
+        execute(onSuccess) { repository.register(email.trim(), password, first.trim(), last.trim(), phone?.trim()?.ifBlank { null }) }
     }
 
     private val _forgot = MutableStateFlow(ForgotState())

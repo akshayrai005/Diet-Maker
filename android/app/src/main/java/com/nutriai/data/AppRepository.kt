@@ -29,9 +29,9 @@ class AppRepository @Inject constructor(
 ) {
     val isLoggedIn: Flow<Boolean> = tokenStore.accessTokenFlow.map { !it.isNullOrBlank() }
 
-    suspend fun register(email: String, password: String, first: String, last: String): Result<Unit> =
+    suspend fun register(email: String, password: String, first: String, last: String, phone: String? = null): Result<Unit> =
         runCatching {
-            val res = api.register(RegisterRequest(email, password, first, last))
+            val res = api.register(RegisterRequest(email, password, first, last, phone))
             tokenStore.save(res.tokens.accessToken, res.tokens.refreshToken)
         }
 

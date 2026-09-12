@@ -188,6 +188,9 @@ data class ProgressUiState(
     val pendingPhotoRef: String? = null,
     val toast: String? = null,
     val projection: com.nutriai.data.remote.dto.BodyProjection? = null,
+    val targetWaistCm: Double? = null,
+    val targetChestCm: Double? = null,
+    val targetArmCm: Double? = null,
 )
 
 @HiltViewModel
@@ -205,6 +208,18 @@ class ProgressViewModel @Inject constructor(
         loadSeries()
         loadPhotos()
         loadProjection()
+        loadTargets()
+    }
+
+    private fun loadTargets() {
+        viewModelScope.launch {
+            val sensitive = repository.getProfile().getOrNull()?.sensitive
+            _state.value = _state.value.copy(
+                targetWaistCm = sensitive?.targetWaistCm,
+                targetChestCm = sensitive?.targetChestCm,
+                targetArmCm = sensitive?.targetArmCm,
+            )
+        }
     }
 
     fun loadSeries() {
@@ -464,6 +479,20 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
             item { SavedPointCard(point = pt, whr = state.savedWhr, isMinor = isMinor) }
         }
 
+        // ---- Current vs target measurements (from onboarding goals) ----
+        val hasTargets = state.targetWaistCm != null || state.targetChestCm != null || state.targetArmCm != null
+        if (hasTargets) {
+            val latest = series?.points?.lastOrNull()
+            item {
+                TargetProgressCard(
+                    latest = latest,
+                    targetWaistCm = state.targetWaistCm,
+                    targetChestCm = state.targetChestCm,
+                    targetArmCm = state.targetArmCm,
+                )
+            }
+        }
+
         if (series != null) {
             // Body-fat (hidden for minors) and waist-to-hip ratio, grouped.
             val bf = if (!isMinor) series.latestBodyFat else null
@@ -660,6 +689,66 @@ private fun SavedPointCard(point: BodyPoint, whr: Whr?, isMinor: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+/** One row of the current-vs-target card: shows how close the latest measurement is to the goal. */
+@Composable
+private fun TargetRow(emoji: String, label: String, currentCm: Double?, targetCm: Double) {
+    val remaining = currentCm?.let { it - targetCm }
+    Row(
+        Modifier.fillMaxWidth().semantics {
+            contentDescription = if (currentCm != null) {
+                "$label now ${formatNum(currentCm)} cm, target ${formatNum(targetCm)} cm"
+            } else {
+                "$label target ${formatNum(targetCm)} cm, not measured yet"
+            }
+        },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(emoji, style = MaterialTheme.typography.titleMedium)
+            Column {
+                Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (currentCm != null) "${formatNum(currentCm)} cm → ${formatNum(targetCm)} cm" else "Target ${formatNum(targetCm)} cm - not measured yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (remaining != null) {
+            val reached = kotlin.math.abs(remaining) < 0.5
+            Text(
+                if (reached) "🎯 Reached" else "${if (remaining > 0) "-" else "+"}${formatNum(kotlin.math.abs(remaining))} cm to go",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (reached) BrandGreen else MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/** Latest measurement vs the target the user set in onboarding, for waist/chest/arm. */
+@Composable
+private fun TargetProgressCard(
+    latest: BodyPoint?,
+    targetWaistCm: Double?,
+    targetChestCm: Double?,
+    targetArmCm: Double?,
+) {
+    Card(
+        shape = Sharp,
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    ) {
+        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("🎯 Progress to goal shape", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            targetWaistCm?.let { TargetRow("📏", "Waist", latest?.waistCm, it) }
+            targetChestCm?.let { TargetRow("💪", "Chest", latest?.chestCm, it) }
+            targetArmCm?.let { TargetRow("💪", "Arm", latest?.armCm, it) }
         }
     }
 }

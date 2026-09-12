@@ -187,6 +187,7 @@ fun RegisterScreen(
     var first by rememberSaveable { mutableStateOf("") }
     var last by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
     AuthScaffold(title = "Create your account 🚀", subtitle = "Start your health journey today", error = state.error) {
@@ -197,6 +198,10 @@ fun RegisterScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
         )
         OutlinedTextField(
+            phone, { phone = it.filter { c -> c.isDigit() || c == '+' }.take(16) }, label = { Text("Mobile no. (optional)") }, singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
+        )
+        OutlinedTextField(
             password, { password = it }, label = { Text("Password (min 8)") }, singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(Radius.sm),
@@ -205,7 +210,7 @@ fun RegisterScreen(
             text = "Sign up",
             loading = state.loading,
             enabled = !state.loading && email.isNotBlank() && password.length >= 8 && first.isNotBlank(),
-            onClick = { viewModel.register(email, password, first, last, onRegistered) },
+            onClick = { viewModel.register(email, password, first, last, phone, onRegistered) },
         )
         TextButton(onClick = onGoToLogin) { Text("Already have an account? Log in", color = HeroGradientTop) }
     }

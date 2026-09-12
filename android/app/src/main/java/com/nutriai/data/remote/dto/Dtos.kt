@@ -9,6 +9,7 @@ data class RegisterRequest(
     val password: String,
     val firstName: String,
     val lastName: String,
+    val phone: String? = null,
 )
 
 @Serializable
@@ -69,6 +70,12 @@ data class SensitiveData(
     val waistCm: Double? = null,
     val neckCm: Double? = null,
     val hipCm: Double? = null,
+    val chestCm: Double? = null,
+    val armCm: Double? = null,
+    // Goal measurements - what the user wants to reach, shown alongside current on Progress.
+    val targetWaistCm: Double? = null,
+    val targetChestCm: Double? = null,
+    val targetArmCm: Double? = null,
     val conditions: List<String> = emptyList(),
     val allergies: List<String> = emptyList(),
     val desiredWeeklyLossKg: Double? = null,
