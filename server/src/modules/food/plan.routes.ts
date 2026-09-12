@@ -134,3 +134,37 @@ planRouter.get(
     res.json({ foods: [...localItems, ...usda] });
   }),
 );
+
+const aiEstimateSchema = z.object({ name: z.string().min(2).max(80) });
+
+/**
+ * Falls back to an LLM estimate when neither the local catalog nor USDA has an ingredient
+ * (e.g. raw "bajra flour" - only finished dishes like roti are seeded). Saves it as a real Food
+ * row so it's a permanent, searchable catalog entry from then on, not a one-off guess.
+ */
+planRouter.post(
+  '/foods/ai-estimate',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { name } = aiEstimateSchema.parse(req.body);
+    const { estimateAndSaveFood } = await import('./aiEstimate');
+    const f = await estimateAndSaveFood(name);
+    const p = portionInfoFor({ name: f.name, tags: f.tags, category: f.category, typicalServingG: f.typicalServingG });
+    const item: FoodSearchItem = {
+      id: f.id,
+      name: f.name,
+      kcal: f.kcal,
+      proteinG: f.proteinG,
+      carbG: f.carbG,
+      fatG: f.fatG,
+      fiberG: f.fiberG,
+      sugarG: f.sugarG,
+      sodiumMg: f.sodiumMg,
+      typicalServingG: f.typicalServingG,
+      source: 'local',
+      portionUnit: p.portionUnit,
+      unitGrams: p.unitGrams,
+    };
+    res.status(201).json({ food: item });
+  }),
+);
