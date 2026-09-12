@@ -1,6 +1,8 @@
 import { env } from '../lib/env';
 
-const MODEL = env.GEMINI_MODEL || 'gemini-2.0-flash';
+// gemini-2.0-flash-lite (the prior default) was retired by Google; Gemini's own 404 response
+// pointed at this replacement. GEMINI_MODEL, if set in the environment, still overrides this.
+const MODEL = env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 const TIMEOUT_MS = 20_000;
 
 /**
