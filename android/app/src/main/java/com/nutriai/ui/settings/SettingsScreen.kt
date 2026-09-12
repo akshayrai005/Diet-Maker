@@ -105,7 +105,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Delete account?") },
-            text = { Text("This deletes your account and logs you out. You have 7 days to change your mind - just log back in within a week to restore it. After that it's permanent.") },
+            text = { Text("This permanently deletes your account and all its data immediately - your profile, logs, recipes, and history. There is no grace period and this cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
