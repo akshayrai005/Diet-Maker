@@ -355,13 +355,28 @@ export async function getBodyProjection(userId: string): Promise<BodyProjectionR
     }
   }
 
-  const measurements: MeasurementProjection[] = [];
+  const allMeasurements: MeasurementProjection[] = [];
   for (const key of PROJECTABLE_KEYS) {
     const currentCm = (latest as Measurements)[key] ?? sensitiveBaseline[key];
     if (typeof currentCm !== 'number') continue;
-    measurements.push(
+    allMeasurements.push(
       projectMeasurement(key, currentCm, weeklyWeightDeltaKg, historyByKey.get(key) ?? [], undefined, recompMuscleTargetKeys.has(key)),
     );
+  }
+
+  // Only show the user's OWN observed trend, never the generic population heuristic - a
+  // heuristic-path projection reads as "this is your ceiling" even though it's just a rough,
+  // deliberately conservative fallback with no relationship to how well the actual plan (workout
+  // split + diet targets) works when followed. Better to say "not enough data yet" than show a
+  // discouraging number that isn't really about this person.
+  const measurements = allMeasurements.filter((m) => m.source === 'trend');
+  if (measurements.length === 0) {
+    return {
+      available: false,
+      reason: 'Log at least 2 measurements a few weeks apart to see your own trend projection.',
+      measurements: [],
+      disclaimer: PROJECTION_DISCLAIMER,
+    };
   }
 
   return { available: true, goal, weeklyWeightDeltaKg, measurements, disclaimer: PROJECTION_DISCLAIMER };
