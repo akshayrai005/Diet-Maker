@@ -1,6 +1,7 @@
 package com.nutriai.ui.move
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,20 +11,29 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +62,45 @@ data class MoveLogState(
     val todayExercise: List<ExerciseLogDto> = emptyList(),
 )
 
+/** One row in the log list - either a single entry or several sets of the same exercise grouped together. */
+data class LoggedGroup(
+    val key: String,
+    val exerciseName: String,
+    val ids: List<String>,
+    val setCount: Int,
+    val reps: Int?,
+    val weightKg: Double?,
+    val durationMin: Int?,
+    val totalKcal: Int,
+)
+
+/**
+ * Groups same-session sets of the same exercise into one row (e.g. 3 sets of Incline barbell
+ * press logged together used to render as 3 near-identical rows - confusing, looked like the
+ * save happened 3 times when it was one save of a 3-set exercise). Falls back to one row per
+ * entry when there's no sessionId to group by (older logs, or genuinely separate sessions).
+ */
+private fun groupLogs(entries: List<ExerciseLogDto>): List<LoggedGroup> {
+    val groups = LinkedHashMap<String, MutableList<ExerciseLogDto>>()
+    for (e in entries) {
+        val key = if (e.sessionId != null) "${e.exerciseName}::${e.sessionId}" else "solo::${e.id}"
+        groups.getOrPut(key) { mutableListOf() }.add(e)
+    }
+    return groups.map { (key, rows) ->
+        val first = rows.first()
+        LoggedGroup(
+            key = key,
+            exerciseName = first.exerciseName,
+            ids = rows.map { it.id },
+            setCount = rows.sumOf { it.sets ?: 1 },
+            reps = first.reps,
+            weightKg = first.weightKg,
+            durationMin = rows.sumOf { it.durationMin ?: 0 }.takeIf { it > 0 },
+            totalKcal = rows.sumOf { it.kcal ?: 0 },
+        )
+    }
+}
+
 @HiltViewModel
 class MoveLogViewModel @Inject constructor(private val repository: AppRepository) : ViewModel() {
     private val _state = MutableStateFlow(MoveLogState())
@@ -64,12 +113,37 @@ class MoveLogViewModel @Inject constructor(private val repository: AppRepository
             _state.value = MoveLogState(loading = false, todayExercise = logs)
         }
     }
+
+    /** Deletes every row in a grouped entry (e.g. all 3 sets of a mis-logged exercise at once). */
+    fun deleteGroup(group: LoggedGroup) {
+        viewModelScope.launch {
+            group.ids.forEach { id -> repository.deleteExerciseLog(id) }
+            refresh()
+        }
+    }
 }
 
 @Composable
 fun MoveLogScreen(modifier: Modifier = Modifier, viewModel: MoveLogViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val burnedToday = state.todayExercise.sumOf { it.kcal ?: 0 }
+    val groups = remember(state.todayExercise) { groupLogs(state.todayExercise) }
+    var pendingDelete by remember { mutableStateOf<LoggedGroup?>(null) }
+
+    pendingDelete?.let { group ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Remove this entry?") },
+            text = { Text("Removes ${group.exerciseName} (${group.setCount} set${if (group.setCount == 1) "" else "s"}) from today's log. This can't be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteGroup(group)
+                    pendingDelete = null
+                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Cancel") } },
+        )
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
@@ -120,33 +194,45 @@ fun MoveLogScreen(modifier: Modifier = Modifier, viewModel: MoveLogViewModel = h
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 ) {
                     Column(Modifier.padding(vertical = 4.dp)) {
-                        state.todayExercise.forEachIndexed { i, e ->
+                        groups.forEachIndexed { i, g ->
                             Row(
                                 Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(e.exerciseName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                    Text(g.exerciseName, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                                     Text(
                                         buildString {
-                                            if (e.sets != null) append("${e.sets} sets")
-                                            if (e.reps != null) append(if (isEmpty()) "${e.reps} reps" else " × ${e.reps}")
-                                            if (e.weightKg != null) append(" @ ${e.weightKg} kg")
-                                            if (e.durationMin != null) append("${e.durationMin} min")
-                                        }.ifBlank { "session" },
+                                            append("${g.setCount} set${if (g.setCount == 1) "" else "s"}")
+                                            if (g.reps != null) append(" × ${g.reps}")
+                                            if (g.weightKg != null) append(" @ ${g.weightKg} kg")
+                                            if (g.durationMin != null) append(" · ${g.durationMin} min")
+                                        },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 10.sp,
                                     )
                                 }
-                                Box(
-                                    Modifier.clip(Sharp).background(KaizenCoral).padding(horizontal = Spacing.sm, vertical = 3.dp),
-                                ) {
-                                    Text("${e.kcal ?: 0} kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                    Box(
+                                        Modifier.clip(Sharp).background(KaizenCoral).padding(horizontal = Spacing.sm, vertical = 3.dp),
+                                    ) {
+                                        Text("${g.totalKcal} kcal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp)
+                                    }
+                                    Text(
+                                        "✕",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .clickable { pendingDelete = g }
+                                            .padding(6.dp)
+                                            .semantics { contentDescription = "Remove ${g.exerciseName} from today's log" },
+                                    )
                                 }
                             }
-                            if (i != state.todayExercise.lastIndex) {
+                            if (i != groups.lastIndex) {
                                 HorizontalDivider(Modifier.padding(horizontal = Spacing.md), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                             }
                         }
