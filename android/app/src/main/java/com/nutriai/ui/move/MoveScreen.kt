@@ -380,14 +380,16 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         SwapExerciseDialog(exercise = ex, onDismiss = { swapTarget = null })
     }
 
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
         modifier = modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
         // Toast
         state.toast?.let { msg ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -401,7 +403,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         // Mixed workout session — one session can hold treadmill + strength + stretching, etc.
         if (state.activeSessionId != null || state.sessionEntries.isNotEmpty()) {
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -451,17 +453,17 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         if (state.loading) {
-            item { Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MoveAccent) } }
+            item(span = { GridItemSpan(2) }) { Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MoveAccent) } }
         }
         state.error?.let { err ->
-            item { EmptyState(title = err, emoji = "🏋️") }
+            item(span = { GridItemSpan(2) }) { EmptyState(title = err, emoji = "🏋️") }
         }
 
         // Today's focus — a slim status strip (day name + adherence). Actually starting or
         // logging an exercise happens on its own row further down, so no button here.
         shownDay?.let { day ->
             val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -499,18 +501,18 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         // Week strip
         plan?.days?.takeIf { it.isNotEmpty() }?.let { days ->
-            item { Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-            item {
+            item(span = { GridItemSpan(2) }) { Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+            item(span = { GridItemSpan(2) }) {
                 val current = selectedIdx ?: days.indexOfFirst { it === shownDay }
                 WeekStrip(days, selectedIndex = current, onSelect = { selectedIdx = it })
             }
         }
 
-        // Exercises for shown day
+        // Exercises for shown day — grid cards, matching the Library look.
         shownDay?.let { day ->
             val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
             if (day.rest || !hasContent) {
-                item {
+                item(span = { GridItemSpan(2) }) {
                     Card(Modifier.fillMaxWidth(), shape = Sharp, elevation = CardDefaults.cardElevation(1.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Text("🧘", fontSize = 20.sp)
@@ -520,50 +522,34 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                 }
             } else {
                 if (day.warmup.isNotEmpty()) {
-                    item { Text("🔥 Warm-up", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    items(day.warmup.size) { i ->
-                        val w = day.warmup[i]
-                        ExerciseRow(w, "Warm-up", onLog = { logTarget = w })
-                    }
+                    item(span = { GridItemSpan(2) }) { Text("🔥 Warm-up", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    exerciseCards(day.warmup, onLog = { logTarget = it })
                 }
                 if (day.exercises.isNotEmpty()) {
-                    item { Text("💪 Main Workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    items(day.exercises.size) { i ->
-                        val ex = day.exercises[i]
-                        ExerciseRow(
-                            ex = ex, section = "Main", index = i,
-                            onLog = { logTarget = ex },
-                            onSwap = if (ex.substitutions.isNotEmpty()) ({ swapTarget = ex }) else null,
-                        )
-                    }
+                    item(span = { GridItemSpan(2) }) { Text("💪 Main Workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    exerciseCards(day.exercises, onLog = { logTarget = it }, onSwap = { swapTarget = it })
                 }
                 if (day.core.isNotEmpty()) {
-                    item { Text("🦾 Core & Abs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    items(day.core.size) { i ->
-                        val cr = day.core[i]
-                        ExerciseRow(cr, "Core", onLog = { logTarget = cr })
-                    }
+                    item(span = { GridItemSpan(2) }) { Text("🦾 Core & Abs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    exerciseCards(day.core, onLog = { logTarget = it })
                 }
                 day.cardio?.let { c ->
-                    item { Text("❤️ Cardio", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    item { ExerciseRow(c, "Cardio", onLog = { logTarget = c }) }
+                    item(span = { GridItemSpan(2) }) { Text("❤️ Cardio", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    item(span = { GridItemSpan(2) }) { ExerciseGridCard(ex = c, onClick = { logTarget = c }) }
                 }
                 if (day.cooldown.isNotEmpty()) {
-                    item { Text("🧘 Cool-down", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    items(day.cooldown.size) { i ->
-                        val cd = day.cooldown[i]
-                        ExerciseRow(cd, "Cool-down", onLog = { logTarget = cd })
-                    }
+                    item(span = { GridItemSpan(2) }) { Text("🧘 Cool-down", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    exerciseCards(day.cooldown, onLog = { logTarget = it })
                 }
-                item { RestTimer(Modifier.padding(top = Spacing.xs)) }
+                item(span = { GridItemSpan(2) }) { RestTimer(Modifier.padding(top = Spacing.xs)) }
             }
         }
 
-        item { StrengthTrendSection(Modifier.padding(top = Spacing.xs)) }
+        item(span = { GridItemSpan(2) }) { StrengthTrendSection(Modifier.padding(top = Spacing.xs)) }
 
         // Program info + coaching nudges - below the actual workout, not blocking it.
         plan?.let { p ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 val context = buildString {
                     append(p.blockLabel.ifBlank { "Training block" }).append(" · ").append(p.location).append(" · ").append(p.goal)
                     p.note?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
@@ -588,7 +574,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         // Mobility staging - why the plan is diet-first / light-movement instead of standard.
         state.movementStage?.takeIf { it.stage != "full" }?.let { ms ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -619,7 +605,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         // Split suggestion - nudge from mixed full-body sessions to a body-part split once you're past month 1.
         state.splitSuggestion?.takeIf { it.suggestBodyPartSplit }?.let { ss ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -639,7 +625,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
         // Level suggestion
         state.levelSuggestion?.takeIf { it.direction == "up" || it.direction == "down" }?.let { ls ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
@@ -661,88 +647,8 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         plan?.disclaimer?.takeIf { it.isNotBlank() }?.let { d ->
-            item {
+            item(span = { GridItemSpan(2) }) {
                 Text(d, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs))
-            }
-        }
-    }
-}
-
-@Composable
-private fun ExerciseRow(
-    ex: ExerciseItem,
-    section: String,
-    index: Int? = null,
-    onLog: (() -> Unit)? = null,
-    onSwap: (() -> Unit)? = null,
-) {
-    val repsLabel = if (ex.sets > 1) "${ex.sets} x ${ex.reps}" else ex.reps
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = Sharp,
-        elevation = CardDefaults.cardElevation(1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(Spacing.sm)
-                .semantics { contentDescription = "$section: ${ex.name}, $repsLabel" },
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 36)
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        if (index != null) "${index + 1}. ${ex.name}" else ex.name,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
-                        Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                    }
-                }
-                Box(
-                    Modifier
-                        .clip(Sharp)
-                        .background(MoveAccent)
-                        .padding(horizontal = Spacing.sm, vertical = 3.dp),
-                ) {
-                    Text(repsLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-
-            ex.cue?.takeIf { it.isNotBlank() }?.let { cue ->
-                Text("💡 $cue", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-            }
-
-            ex.nextSession?.let { ns ->
-                val target = buildString {
-                    append("➡️ Next: ")
-                    if (ns.suggestedWeightKg != null) append("${trimKg(ns.suggestedWeightKg)} kg × ")
-                    append("${ns.suggestedReps} × ${ns.suggestedSets}")
-                    if (ns.deload) append(" · deload 💤")
-                }
-                Text(target, style = MaterialTheme.typography.labelSmall, color = if (ns.deload) BrandAmber else BrandGreen, fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
-            }
-
-            if (onLog != null || onSwap != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (onLog != null) {
-                        Button(
-                            onClick = onLog,
-                            modifier = Modifier.height(32.dp),
-                            shape = Sharp,
-                            colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                        ) { Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
-                    }
-                    if (onSwap != null) {
-                        TextButton(
-                            onClick = onSwap,
-                            modifier = Modifier.height(32.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                        ) { Text("🔄 Swap", style = MaterialTheme.typography.labelSmall, color = KaizenLavender) }
-                    }
-                }
             }
         }
     }
@@ -944,6 +850,29 @@ private fun MyGymTab(
     }
 }
 
+/**
+ * Renders a list of exercises as 2-column grid cards. When the count is odd, the LAST card spans
+ * both columns instead of leaving an empty cell beside it - a lone trailing card in a half-width
+ * slot with blank space next to it reads as a layout bug.
+ */
+private fun androidx.compose.foundation.lazy.grid.LazyGridScope.exerciseCards(
+    list: List<ExerciseItem>,
+    onLog: (ExerciseItem) -> Unit,
+    onSwap: ((ExerciseItem) -> Unit)? = null,
+) {
+    items(
+        count = list.size,
+        span = { i -> if (i == list.size - 1 && list.size % 2 == 1) GridItemSpan(2) else GridItemSpan(1) },
+    ) { i ->
+        val ex = list[i]
+        ExerciseGridCard(
+            ex = ex,
+            onClick = { onLog(ex) },
+            onSwap = if (onSwap != null && ex.substitutions.isNotEmpty()) ({ onSwap(ex) }) else null,
+        )
+    }
+}
+
 @Composable
 private fun ExerciseGridCard(
     ex: ExerciseItem,
@@ -951,6 +880,7 @@ private fun ExerciseGridCard(
     labelOverride: String? = null,
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
+    onSwap: (() -> Unit)? = null,
 ) {
     Card(
         Modifier.fillMaxWidth().heightIn(min = 110.dp).clickable(onClick = onClick),
@@ -968,13 +898,26 @@ private fun ExerciseGridCard(
                 ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                     Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
-                Box(
-                    Modifier
-                        .clip(Sharp)
-                        .background(MoveAccent)
-                        .padding(horizontal = Spacing.sm, vertical = 3.dp),
-                ) {
-                    Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .clip(Sharp)
+                            .background(MoveAccent)
+                            .padding(horizontal = Spacing.sm, vertical = 3.dp),
+                    ) {
+                        Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    if (onSwap != null) {
+                        Text(
+                            "🔄",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .clip(Sharp)
+                                .clickable(onClick = onSwap)
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                .semantics { contentDescription = "Swap ${ex.name} for an alternative" },
+                        )
+                    }
                 }
             }
             if (onToggleFavorite != null) {
