@@ -142,6 +142,9 @@ class AppRepository @Inject constructor(
     suspend fun adherence(): Result<com.nutriai.data.remote.dto.AdherenceRead> =
         runCatching { api.adherence().adherence }
 
+    suspend fun supplements(): Result<List<com.nutriai.data.remote.dto.SuggestedSupplement>> =
+        runCatching { api.supplements().supplements }
+
     suspend fun guidance(): Result<com.nutriai.data.remote.dto.Guidance> =
         runCatching { api.guidance().guidance }
 

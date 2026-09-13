@@ -556,6 +556,21 @@ data class AdherenceRead(
 @Serializable
 data class AdherenceReadEnvelope(val adherence: AdherenceRead)
 
+// ---- Supplement suggestions ----
+@Serializable
+data class SuggestedSupplement(
+    val id: String,
+    val name: String,
+    val category: String,
+    val whyTrusted: String,
+    val typicalDosage: String,
+    /** Set only when this is specifically relevant right now (e.g. a real logged protein gap). */
+    val reason: String? = null,
+)
+
+@Serializable
+data class SupplementsEnvelope(val supplements: List<SuggestedSupplement> = emptyList())
+
 // ---- Personalized guidance (conditions / sex / lifestyle) ----
 @Serializable
 data class Guidance(

@@ -91,6 +91,7 @@ private val GROUPS = listOf(
         "Tools", "🔧",
         listOf(
             ProfileItem("medications", "💊", "Medications", "Reminders & log", KaizenCoral),
+            ProfileItem("supplements", "🥤", "Supplements", "Trusted, evidence-based options", MovementColor),
             ProfileItem("family", "👨‍👩‍👧", "Family", "Shared household", HydrationColor),
             ProfileItem("reports", "📊", "Reports", "Download PDF", BrandGreen),
             ProfileItem("barcode", "📷", "Barcode", "Scan a product", MovementColor),
@@ -144,6 +145,7 @@ fun MoreScreen(
                 "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())
                 "vitals" -> com.nutriai.ui.vitals.VitalsScreen(Modifier.fillMaxSize())
                 "medications" -> com.nutriai.ui.medications.MedicationsScreen(Modifier.fillMaxSize())
+                "supplements" -> com.nutriai.ui.supplements.SupplementsScreen(Modifier.fillMaxSize())
                 "checkin" -> CheckinScreen(Modifier.fillMaxSize())
                 "physique" -> com.nutriai.ui.bodytype.BodyTypeScreen(Modifier.fillMaxSize())
                 "body" -> BodyScreen(Modifier.fillMaxSize())
