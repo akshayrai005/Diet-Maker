@@ -19,6 +19,7 @@ import type { SensitiveData } from '../profile/profile.schemas';
 import type { Sex } from '../../calc/types';
 import { localDayKey } from '../../lib/tz';
 import { computePhasePlan } from '../nutrition/phasePlan';
+import { goalTimeline } from '../../calc/goalTimeline';
 
 /** Food-source guidance for each nutrient's deficiency (IFCT-informed, educational). */
 const DEFICIENCY_TIPS: Record<MicronutrientKey, string> = {
@@ -404,9 +405,31 @@ export async function getDashboard(userId: string, offsetMin = 0, now: Date = ne
       }
     : null;
 
-  const targetTimeframeWeeks = (sensitive as { targetTimeframeWeeks?: number } | undefined)?.targetTimeframeWeeks;
+  // The phase display's "weeks left" must match what the SAFE-paced calorie engine can actually
+  // deliver, not the raw timeframe the user typed in - if that timeframe was unsafe/unrealistic
+  // (e.g. losing 30kg in 8 weeks), the calorie engine already silently extends the real pace, but
+  // showing the original unrealistic countdown here would be a broken promise: the user watches a
+  // timer that can't reflect reality. Re-derive the realistic weeks the same way the calorie
+  // engine does and use THAT, falling back to the raw value only when there's no weight goal to
+  // clamp against.
+  const rawTargetTimeframeWeeks = (sensitive as { targetTimeframeWeeks?: number } | undefined)?.targetTimeframeWeeks;
+  let effectiveTimeframeWeeks = rawTargetTimeframeWeeks;
+  if (rawTargetTimeframeWeeks && sensitive?.currentWeightKg && sensitive?.targetWeightKg) {
+    const s = sensitive as { conditions?: string[] };
+    const weightLossBlocked = (s.conditions ?? []).some((c) => ['pregnancy', 'breastfeeding', 'cancer'].includes(c));
+    const timeline = goalTimeline({
+      currentWeightKg: sensitive.currentWeightKg,
+      targetWeightKg: sensitive.targetWeightKg,
+      desiredWeeks: rawTargetTimeframeWeeks,
+      isMinor: ageFromDob(sensitive.dob, now) < 18,
+      weightLossBlocked,
+    });
+    if (!timeline.blocked && timeline.realisticWeeks > 0) {
+      effectiveTimeframeWeeks = timeline.realisticWeeks;
+    }
+  }
   const phasePlan = profile
-    ? computePhasePlan(profile.createdAt, targetTimeframeWeeks ?? null, now)
+    ? computePhasePlan(profile.createdAt, effectiveTimeframeWeeks ?? null, now)
     : null;
 
   return buildDashboard({
