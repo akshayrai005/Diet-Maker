@@ -8,6 +8,7 @@ import { getMe } from '../auth/auth.service';
 import { generateAndSavePlan } from '../food/plan.service';
 import { tzOffsetMin } from '../../lib/tz';
 import { getAdherence } from '../nutrition/adherence.service';
+import { getSupplementSuggestions } from '../nutrition/supplementSuggest.service';
 
 export const chatRouter = Router();
 
@@ -57,6 +58,15 @@ chatRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const adherence = await getAdherence(req.user!.id);
     res.json({ adherence });
+  }),
+);
+
+chatRouter.get(
+  '/supplements',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const supplements = await getSupplementSuggestions(req.user!.id);
+    res.json({ supplements });
   }),
 );
 
