@@ -60,6 +60,13 @@ describe('eligibleFoods — allergies & conditions', () => {
     expect(out.some((f) => f.id === 'peanuts')).toBe(false);
   });
 
+  it('a "lactose" allergy excludes ghee/butter/lassi too, not just milk/curd/paneer', () => {
+    const milkOut = eligibleFoods(SEED_FOODS, prefs({ allergies: ['milk'] }));
+    const lactoseOut = eligibleFoods(SEED_FOODS, prefs({ allergies: ['lactose'] }));
+    // "lactose" used to be a narrower synonym list than "milk"/"dairy" - should exclude the same set.
+    expect(lactoseOut.length).toBe(milkOut.length);
+  });
+
   it('diabetes removes high-sugar / high-GI foods', () => {
     const out = eligibleFoods(SEED_FOODS, prefs({ conditions: ['diabetes'] }));
     expect(out.some((f) => f.tags.includes('high-gi'))).toBe(false);

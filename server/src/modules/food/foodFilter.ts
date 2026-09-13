@@ -76,7 +76,7 @@ const ALLERGEN_SYNONYMS: Record<string, string[]> = {
   peanut: ['peanut', 'groundnut'],
   milk: ['milk', 'dairy', 'curd', 'yogurt', 'yoghurt', 'paneer', 'cheese', 'butter', 'ghee', 'khoya', 'lassi'],
   dairy: ['milk', 'dairy', 'curd', 'yogurt', 'yoghurt', 'paneer', 'cheese', 'butter', 'ghee', 'khoya', 'lassi'],
-  lactose: ['milk', 'dairy', 'curd', 'yogurt', 'paneer', 'cheese', 'khoya'],
+  lactose: ['milk', 'dairy', 'curd', 'yogurt', 'yoghurt', 'paneer', 'cheese', 'butter', 'ghee', 'khoya', 'lassi'],
   gluten: ['gluten', 'wheat', 'atta', 'maida', 'roti', 'chapati', 'paratha', 'bread', 'semolina', 'suji', 'rava', 'barley'],
   wheat: ['wheat', 'gluten', 'atta', 'maida', 'roti', 'chapati', 'paratha', 'bread', 'semolina', 'suji', 'rava'],
   egg: ['egg', 'omelette', 'omelet'],
