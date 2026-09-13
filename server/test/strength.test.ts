@@ -50,6 +50,28 @@ describe('substitutionsFor', () => {
   it('returns [] for an unknown movement', () => {
     expect(substitutionsFor('Interpretive dance')).toEqual([]);
   });
+
+  it('covers every curated exercise name in the body-part program - none silently fall through with no swap option', () => {
+    // The full set of curated exercise names, gathered from every focus across all 3 mesocycle
+    // blocks of muscular:gym (see workoutGenerator.ts PROGRAMS['muscular:gym']) plus EXTRA_POOL.
+    const names = [
+      'Barbell bench press', 'Incline dumbbell press', 'Cable fly', 'Chest dips', 'Push-up burnout',
+      'Deadlift', 'Lat pulldown', 'Barbell row', 'Seated cable row', 'Face pull',
+      'Overhead barbell press', 'Lateral raise', 'Rear-delt fly', 'Front raise', 'Barbell shrugs',
+      'Barbell curl', 'Incline dumbbell curl', 'Hammer curl', 'Concentration curl', 'Wrist curl',
+      'Close-grip bench press', 'Rope pushdown', 'Overhead extension', 'Bench dips',
+      'Incline barbell press', 'Flat dumbbell press', 'Pec-deck fly', 'Decline press', 'Cable crossover',
+      "Pull-ups (weighted)", 'T-bar row', 'Single-arm dumbbell row', 'Straight-arm pulldown', 'Back extension', 'Superman',
+      'Arnold press', 'Cable lateral raise', 'Reverse pec-deck', 'Upright row', 'Dumbbell shrugs',
+      'Push press', 'Machine shoulder press', 'Leaning cable lateral', 'Rear-delt row',
+      "Farmer's carry", 'Skull crushers', 'Single-arm pushdown', 'Kickbacks', 'Diamond push-ups',
+      'Rack pulls', 'Wide-grip pulldown', 'Chest-supported row', 'Cable pullover', 'Reverse fly',
+      'Standing calf raise', 'Seated calf raise', 'Leg extension', 'Hanging leg raise', 'Russian twist',
+      'Svend press', 'JM press', 'Hanging knee raise',
+    ];
+    const missing = names.filter((n) => substitutionsFor(n).length === 0);
+    expect(missing, `no substitutions for: ${missing.join(', ')}`).toEqual([]);
+  });
 });
 
 describe('workout gains warm-up, cool-down, cardio & substitutions', () => {

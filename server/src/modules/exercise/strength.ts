@@ -82,17 +82,32 @@ interface SubRule {
 }
 
 const SUB_RULES: SubRule[] = [
-  { match: ['barbell bench', 'bench press', 'chest press'], subs: ['Push-ups (feet elevated to progress)', 'Dumbbell floor press (shoulder-friendly)', 'Resistance-band chest press'] },
+  {
+    match: [
+      'barbell bench', 'bench press', 'chest press', 'incline dumbbell press', 'incline barbell press',
+      'flat dumbbell press', 'decline press', 'pec-deck', 'reverse pec-deck', 'svend press',
+    ],
+    subs: ['Push-ups (feet elevated to progress)', 'Dumbbell floor press (shoulder-friendly)', 'Resistance-band chest press'],
+  },
   { match: ['push-up', 'push up', 'pushup'], subs: ['Incline push-ups (hands on a surface)', 'Knee push-ups', 'Band chest press'] },
-  { match: ['squat', 'leg press', 'hack squat'], subs: ['Bodyweight / goblet squats', 'Split squats (knee-friendly, one leg at a time)', 'Wall sit'] },
-  { match: ['deadlift', 'romanian', 'rdl'], subs: ['Hip thrusts / glute bridges (back-friendly)', 'Single-leg RDL with dumbbells', 'Band good-mornings'] },
-  { match: ['overhead', 'shoulder press', 'military'], subs: ['Pike push-ups', 'Dumbbell/band shoulder press seated (back-supported)', 'Landmine press (shoulder-friendly)'] },
+  { match: ['squat', 'leg press', 'hack squat', 'leg extension'], subs: ['Bodyweight / goblet squats', 'Split squats (knee-friendly, one leg at a time)', 'Wall sit'] },
+  { match: ['deadlift', 'romanian', 'rdl', 'rack pull', 'superman', 'back extension'], subs: ['Hip thrusts / glute bridges (back-friendly)', 'Single-leg RDL with dumbbells', 'Band good-mornings'] },
+  {
+    match: [
+      'overhead', 'shoulder press', 'military', 'arnold press', 'push press', 'jm press',
+      'lateral raise', 'front raise', 'rear-delt', 'reverse fly', 'face pull', 'face-pull',
+    ],
+    subs: ['Pike push-ups', 'Dumbbell/band shoulder press seated (back-supported)', 'Band lateral raises (light, controlled)'],
+  },
   { match: ['pull-up', 'pull up', 'pullup', 'chin-up', 'pulldown'], subs: ['Band-assisted pull-ups', 'Inverted rows (feet on floor)', 'Lat pulldown with a band'] },
   { match: ['row'], subs: ['Single-arm dumbbell row', 'Band rows', 'Inverted rows'] },
   { match: ['lunge'], subs: ['Split squats (hold onto support)', 'Step-ups', 'Reverse lunges (knee-friendly)'] },
   { match: ['curl'], subs: ['Band curls', 'Dumbbell curls', 'Isometric towel curls'] },
-  { match: ['tricep', 'pushdown', 'skull', 'dip'], subs: ['Bench dips', 'Band pushdowns', 'Close-grip push-ups'] },
-  { match: ['plank', 'crunch', 'sit-up', 'ab'], subs: ['Dead bug (back-friendly)', 'Bird dog', 'Standing knee raises'] },
+  { match: ['tricep', 'pushdown', 'skull', 'dip', 'kickback'], subs: ['Bench dips', 'Band pushdowns', 'Close-grip push-ups'] },
+  { match: ['plank', 'crunch', 'sit-up', 'ab', 'russian twist', 'hanging leg raise', 'hanging knee raise'], subs: ['Dead bug (back-friendly)', 'Bird dog', 'Standing knee raises'] },
+  { match: ['shrug'], subs: ['Dumbbell shrugs (lighter load, full range)', 'Band shrugs', 'Isometric shoulder-blade squeeze'] },
+  { match: ["farmer's carry", 'farmers carry'], subs: ['Suitcase carry (one side at a time)', 'Plate pinch hold', 'Towel dead-hang'] },
+  { match: ['calf raise'], subs: ['Single-leg calf raise (bodyweight)', 'Calf raise against a wall for balance', 'Calf raise on a step for range'] },
 ];
 
 /** Up to 3 equipment-free / injury-friendly alternatives for a movement (empty if none matched). */
