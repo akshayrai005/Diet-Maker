@@ -17,6 +17,10 @@ const CARDIO_RE =
 const MOBILITY_RE = /stretch|mobility|yoga|foam|cool\s*down|warm\s*up|plank|hold|breath/i;
 const WALK_RUN_RE = /walk|run|jog|sprint|treadmill|hike/i;
 const CYCLE_RE = /cycl|bike|spin/i;
+// Narrower than WALK_RUN_RE - explicit "walk"/"hike" only, deliberately excluding bare
+// "run"/"jog"/"sprint"/"treadmill" so a no-speed-logged run still gets the vigorous default MET
+// below rather than being flattened to walking pace.
+const WALK_ONLY_RE = /walk|hike/i;
 
 /**
  * Speed+incline-aware MET for walking/running, via the standard ACSM metabolic equation
@@ -44,12 +48,23 @@ function cyclingMet(speedKmh: number): number {
   return 15.8;
 }
 
+/** Steady walking pace when no speed is logged - NOT the vigorous-cardio MET below. */
+const DEFAULT_WALK_MET = 3.8;
+/** Steady/moderate cycling pace when no speed is logged. */
+const DEFAULT_CYCLE_MET = 6;
+
 /** Best-effort MET for an exercise from its name, refined by speed/incline when logged. */
 export function exerciseMet(name: string, speedKmh?: number | null, inclinePct?: number | null): number {
   if (speedKmh && speedKmh > 0) {
     if (WALK_RUN_RE.test(name)) return walkRunMet(speedKmh, inclinePct ?? 0);
     if (CYCLE_RE.test(name)) return cyclingMet(speedKmh);
   }
+  // Check walk/cycle BEFORE the generic cardio catch-all: a name like "Steady-state cardio
+  // (brisk walk/cycle)" contains the word "cardio" and would otherwise match CARDIO_RE's MET 8
+  // (running/HIIT-level intensity) even though it's explicitly a brisk walk or easy cycle - a ~2x
+  // overestimate. Only running/jumping/HIIT-specific names should get the vigorous MET.
+  if (WALK_ONLY_RE.test(name)) return DEFAULT_WALK_MET;
+  if (CYCLE_RE.test(name)) return DEFAULT_CYCLE_MET;
   if (CARDIO_RE.test(name)) return 8;
   if (MOBILITY_RE.test(name)) return 2.8;
   return 5; // general resistance training

@@ -18,6 +18,29 @@ describe('exerciseMet', () => {
     expect(exerciseMet('Barbell Bench Press')).toBe(5);
     expect(exerciseMet('Goblet Squat')).toBe(5);
   });
+
+  it('a no-speed-logged brisk walk/cycle gets walk/cycle-pace MET, not the vigorous-cardio 8 (user-reported: a 20-min walk logged 197 kcal, ~2x a real brisk-walk estimate)', () => {
+    expect(exerciseMet('Steady-state cardio (brisk walk/cycle)')).toBe(3.8);
+    expect(exerciseMet('Brisk walk / jog')).toBe(3.8);
+    expect(exerciseMet('Light walk')).toBe(3.8);
+  });
+
+  it('a no-speed-logged cycle-only name gets a moderate cycling MET, not vigorous-cardio 8', () => {
+    expect(exerciseMet('Cycle Cross Trainer')).toBe(6);
+    expect(exerciseMet('Incline walk / cycle')).toBe(3.8); // "walk" wins - it's listed first and is the gentler assumption
+  });
+
+  it('an explicit run/jog/sprint with no speed logged still gets the vigorous MET (not flattened to walking pace)', () => {
+    expect(exerciseMet('Treadmill sprints')).toBe(8);
+    expect(exerciseMet('Jog interval')).toBe(8);
+  });
+
+  it('speed-aware walking still overrides the flat default when speed IS logged', () => {
+    // A real brisk pace (6 km/h) computed via the ACSM equation, not the flat 3.8 default.
+    const met = exerciseMet('Steady-state cardio (brisk walk/cycle)', 6, 0);
+    expect(met).toBeGreaterThan(3.8);
+    expect(met).toBeLessThan(8);
+  });
 });
 
 describe('exerciseKcal', () => {
