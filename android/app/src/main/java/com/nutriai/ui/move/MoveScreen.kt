@@ -72,6 +72,7 @@ import androidx.lifecycle.viewModelScope
 import com.nutriai.data.AppRepository
 import com.nutriai.data.remote.dto.ExerciseItem
 import com.nutriai.data.remote.dto.ExerciseLogRequest
+import com.nutriai.data.remote.dto.NextSession
 import com.nutriai.data.remote.dto.WeeklyWorkout
 import com.nutriai.data.remote.dto.WorkoutDay
 import com.nutriai.ui.components.EmptyState
@@ -898,6 +899,7 @@ private fun ExerciseGridCard(
                 ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                     Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
+                ProgressionChip(ex.nextSession)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
@@ -934,6 +936,33 @@ private fun ExerciseGridCard(
             }
         }
     }
+}
+
+/**
+ * Surfaces the server's progressive-overload recommendation (already computed in
+ * [com.nutriai.data.remote.dto.NextSession], previously only used to silently prefill the log
+ * dialog's defaults) directly on the card, so the user actually sees "try 62.5kg × 9" or "deload
+ * week" before tapping in - this is the concrete progression signal, not just another exercise.
+ * Renders nothing when there's no logged history yet for this exercise.
+ */
+@Composable
+private fun ProgressionChip(nextSession: NextSession?) {
+    if (nextSession == null) return
+    val label = when {
+        nextSession.deload -> "🔄 Deload: ease off this week"
+        nextSession.suggestedWeightKg != null -> "🎯 Try ${trimKg(nextSession.suggestedWeightKg)}kg × ${nextSession.suggestedReps}"
+        else -> "🎯 Try ${nextSession.suggestedReps} reps × ${nextSession.suggestedSets}"
+    }
+    val color = if (nextSession.deload) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = color,
+        maxLines = 1,
+        modifier = Modifier.semantics { contentDescription = nextSession.rationale.ifBlank { label } },
+    )
 }
 
 private fun isTimed(ex: ExerciseItem): Boolean =
