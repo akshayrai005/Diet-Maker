@@ -41,7 +41,7 @@ export interface AdaptiveTdeeResult {
 }
 
 /** Least-squares slope (kg per day) from {daysAgo, weightKg} points. PURE. */
-function weightSlopePerDay(samples: WeightSample[], now: Date): number | null {
+export function weightSlopePerDay(samples: WeightSample[], now: Date): number | null {
   if (samples.length < 2) return null;
   const points = samples.map((s) => ({
     t: (now.getTime() - new Date(`${s.date}T12:00:00Z`).getTime()) / 86_400_000, // days ago

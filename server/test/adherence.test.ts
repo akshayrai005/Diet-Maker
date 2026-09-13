@@ -1,122 +1,84 @@
 import { describe, it, expect } from 'vitest';
-import { computeAdherence, type AdherenceInput } from '../src/modules/discipline/adherence';
+import { computeAdherence, type AdherenceInputs } from '../src/modules/nutrition/adherence';
 
-const keys = (r: ReturnType<typeof computeAdherence>) => r.components.map((c) => c.key);
-const comp = (r: ReturnType<typeof computeAdherence>, key: string) =>
-  r.components.find((c) => c.key === key);
-
-/** A "perfect" day: everything hit, workout scheduled+done, sleep in range, checked in. */
-const perfect: AdherenceInput = {
-  kcalConsumed: 2000,
-  kcalTarget: 2000,
-  waterMl: 2500,
-  waterTargetMl: 2500,
-  proteinG: 130,
-  proteinTargetG: 130,
-  workoutScheduled: true,
-  workoutDone: true,
-  wellnessDone: true,
-  sleepHours: 8,
-  checkedInToday: true,
-};
+function base(overrides: Partial<AdherenceInputs> = {}): AdherenceInputs {
+  return {
+    avgKcal: 2000,
+    targetKcal: 2000,
+    avgProteinG: 130,
+    targetProteinG: 130,
+    trainingDaysLogged: 4,
+    trainingDaysPlanned: 4,
+    avgSteps: 8000,
+    targetSteps: 8000,
+    weighInsLogged: 3,
+    windowDays: 7,
+    weightOnTrack: true,
+    ...overrides,
+  };
+}
 
 describe('computeAdherence', () => {
-  it('a perfect day scores ~100', () => {
-    const r = computeAdherence(perfect);
-    expect(r.score).toBe(100);
-    expect(r.topActions).toHaveLength(0);
-    // every component earns full points
-    for (const c of r.components) expect(c.points).toBeCloseTo(c.maxPoints, 5);
+  it('reports no calorie data and asks the user to log more, even if a 0-count dimension (e.g. 0 weigh-ins) is real signal, not missing data', () => {
+    const r = computeAdherence(base({ avgKcal: null, avgProteinG: null, trainingDaysLogged: 0, avgSteps: null, weighInsLogged: 0 }));
+    expect(r.calories.level).toBe('none');
+    expect(r.message).toMatch(/log your food/i);
   });
 
-  it('empty input scores low but never crashes and has no components', () => {
-    const r = computeAdherence({});
-    expect(r.score).toBe(0);
-    expect(r.components).toHaveLength(0);
-    expect(r.topActions).toHaveLength(0);
-    expect(Array.isArray(r.topActions)).toBe(true);
+  it('overall is "none" when truly nothing at all was logged (including weigh-ins)', () => {
+    const r = computeAdherence(base({
+      avgKcal: null, avgProteinG: null, trainingDaysLogged: 0, trainingDaysPlanned: 0,
+      avgSteps: null, weighInsLogged: 0, windowDays: 0, weightOnTrack: null,
+    }));
+    expect(r.overall).toBe('none');
   });
 
-  it('never penalises missing data — the score is normalised over only what is known', () => {
-    // Only food, and it is perfect → 100, not diluted by the missing components.
-    const r = computeAdherence({ kcalConsumed: 2000, kcalTarget: 2000 });
-    expect(keys(r)).toEqual(['food']);
-    expect(r.score).toBe(100);
+  it('a perfect week scores excellent across the board', () => {
+    const r = computeAdherence(base());
+    expect(r.calories.level).toBe('excellent');
+    expect(r.protein.level).toBe('excellent');
+    expect(r.overall).toBe('excellent');
+    expect(r.holdSteady).toBe(false);
   });
 
-  it('excludes workout from the denominator when it was NOT scheduled', () => {
-    const notScheduled = computeAdherence({
-      kcalConsumed: 2000,
-      kcalTarget: 2000,
-      workoutScheduled: false,
-      workoutDone: false,
-    });
-    expect(keys(notScheduled)).not.toContain('workout');
-    // food is perfect and workout is excluded, so the day is still 100
-    expect(notScheduled.score).toBe(100);
-
-    // when scheduled but not done, it IS counted (and drags the score down)
-    const scheduledMissed = computeAdherence({
-      kcalConsumed: 2000,
-      kcalTarget: 2000,
-      workoutScheduled: true,
-      workoutDone: false,
-    });
-    expect(keys(scheduledMissed)).toContain('workout');
-    expect(comp(scheduledMissed, 'workout')?.points).toBe(0);
-    expect(scheduledMissed.score).toBeLessThan(100);
+  it('holds steady when calories + weight trend are on track despite low protein/steps - does not tell the user to cut further', () => {
+    const r = computeAdherence(base({ avgProteinG: 70, avgSteps: 3000, weightOnTrack: true }));
+    expect(r.holdSteady).toBe(true);
+    expect(r.message.toLowerCase()).toContain('hold steady');
+    // The advice must be "don't cut", never an unqualified instruction to cut.
+    expect(r.message.toLowerCase()).toContain("don't cut");
   });
 
-  it('gives full sleep credit in range and partial credit out of range', () => {
-    const inRange = computeAdherence({ sleepHours: 8 });
-    expect(comp(inRange, 'sleep')?.points).toBeCloseTo(comp(inRange, 'sleep')!.maxPoints, 5);
-    expect(inRange.score).toBe(100);
-
-    const short = computeAdherence({ sleepHours: 5 });
-    const s = comp(short, 'sleep')!;
-    expect(s.points).toBeGreaterThan(0); // partial, not zeroed
-    expect(s.points).toBeLessThan(s.maxPoints);
-
-    // way out of range → still floored at 0, never negative
-    const none = computeAdherence({ sleepHours: 2 });
-    expect(comp(none, 'sleep')?.points).toBeGreaterThanOrEqual(0);
+  it('does NOT hold steady when weight trend is not confirmed on track, even if calories look fine', () => {
+    const r = computeAdherence(base({ avgProteinG: 70, weightOnTrack: null }));
+    expect(r.holdSteady).toBe(false);
   });
 
-  it('surfaces the biggest gap as an encouraging top action', () => {
-    // Food perfect, but no water at all → water is the biggest miss.
-    const r = computeAdherence({
-      kcalConsumed: 2000,
-      kcalTarget: 2000,
-      waterMl: 0,
-      waterTargetMl: 2500,
-    });
-    expect(r.topActions.length).toBeGreaterThanOrEqual(1);
-    expect(r.topActions.length).toBeLessThanOrEqual(2);
-    expect(r.topActions[0].toLowerCase()).toContain('water');
-    expect(r.score).toBeLessThan(100);
+  it('flags under-logged calories as the priority over any other dimension', () => {
+    const r = computeAdherence(base({ avgKcal: 1000, avgProteinG: 40 })); // 50% of 2000 target
+    expect(r.calories.level).toBe('low');
+    expect(r.message.toLowerCase()).toContain('under-logging');
   });
 
-  it('handles partial data with a sensible blend and explainable components', () => {
-    const r = computeAdherence({
-      kcalConsumed: 1000,
-      kcalTarget: 2000, // 50% of target
-      proteinG: 65,
-      proteinTargetG: 130, // 50%
-    });
-    expect(keys(r).sort()).toEqual(['food', 'protein']);
-    expect(r.score).toBeGreaterThan(0);
-    expect(r.score).toBeLessThan(100);
-    for (const c of r.components) {
-      expect(c.detail).toBeTruthy();
-      expect(c.points).toBeGreaterThanOrEqual(0);
-      expect(c.points).toBeLessThanOrEqual(c.maxPoints);
-    }
+  it('flags low protein specifically when calories are fine but protein is genuinely low', () => {
+    const r = computeAdherence(base({ avgProteinG: 50, weightOnTrack: false }));
+    expect(r.protein.level).toBe('low');
+    expect(r.message.toLowerCase()).toContain('protein is low');
   });
 
-  it('counts boolean wellness/check-in even when false (present = has data)', () => {
-    const r = computeAdherence({ wellnessDone: false, checkedInToday: false });
-    expect(keys(r).sort()).toEqual(['checkin', 'wellness']);
-    expect(r.score).toBe(0); // both present but missed
-    expect(comp(r, 'wellness')?.points).toBe(0);
+  it('flags missed training days when nutrition is on track', () => {
+    const r = computeAdherence(base({ trainingDaysLogged: 1, trainingDaysPlanned: 5 }));
+    expect(r.training.level).toBe('low');
+    expect(r.message.toLowerCase()).toContain('training');
+  });
+
+  it('training score is null (not zero) when the plan calls for zero training days', () => {
+    const r = computeAdherence(base({ trainingDaysPlanned: 0, trainingDaysLogged: 0 }));
+    expect(r.training.level).toBe('none');
+  });
+
+  it('overeating (over 125% of target) is scored low, not excellent, even though it is "logged"', () => {
+    const r = computeAdherence(base({ avgKcal: 3000 })); // 150% of 2000 target
+    expect(r.calories.level).toBe('low');
   });
 });

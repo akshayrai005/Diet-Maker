@@ -7,6 +7,7 @@ import { getAdaptation, defaultReminders } from './adaptive.service';
 import { getMe } from '../auth/auth.service';
 import { generateAndSavePlan } from '../food/plan.service';
 import { tzOffsetMin } from '../../lib/tz';
+import { getAdherence } from '../nutrition/adherence.service';
 
 export const chatRouter = Router();
 
@@ -47,6 +48,15 @@ chatRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const adaptation = await getAdaptation(req.user!.id);
     res.json({ adaptation });
+  }),
+);
+
+chatRouter.get(
+  '/adherence',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const adherence = await getAdherence(req.user!.id);
+    res.json({ adherence });
   }),
 );
 
