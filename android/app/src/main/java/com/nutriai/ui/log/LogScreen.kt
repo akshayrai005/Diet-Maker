@@ -142,7 +142,15 @@ fun LogScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                IconButton(onClick = { showBarcode = false }) {
+                IconButton(onClick = {
+                    // BarcodeScreen has its own ViewModel/state, entirely separate from this
+                    // screen's "Today's log" list - a scanned item saves to the server fine, but
+                    // without this it never reappears here until some other unrelated reload
+                    // happens (e.g. a full app relaunch). Refresh on the way back out, every time.
+                    showBarcode = false
+                    viewModel.loadToday()
+                    onLogged()
+                }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 Text("📷 Scan Barcode", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
