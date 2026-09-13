@@ -444,18 +444,18 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
                 StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", KaizenCoral)
+                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenCoral)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
+                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
                 StatCell(
                     Modifier.weight(1f),
                     if (deficit > 0) "📉" else "📈",
                     if (deficit > 0) "Deficit" else "Surplus",
                     "%,d".format(kotlin.math.abs(deficit)),
-                    KaizenCoral,
+                    KaizenBlue,
                 )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
-                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
-                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenBlue)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 StatCell(
