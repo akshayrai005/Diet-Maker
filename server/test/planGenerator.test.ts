@@ -71,6 +71,26 @@ describe('eligibleFoods — allergies & conditions', () => {
     const out = eligibleFoods(SEED_FOODS, prefs({ conditions: ['diabetes'] }));
     expect(out.some((f) => f.tags.includes('high-gi'))).toBe(false);
     expect(out.some((f) => f.id === 'white-rice')).toBe(false);
+    // The seed data tags sweetened items 'added-sugar', not 'high-sugar' - the filter must check
+    // the tag that's actually used or this exclusion is silently a no-op.
+    expect(out.some((f) => f.tags.includes('added-sugar'))).toBe(false);
+    expect(out.some((f) => f.id === 'chai-milk-sugar' || f.id === 'coffee-milk-sugar')).toBe(false);
+  });
+
+  it('hypertension/heart_disease exclude high-sodium foods (previously an inert filter - no food was tagged high-sodium)', () => {
+    const htn = eligibleFoods(SEED_FOODS, prefs({ conditions: ['hypertension'] }));
+    expect(htn.length).toBeLessThan(SEED_FOODS.length);
+    expect(htn.some((f) => f.tags.includes('high-sodium'))).toBe(false);
+  });
+
+  it('heart_disease excludes high-satfat foods (ghee/butter)', () => {
+    const out = eligibleFoods(SEED_FOODS, prefs({ conditions: ['heart_disease'] }));
+    expect(out.some((f) => f.id === 'ghee' || f.id === 'butter')).toBe(false);
+  });
+
+  it('kidney_disease excludes high-phosphorus foods (dairy/nuts), not just high-potassium', () => {
+    const out = eligibleFoods(SEED_FOODS, prefs({ conditions: ['kidney_disease'] }));
+    expect(out.some((f) => f.tags.includes('high-phosphorus'))).toBe(false);
   });
 
   it('jain removes onion/garlic foods', () => {

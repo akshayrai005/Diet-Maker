@@ -36,17 +36,22 @@ function forbiddenTags(dietType: string): string[] {
 export function conditionAvoidTags(conditions: string[]): string[] {
   const avoid = new Set<string>();
   if (conditions.includes('diabetes')) {
+    // The seed data tags sweetened items 'added-sugar' (e.g. chai/coffee with sugar) - 'high-sugar'
+    // is kept too for any food that uses that exact tag, but 'added-sugar' is what's actually used.
     avoid.add('high-sugar');
+    avoid.add('added-sugar');
     avoid.add('high-gi');
   }
   if (conditions.includes('pcos')) {
     // PCOS is insulin-driven - treat high-GI/sugary/refined carbs like diabetes.
     avoid.add('high-sugar');
+    avoid.add('added-sugar');
     avoid.add('high-gi');
     avoid.add('refined');
   }
   if (conditions.includes('fatty_liver')) {
     avoid.add('high-sugar');
+    avoid.add('added-sugar');
     avoid.add('refined');
     avoid.add('alcohol');
     avoid.add('fried');
