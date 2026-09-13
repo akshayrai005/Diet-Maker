@@ -185,6 +185,10 @@ export interface WorkoutOptions {
   split?: TrainingSplit;
   /** Weeks since the user joined the gym (spec Section 5) - anchors the progressive-overload phase. */
   weeksSinceJoin?: number;
+  /** Exercises the user has starred as "at my gym" (see GymFavorite). When a favorite's inferred
+   * muscle group matches a day's target, it's used ahead of the generic curated pool - the user
+   * trains on equipment they actually have, not a generic template. */
+  gymFavoriteNames?: string[];
 }
 
 /** Progressive-overload phase from weeks since joining the gym (spec Section 5). */
@@ -412,6 +416,39 @@ function restGuidance(level: FitnessLevel, intensity: IntensityPreference): stri
   return 'Rest ~60-90s between sets.';
 }
 
+/** Maps annotate()'s muscleGroup labels onto the coarser bucket vocabulary bucketsForFocus() uses. */
+function bucketForMuscleGroup(muscleGroup: string | undefined): string | undefined {
+  if (!muscleGroup) return undefined;
+  const g = muscleGroup.toLowerCase();
+  if (['legs', 'quads', 'hamstrings', 'calves', 'glutes', 'posterior chain'].includes(g)) return 'legs';
+  return g; // chest, back, shoulders, biceps, triceps, core, cardio already match 1:1
+}
+
+/**
+ * The user's own "My Gym" favorites that train a muscle group this day is targeting, ahead of the
+ * generic curated pool - so the plan uses equipment they actually have, not a generic template.
+ * Deduped against `existing` (already in the day) by name. PURE.
+ */
+function favoriteExercisesForFocus(focus: string, favoriteNames: string[] | undefined, existing: ExerciseItem[]): ExerciseItem[] {
+  if (!favoriteNames || favoriteNames.length === 0) return [];
+  const buckets = new Set(bucketsForFocus(focus));
+  const existingNames = new Set(existing.map((e) => e.name.trim().toLowerCase()));
+  const seen = new Set<string>();
+  const out: ExerciseItem[] = [];
+  for (const raw of favoriteNames) {
+    const name = raw.trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key) || existingNames.has(key)) continue;
+    const info = annotate(name);
+    const bucket = bucketForMuscleGroup(info.muscleGroup);
+    if (bucket && buckets.has(bucket)) {
+      seen.add(key);
+      out.push({ name, sets: 3, reps: '10-12', type: 'strength', ...info });
+    }
+  }
+  return out;
+}
+
 /**
  * PURE post-processing scale: rebuilds every day/exercise (no shared refs mutated)
  * so that fitness LEVEL and (already-capped) INTENSITY meaningfully change the plan -
@@ -421,6 +458,7 @@ function applyScaling(
   plan: WeeklyWorkout,
   level: FitnessLevel,
   intensity: IntensityPreference,
+  gymFavoriteNames?: string[],
 ): WeeklyWorkout {
   const factor = INTENSITY_SET_FACTOR[intensity];
 
@@ -430,9 +468,14 @@ function applyScaling(
       return { ...day, exercises: day.exercises.map((ex) => ({ ...ex, ...annotate(ex.name) })) };
     }
 
+    // My-Gym favorites for this day's muscle group go FIRST, so they survive the diverse-selection
+    // trim ahead of the generic curated pool.
+    const favorites = favoriteExercisesForFocus(day.focus, gymFavoriteNames, day.exercises);
+    const withFavorites = [...favorites, ...day.exercises];
+
     // Pad a SHORT day's main block up so there's enough to choose from before enrichDays applies
     // the level's total working-exercise budget (main + core + cardio - see LEVEL_TOTAL_WORKING).
-    const padded = padMain(day.focus, day.exercises, TARGET_MAIN_EXERCISES);
+    const padded = padMain(day.focus, withFavorites, TARGET_MAIN_EXERCISES);
     const items = padded.map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
 
     return { ...day, exercises: items };
@@ -526,7 +569,7 @@ export function generateWeeklyWorkout(
     under18: options.under18,
     medicalCaution: options.medicalCaution,
   });
-  const scaled = applyScaling(base, level, intensity);
+  const scaled = applyScaling(base, level, intensity, options.gymFavoriteNames);
   // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
   const prioritised = applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
   // Exercise depth: warm-up + core/abs + cool-down + a cardio element + per-exercise substitutions.

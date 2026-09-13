@@ -63,6 +63,13 @@ exerciseRouter.get(
     const effectiveSplit = explicitSplit ?? defaultTrainingSplit(goal, s.gymMembershipMonths);
     const splitSuggestion = suggestSplitUpgrade(explicitSplit, s.gymMembershipMonths);
 
+    // "My Gym" - exercises the user starred as available at their gym, preferred ahead of the
+    // generic curated pool for matching muscle groups (see favoriteExercisesForFocus).
+    const gymFavorites = await prisma.gymFavorite.findMany({
+      where: { userId: req.user!.id },
+      select: { exerciseName: true },
+    });
+
     let plan = staging.stage !== 'full'
       ? generateStagedMovementPlan(staging.stage, {
           restDayOfWeek: s.workoutRestDay,
@@ -81,6 +88,7 @@ exerciseRouter.get(
           // Unset -> mixed full-body sessions for the first month, then a body-part split (see splitSuggestion.ts).
           split: effectiveSplit,
           priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
+          gymFavoriteNames: gymFavorites.map((f) => f.exerciseName),
         });
 
     // Period-aware: for female profiles, ease period days to gentle recovery.

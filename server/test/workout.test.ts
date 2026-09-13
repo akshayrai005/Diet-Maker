@@ -86,6 +86,26 @@ describe('workout generator', () => {
     }
   });
 
+  it('a My Gym favorite matching the day\'s muscle group is included ahead of the generic curated pool', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', {
+      fitnessLevel: 'beginner',
+      split: 'body_part',
+      gymFavoriteNames: ['Machine chest press'], // not in block A's curated Chest list
+    });
+    const chestDay = plan.days.find((d) => d.focus === 'Chest')!;
+    expect(chestDay.exercises.some((e) => e.name === 'Machine chest press')).toBe(true);
+  });
+
+  it('a My Gym favorite for a DIFFERENT muscle group is not injected into an unrelated day', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', {
+      fitnessLevel: 'beginner',
+      split: 'body_part',
+      gymFavoriteNames: ['Barbell curl'], // biceps, not chest
+    });
+    const chestDay = plan.days.find((d) => d.focus === 'Chest')!;
+    expect(chestDay.exercises.some((e) => e.name === 'Barbell curl')).toBe(false);
+  });
+
   it('body_part split always offers the full 7-exercise ceiling regardless of level - the user picks how many to do', () => {
     for (const level of ['beginner', 'intermediate', 'advanced'] as const) {
       const plan = generateWeeklyWorkout('muscular', 'gym', { fitnessLevel: level, split: 'body_part' });
