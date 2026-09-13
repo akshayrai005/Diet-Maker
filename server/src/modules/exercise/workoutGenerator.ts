@@ -750,8 +750,11 @@ function enrichDays(
   opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean; split?: TrainingSplit },
 ): WeeklyWorkout {
   const gentle = !!opts.medicalCaution;
-  const budget = LEVEL_TOTAL_WORKING[opts.level];
   const dedicatedMuscleDay = opts.split === 'body_part';
+  // A dedicated single-muscle day always offers the full 7-exercise ceiling regardless of level -
+  // the user picks how many of them to actually do that session based on their own energy, rather
+  // than the app deciding a beginner only gets 5. Sets-per-exercise still scale by level/intensity.
+  const budget = dedicatedMuscleDay ? TARGET_MAIN_EXERCISES : LEVEL_TOTAL_WORKING[opts.level];
   const days: WorkoutDay[] = plan.days.map((day) => {
     if (day.rest) return day;
     const mainAnnotated = day.exercises.map(withSubstitutions);

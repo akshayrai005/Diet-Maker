@@ -60,7 +60,6 @@ describe('workout generator', () => {
     const goals: Array<'muscular' | 'athletic' | 'fatloss'> = ['muscular', 'athletic', 'fatloss'];
     const locations: Array<'gym' | 'home' | 'none'> = ['gym', 'home', 'none'];
     const levels: Array<'beginner' | 'intermediate' | 'advanced'> = ['beginner', 'intermediate', 'advanced'];
-    const LEVEL_TOTAL_WORKING: Record<string, number> = { beginner: 5, intermediate: 6, advanced: 7 };
     const splits: Array<'full_body' | 'push_pull_legs' | 'upper_lower' | 'body_part' | 'fat_loss' | undefined> = [
       undefined, 'full_body', 'push_pull_legs', 'upper_lower', 'body_part', 'fat_loss',
     ];
@@ -69,11 +68,13 @@ describe('workout generator', () => {
         for (const level of levels) {
           for (const split of splits) {
             const plan = generateWeeklyWorkout(goal, location, { fitnessLevel: level, split });
-            // body_part is a deliberate exception: each day trains ONE muscle group, so main
-            // lifts get the full level budget instead of sharing it with core/cardio - a dedicated
-            // Chest day should have real volume, not get squeezed to 2 exercises by a cap meant
-            // for full-body/mixed days. Core (up to 2) + cardio (1) ride along on top of that.
-            const cap = split === 'body_part' ? LEVEL_TOTAL_WORKING[level]! + 3 : 7;
+            // body_part is a deliberate exception: each day trains ONE muscle group, so main lifts
+            // always get the full 7-exercise ceiling regardless of level (the user picks how many
+            // to actually do based on their own energy) instead of sharing the level budget with
+            // core/cardio - a dedicated Chest day should have real volume, not get squeezed to 2
+            // exercises by a cap meant for full-body/mixed days. Core (up to 2) + cardio (1) ride
+            // along on top of that.
+            const cap = split === 'body_part' ? 7 + 3 : 7;
             for (const day of plan.days.filter((d) => !d.rest)) {
               const working = day.exercises.length + (day.core?.length ?? 0) + (day.cardio ? 1 : 0);
               expect(working, `${goal}/${location}/${level}/${split}/${day.focus}`).toBeLessThanOrEqual(cap);
@@ -85,11 +86,13 @@ describe('workout generator', () => {
     }
   });
 
-  it('body_part split gives a dedicated muscle-group day real volume (not squeezed to 2 exercises by the shared core/cardio budget)', () => {
-    const plan = generateWeeklyWorkout('muscular', 'gym', { fitnessLevel: 'beginner', split: 'body_part' });
-    const chestDay = plan.days.find((d) => d.focus === 'Chest');
-    expect(chestDay).toBeDefined();
-    expect(chestDay!.exercises.length).toBeGreaterThanOrEqual(4);
+  it('body_part split always offers the full 7-exercise ceiling regardless of level - the user picks how many to do', () => {
+    for (const level of ['beginner', 'intermediate', 'advanced'] as const) {
+      const plan = generateWeeklyWorkout('muscular', 'gym', { fitnessLevel: level, split: 'body_part' });
+      const chestDay = plan.days.find((d) => d.focus === 'Chest');
+      expect(chestDay).toBeDefined();
+      expect(chestDay!.exercises.length).toBe(7);
+    }
   });
 
   it('total displayed items (incl. warmup/cooldown) never balloons to 14-15+ on a normal day', () => {
