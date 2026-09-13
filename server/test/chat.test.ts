@@ -61,6 +61,18 @@ describe('chat engine', () => {
     expect(r.reply.toLowerCase()).toContain('chicken');
   });
 
+  it('never suggests a nonveg food alternative to a "veg" user (dietType "veg", not just "vegetarian")', () => {
+    // Regression: the coach's own diet filter used to only recognize dietType==='vegetarian', so
+    // 'veg' (the actual value the Android onboarding dropdown sends) fell through unfiltered and
+    // could verbally suggest chicken/fish as a protein swap to a vegetarian user.
+    const r = answer('alternative of paneer I want very less quantity but 30gram protein', ctx({ foods: SEED_FOODS, dietType: 'veg' }));
+    expect(r.intent).toBe('coach_alternative');
+    expect(r.reply.toLowerCase()).not.toContain('chicken');
+    expect(r.reply.toLowerCase()).not.toContain('fish');
+    expect(r.reply.toLowerCase()).not.toContain('prawn');
+    expect(r.reply.toLowerCase()).not.toContain('egg');
+  });
+
   it('warns a diabetic about a high-sugar food', () => {
     const r = answer('can I eat banana?', ctx({ conditions: ['diabetes'] }));
     expect(r.intent).toBe('food_safety');

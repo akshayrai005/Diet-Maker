@@ -1,7 +1,7 @@
 import { FoodItem, PlanPreferences } from './food.types';
 
 /** Which food categories a diet type permits. */
-function categoryAllowed(dietType: string, cat: FoodItem['category']): boolean {
+export function categoryAllowed(dietType: string, cat: FoodItem['category']): boolean {
   switch (dietType) {
     case 'vegan':
       return cat === 'vegan';

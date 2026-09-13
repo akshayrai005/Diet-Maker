@@ -1,6 +1,7 @@
 import { FoodItem, type MealSlot } from '../food/food.types';
 import type { CoachContext } from '../coach/coachContext';
 import { assessFoodSuitability, rankSuitable, type FoodSituation } from '../food/suitability';
+import { categoryAllowed } from '../food/foodFilter';
 
 export interface ChatContext {
   targets: {
@@ -217,12 +218,11 @@ function coachAlternativeReply(ctx: ChatContext, msg: string): string | null {
   const targetProteinG = extractTargetProteinG(msg);
   const wantsLowQty = /\b(less|small|low|minimal|little)\s*(quantity|amount|portion|grams?)\b/i.test(msg);
 
-  const dietOk = (f: FoodItem): boolean => {
-    if (!ctx.dietType) return true;
-    if (ctx.dietType === 'vegan') return f.category === 'vegan';
-    if (ctx.dietType === 'vegetarian' || ctx.dietType === 'eggetarian') return f.category !== 'nonveg';
-    return true;
-  };
+  // Reuses the SAME authoritative diet filter as the meal-plan generator (foodFilter.ts) instead
+  // of a hand-rolled copy - a duplicated diet check here had drifted out of sync: it never
+  // recognized dietType 'veg' (only 'vegetarian'), nor 'jain'/'satvik', so a veg/Jain/satvik user
+  // could have the coach chat verbally suggest a nonveg food as a protein alternative.
+  const dietOk = (f: FoodItem): boolean => !ctx.dietType || categoryAllowed(ctx.dietType, f.category);
 
   const candidates = foods
     .filter((f) => f.proteinG > 0 && f.id !== targetFood?.id && dietOk(f))
