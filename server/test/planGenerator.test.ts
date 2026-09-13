@@ -44,6 +44,13 @@ describe('eligibleFoods — diet type', () => {
     const out = eligibleFoods(SEED_FOODS, prefs({ dietType: 'nonveg' }));
     expect(out.some((f) => f.category === 'nonveg')).toBe(true);
   });
+
+  it('jain excludes root vegetables (e.g. potato-based dishes), not just onion/garlic', () => {
+    const out = eligibleFoods(SEED_FOODS, prefs({ dietType: 'jain' }));
+    expect(out.some((f) => f.tags.includes('root'))).toBe(false);
+    expect(out.some((f) => f.id === 'aloo-paratha')).toBe(false);
+    expect(out.some((f) => f.id === 'sweet-potato')).toBe(false);
+  });
 });
 
 describe('eligibleFoods — allergies & conditions', () => {
