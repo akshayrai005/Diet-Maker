@@ -134,6 +134,7 @@ fun PremiumDashboard(
     coach: com.nutriai.data.remote.dto.CoachBrief? = null,
     rating: com.nutriai.data.remote.dto.RatingResult? = null,
     todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
+    adherence: com.nutriai.data.remote.dto.AdherenceRead? = null,
     onOpenVitals: () -> Unit = {},
     onOpenMove: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
@@ -293,6 +294,12 @@ fun PremiumDashboard(
                         InsightSection(rating = rating, coach = coach, expanded = showFullAnalysis, onToggle = { showFullAnalysis = !showFullAnalysis })
                     }
                 }
+            }
+
+            // Adherence intelligence - reasons across calories/protein/training/steps/weigh-ins
+            // instead of a flat calorie pass/fail.
+            if (adherence != null && adherence.overall != "none") {
+                item { Column(sectionPadding) { AdherenceSection(adherence) } }
             }
 
             // 7-day goal
@@ -794,6 +801,55 @@ private fun InsightSection(rating: com.nutriai.data.remote.dto.RatingResult?, co
             TextAction(text = if (expanded) "Hide full analysis" else "See full analysis →", onClick = onToggle)
             if (expanded) com.nutriai.ui.analysis.AnalysisCard(rating = rating, coach = coach, modifier = Modifier.padding(top = Spacing.sm))
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Adherence intelligence - reasons across dimensions instead of a flat calorie pass/fail.
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun AdherenceSection(adherence: com.nutriai.data.remote.dto.AdherenceRead) {
+    val (emoji, accent, bg) = when {
+        adherence.holdSteady -> Triple("🟢", KaizenLavender, CardLavenderLight)
+        adherence.overall == "excellent" || adherence.overall == "good" -> Triple("✅", KaizenBlue, CardBlueLight)
+        adherence.overall == "partial" -> Triple("🟡", KaizenRose, CardRoseLight)
+        else -> Triple("🔴", KaizenCoral, CardCoralLight)
+    }
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = bg),
+    ) {
+        Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(emoji, fontSize = 16.sp)
+                Text("This Week's Adherence", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = accent)
+            }
+            Spacer(Modifier.height(Spacing.sm))
+            Text(adherence.message, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(Spacing.sm))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                AdherenceChip("Cal", adherence.calories, Modifier.weight(1f))
+                AdherenceChip("Protein", adherence.protein, Modifier.weight(1f))
+                AdherenceChip("Training", adherence.training, Modifier.weight(1f))
+                AdherenceChip("Steps", adherence.steps, Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdherenceChip(label: String, score: com.nutriai.data.remote.dto.DimensionScore, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            score.pct?.let { "$it%" } ?: "—",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
     }
 }
 

@@ -353,6 +353,7 @@ private fun DashboardTab(
             coach = state.coach,
             rating = state.rating,
             todayWorkout = state.todayWorkout,
+            adherence = state.adherence,
             onOpenVitals = onOpenVitals,
             onOpenMove = onOpenMove,
             onOpenDietLog = onOpenDietLog,

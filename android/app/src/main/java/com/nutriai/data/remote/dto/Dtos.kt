@@ -536,6 +536,26 @@ data class AdaptEnvelope(val adaptation: Adaptation)
 @Serializable
 data class AdaptApplyResponse(val applied: Boolean = false, val kcalDelta: Int = 0)
 
+// ---- Adherence intelligence (multi-dimensional weekly read; distinct from the older Adherence
+// score/components/topActions type used by the rating engine below) ----
+@Serializable
+data class DimensionScore(val pct: Int? = null, val level: String = "none")
+
+@Serializable
+data class AdherenceRead(
+    val calories: DimensionScore = DimensionScore(),
+    val protein: DimensionScore = DimensionScore(),
+    val training: DimensionScore = DimensionScore(),
+    val steps: DimensionScore = DimensionScore(),
+    val weighIns: DimensionScore = DimensionScore(),
+    val overall: String = "none",
+    val message: String = "",
+    val holdSteady: Boolean = false,
+)
+
+@Serializable
+data class AdherenceReadEnvelope(val adherence: AdherenceRead)
+
 // ---- Personalized guidance (conditions / sex / lifestyle) ----
 @Serializable
 data class Guidance(

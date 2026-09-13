@@ -82,6 +82,9 @@ interface NutriApi {
     @GET("adapt")
     suspend fun adaptation(): com.nutriai.data.remote.dto.AdaptEnvelope
 
+    @GET("adherence")
+    suspend fun adherence(): com.nutriai.data.remote.dto.AdherenceReadEnvelope
+
     @GET("guidance")
     suspend fun guidance(): com.nutriai.data.remote.dto.GuidanceEnvelope
 

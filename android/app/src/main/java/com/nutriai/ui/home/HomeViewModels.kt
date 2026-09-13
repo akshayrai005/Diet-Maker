@@ -42,6 +42,8 @@ data class DashboardState(
     val rating: com.nutriai.data.remote.dto.RatingResult? = null,
     /** Today's training day from the workout plan (null if rest day / no plan yet). */
     val todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
+    /** Weekly adherence read (calories/protein/training/steps/weigh-ins), reasoned across dimensions. */
+    val adherence: com.nutriai.data.remote.dto.AdherenceRead? = null,
     val error: String? = null,
 )
 
@@ -178,6 +180,14 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val logs = repository.exerciseLogs(null).getOrDefault(emptyList())
             _state.value = _state.value.copy(exerciseKcal = logs.sumOf { it.kcal ?: 0 })
+        }
+        // Weekly adherence read - reasons across calories/protein/training/steps/weigh-ins instead
+        // of a flat calorie pass/fail (e.g. "hold steady" instead of "cut more" when weight trend
+        // already confirms the plan is working despite a light-protein week).
+        viewModelScope.launch {
+            repository.adherence().getOrNull()?.let { a ->
+                _state.value = _state.value.copy(adherence = a)
+            }
         }
     }
 
