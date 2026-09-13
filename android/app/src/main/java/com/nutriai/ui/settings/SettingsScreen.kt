@@ -78,6 +78,7 @@ fun SettingsScreen(
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val remoteReminders by viewModel.serverReminders.collectAsStateWithLifecycle()
     val walkNudge by viewModel.walkNudge.collectAsStateWithLifecycle()
+    val eveningNudge by viewModel.eveningNudge.collectAsStateWithLifecycle()
     var showDelete by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -179,6 +180,22 @@ fun SettingsScreen(
                                 notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                             }
                             viewModel.setWalkNudge(enabled)
+                        },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                    SwitchRow(
+                        title = "Evening calorie check-in",
+                        subtitle = "Nudge around 8pm if you're well under today's calorie target",
+                        checked = eveningNudge,
+                        onCheckedChange = { enabled ->
+                            if (enabled &&
+                                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED
+                            ) {
+                                notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            viewModel.setEveningNudge(enabled)
                         },
                     )
                 }

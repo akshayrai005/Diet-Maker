@@ -276,7 +276,6 @@ private fun DashboardTab(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showDelete by remember { mutableStateOf(false) }
-    var showWaterSplash by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val stepPerms = remember {
@@ -326,17 +325,7 @@ private fun DashboardTab(
         state.dashboard != null -> com.nutriai.ui.dashboard.PremiumDashboard(
             dashboard = state.dashboard!!,
             greetingName = state.firstName,
-            onAddWater = {
-                viewModel.logWater(250)
-                showWaterSplash = true
-                runCatching {
-                    val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
-                    android.media.MediaPlayer.create(context, uri)?.apply {
-                        setOnCompletionListener { it.release() }
-                        start()
-                    }
-                }
-            },
+            onAddWater = { viewModel.logWater(250) },
             onCompleteProfile = onCompleteProfile,
             onLogout = { viewModel.logout(onLogout) },
             onDeleteAccount = { showDelete = true },
@@ -412,37 +401,5 @@ private fun DashboardTab(
         }
     }
 
-    if (showWaterSplash) {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(3500)
-            showWaterSplash = false
-        }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color(0xFF4FC3F7), Color(0xFF0277BD))))
-                .clickable { showWaterSplash = false },
-            contentAlignment = Alignment.Center,
-        ) {
-            var filled by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { filled = true }
-            val fill by animateFloatAsState(if (filled) 1f else 0f, tween(1200), label = "waterFill")
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Box(Modifier.size(140.dp), contentAlignment = Alignment.BottomCenter) {
-                    Text("🥛", fontSize = 90.sp, modifier = Modifier.alpha(0.35f))
-                    Box(
-                        Modifier
-                            .fillMaxWidth(0.5f)
-                            .fillMaxHeight(0.55f * fill)
-                            .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
-                            .background(Color.White.copy(alpha = 0.9f)),
-                    )
-                    Text("💧", fontSize = 90.sp)
-                }
-                Text("+1 glass logged!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                Text("Stay hydrated 💙", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
-            }
-        }
-    }
     }
 }

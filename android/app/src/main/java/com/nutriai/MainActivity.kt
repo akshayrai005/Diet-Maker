@@ -53,6 +53,12 @@ class MainActivity : ComponentActivity() {
         // Ensure the user's enabled reminders are (re)scheduled as exact alarms. Alarms don't
         // survive a reboot, so this re-arm on launch (plus BootReceiver) keeps them anchored.
         lifecycleScope.launch { reminderScheduler.apply(reminderPrefs.snapshot()) }
+        // Evening under-logged-calories nudge defaults ON (unlike the walk nudge) - arm it on every
+        // launch if enabled. enqueueUniquePeriodicWork(KEEP) is idempotent, so this is safe to call
+        // every time rather than only the first time the user visits Settings.
+        lifecycleScope.launch {
+            if (reminderPrefs.isEveningNudgeEnabled()) reminderScheduler.scheduleEveningNudge()
+        }
         // Smart-coach daily nudges (midday starvation check + 9 PM data-driven summary).
         com.nutriai.notifications.CoachScheduler.schedule(this)
         maybeRequestNotificationPermission()

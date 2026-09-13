@@ -45,6 +45,10 @@ class SettingsViewModel @Inject constructor(
     val walkNudge: StateFlow<Boolean> =
         reminderPrefs.walkEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    /** Evening "you're under-logged on calories" nudge (on by default). */
+    val eveningNudge: StateFlow<Boolean> =
+        reminderPrefs.eveningNudgeEnabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     /** Fetches the full data export (JSON bytes) so the screen can share/save it via FileProvider. */
     fun exportData(onBytes: (ByteArray) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -72,6 +76,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             reminderPrefs.setWalkEnabled(enabled)
             if (enabled) reminderScheduler.scheduleWalkNudge() else reminderScheduler.cancelWalkNudge()
+        }
+    }
+
+    fun setEveningNudge(enabled: Boolean) {
+        viewModelScope.launch {
+            reminderPrefs.setEveningNudgeEnabled(enabled)
+            if (enabled) reminderScheduler.scheduleEveningNudge() else reminderScheduler.cancelEveningNudge()
         }
     }
 

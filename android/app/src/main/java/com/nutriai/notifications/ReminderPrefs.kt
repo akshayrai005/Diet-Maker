@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -68,5 +69,24 @@ class ReminderPrefs @Inject constructor(
 
     suspend fun setWalkLastSteps(steps: Long) {
         context.reminderStore.edit { it[walkLastStepsKey] = steps }
+    }
+
+    // ---- Evening calorie check-in nudge ----
+    private val eveningNudgeEnabledKey = booleanPreferencesKey("evening_nudge_enabled")
+    private val eveningNudgeLastDateKey = stringPreferencesKey("evening_nudge_last_date")
+
+    val eveningNudgeEnabled: Flow<Boolean> = context.reminderStore.data.map { it[eveningNudgeEnabledKey] ?: true }
+
+    suspend fun isEveningNudgeEnabled(): Boolean = context.reminderStore.data.first()[eveningNudgeEnabledKey] ?: true
+
+    suspend fun setEveningNudgeEnabled(enabled: Boolean) {
+        context.reminderStore.edit { it[eveningNudgeEnabledKey] = enabled }
+    }
+
+    /** ISO date (yyyy-MM-dd) the evening nudge last actually fired, to send at most once per day. */
+    suspend fun eveningNudgeLastDate(): String? = context.reminderStore.data.first()[eveningNudgeLastDateKey]
+
+    suspend fun setEveningNudgeLastDate(isoDate: String) {
+        context.reminderStore.edit { it[eveningNudgeLastDateKey] = isoDate }
     }
 }

@@ -75,6 +75,27 @@ class ReminderScheduler @Inject constructor(
         workManager.cancelUniqueWork(WalkNudgeWorker.UNIQUE_NAME)
     }
 
+    /**
+     * Evening under-logged-calories nudge. Same reasoning as the walk nudge: genuinely periodic
+     * (~60 min), the worker itself gates on the 8-9pm window + once-per-day + actually being behind,
+     * so exact-alarm precision isn't needed here.
+     */
+    fun scheduleEveningNudge() {
+        ReminderNotifier.ensureChannel(context)
+        val request = PeriodicWorkRequestBuilder<EveningNutritionNudgeWorker>(60, TimeUnit.MINUTES)
+            .addTag(TAG)
+            .build()
+        workManager.enqueueUniquePeriodicWork(
+            EveningNutritionNudgeWorker.UNIQUE_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
+
+    fun cancelEveningNudge() {
+        workManager.cancelUniqueWork(EveningNutritionNudgeWorker.UNIQUE_NAME)
+    }
+
     companion object {
         const val TAG = "nutriai_reminder"
 
