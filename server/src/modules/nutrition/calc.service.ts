@@ -4,9 +4,11 @@ import { computeCalcResult, type CalcResult } from './calcResult';
 import { physiqueNutrition, type PhysiqueGoal } from '../exercise/physique';
 import { goalTimeline } from '../../calc/goalTimeline';
 import type { ActivityLevel, Goal } from '../../calc/types';
-import type { Condition } from '../../guardrails';
+import { CALORIE_FLOOR, type Condition } from '../../guardrails';
 import { dietRampFor, applyDietRamp } from './dietRamp';
 import { detectActivityLevel, tdeeDeltaForLevelChange, type ExerciseSessionSample } from './activityAutoDetect';
+import { computeAdaptiveTdee } from './adaptiveTdee';
+import { decryptJson } from '../../lib/crypto';
 
 /** Whole years between dob and now. */
 export function ageFromDob(dobISO: string, now: Date = new Date()): number {
@@ -114,6 +116,59 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
         },
       ],
     };
+  }
+
+  // Adaptive TDEE (MacroFactor-style): recalibrate against the user's OWN logged results, not just
+  // the formula. Reuses the same 28-day window as activity auto-detect for consistency.
+  const [recentFoodLogs, recentCheckins] = await Promise.all([
+    prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: windowStart } }, select: { loggedAt: true, kcal: true } }),
+    prisma.weeklyCheckin.findMany({ where: { userId, date: { gte: windowStart } }, orderBy: { date: 'asc' } }),
+  ]);
+  const intakePerDay = new Map<string, number>();
+  for (const l of recentFoodLogs) {
+    const k = l.loggedAt.toISOString().slice(0, 10);
+    intakePerDay.set(k, (intakePerDay.get(k) ?? 0) + l.kcal);
+  }
+  const dailyIntake = [...intakePerDay.entries()].map(([date, kcal]) => ({ date, kcal }));
+  const weightHistory = recentCheckins
+    .map((c) => {
+      if (!c.measurementsEnc) return null;
+      try {
+        const m = decryptJson<{ weightKg?: number }>(c.measurementsEnc);
+        return m.weightKg ? { date: c.date.toISOString().slice(0, 10), weightKg: m.weightKg } : null;
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is { date: string; weightKg: number } => p !== null);
+
+  const adaptive = computeAdaptiveTdee(result.tdee, dailyIntake, weightHistory);
+  if (adaptive.available && adaptive.adjustedTdee && Math.abs(adaptive.deviationPct ?? 0) > 2) {
+    const kcalDelta = adaptive.adjustedTdee - result.tdee;
+    const floor = CALORIE_FLOOR[sensitive.sex];
+    const recalibratedKcal = Math.max(floor, Math.round(result.dailyKcal + kcalDelta));
+    if (recalibratedKcal !== result.dailyKcal) {
+      // Protein stays fixed (it's set per kg bodyweight, not per calorie) - the recalibration
+      // delta is absorbed by fat/carb, split proportionally to their existing kcal share.
+      const proteinKcal = result.proteinG * 4;
+      const remainingKcalBefore = Math.max(1, result.dailyKcal - proteinKcal);
+      const remainingKcalAfter = Math.max(0, recalibratedKcal - proteinKcal);
+      const remScale = remainingKcalAfter / remainingKcalBefore;
+      result = {
+        ...result,
+        dailyKcal: recalibratedKcal,
+        fatG: Math.max(0, Math.round(result.fatG * remScale)),
+        carbG: Math.max(0, Math.round(result.carbG * remScale)),
+        flags: [
+          ...result.flags,
+          {
+            code: 'ADAPTIVE_TDEE',
+            severity: 'info',
+            message: adaptive.message ?? 'Your calorie target has been recalibrated based on your own logged results.',
+          },
+        ],
+      };
+    }
   }
 
   // New-to-dieting ease-in (see dietRamp.ts): someone who just started tracking got thrown
