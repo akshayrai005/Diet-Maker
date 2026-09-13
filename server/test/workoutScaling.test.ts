@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   generateWeeklyWorkout,
   cappedIntensity,
+  annotate,
 } from '../src/modules/exercise/workoutGenerator';
 import type { WeeklyWorkout } from '../src/modules/exercise/exercise.types';
 
@@ -201,6 +202,17 @@ describe('workout scaling — form cues / annotations', () => {
     const cue = byName.get('Back squat')?.cue ?? '';
     expect(cue.length).toBeGreaterThan(0);
     expect(cue.length).toBeLessThan(90);
+  });
+
+  it('chest press variants (incline/decline/flat) get muscleGroup chest, not left unlabeled or mislabeled shoulders', () => {
+    for (const name of ['Incline barbell press', 'Incline dumbbell press', 'Flat dumbbell press', 'Decline press', 'Incline cable press']) {
+      expect(annotate(name).muscleGroup, name).toBe('chest');
+    }
+  });
+
+  it('"Chest dips" is labeled chest, not claimed by the triceps "dips" rule', () => {
+    expect(annotate('Chest dips').muscleGroup).toBe('chest');
+    expect(annotate('Bench dip on floor').muscleGroup).toBe('triceps');
   });
 
   it('derives equipment where the name reveals it, undefined otherwise', () => {

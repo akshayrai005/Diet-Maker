@@ -338,9 +338,20 @@ function scaleSets(base: number, factor: number, level: FitnessLevel): number {
  */
 const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = [
   { match: ['deadlift', 'romanian', 'rdl', 'rack pull'], muscleGroup: 'posterior chain', cue: 'brace your core, neutral spine, drive through your heels' },
-  { match: ['close-grip', 'skull crusher', 'pushdown', 'kickback', 'tricep', 'jm press', 'dips'], muscleGroup: 'triceps', cue: 'keep your elbows tucked, full lockout' },
+  { match: ['close-grip', 'skull crusher', 'pushdown', 'kickback', 'tricep', 'jm press', 'bench dip', 'weighted dip'], muscleGroup: 'triceps', cue: 'keep your elbows tucked, full lockout' },
   { match: ['squat', 'wall sit', 'leg press', 'hack squat', 'split squat'], muscleGroup: 'legs', cue: 'chest up, brace your core, knees track over your toes' },
-  { match: ['bench', 'chest press', 'chest fly', 'cable fly', 'pec-deck', 'crossover', 'svend'], muscleGroup: 'chest', cue: 'shoulder blades retracted, control the descent' },
+  {
+    match: [
+      'bench', 'chest press', 'chest fly', 'chest dip', 'cable fly', 'pec-deck', 'crossover', 'svend',
+      // Incline/decline/flat variants don't say "chest press" or "bench" explicitly, and were
+      // falling through every rule (no muscle-group label at all) - not what they looked like,
+      // but confusing either way for something this consequential.
+      'incline barbell press', 'incline dumbbell press', 'incline cable press', 'incline press',
+      'decline press', 'decline dumbbell press', 'flat dumbbell press', 'flat barbell press',
+    ],
+    muscleGroup: 'chest',
+    cue: 'shoulder blades retracted, control the descent',
+  },
   { match: ['push-up', 'push up', 'pushup'], muscleGroup: 'chest', cue: 'brace your core, keep a straight line head to heels' },
   { match: ['overhead', 'shoulder press', 'arnold', 'push press', 'military', 'upright row'], muscleGroup: 'shoulders', cue: 'brace your core, ribs down, press straight overhead' },
   { match: ['lateral raise', 'front raise', 'rear-delt', 'reverse fly', 'reverse pec', 'y-raise', 'face pull', 'face-pull'], muscleGroup: 'shoulders', cue: 'lead with the elbows, no swinging' },
@@ -374,7 +385,7 @@ function equipmentFor(lower: string): string | undefined {
 }
 
 /** Deterministic cue/muscleGroup/equipment annotation for a movement, keyed by name. */
-function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> {
+export function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> {
   const lower = name.toLowerCase();
   for (const rule of CUE_RULES) {
     if (rule.match.some((token) => lower.includes(token))) {
