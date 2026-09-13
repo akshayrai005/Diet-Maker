@@ -215,6 +215,29 @@ describe('workout scaling — form cues / annotations', () => {
     expect(annotate('Bench dip on floor').muscleGroup).toBe('triceps');
   });
 
+  it('"Reverse pec-deck" (a rear-delt shoulder exercise) is not claimed by the chest pec-deck rule', () => {
+    // Regression: the chest rule's bare 'pec-deck' substring matched "Reverse pec-deck" too since
+    // it comes first in CUE_RULES, mislabeling a shoulders exercise as chest.
+    expect(annotate('Reverse pec-deck').muscleGroup).toBe('shoulders');
+    expect(annotate('Pec-deck fly').muscleGroup).toBe('chest');
+  });
+
+  it('"Leg curl" / "Nordic curl" are hamstrings, not swept into the generic biceps "curl" rule', () => {
+    // Regression: the bare 'curl' biceps rule came before the specific leg-curl/nordic rule in the
+    // array, so first-match-wins mislabeled every hamstring curl variant as biceps.
+    expect(annotate('Leg curl').muscleGroup).toBe('hamstrings');
+    expect(annotate('Nordic curl').muscleGroup).toBe('hamstrings');
+    expect(annotate('Leg extension').muscleGroup).toBe('quads');
+    expect(annotate('Barbell curl').muscleGroup).toBe('biceps');
+  });
+
+  it('"Cable overhead extension" / "Chair dips" / "Diamond push-ups" are triceps, not swallowed by the generic overhead/push-up rules', () => {
+    expect(annotate('Cable overhead extension').muscleGroup).toBe('triceps');
+    expect(annotate('Overhead extension').muscleGroup).toBe('triceps');
+    expect(annotate('Chair dips').muscleGroup).toBe('triceps');
+    expect(annotate('Diamond push-ups').muscleGroup).toBe('triceps');
+  });
+
   it('derives equipment where the name reveals it, undefined otherwise', () => {
     // "Barbell bench press" is the chest day's first-listed exercise - always survives the cap.
     expect(byName.get('Barbell bench press')?.equipment).toBe('barbell');

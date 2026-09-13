@@ -14,6 +14,24 @@ describe('workout generator', () => {
     plan.days.filter((d) => !d.rest).forEach((d) => expect(d.exercises.length).toBeGreaterThan(0));
   });
 
+  it('every day - training AND rest - gets exactly 1 no-equipment abs exercise at 3 sets', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', { restDayOfWeek: 3 });
+    for (const day of plan.days) {
+      expect(day.core).toHaveLength(1);
+      const abs = day.core![0]!;
+      expect(abs.equipment).toBe('bodyweight');
+      expect(abs.sets).toBe(3);
+    }
+  });
+
+  it('a medically-cautioned user still gets exactly 1 daily abs exercise, just gentler (2 sets)', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', { restDayOfWeek: 3, medicalCaution: true });
+    for (const day of plan.days) {
+      expect(day.core).toHaveLength(1);
+      expect(day.core![0]!.sets).toBe(2);
+    }
+  });
+
   it('no rest day => 7 training days', () => {
     const plan = generateWeeklyWorkout('fatloss', 'home', {});
     expect(plan.days).toHaveLength(7);

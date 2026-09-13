@@ -102,26 +102,27 @@ describe('workout gains warm-up, cool-down, cardio & substitutions', () => {
 describe('every routine has a visible core/abs block', () => {
   const training = (opts = {}) => generateWeeklyWorkout('muscular', 'gym', opts).days.filter((d) => !d.rest);
 
-  it('every training day has a labeled core block with >=2 movements, all muscleGroup=core', () => {
+  it('every training day has a labeled core block - 1 no-equipment abs move at 3 sets, by explicit user request', () => {
     for (const d of training({ fitnessLevel: 'intermediate' })) {
-      expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(2);
-      expect(d.core!.every((e) => e.muscleGroup === 'core')).toBe(true);
-      expect(d.core!.some((e) => /plank/i.test(e.name))).toBe(true); // a plank hold
+      expect((d.core?.length ?? 0)).toBe(1);
+      expect(d.core!.every((e) => e.muscleGroup === 'core' && e.equipment === 'bodyweight')).toBe(true);
+      expect(d.core![0]!.sets).toBe(3);
     }
   });
 
   it('appears across goals (full-body / fatloss too)', () => {
     for (const goal of ['athletic', 'fatloss'] as const) {
       const days = generateWeeklyWorkout(goal, 'home', { fitnessLevel: 'beginner' }).days.filter((d) => !d.rest);
-      expect(days.every((d) => (d.core?.length ?? 0) >= 2)).toBe(true);
+      expect(days.every((d) => (d.core?.length ?? 0) === 1)).toBe(true);
     }
   });
 
-  it('advanced gets more core volume (total sets) than beginner - item count is capped the same for both to keep the day realistic, sets scale by level instead', () => {
+  it('level no longer changes daily-abs volume - it is a fixed 1 move / 3 sets by explicit user request, not level-scaled', () => {
     const totalSets = (core: { sets: number }[]) => core.reduce((sum, e) => sum + e.sets, 0);
     const beg = totalSets(training({ fitnessLevel: 'beginner' })[0]!.core!);
     const adv = totalSets(training({ fitnessLevel: 'advanced' })[0]!.core!);
-    expect(adv).toBeGreaterThan(beg);
+    expect(adv).toBe(beg);
+    expect(adv).toBe(3);
   });
 
   it('medical caution => gentle, back-friendly core (no crunches/leg raises)', () => {
@@ -168,7 +169,7 @@ describe('selectable training splits', () => {
     expect(days.length).toBeGreaterThan(0);
     for (const d of days) {
       expect((d.warmup?.length ?? 0)).toBeGreaterThan(0);
-      expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(2);
+      expect((d.core?.length ?? 0)).toBe(1);
     }
   });
   it('no split falls back to the goal-derived program (unchanged)', () => {

@@ -342,11 +342,22 @@ function scaleSets(base: number, factor: number, level: FitnessLevel): number {
  */
 const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = [
   { match: ['deadlift', 'romanian', 'rdl', 'rack pull'], muscleGroup: 'posterior chain', cue: 'brace your core, neutral spine, drive through your heels' },
-  { match: ['close-grip', 'skull crusher', 'pushdown', 'kickback', 'tricep', 'jm press', 'bench dip', 'weighted dip'], muscleGroup: 'triceps', cue: 'keep your elbows tucked, full lockout' },
+  // Must precede the generic biceps 'curl' rule below - "leg curl"/"nordic curl" are hamstring
+  // moves, not biceps, but first-match-wins used to hit the bare 'curl' rule first and mislabel them.
+  { match: ['leg curl', 'nordic'], muscleGroup: 'hamstrings', cue: 'controlled tempo, no jerking' },
+  { match: ['leg extension'], muscleGroup: 'quads', cue: 'controlled tempo, squeeze at the top' },
+  {
+    match: [
+      'close-grip', 'skull crusher', 'pushdown', 'kickback', 'tricep', 'jm press', 'bench dip', 'weighted dip',
+      'chair dip', 'diamond push', 'overhead extension',
+    ],
+    muscleGroup: 'triceps',
+    cue: 'keep your elbows tucked, full lockout',
+  },
   { match: ['squat', 'wall sit', 'leg press', 'hack squat', 'split squat'], muscleGroup: 'legs', cue: 'chest up, brace your core, knees track over your toes' },
   {
     match: [
-      'bench', 'chest press', 'chest fly', 'chest dip', 'cable fly', 'pec-deck', 'crossover', 'svend',
+      'bench', 'chest press', 'chest fly', 'chest dip', 'cable fly', 'pec-deck fly', 'crossover', 'svend',
       // Incline/decline/flat variants don't say "chest press" or "bench" explicitly, and were
       // falling through every rule (no muscle-group label at all) - not what they looked like,
       // but confusing either way for something this consequential.
@@ -368,10 +379,8 @@ const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = 
   { match: ['lunge', 'step-up', 'step up'], muscleGroup: 'legs', cue: 'torso tall, front knee over the ankle' },
   { match: ['plank'], muscleGroup: 'core', cue: "brace your core, straight line, don't let the hips sag" },
   { match: ['crunch', 'leg raise', 'knee raise', 'russian twist', 'hollow', 'dead bug', 'ab wheel', 'sit-up'], muscleGroup: 'core', cue: 'brace your core, move slowly and controlled' },
-  { match: ['glute bridge', 'hip thrust'], muscleGroup: 'glutes', cue: 'squeeze the glutes at the top, ribs down' },
+  { match: ['glute bridge', 'hip thrust', 'kettlebell swing'], muscleGroup: 'glutes', cue: 'squeeze the glutes at the top, ribs down' },
   { match: ['calf raise'], muscleGroup: 'calves', cue: 'full range of motion, pause at the top' },
-  { match: ['leg curl', 'nordic'], muscleGroup: 'hamstrings', cue: 'controlled tempo, no jerking' },
-  { match: ['leg extension'], muscleGroup: 'quads', cue: 'controlled tempo, squeeze at the top' },
 ];
 
 /** Detect equipment from the exercise name; undefined when it can't be told. */
@@ -718,23 +727,28 @@ function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): Ex
 }
 
 /**
- * Dedicated core/abs block for every training day - a plank hold + a dynamic ab move + an
- * anti-rotation / lower-ab move, scaled by level. `gentle` (medical caution / reduced mobility)
- * swaps in low-impact, back-friendly options. Core counts as strength; substitutions attach later.
+ * One no-equipment abs exercise, done EVERY single day (training or rest) at 3 sets - by explicit
+ * user request, not the level-scaled multi-move block this used to be. Rotates through a small pool
+ * so it isn't the exact same move every day, keyed off dayIndex so it's still deterministic. `gentle`
+ * (medical caution / reduced mobility) swaps in a back-friendly pool and drops to 2 sets.
  */
-function coreFor(level: FitnessLevel, gentle: boolean): ExerciseItem[] {
-  const core = (name: string, sets: number, reps: string): ExerciseItem => ({ name, sets, reps, type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' });
-  if (gentle) {
-    return [core('Dead bug (slow, controlled)', 2, '8 each side'), core('Glute bridge', 2, '12'), core('Bird dog (anti-rotation)', 2, '8 each side')];
-  }
-  switch (level) {
-    case 'beginner':
-      return [core('Plank', 2, '20-30s'), core('Dead bug', 2, '10 each side'), core('Glute bridge', 2, '12')];
-    case 'advanced':
-      return [core('Plank', 3, '60s'), core('Hanging/lying leg raises', 3, '12'), core('Russian twist (anti-rotation)', 3, '20'), core('Reverse crunch (lower abs)', 3, '15')];
-    default:
-      return [core('Plank', 2, '45s'), core('Bicycle crunches', 2, '15 each side'), core('Reverse crunch (lower abs)', 2, '12')];
-  }
+const DAILY_ABS_POOL: ExerciseItem[] = [
+  { name: 'Plank', sets: 3, reps: '45s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Bicycle crunch', sets: 3, reps: '20', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Reverse crunch', sets: 3, reps: '15', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Leg raise', sets: 3, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Russian twist', sets: 3, reps: '20', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Mountain climber', sets: 3, reps: '30s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Dead bug', sets: 3, reps: '10 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+];
+const GENTLE_DAILY_ABS_POOL: ExerciseItem[] = [
+  { name: 'Dead bug (slow, controlled)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Bird dog (anti-rotation)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Glute bridge', sets: 2, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+];
+function dailyAbsFor(dayIndex: number, gentle: boolean): ExerciseItem[] {
+  const pool = gentle ? GENTLE_DAILY_ABS_POOL : DAILY_ABS_POOL;
+  return [{ ...pool[dayIndex % pool.length]! }];
 }
 
 /**
@@ -813,9 +827,11 @@ function enrichDays(
   // than the app deciding a beginner only gets 5. Sets-per-exercise still scale by level/intensity.
   const budget = dedicatedMuscleDay ? TARGET_MAIN_EXERCISES : LEVEL_TOTAL_WORKING[opts.level];
   const days: WorkoutDay[] = plan.days.map((day) => {
-    if (day.rest) return day;
+    // Daily abs is done every day, training or rest, by explicit user request - rest days just get
+    // that one no-equipment move and nothing else added.
+    if (day.rest) return { ...day, core: dailyAbsFor(day.dayIndex, gentle).map(withSubstitutions) };
     const mainAnnotated = day.exercises.map(withSubstitutions);
-    const coreAnnotated = coreFor(opts.level, gentle).map(withSubstitutions);
+    const coreAnnotated = dailyAbsFor(day.dayIndex, gentle).map(withSubstitutions);
     const cardio = cardioFor(opts.intensity, opts.medicalCaution);
     const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);
     return {
