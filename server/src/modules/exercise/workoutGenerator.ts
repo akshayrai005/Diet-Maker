@@ -729,8 +729,11 @@ function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): Ex
 /**
  * One no-equipment abs exercise, done EVERY single day (training or rest) at 3 sets - by explicit
  * user request, not the level-scaled multi-move block this used to be. Rotates through a small pool
- * so it isn't the exact same move every day, keyed off dayIndex so it's still deterministic. `gentle`
- * (medical caution / reduced mobility) swaps in a back-friendly pool and drops to 2 sets.
+ * so it isn't the exact same move every day, keyed off dayIndex so it's still deterministic.
+ * ALSO rotates with the 4-week mesocycle block (same reason main lifts do: muscles adapt to a
+ * fixed movement and stop getting stimulus if it never changes) - block shifts which slice of the
+ * pool the week draws from, so the same weekday gets a different move once the block advances.
+ * `gentle` (medical caution / reduced mobility) swaps in a back-friendly pool and drops to 2 sets.
  */
 const DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Plank', sets: 3, reps: '45s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
@@ -740,15 +743,22 @@ const DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Russian twist', sets: 3, reps: '20', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Mountain climber', sets: 3, reps: '30s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Dead bug', sets: 3, reps: '10 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Flutter kicks', sets: 3, reps: '20', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'V-up', sets: 3, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Side plank', sets: 3, reps: '30s each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Hollow body hold', sets: 3, reps: '20s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
 ];
 const GENTLE_DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Dead bug (slow, controlled)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Bird dog (anti-rotation)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Glute bridge', sets: 2, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
 ];
-function dailyAbsFor(dayIndex: number, gentle: boolean): ExerciseItem[] {
+function dailyAbsFor(dayIndex: number, gentle: boolean, block = 0): ExerciseItem[] {
   const pool = gentle ? GENTLE_DAILY_ABS_POOL : DAILY_ABS_POOL;
-  return [{ ...pool[dayIndex % pool.length]! }];
+  // Offset by block * 7 so the whole week's picks shift once the mesocycle block advances, instead
+  // of the same weekday landing on the same move forever.
+  const idx = (dayIndex + block * 7) % pool.length;
+  return [{ ...pool[idx]! }];
 }
 
 /**
@@ -828,10 +838,11 @@ function enrichDays(
   const budget = dedicatedMuscleDay ? TARGET_MAIN_EXERCISES : LEVEL_TOTAL_WORKING[opts.level];
   const days: WorkoutDay[] = plan.days.map((day) => {
     // Daily abs is done every day, training or rest, by explicit user request - rest days just get
-    // that one no-equipment move and nothing else added.
-    if (day.rest) return { ...day, core: dailyAbsFor(day.dayIndex, gentle).map(withSubstitutions) };
+    // that one no-equipment move and nothing else added. Rotates with the mesocycle block too, same
+    // as the main lifts, so the abs move doesn't stay fixed forever once the block advances.
+    if (day.rest) return { ...day, core: dailyAbsFor(day.dayIndex, gentle, plan.block).map(withSubstitutions) };
     const mainAnnotated = day.exercises.map(withSubstitutions);
-    const coreAnnotated = dailyAbsFor(day.dayIndex, gentle).map(withSubstitutions);
+    const coreAnnotated = dailyAbsFor(day.dayIndex, gentle, plan.block).map(withSubstitutions);
     const cardio = cardioFor(opts.intensity, opts.medicalCaution);
     const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);
     return {

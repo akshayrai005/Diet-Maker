@@ -32,6 +32,14 @@ describe('workout generator', () => {
     }
   });
 
+  it('the daily abs exercise also rotates with the 4-week mesocycle block - same weekday, different block, different move', () => {
+    // muscular:gym has 3 blocks; weeksSinceJoin=0 => block 0, weeksSinceJoin=4 => block 1.
+    const block0 = generateWeeklyWorkout('muscular', 'gym', { weeksSinceJoin: 0 });
+    const block1 = generateWeeklyWorkout('muscular', 'gym', { weeksSinceJoin: 4 });
+    expect(block0.block).not.toBe(block1.block);
+    expect(block0.days[0]!.core![0]!.name).not.toBe(block1.days[0]!.core![0]!.name);
+  });
+
   it('no rest day => 7 training days', () => {
     const plan = generateWeeklyWorkout('fatloss', 'home', {});
     expect(plan.days).toHaveLength(7);
