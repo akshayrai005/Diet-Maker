@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -138,10 +139,16 @@ class RecipeViewModel @Inject constructor(private val repository: AppRepository)
 }
 
 @Composable
-fun RecipeBuilderScreen(modifier: Modifier = Modifier, viewModel: RecipeViewModel = hiltViewModel()) {
+fun RecipeBuilderScreen(modifier: Modifier = Modifier, viewModel: RecipeViewModel = hiltViewModel(), onLogged: () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showCreate by remember { mutableStateOf(false) }
     var logTarget by remember { mutableStateOf<UserRecipeDto?>(null) }
+    // Logging a recipe portion saves fine server-side, but nothing else knows to reload - same
+    // root cause as the barcode-log bug fixed earlier: a separate screen/ViewModel with no link
+    // back to the "Today's log" list. Watch for the success message and refresh the caller's data.
+    LaunchedEffect(state.message) {
+        if (state.message?.startsWith("✓ Logged") == true) onLogged()
+    }
 
     if (showCreate) {
         CreateRecipeDialog(
@@ -295,7 +302,10 @@ private fun RecipeDialogScaffold(title: String, emoji: String, onDismiss: () -> 
 
 @Composable
 private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConfirm: (slot: String, percent: Double?, grams: Double?) -> Unit) {
-    var mode by remember { mutableStateOf("percent") } // "percent" | "grams"
+    // Default to grams, not "% of batch" - people think "I ate ~150g", not "I ate 50% of the
+    // 5kg I cooked". % of a large batch is exactly how a real user logged 3.75kg of roti as one
+    // meal (13,245 kcal) without realizing it.
+    var mode by remember { mutableStateOf("grams") } // "percent" | "grams"
     var percent by remember { mutableStateOf("50") }
     var grams by remember { mutableStateOf("") }
     var slot by remember { mutableStateOf("lunch") }
@@ -304,6 +314,11 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
     val factor = if (recipe.totalGrams > 0) 100.0 / recipe.totalGrams else 0.0
     val previewGrams = if (mode == "percent") (recipe.totalGrams * (percent.toDoubleOrNull() ?: 0.0)) / 100 else grams.toDoubleOrNull() ?: 0.0
     val previewKcal = (recipe.kcal * factor * previewGrams / 100).toInt()
+    // A big batch (e.g. 5kg of roti dough cooked at once) makes "% of batch" dangerously easy to
+    // fat-finger into a portion thousands of kcal too large, with nothing to catch it before it's
+    // logged - this is exactly the bug a real user hit (75% of a 5000g batch = 3.75kg logged as
+    // one meal, 13,245 kcal). Flag it loudly instead of silently accepting it.
+    val implausible = previewKcal > 1200
 
     RecipeDialogScaffold(title = "Log · ${recipe.name}", emoji = "🍽️", onDismiss = onDismiss) {
         Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
@@ -346,7 +361,20 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
                     )
                 }
                 Spacer(Modifier.height(Spacing.sm))
-                Text("≈ ${previewGrams.toInt()} g · ~$previewKcal kcal", style = MaterialTheme.typography.bodyMedium, color = BrandGreen, fontWeight = FontWeight.Bold)
+                Text(
+                    "≈ ${previewGrams.toInt()} g · ~$previewKcal kcal",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (implausible) MaterialTheme.colorScheme.error else BrandGreen,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (implausible) {
+                    Text(
+                        "⚠️ That's unusually high for one meal (${previewGrams.toInt()} g out of a ${recipe.totalGrams.toInt()} g batch). Double-check your % or grams before logging.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
             }
         }
 
@@ -368,9 +396,26 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
             }
         }
 
+        var confirmImplausible by remember { mutableStateOf(false) }
+        if (confirmImplausible) {
+            AlertDialog(
+                onDismissRequest = { confirmImplausible = false },
+                title = { Text("Log $previewKcal kcal?") },
+                text = { Text("That's ${previewGrams.toInt()} g out of the ${recipe.totalGrams.toInt()} g batch - unusually large for one meal. Log it anyway?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmImplausible = false
+                        if (mode == "percent") onConfirm(slot, percent.toDoubleOrNull(), null)
+                        else onConfirm(slot, null, grams.toDoubleOrNull())
+                    }) { Text("Log anyway", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = { TextButton(onClick = { confirmImplausible = false }) { Text("Let me fix it") } },
+            )
+        }
         Button(
             onClick = {
-                if (mode == "percent") onConfirm(slot, percent.toDoubleOrNull(), null)
+                if (implausible) confirmImplausible = true
+                else if (mode == "percent") onConfirm(slot, percent.toDoubleOrNull(), null)
                 else onConfirm(slot, null, grams.toDoubleOrNull())
             },
             modifier = Modifier.fillMaxWidth().height(48.dp),

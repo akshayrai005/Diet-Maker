@@ -69,9 +69,14 @@ fun DietScreen(
     modifier: Modifier = Modifier,
     initialSection: Int = 0,
     summaryViewModel: DietSummaryViewModel = hiltViewModel(),
+    // Hoisted here (not created inside LogScreen) so the Recipes tab can trigger the exact same
+    // "Today's log" reload after logging a recipe portion - it used to save fine server-side but
+    // never appear until relaunch, the same root cause as the barcode-log bug fixed earlier.
+    logFoodViewModel: com.nutriai.ui.home.LogFoodViewModel = hiltViewModel(),
 ) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 3)) }
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 4)) }
     val dashboard by summaryViewModel.dashboard.collectAsStateWithLifecycle()
+    val refreshAfterLog: () -> Unit = { summaryViewModel.load(); logFoodViewModel.loadToday() }
 
     LaunchedEffect(Unit) { summaryViewModel.load() }
 
@@ -107,7 +112,7 @@ fun DietScreen(
         }
 
         // ── Tab bar ──
-        val tabs = listOf("📅" to "Today", "📝" to "Log", "🛒" to "Grocery", "🏢" to "Office")
+        val tabs = listOf("📅" to "Today", "📝" to "Log", "🍳" to "Recipes", "🛒" to "Grocery", "🏢" to "Office")
         Card(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
             shape = RoundedCornerShape(Sharp),
@@ -148,8 +153,9 @@ fun DietScreen(
         // ── Tab content gets the rest of the screen ──
         when (section) {
             0 -> com.nutriai.ui.calendar.CalendarScreen(Modifier.fillMaxSize())
-            1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize(), onLogged = { summaryViewModel.load() })
-            2 -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
+            1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize(), viewModel = logFoodViewModel, onLogged = refreshAfterLog)
+            2 -> com.nutriai.ui.recipe.RecipeBuilderScreen(Modifier.fillMaxSize(), onLogged = refreshAfterLog)
+            3 -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
             else -> com.nutriai.ui.lifestyle.LifestyleScreen(Modifier.fillMaxSize())
         }
     }

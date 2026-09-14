@@ -95,7 +95,6 @@ private val GROUPS = listOf(
             ProfileItem("family", "👨‍👩‍👧", "Family", "Shared household", HydrationColor),
             ProfileItem("reports", "📊", "Reports", "Download PDF", BrandGreen),
             ProfileItem("barcode", "📷", "Barcode", "Scan a product", MovementColor),
-            ProfileItem("recipes", "🍳", "My Recipes", "Build & log homemade dishes", NutritionColor),
         ),
     ),
     ProfileGroup(
@@ -152,7 +151,6 @@ fun MoreScreen(
                 "progress" -> com.nutriai.ui.body.ProgressScreen(Modifier.fillMaxSize())
                 "history" -> com.nutriai.ui.history.HistoryScreen(Modifier.fillMaxSize())
                 "barcode" -> BarcodeScreen(Modifier.fillMaxSize())
-                "recipes" -> com.nutriai.ui.recipe.RecipeBuilderScreen(Modifier.fillMaxSize())
                 "reports" -> ReportsScreen(Modifier.fillMaxSize())
                 "badges" -> BadgesScreen(Modifier.fillMaxSize())
                 "family" -> FamilyScreen(Modifier.fillMaxSize())
