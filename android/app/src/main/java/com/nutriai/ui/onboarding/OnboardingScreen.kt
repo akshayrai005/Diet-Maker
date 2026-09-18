@@ -1,7 +1,6 @@
 package com.nutriai.ui.onboarding
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,11 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -200,44 +202,63 @@ private val CONTRA = listOf(
     "other" to "Other",
 )
 
-private val STEP_EMOJIS = listOf("👤", "🎯", "🏋️", "🏥", "🚀")
 private val STEP_COLORS = listOf(KaizenBlue, BrandGreen, MovementColor, KaizenCoral, KaizenLavender)
 
 /**
- * Section title for the single-page onboarding layout (was a per-step header + progress bar +
- * dots when this was a 5-step wizard - flattened per explicit user request: "make all in 1 step
- * sectionwise and arrange properly", disliking the multi-step click-through). A divider above
- * every section but the first gives the page visual rhythm without needing step navigation.
+ * Group title as its own compact chip, separate from the content below it - explicit request:
+ * "i want your body as a title in different card and then this body type card small.... similar
+ * for all". Applies to every group the same way, so the whole page reads as title-chip → content
+ * card, title-chip → content card, instead of one big tinted box holding both.
  */
 @Composable
-private fun OnboardingSectionTitle(emoji: String, title: String, color: Color) {
-    if (title != "About you") {
-        HorizontalDivider(Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Box(Modifier.size(36.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
-            Text(emoji, fontSize = 18.sp)
-        }
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = color)
+private fun GroupTitleChip(title: String, emoji: String, accent: Color) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.15f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(emoji, fontSize = 15.sp)
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = accent)
     }
 }
 
 /**
- * Bordered "cell group" for the single-page layout - explicit request: "excel like view + all
- * border", plus grouping related fields (measurements vs. target measurements vs. identity, etc.)
- * instead of one long unbroken list, per "measurement should be in 1 section, desire should be in 1".
+ * Compact content card for the single-page layout - paired with [GroupTitleChip] above it. A
+ * soft accent-tinted fill + a solid color spine on the left reads as one clean card instead of a
+ * thin outlined box (explicit feedback: "i dont like this thin thin border").
  */
 @Composable
-private fun BorderedGroup(title: String, emoji: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text("$emoji  $title", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        content()
+private fun BorderedGroup(title: String, emoji: String, accent: Color = BrandGreen, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        GroupTitleChip(title, emoji, accent)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.12f), accent.copy(alpha = 0.03f)))),
+        ) {
+            Box(Modifier.width(4.dp).fillMaxHeight().background(accent))
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                content = content,
+            )
+        }
+    }
+}
+
+/**
+ * Stacks each field with a thin divider between rows - explicit feedback: "dont find border
+ * between rows" (they want row separators inside a group, just not a thick box border around it).
+ */
+@Composable
+private fun RowDivided(vararg rows: @Composable () -> Unit) {
+    rows.forEachIndexed { i, row ->
+        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+        row()
     }
 }
 
@@ -270,20 +291,32 @@ private fun BodyPartDayTable(restDay: Int?, atGym: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface),
     ) {
         rows.forEachIndexed { i, (day, focus) ->
-            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+            val isRest = focus == "Rest"
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (i % 2 == 0) MovementColor.copy(alpha = 0.05f) else Color.Transparent)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier.size(30.dp).clip(CircleShape).background(if (isRest) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MovementColor),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(day, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else Color.White)
+                    }
+                }
                 Text(
                     focus,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (focus == "Rest") MaterialTheme.colorScheme.onSurfaceVariant else MovementColor,
-                    fontWeight = if (focus == "Rest") FontWeight.Normal else FontWeight.SemiBold,
+                    color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else MovementColor,
+                    fontWeight = if (isRest) FontWeight.Normal else FontWeight.SemiBold,
                 )
             }
         }
@@ -410,8 +443,6 @@ fun OnboardingScreen(
     val canSave = height.toDoubleOrNull() != null && weight.toDoubleOrNull() != null &&
         target.toDoubleOrNull() != null && dob.isNotBlank()
 
-    val steps = listOf("About you", "Your goals", "Movement", "Health", "Ready")
-
     fun doSave() {
         val h = height.toDoubleOrNull(); val w = weight.toDoubleOrNull(); val t = target.toDoubleOrNull()
         if (h != null && w != null && t != null && dob.isNotBlank()) {
@@ -473,19 +504,34 @@ fun OnboardingScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         // Single header - no step count, no progress bar, no dots. One page, scroll through it.
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(
-                Modifier.size(44.dp).clip(CircleShape).background(BrandGreen),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("👤", fontSize = 22.sp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(Brush.horizontalGradient(listOf(BrandGreen, MovementColor)))
+                .padding(horizontal = Spacing.md, vertical = Spacing.md),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Box(
+                    Modifier.size(52.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.22f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("👤", fontSize = 26.sp)
+                }
+                Column {
+                    Text(
+                        if (editing) "Edit your profile" else "Complete your profile",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                    )
+                    Text(
+                        "One page, scroll to fill in.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f),
+                    )
+                }
             }
-            Text(
-                if (editing) "Edit your profile" else "Complete your profile",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = BrandGreen,
-            )
         }
 
         Column(
@@ -494,12 +540,8 @@ fun OnboardingScreen(
         ) {
             // ---- About you ----
             run {
-                OnboardingSectionTitle(STEP_EMOJIS[0], steps[0], STEP_COLORS[0])
-                    FeatureCard(emoji = "📋", title = "A few basics", accentColor = KaizenBlue) {
-                        Text("So everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
-                    }
                     // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
-                    BorderedGroup("Your body type", "🧍") {
+                    BorderedGroup("Your body type", "🧍", accent = STEP_COLORS[0]) {
                         com.nutriai.ui.bodytype.BodyTypeInlinePicker(
                             currentId = bodyTypeCurrent,
                             goalId = bodyTypeGoal,
@@ -507,62 +549,53 @@ fun OnboardingScreen(
                             onGoal = { bodyTypeGoal = it },
                         )
                     }
-                    BorderedGroup("Measurements - where you are now", "📏") {
-                        Text(
-                            "A measuring tape helps - these let the coach see your shape, not just your weight.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    BorderedGroup("Measurements - where you are now", "📏", accent = STEP_COLORS[0]) {
+                        RowDivided(
+                            { numberField(height, { height = it }, "Height (cm)") },
+                            { numberField(weight, { weight = it }, "Current weight (kg)") },
+                            { numberField(waist, { waist = it }, "Waist (cm) - navel") },
+                            { numberField(chest, { chest = it }, "Chest (cm) - optional") },
+                            { numberField(arm, { arm = it }, "Arm / bicep (cm) - optional") },
+                            { numberField(neck, { neck = it }, "Neck (cm) - optional") },
                         )
-                        numberField(height, { height = it }, "Height (cm)")
-                        numberField(weight, { weight = it }, "Current weight (kg)")
-                        numberField(waist, { waist = it }, "Waist (cm) - at the navel")
-                        numberField(chest, { chest = it }, "Chest (cm) - optional")
-                        numberField(arm, { arm = it }, "Arm / bicep (cm) - optional, flexed")
-                        numberField(neck, { neck = it }, "Neck (cm) - optional, for body-fat %")
-                        if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional, for body-fat %")
+                        if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional")
                     }
-                    BorderedGroup("Desired - where you want to be", "🎯") {
-                        Text(
-                            "Set target measurements and we'll show your progress toward them, not just the scale.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    BorderedGroup("Desired - where you want to be", "🎯", accent = STEP_COLORS[0]) {
+                        RowDivided(
+                            { numberField(target, { target = it }, "Target weight (kg)") },
+                            { numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional") },
+                            { numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional") },
+                            { numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional") },
                         )
-                        numberField(target, { target = it }, "Target weight (kg)")
-                        numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional")
-                        numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional")
-                        numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional")
                     }
-                    BorderedGroup("Identity", "🪪") {
-                        DobPicker(dob) { dob = it }
-                        Dropdown("Gender", GENDER, gender) { gender = it }
+                    BorderedGroup("Identity", "🪪", accent = STEP_COLORS[0]) {
+                        RowDivided(
+                            { DobPicker(dob) { dob = it } },
+                            { Dropdown("Gender", GENDER, gender) { gender = it } },
+                            { Dropdown("Sex for health calculations", SEX, sex) { sex = it } },
+                        )
                         if (gender == "self_describe") {
                             OutlinedTextField(
                                 value = genderSelfDescribe,
                                 onValueChange = { genderSelfDescribe = it.take(40) },
                                 label = { Text("Describe (optional)") },
                                 singleLine = true,
+                                colors = fieldBorderColors(),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        Dropdown("Sex for health calculations", SEX, sex) { sex = it }
-                        Text(
-                            "ℹ️ We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
             }
 
             // ---- Your goals ----
             run {
-                OnboardingSectionTitle(STEP_EMOJIS[1], steps[1], STEP_COLORS[1])
-                    BorderedGroup("Goals & Preferences", "🎯") {
+                    BorderedGroup("Goals & Preferences", "🎯", accent = STEP_COLORS[1]) {
                         Dropdown("Goal", GOAL, goal) { goal = it }
                     }
 
-                    BorderedGroup("Timeframe", "⏰") {
+                    BorderedGroup("Timeframe", "⏰", accent = STEP_COLORS[1]) {
                         Text(
-                            "📅 How soon would you like to reach your target weight? We'll pace it safely - picking a shorter time won't rush your body past what's healthy.",
+                            "📅 We'll pace it safely.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -572,41 +605,39 @@ fun OnboardingScreen(
                         }
                     }
 
-                    BorderedGroup("Diet & Lifestyle", "🍽️") {
-                        Dropdown("Diet", DIET, diet) { diet = it }
-                        Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it }
-                        Text(
-                            "🕐 How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    BorderedGroup("Diet & Lifestyle", "🍽️", accent = STEP_COLORS[1]) {
+                        RowDivided(
+                            { Dropdown("Diet", DIET, diet) { diet = it } },
+                            { Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it } },
+                            { Dropdown("Activity level", ACTIVITY, activity) { activity = it } },
+                            { Dropdown("Occupation", OCCUPATION, occupation) { occupation = it } },
+                            { Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it } },
+                            { Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it } },
+                            { Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it } },
+                            { Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it } },
                         )
-                        Dropdown("Activity level", ACTIVITY, activity) { activity = it }
-                        Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
-                        Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
-                        Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
-                        Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it }
-                        Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
                     }
             }
 
             // ---- Movement ----
             run {
-                OnboardingSectionTitle(STEP_EMOJIS[2], steps[2], STEP_COLORS[2])
-                    BorderedGroup("Exercise Setup", "🏋️") {
-                        Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
-                        Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+                    BorderedGroup("Exercise Setup", "🏋️", accent = STEP_COLORS[2]) {
+                        RowDivided(
+                            { Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it } },
+                            { Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it } },
+                        )
                     }
 
-                    BorderedGroup("Training Split", "📊") {
+                    BorderedGroup("Training Split", "📊", accent = STEP_COLORS[2]) {
                         TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
                         Text(
-                            "💡 Your Move plan updates to this split.",
+                            "💡 Your Move plan updates to this.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (trainingSplit == "body_part") {
                             Text(
-                                "Which day trains which part (rest day = your Workout rest day below):",
+                                "Which day trains which part:",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MovementColor,
@@ -615,22 +646,19 @@ fun OnboardingScreen(
                         }
                     }
 
-                    BorderedGroup("Intensity & Rest", "⚡") {
-                        Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
-                        Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
-                        Text(
-                            "💪 Harder isn't always better - pick what you can keep up with. We cap intensity for safety.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    BorderedGroup("Intensity & Rest", "⚡", accent = STEP_COLORS[2]) {
+                        RowDivided(
+                            { Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it } },
+                            { Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it } },
+                            { Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it } },
                         )
-                        Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
                     }
 
                     // Gym membership (spec Section 5) → progressive-overload phase (Foundation→Peak).
-                    BorderedGroup("Gym Membership", "🏢") {
+                    BorderedGroup("Gym Membership", "🏢", accent = STEP_COLORS[2]) {
                         Dropdown("Membership duration", GYM_MONTHS, gymMonths) { gymMonths = it }
                         if (gymMonths != null) {
-                            Text("📅 When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                             DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
                         }
                     }
@@ -638,31 +666,30 @@ fun OnboardingScreen(
 
             // ---- Health ----
             run {
-                OnboardingSectionTitle(STEP_EMOJIS[3], steps[3], STEP_COLORS[3])
-                    BorderedGroup("Health Conditions", "🏥") {
+                    BorderedGroup("Health Conditions", "🏥", accent = STEP_COLORS[3]) {
                         Label("Conditions (optional)")
                         MultiChoiceChips(CONDITIONS, conditions)
                     }
-                    BorderedGroup("Family History", "👨‍👩‍👧‍👦") {
+                    BorderedGroup("Family History", "👨‍👩‍👧‍👦", accent = STEP_COLORS[3]) {
                         Text(
-                            "Conditions that run in your close family - helps us flag risks earlier.",
+                            "Runs in your close family?",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         MultiChoiceChips(FAMILY_HISTORY, familyHistory)
                     }
-                    BorderedGroup("Lifestyle", "🌿") {
-                        Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
-                        Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
-                        Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
-                        if (sex == "female") {
-                            Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
-                        }
+                    BorderedGroup("Lifestyle", "🌿", accent = STEP_COLORS[3]) {
+                        RowDivided(
+                            { Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it } },
+                            { Dropdown("Do you smoke?", FREQ, smoking) { smoking = it } },
+                            { Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it } },
+                            { if (sex == "female") Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it } },
+                        )
                     }
 
-                    BorderedGroup("Physique Goal", "🎯") {
+                    BorderedGroup("Physique Goal", "🎯", accent = STEP_COLORS[3]) {
                         Text(
-                            "What would you like your training to work towards? This only tunes your targets - every option is healthy. 💚",
+                            "💚 Only tunes your targets - every option is healthy.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -670,16 +697,16 @@ fun OnboardingScreen(
                         if (isMinor) {
                             FeatureCard(emoji = "🛡️", title = "Under-18 Safety", accentColor = BrandAmber) {
                                 Text(
-                                    "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
+                                    "Kept safe for your age - no aggressive cutting.",
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
                         }
                     }
 
-                    BorderedGroup("Priority Muscles", "💪") {
+                    BorderedGroup("Priority Muscles", "💪", accent = STEP_COLORS[3]) {
                         Text(
-                            "Pick any you want extra focus on - we'll add a little extra volume there.",
+                            "Pick any for extra focus.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -689,11 +716,9 @@ fun OnboardingScreen(
 
             // ---- Ready ----
             run {
-                OnboardingSectionTitle(STEP_EMOJIS[4], steps[4], STEP_COLORS[4])
-                    Spacer(Modifier.height(Spacing.lg))
                     FeatureCard(emoji = "🎉", title = "You're All Set!", accentColor = BrandGreen) {
                         Text(
-                            "We'll build your personalised plan across Diet, Movement, Mind and Discipline - with safe, explainable targets. Small habits, big results. 🚀",
+                            "Small habits, big results. 🚀",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -725,17 +750,25 @@ fun OnboardingScreen(
             }
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Button(
-                    onClick = { doSave() },
-                    enabled = !state.loading && canSave,
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(Radius.md),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                ) {
-                    if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp), color = Color.White)
-                    else Text(if (editing) "✅ Save changes" else "🚀 Create my plan", fontWeight = FontWeight.Bold)
-                }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(
+                    if (!state.loading && canSave) Brush.horizontalGradient(listOf(BrandGreen, MovementColor))
+                    else Brush.horizontalGradient(listOf(Color.Gray, Color.Gray)),
+                )
+                .clickable(enabled = !state.loading && canSave) { doSave() },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp).size(24.dp), color = Color.White)
+            else Text(
+                if (editing) "✅ Save changes" else "🚀 Create my plan",
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+            )
         }
     }
 }
@@ -758,6 +791,7 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
             label = { Text(label) },
             placeholder = { Text("📅 Tap to pick") },
             trailingIcon = { androidx.compose.material3.Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.padding(end = 12.dp)) },
+            colors = fieldBorderColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         // Transparent overlay so the whole (read-only) field opens the calendar.
@@ -780,6 +814,14 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
     }
 }
 
+/** Border colors shared by every field box - explicit feedback: "not getting proper border of
+ * each boxes inside the card" (Material3's default unfocused border is too faint to read). */
+@Composable
+private fun fieldBorderColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+    focusedBorderColor = BrandGreen,
+)
+
 @Composable
 private fun numberField(value: String, onChange: (String) -> Unit, label: String) {
     OutlinedTextField(
@@ -788,6 +830,7 @@ private fun numberField(value: String, onChange: (String) -> Unit, label: String
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        colors = fieldBorderColors(),
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -810,6 +853,7 @@ private fun <T> Dropdown(label: String, options: List<Pair<T, String>>, selected
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = fieldBorderColors(),
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
