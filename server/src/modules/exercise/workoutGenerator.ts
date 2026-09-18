@@ -166,6 +166,17 @@ const REST_DAY: ExerciseItem[] = [
 const DISCLAIMER =
   'Educational guidance, not a substitute for a doctor or certified trainer. Warm up, use good form, and stop if you feel pain.';
 
+/** Profile's saved weekday("0".."6") → focus map, as the generator's numeric-keyed override (invalid keys dropped). */
+export function parseDayFocusOverride(map: Record<string, string> | undefined): Record<number, string> | undefined {
+  if (!map) return undefined;
+  const out: Record<number, string> = {};
+  for (const [k, v] of Object.entries(map)) {
+    const idx = Number(k);
+    if (Number.isInteger(idx) && idx >= 0 && idx <= 6) out[idx] = v;
+  }
+  return out;
+}
+
 export interface WorkoutOptions {
   restDayOfWeek?: number; // 0=Sun..6=Sat; omitted => 7 training days
   startDate?: Date;

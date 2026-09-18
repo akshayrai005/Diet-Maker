@@ -307,6 +307,18 @@ class AppRepository @Inject constructor(
         api.highProteinFoods().foods
     }
 
+    /** Anything logged that isn't in the catalog is remembered in "My foods" so it can be added again later. Best-effort. */
+    private suspend fun autoSaveFood(name: String, p: com.nutriai.data.remote.dto.FoodLogPer100g, barcode: String? = null) {
+        runCatching {
+            api.saveFood(
+                com.nutriai.data.remote.dto.SavedFoodRequest(
+                    name = name, kcal = p.kcal, proteinG = p.proteinG, carbG = p.carbG, fatG = p.fatG,
+                    fiberG = p.fiberG, sugarG = p.sugarG, sodiumMg = p.sodiumMg, barcode = barcode,
+                ),
+            )
+        }
+    }
+
     suspend fun logFood(slot: String, foodId: String, grams: Double): Result<Unit> = runCatching {
         api.logFood(FoodLogRequest(mealSlot = slot, grams = grams, foodId = foodId))
     }
@@ -337,6 +349,7 @@ class AppRepository @Inject constructor(
                 entryMethod = if (food.source == "usda") "barcode" else "text",
             ),
         )
+        if (food.source == "usda") autoSaveFood(food.name, com.nutriai.data.remote.dto.FoodLogPer100g(food.kcal, food.proteinG, food.carbG, food.fatG, food.fiberG, food.sugarG, food.sodiumMg))
     }
 
     /** Logs any food by name + per-100g (used by recents, saved foods and photo detection). */
@@ -350,6 +363,7 @@ class AppRepository @Inject constructor(
         api.logFood(
             FoodLogRequest(mealSlot = slot, grams = grams, foodName = name, per100g = per100g, entryMethod = method),
         )
+        if (method == "photo") autoSaveFood(name, per100g)
     }
 
     suspend fun logWater(ml: Int): Result<Unit> = runCatching { api.logWater(WaterLogRequest(ml)) }
@@ -610,5 +624,6 @@ class AppRepository @Inject constructor(
                 entryMethod = "barcode",
             ),
         )
+        autoSaveFood(food.name, com.nutriai.data.remote.dto.FoodLogPer100g(food.per100g.kcal, food.per100g.proteinG, food.per100g.carbG, food.per100g.fatG, food.per100g.fiberG, food.per100g.sugarG, food.per100g.sodiumMg), null)
     }
 }

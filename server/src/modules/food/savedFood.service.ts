@@ -18,6 +18,9 @@ export const savedFoodSchema = z.object({
 export type SavedFoodBody = z.infer<typeof savedFoodSchema>;
 
 export async function createSaved(userId: string, body: SavedFoodBody) {
+  // Idempotent by name: auto-saving on every log must not pile up duplicates.
+  const existing = await prisma.savedFood.findFirst({ where: { userId, name: { equals: body.name, mode: 'insensitive' } } });
+  if (existing) return existing;
   return prisma.savedFood.create({ data: { userId, ...body } });
 }
 

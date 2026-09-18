@@ -6,7 +6,7 @@ import { prisma } from '../../lib/prisma';
 import { decryptJson } from '../../lib/crypto';
 import { HttpError } from '../../middleware/error';
 import type { SensitiveData } from '../profile/profile.schemas';
-import { generateWeeklyWorkout, generateStagedMovementPlan } from './workoutGenerator';
+import { generateWeeklyWorkout, generateStagedMovementPlan, parseDayFocusOverride } from './workoutGenerator';
 import { determineMovementStage } from './mobilityStaging';
 import { localSunday, localToday, tzOffsetMin } from '../../lib/tz';
 import type { BodyGoal, ExerciseLocation, FitnessLevel } from './exercise.types';
@@ -89,6 +89,7 @@ exerciseRouter.get(
           split: effectiveSplit,
           priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
           gymFavoriteNames: gymFavorites.map((f) => f.exerciseName),
+          dayFocusOverride: parseDayFocusOverride((s as { bodyPartDayFocus?: Record<string, string> }).bodyPartDayFocus),
         });
 
     // Period-aware: for female profiles, ease period days to gentle recovery.
