@@ -1,10 +1,12 @@
 package com.nutriai.ui.onboarding
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.FlowRow
@@ -220,6 +222,74 @@ private fun OnboardingSectionTitle(emoji: String, title: String, color: Color) {
     }
 }
 
+/**
+ * Bordered "cell group" for the single-page layout - explicit request: "excel like view + all
+ * border", plus grouping related fields (measurements vs. target measurements vs. identity, etc.)
+ * instead of one long unbroken list, per "measurement should be in 1 section, desire should be in 1".
+ */
+@Composable
+private fun BorderedGroup(title: String, emoji: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("$emoji  $title", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        content()
+    }
+}
+
+// Fixed focus rotation the server uses for a "muscular" (body-part split) program block - same
+// order at every gym-goer's mesocycle block, only the exercises inside each focus rotate every 4
+// weeks (see workoutGenerator.ts PROGRAMS['muscular:*']). Shown as a read-only Day → Part preview
+// so "body part split" answers "which day / which part" instead of staying a mystery.
+private val BODY_PART_FOCUS_GYM = listOf("Chest", "Back", "Shoulders", "Biceps & Forearms", "Triceps & Core", "Legs & Abs")
+private val BODY_PART_FOCUS_HOME = listOf("Push (Chest/Shoulders/Triceps)", "Pull (Back/Biceps)", "Legs & Abs")
+private val WEEKDAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+/** Computes the Sun-Sat → focus (or "Rest") preview for a body-part split, matching server rotation. */
+private fun bodyPartDayPreview(restDay: Int?, atGym: Boolean): List<Pair<String, String>> {
+    val focuses = if (atGym) BODY_PART_FOCUS_GYM else BODY_PART_FOCUS_HOME
+    var t = 0
+    return (0..6).map { weekday ->
+        val label = WEEKDAY_LABELS[weekday]
+        if (weekday == restDay) label to "Rest" else {
+            val focus = focuses[t % focuses.size]
+            t++
+            label to focus
+        }
+    }
+}
+
+/** Read-only 7-row Day → Body part table shown once "Body-part split" is chosen. */
+@Composable
+private fun BodyPartDayTable(restDay: Int?, atGym: Boolean) {
+    val rows = remember(restDay, atGym) { bodyPartDayPreview(restDay, atGym) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+    ) {
+        rows.forEachIndexed { i, (day, focus) ->
+            if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(day, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(
+                    focus,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (focus == "Rest") MaterialTheme.colorScheme.onSurfaceVariant else MovementColor,
+                    fontWeight = if (focus == "Rest") FontWeight.Normal else FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
@@ -429,176 +499,192 @@ fun OnboardingScreen(
                         Text("So everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
                     }
                     // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
-                    SectionHeader(title = "Your body type", emoji = "🧍")
-                    com.nutriai.ui.bodytype.BodyTypeInlinePicker(
-                        currentId = bodyTypeCurrent,
-                        goalId = bodyTypeGoal,
-                        onCurrent = { bodyTypeCurrent = it },
-                        onGoal = { bodyTypeGoal = it },
-                    )
-                    SectionHeader(title = "Measurements", emoji = "📏")
-                    numberField(height, { height = it }, "Height (cm)")
-                    numberField(weight, { weight = it }, "Current weight (kg)")
-                    numberField(target, { target = it }, "Target weight (kg)")
-                    GlassCard {
+                    BorderedGroup("Your body type", "🧍") {
+                        com.nutriai.ui.bodytype.BodyTypeInlinePicker(
+                            currentId = bodyTypeCurrent,
+                            goalId = bodyTypeGoal,
+                            onCurrent = { bodyTypeCurrent = it },
+                            onGoal = { bodyTypeGoal = it },
+                        )
+                    }
+                    BorderedGroup("Measurements - where you are now", "📏") {
                         Text(
-                            "📐 Body measurements (a measuring tape helps) - these let the coach see your shape, not just your weight, and focus the plan where it matters.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            "A measuring tape helps - these let the coach see your shape, not just your weight.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        numberField(height, { height = it }, "Height (cm)")
+                        numberField(weight, { weight = it }, "Current weight (kg)")
+                        numberField(waist, { waist = it }, "Waist (cm) - at the navel")
+                        numberField(chest, { chest = it }, "Chest (cm) - optional")
+                        numberField(arm, { arm = it }, "Arm / bicep (cm) - optional, flexed")
+                        numberField(neck, { neck = it }, "Neck (cm) - optional, for body-fat %")
+                        if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional, for body-fat %")
                     }
-                    numberField(waist, { waist = it }, "Waist (cm) - at the navel")
-                    numberField(chest, { chest = it }, "Chest (cm) - optional")
-                    numberField(arm, { arm = it }, "Arm / bicep (cm) - optional, flexed")
-                    numberField(neck, { neck = it }, "Neck (cm) - optional, for body-fat %")
-                    if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional, for body-fat %")
-                    GlassCard {
+                    BorderedGroup("Desired - where you want to be", "🎯") {
                         Text(
-                            "🎯 Where do you want to end up? Set target measurements and we'll show your progress toward them, not just the scale.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            "Set target measurements and we'll show your progress toward them, not just the scale.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        numberField(target, { target = it }, "Target weight (kg)")
+                        numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional")
+                        numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional")
+                        numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional")
+                    }
+                    BorderedGroup("Identity", "🪪") {
+                        DobPicker(dob) { dob = it }
+                        Dropdown("Gender", GENDER, gender) { gender = it }
+                        if (gender == "self_describe") {
+                            OutlinedTextField(
+                                value = genderSelfDescribe,
+                                onValueChange = { genderSelfDescribe = it.take(40) },
+                                label = { Text("Describe (optional)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        Dropdown("Sex for health calculations", SEX, sex) { sex = it }
+                        Text(
+                            "ℹ️ We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional")
-                    numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional")
-                    numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional")
-                    SectionHeader(title = "Identity", emoji = "🪪")
-                    DobPicker(dob) { dob = it }
-                    Dropdown("Gender", GENDER, gender) { gender = it }
-                    if (gender == "self_describe") {
-                        OutlinedTextField(
-                            value = genderSelfDescribe,
-                            onValueChange = { genderSelfDescribe = it.take(40) },
-                            label = { Text("Describe (optional)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    Dropdown("Sex for health calculations", SEX, sex) { sex = it }
-                    Text(
-                        "ℹ️ We ask sex separately only because BMR and body-fat formulas need it - it doesn't change how we address you.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
             }
 
             // ---- Your goals ----
             run {
                 OnboardingSectionTitle(STEP_EMOJIS[1], steps[1], STEP_COLORS[1])
-                    SectionHeader(title = "Goals & Preferences", emoji = "🎯")
-                    Dropdown("Goal", GOAL, goal) { goal = it }
+                    BorderedGroup("Goals & Preferences", "🎯") {
+                        Dropdown("Goal", GOAL, goal) { goal = it }
+                    }
 
-                    SectionHeader(title = "Timeframe", emoji = "⏰")
-                    GlassCard {
+                    BorderedGroup("Timeframe", "⏰") {
                         Text(
                             "📅 How soon would you like to reach your target weight? We'll pace it safely - picking a shorter time won't rush your body past what's healthy.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    }
-                    TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
-                    if (state.timeline != null) {
-                        TimelinePreviewCard(state.timeline!!)
+                        TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
+                        if (state.timeline != null) {
+                            TimelinePreviewCard(state.timeline!!)
+                        }
                     }
 
-                    SectionHeader(title = "Diet & Lifestyle", emoji = "🍽️")
-                    Dropdown("Diet", DIET, diet) { diet = it }
-                    Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it }
-                    Text(
-                        "🕐 How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Dropdown("Activity level", ACTIVITY, activity) { activity = it }
-                    Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
-                    Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
-                    Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
-                    Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it }
-                    Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
+                    BorderedGroup("Diet & Lifestyle", "🍽️") {
+                        Dropdown("Diet", DIET, diet) { diet = it }
+                        Dropdown("Eating pattern", EATING_PATTERN, eatingPattern) { eatingPattern = it }
+                        Text(
+                            "🕐 How your day is shaped - e.g. 'Morning + night only' plans 3 front-loaded meals instead of 5.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Dropdown("Activity level", ACTIVITY, activity) { activity = it }
+                        Dropdown("Occupation", OCCUPATION, occupation) { occupation = it }
+                        Dropdown("Food budget", BUDGET, budgetTier) { budgetTier = it }
+                        Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
+                        Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it }
+                        Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
+                    }
             }
 
             // ---- Movement ----
             run {
                 OnboardingSectionTitle(STEP_EMOJIS[2], steps[2], STEP_COLORS[2])
-                    SectionHeader(title = "Exercise Setup", emoji = "🏋️")
-                    Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
-                    Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+                    BorderedGroup("Exercise Setup", "🏋️") {
+                        Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
+                        Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
+                    }
 
-                    SectionHeader(title = "Training Split", emoji = "📊")
-                    TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
-                    Text(
-                        "💡 Your Move plan updates to this split.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    BorderedGroup("Training Split", "📊") {
+                        TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
+                        Text(
+                            "💡 Your Move plan updates to this split.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (trainingSplit == "body_part") {
+                            Text(
+                                "Which day trains which part (rest day = your Workout rest day below):",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MovementColor,
+                            )
+                            BodyPartDayTable(restDay = workoutRest, atGym = exLocation != "home" && exLocation != "none")
+                        }
+                    }
 
-                    SectionHeader(title = "Intensity & Rest", emoji = "⚡")
-                    Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
-                    Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
-                    GlassCard {
+                    BorderedGroup("Intensity & Rest", "⚡") {
+                        Dropdown("Fitness level", FITNESS_LEVEL, fitnessLevel) { fitnessLevel = it }
+                        Dropdown("Workout intensity", INTENSITY, intensity) { intensity = it }
                         Text(
                             "💪 Harder isn't always better - pick what you can keep up with. We cap intensity for safety.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
                     }
-                    Dropdown("Workout rest day", DAYS, workoutRest) { workoutRest = it }
 
                     // Gym membership (spec Section 5) → progressive-overload phase (Foundation→Peak).
-                    SectionHeader(title = "Gym Membership", emoji = "🏢")
-                    Dropdown("Membership duration", GYM_MONTHS, gymMonths) { gymMonths = it }
-                    if (gymMonths != null) {
-                        Text("📅 When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
+                    BorderedGroup("Gym Membership", "🏢") {
+                        Dropdown("Membership duration", GYM_MONTHS, gymMonths) { gymMonths = it }
+                        if (gymMonths != null) {
+                            Text("📅 When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
+                        }
                     }
             }
 
             // ---- Health ----
             run {
                 OnboardingSectionTitle(STEP_EMOJIS[3], steps[3], STEP_COLORS[3])
-                    SectionHeader(title = "Health Conditions", emoji = "🏥")
-                    Label("Conditions (optional)")
-                    MultiChoiceChips(CONDITIONS, conditions)
-                    SectionHeader(title = "Family History", emoji = "👨‍👩‍👧‍👦")
-                    Text(
-                        "Conditions that run in your close family - helps us flag risks earlier.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MultiChoiceChips(FAMILY_HISTORY, familyHistory)
-                    SectionHeader(title = "Lifestyle", emoji = "🌿")
-                    Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
-                    Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
-                    Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
-                    if (sex == "female") {
-                        Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
+                    BorderedGroup("Health Conditions", "🏥") {
+                        Label("Conditions (optional)")
+                        MultiChoiceChips(CONDITIONS, conditions)
                     }
-
-                    SectionHeader(title = "Physique Goal", emoji = "🎯")
-                    GlassCard {
+                    BorderedGroup("Family History", "👨‍👩‍👧‍👦") {
                         Text(
-                            "What would you like your training to work towards? This only tunes your targets - every option is healthy. 💚",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            "Conditions that run in your close family - helps us flag risks earlier.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        MultiChoiceChips(FAMILY_HISTORY, familyHistory)
                     }
-                    PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
-                    if (isMinor) {
-                        FeatureCard(emoji = "🛡️", title = "Under-18 Safety", accentColor = BrandAmber) {
-                            Text(
-                                "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
-                                style = MaterialTheme.typography.bodySmall,
-                            )
+                    BorderedGroup("Lifestyle", "🌿") {
+                        Dropdown("Weekly fasting day (optional)", DAYS, fastDay) { fastDay = it }
+                        Dropdown("Do you smoke?", FREQ, smoking) { smoking = it }
+                        Dropdown("Do you drink alcohol?", FREQ, alcohol) { alcohol = it }
+                        if (sex == "female") {
+                            Dropdown("Contraception (if any)", CONTRA, contraception) { contraception = it }
                         }
                     }
 
-                    SectionHeader(title = "Priority Muscles", emoji = "💪")
-                    Text(
-                        "Pick any you want extra focus on - we'll add a little extra volume there.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
+                    BorderedGroup("Physique Goal", "🎯") {
+                        Text(
+                            "What would you like your training to work towards? This only tunes your targets - every option is healthy. 💚",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
+                        if (isMinor) {
+                            FeatureCard(emoji = "🛡️", title = "Under-18 Safety", accentColor = BrandAmber) {
+                                Text(
+                                    "Because you're under 18, we'll keep this safe for your age - no aggressive cutting.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+
+                    BorderedGroup("Priority Muscles", "💪") {
+                        Text(
+                            "Pick any you want extra focus on - we'll add a little extra volume there.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
+                    }
             }
 
             // ---- Ready ----
