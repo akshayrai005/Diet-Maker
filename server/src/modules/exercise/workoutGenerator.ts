@@ -820,8 +820,8 @@ function dailyAbsFor(dayIndex: number, gentle: boolean, block = 0): ExerciseItem
  * generalizes across every goal/split, not one specific program.
  */
 const LEVEL_TOTAL_WORKING: Record<FitnessLevel, number> = {
-  beginner: 5,
-  intermediate: 6,
+  beginner: 6,
+  intermediate: 7,
   advanced: 7,
 };
 
@@ -872,7 +872,7 @@ function capWorkingExercises(
   dedicatedMuscleDay = false,
 ): { main: ExerciseItem[]; core: ExerciseItem[]; cardio: ExerciseItem } {
   const cardioSlots = 1;
-  const coreSlots = Math.min(core.length, 2);
+  const coreSlots = Math.min(core.length, 1); // one abs move a day - the rest of the budget goes to the main lifts
   const mainSlots = dedicatedMuscleDay ? Math.max(1, budget) : Math.max(1, budget - cardioSlots - coreSlots);
   return { main: selectDiverse(main, mainSlots), core: core.slice(0, coreSlots), cardio };
 }

@@ -146,7 +146,7 @@ fun RestTimer(
                 OutlinedTextField(
                     value = customText,
                     onValueChange = { customText = it.filter { c -> c.isDigit() }.take(3) },
-                    label = { Text("Custom (s)") },
+                    label = { Text("Custom (seconds)") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(

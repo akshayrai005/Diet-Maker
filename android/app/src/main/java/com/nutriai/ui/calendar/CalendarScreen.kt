@@ -614,7 +614,7 @@ private fun GuidanceCard(g: Guidance) {
         Column(Modifier.padding(Spacing.md)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("💡", style = MaterialTheme.typography.titleMedium)
-                Text("Personalized for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenLavender)
+                Text("Personalised for you", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = KaizenLavender)
                 Spacer(Modifier.weight(1f))
                 Text(if (expanded) "▲" else "▼", style = MaterialTheme.typography.labelMedium, color = KaizenLavender)
             }

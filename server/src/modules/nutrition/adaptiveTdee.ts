@@ -78,7 +78,7 @@ export function computeAdaptiveTdee(
     return {
       available: false,
       reason: 'not_enough_intake_logs',
-      message: `Log your food for at least ${MIN_INTAKE_DAYS} days to unlock a personalized calorie recalibration based on your own results.`,
+      message: `Log your food for at least ${MIN_INTAKE_DAYS} days to unlock a personalised calorie recalibration based on your own results.`,
     };
   }
 
@@ -87,7 +87,7 @@ export function computeAdaptiveTdee(
     return {
       available: false,
       reason: 'not_enough_weight_logs',
-      message: `Log your weight over at least ${MIN_WEIGHT_SPAN_DAYS} days (a few times a week is enough) to unlock a personalized calorie recalibration.`,
+      message: `Log your weight over at least ${MIN_WEIGHT_SPAN_DAYS} days (a few times a week is enough) to unlock a personalised calorie recalibration.`,
     };
   }
 

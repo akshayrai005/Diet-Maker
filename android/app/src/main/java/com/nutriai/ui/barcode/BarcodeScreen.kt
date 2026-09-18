@@ -446,7 +446,7 @@ fun BarcodeScreen(
                         OutlinedTextField(
                             value = state.manualProtein,
                             onValueChange = { viewModel.onManualField(protein = it.filter { c -> c.isDigit() || c == '.' }) },
-                            label = { Text("Protein g") },
+                            label = { Text("Protein (g)") },
                             singleLine = true,
                             shape = Sharp,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -457,7 +457,7 @@ fun BarcodeScreen(
                         OutlinedTextField(
                             value = state.manualCarb,
                             onValueChange = { viewModel.onManualField(carb = it.filter { c -> c.isDigit() || c == '.' }) },
-                            label = { Text("Carbs g") },
+                            label = { Text("Carbs (g)") },
                             singleLine = true,
                             shape = Sharp,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -466,7 +466,7 @@ fun BarcodeScreen(
                         OutlinedTextField(
                             value = state.manualFat,
                             onValueChange = { viewModel.onManualField(fat = it.filter { c -> c.isDigit() || c == '.' }) },
-                            label = { Text("Fat g") },
+                            label = { Text("Fat (g)") },
                             singleLine = true,
                             shape = Sharp,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

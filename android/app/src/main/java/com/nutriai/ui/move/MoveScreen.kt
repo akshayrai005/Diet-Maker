@@ -1143,7 +1143,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             OutlinedTextField(
                                 value = inclinePct,
                                 onValueChange = { v -> inclinePct = v.filter { c -> c.isDigit() || c == '.' } },
-                                label = { Text("Incline %", style = MaterialTheme.typography.labelSmall) },
+                                label = { Text("Incline (%)", style = MaterialTheme.typography.labelSmall) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
@@ -1154,7 +1154,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                         OutlinedTextField(
                             value = distanceKm,
                             onValueChange = { v -> distanceKm = v.filter { c -> c.isDigit() || c == '.' } },
-                            label = { Text("Distance km", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text("Distance (km)", style = MaterialTheme.typography.labelSmall) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f),

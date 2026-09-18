@@ -157,9 +157,9 @@ describe('selectable training splits', () => {
   it('full_body (gym, non-beginner) stays within the realistic per-day exercise budget while still spreading across multiple muscle groups', () => {
     const day = generateWeeklyWorkout('muscular', 'gym', { split: 'full_body', fitnessLevel: 'intermediate' })
       .days.find((d) => !d.rest)!;
-    // Capped to a doable session (see LEVEL_TOTAL_WORKING in workoutGenerator.ts), not the old
-    // ~12-exercise "hit everything" list - 3 sets/exercise at a real gym makes that infeasible.
-    expect(day.exercises.length).toBeLessThanOrEqual(4);
+    // Capped to a doable session (see LEVEL_TOTAL_WORKING): 7 total for intermediate = up to 5 main lifts +
+    // 1 abs + 1 cardio. Raised from 4 mains after the user asked for a fuller Main Workout.
+    expect(day.exercises.length).toBeLessThanOrEqual(5);
     // Still diversified across groups (round-robin selection), not collapsed onto just one.
     const groups = new Set(day.exercises.map((e) => e.muscleGroup).filter(Boolean));
     expect(groups.size).toBeGreaterThanOrEqual(2);
