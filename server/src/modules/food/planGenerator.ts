@@ -151,6 +151,15 @@ function buildPlate(
   return items;
 }
 
+/** Cooking ingredients / condiments - never a standalone snack. */
+const NOT_A_SNACK = /\b(onion|garlic|ginger|chilli|chili|lemon|lime|salt|oil|masala|turmeric|coriander|curry leaf)\b/i;
+
+/** Light-slot portion: sized to the slot but never more than a realistic single serving (no 400 g of raw onion). */
+function lightGrams(food: FoodItem, kcalTarget: number): number {
+  const cap = Math.max(100, Math.min(MAX_GRAMS, food.typicalServingG * 2));
+  return Math.min(cap, gramsForKcal(food, kcalTarget));
+}
+
 function buildMeal(
   slot: MealSlot,
   eligible: FoodItem[],
@@ -171,7 +180,8 @@ function buildMeal(
 
   // Light slots: prefer genuinely light foods (fruit, buttermilk, nuts) over the top
   // protein-dense pick, and still avoid anything already eaten today.
-  const lightFirst = [...candidates].sort((a, b) => {
+  const snackable = candidates.filter((f) => !NOT_A_SNACK.test(f.name));
+  const lightFirst = [...(snackable.length ? snackable : candidates)].sort((a, b) => {
     const la = a.tags.some((t) => LIGHT_SLOT_TAGS.has(t)) ? 0 : 1;
     const lb = b.tags.some((t) => LIGHT_SLOT_TAGS.has(t)) ? 0 : 1;
     if (la !== lb) return la - lb;
@@ -214,7 +224,7 @@ export function buildSwapMeal(
 
   const pool = candidates.filter((f) => !avoid.has(f.id));
   const only = pickRotated(pool.length ? pool : candidates, slotSeed);
-  return meal(slot, only ? [toItem(only, gramsForKcal(only, kcalTarget))] : []);
+  return meal(slot, only ? [toItem(only, lightGrams(only, kcalTarget))] : []);
 }
 
 /** Scales a meal item's grams (and every nutrient, linearly) by `factor`, capped at MAX_GRAMS. */
@@ -378,6 +388,8 @@ export interface GenerateOptions {
   fastDayOfWeek?: number;
   /** Office/lifestyle eating pattern (spec Section 6), e.g. 'morning_night' → 3 front-loaded meals. */
   eatingPattern?: string;
+  /** Regeneration counter - shifts every food pick so Regenerate week gives a different plan. */
+  variant?: number;
 }
 
 /** Label a date relative to today: Yesterday / Today / Tomorrow / weekday name. */
@@ -440,7 +452,7 @@ export function generateWeekPlan(
       dt = new Date(options.startDate.getTime() + d * 86_400_000);
       fasting = options.fastDayOfWeek !== undefined && dt.getUTCDay() === options.fastDayOfWeek;
     }
-    const day = buildDay(d, ordered, targets, prefs.dietType, fasting, options.eatingPattern);
+    const day = buildDay(d + (options.variant ?? 0) * 5, ordered, targets, prefs.dietType, fasting, options.eatingPattern);
     if (dt) {
       day.date = dt.toISOString().slice(0, 10);
       const base = dayLabel(dt, options.today ?? options.startDate ?? dt);

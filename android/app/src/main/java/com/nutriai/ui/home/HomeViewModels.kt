@@ -384,7 +384,7 @@ class LogFoodViewModel @Inject constructor(
 
     fun logVisionItem(item: com.nutriai.data.remote.dto.VisionFoodItem) {
         viewModelScope.launch {
-            val r = repository.logNamed(_state.value.slot, item.name, item.per100g, item.grams, "photo")
+            val r = repository.logNamed(com.nutriai.util.MealSlot.now(), item.name, item.per100g, item.grams, "photo")
             if (r.isSuccess) {
                 _state.value = _state.value.copy(
                     message = "✓ Logged ${item.name}",
@@ -397,7 +397,7 @@ class LogFoodViewModel @Inject constructor(
 
     fun logRecent(recent: com.nutriai.data.remote.dto.RecentFood, grams: Double) {
         viewModelScope.launch {
-            val r = repository.logNamed(_state.value.slot, recent.name, recent.per100g, grams)
+            val r = repository.logNamed(com.nutriai.util.MealSlot.now(), recent.name, recent.per100g, grams)
             if (r.isSuccess) { _state.value = _state.value.copy(message = "✓ Logged ${recent.name}"); loadToday() }
         }
     }
@@ -408,7 +408,7 @@ class LogFoodViewModel @Inject constructor(
             fiberG = saved.fiberG, sugarG = saved.sugarG, sodiumMg = saved.sodiumMg,
         )
         viewModelScope.launch {
-            val r = repository.logNamed(_state.value.slot, saved.name, per, grams)
+            val r = repository.logNamed(com.nutriai.util.MealSlot.now(), saved.name, per, grams)
             if (r.isSuccess) { _state.value = _state.value.copy(message = "✓ Logged ${saved.name}"); loadToday() }
         }
     }
@@ -466,10 +466,10 @@ class LogFoodViewModel @Inject constructor(
     fun log(food: com.nutriai.data.remote.dto.FoodDto, gramsOverride: Double? = null) {
         val grams = gramsOverride ?: _state.value.grams.toDoubleOrNull() ?: food.typicalServingG
         viewModelScope.launch {
-            val r = repository.logFoodItem(_state.value.slot, food, grams)
+            val r = repository.logFoodItem(com.nutriai.util.MealSlot.now(), food, grams)
             _state.value = _state.value.copy(
                 message = if (r.isSuccess) {
-                    "✓ Logged ${grams.toInt()} g of ${food.name} to ${_state.value.slot}"
+                    "✓ Logged ${grams.toInt()} g of ${food.name} to ${com.nutriai.util.MealSlot.now()}"
                 } else {
                     r.exceptionOrNull()?.message ?: "Could not log"
                 },

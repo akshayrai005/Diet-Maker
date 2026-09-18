@@ -76,6 +76,12 @@ class HealthConnectManager @Inject constructor(
         return all
     }
 
+    /** Watch-written records only when any exist (user always wears a watch); otherwise everything. */
+    private fun preferWatch(records: List<StepsRecord>): List<StepsRecord> {
+        val watch = records.filter { it.metadata.device?.type == androidx.health.connect.client.records.metadata.Device.TYPE_WATCH }
+        return watch.ifEmpty { records }
+    }
+
     /**
      * Total steps today (device local day). When multiple sources report (e.g. phone + a synced
      * watch), takes the HIGHEST per-source total rather than Health Connect's merged total, so a
@@ -87,7 +93,7 @@ class HealthConnectManager @Inject constructor(
         return try {
             val zone = ZoneId.systemDefault()
             val start = LocalDate.now().atStartOfDay(zone).toInstant()
-            val records = readAllStepsRecords(client, start, Instant.now())
+            val records = preferWatch(readAllStepsRecords(client, start, Instant.now()))
             records.groupBy { it.metadata.dataOrigin.packageName }
                 .maxOfOrNull { (_, recs) -> recs.sumOf { it.count } } ?: 0L
         } catch (e: Exception) {
@@ -107,7 +113,7 @@ class HealthConnectManager @Inject constructor(
             val zone = ZoneId.systemDefault()
             val end = LocalDate.now().plusDays(1).atStartOfDay(zone).toInstant()
             val start = LocalDate.now().minusDays((days - 1).toLong()).atStartOfDay(zone).toInstant()
-            val records = readAllStepsRecords(client, start, end)
+            val records = preferWatch(readAllStepsRecords(client, start, end))
             records
                 .groupBy { it.startTime.atZone(zone).toLocalDate().toString() to it.metadata.dataOrigin.packageName }
                 .mapValues { (_, recs) -> recs.sumOf { it.count } }

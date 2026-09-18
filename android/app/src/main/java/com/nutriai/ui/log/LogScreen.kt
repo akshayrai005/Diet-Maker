@@ -101,17 +101,7 @@ import javax.inject.Inject
 
 private val Sharp = RoundedCornerShape(8.dp)
 
-private fun autoSlotByTime(): String {
-    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when {
-        hour < 10 -> "breakfast"
-        hour < 12 -> "midmorning"
-        hour < 15 -> "lunch"
-        hour < 18 -> "eveningsnack"
-        hour < 21 -> "dinner"
-        else -> "bedtime"
-    }
-}
+private fun autoSlotByTime(): String = com.nutriai.util.MealSlot.now()
 
 @Composable
 fun LogScreen(

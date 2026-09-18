@@ -179,7 +179,7 @@ class BarcodeViewModel @Inject constructor(
     fun logIt() {
         val food = _state.value.food ?: return
         val grams = _state.value.grams.toDoubleOrNull() ?: 100.0
-        val slot = _state.value.slot
+        val slot = com.nutriai.util.MealSlot.now()
         _state.value = _state.value.copy(loading = true, message = null)
         viewModelScope.launch {
             val r = repository.logBarcodeFood(slot, food, grams)
@@ -382,25 +382,6 @@ fun BarcodeScreen(
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    Text("🍽️ Meal Slot", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        viewModel.slots.forEach { s ->
-                            val emoji = slotEmojis[s] ?: "🍽️"
-                            FilterChip(
-                                selected = s == state.slot,
-                                onClick = { viewModel.onSlot(s) },
-                                label = { Text("$emoji $s") },
-                                shape = Sharp,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = NutritionColor,
-                                    selectedLabelColor = Color.White,
-                                ),
-                            )
-                        }
-                    }
 
                     PrimaryButton(
                         text = "Log it",

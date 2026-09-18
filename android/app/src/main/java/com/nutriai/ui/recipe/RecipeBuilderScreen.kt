@@ -308,7 +308,7 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
     var mode by remember { mutableStateOf("grams") } // "percent" | "grams"
     var percent by remember { mutableStateOf("50") }
     var grams by remember { mutableStateOf("") }
-    var slot by remember { mutableStateOf("lunch") }
+    var slot by remember { mutableStateOf(com.nutriai.util.MealSlot.now()) }
     val slots = listOf("breakfast", "midmorning", "lunch", "eveningsnack", "dinner", "bedtime")
     val slotEmojis = mapOf("breakfast" to "🍳", "midmorning" to "☕", "lunch" to "🍛", "eveningsnack" to "🍪", "dinner" to "🍝", "bedtime" to "🌙")
     val factor = if (recipe.totalGrams > 0) 100.0 / recipe.totalGrams else 0.0
@@ -374,24 +374,6 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = Spacing.xs),
                     )
-                }
-            }
-        }
-
-        Card(Modifier.fillMaxWidth(), shape = Sharp, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(2.dp)) {
-            Column(Modifier.padding(Spacing.md)) {
-                Text("Meal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(Spacing.sm))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    slots.forEach { s ->
-                        FilterChip(
-                            selected = slot == s,
-                            onClick = { slot = s },
-                            label = { Text("${slotEmojis[s]} ${s.take(4)}", style = MaterialTheme.typography.labelSmall) },
-                            shape = Sharp,
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NutritionColor, selectedLabelColor = Color.White),
-                        )
-                    }
                 }
             }
         }

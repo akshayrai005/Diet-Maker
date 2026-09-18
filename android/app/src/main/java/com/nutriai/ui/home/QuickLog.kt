@@ -80,17 +80,7 @@ class QuickLogViewModel @Inject constructor(private val repository: AppRepositor
     val combos: List<QuickCombo> = COMBOS
 
     /** The meal slot that fits the current time of day, matching the app's slot vocabulary. */
-    fun currentSlot(): String {
-        val minutes = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
-        return when {
-            minutes < 10 * 60 + 30 -> "breakfast"
-            minutes < 12 * 60 -> "midmorning"
-            minutes < 16 * 60 -> "lunch"
-            minutes < 18 * 60 + 30 -> "eveningsnack"
-            minutes < 22 * 60 -> "dinner"
-            else -> "bedtime"
-        }
-    }
+    fun currentSlot(): String = com.nutriai.util.MealSlot.now()
 
     fun loadRecents() {
         viewModelScope.launch {

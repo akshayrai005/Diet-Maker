@@ -553,13 +553,21 @@ fun OnboardingScreen(
             // ---- About you ----
             run {
                     // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
-                    BorderedGroup("Your body type", "🧍", accent = STEP_COLORS[0]) {
-                        com.nutriai.ui.bodytype.BodyTypeInlinePicker(
-                            currentId = bodyTypeCurrent,
-                            goalId = bodyTypeGoal,
-                            onCurrent = { bodyTypeCurrent = it },
-                            onGoal = { bodyTypeGoal = it },
-                        )
+                    BorderedGroup("Where are you now?", "📍", accent = STEP_COLORS[0]) {
+                        TickDropdown(
+                            label = "Current body type",
+                            options = com.nutriai.ui.bodytype.CURRENT_TYPES.map { it.id as String? to "${it.emoji} ${it.label}" },
+                            selected = bodyTypeCurrent,
+                            descriptions = com.nutriai.ui.bodytype.CURRENT_TYPES.associate { it.id as String? to it.desc },
+                        ) { bodyTypeCurrent = it }
+                    }
+                    BorderedGroup("Where do you want to be?", "🎯", accent = STEP_COLORS[0]) {
+                        TickDropdown(
+                            label = "Goal body type",
+                            options = com.nutriai.ui.bodytype.GOAL_TYPES.map { it.id as String? to "${it.emoji} ${it.label}" },
+                            selected = bodyTypeGoal,
+                            descriptions = com.nutriai.ui.bodytype.GOAL_TYPES.associate { it.id as String? to it.desc },
+                        ) { bodyTypeGoal = it }
                     }
                     BorderedGroup("Measurements - where you are now", "📏", accent = STEP_COLORS[0]) {
                         RowDivided(
@@ -839,7 +847,7 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
 /** Border colors shared by every field box - explicit feedback: "not getting proper border of
  * each boxes inside the card" (Material3's default unfocused border is too faint to read). */
 @Composable
-private fun fieldBorderColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+internal fun fieldBorderColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
     unfocusedBorderColor = Color(0xFF5C6B7A),
     focusedBorderColor = BrandGreen,
     unfocusedLabelColor = Color(0xFF5C6B7A),
@@ -881,7 +889,14 @@ private fun <T> Dropdown(label: String, options: List<Pair<T, String>>, selected
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (value, disp) ->
-                DropdownMenuItem(text = { Text(disp) }, onClick = { onSelect(value); expanded = false })
+                val isSel = value == selected
+                DropdownMenuItem(
+                    text = { Text(disp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                    leadingIcon = if (isSel) {
+                        { androidx.compose.material3.Icon(Icons.Filled.Check, contentDescription = "Selected", tint = BrandGreen) }
+                    } else null,
+                    onClick = { onSelect(value); expanded = false },
+                )
             }
         }
     }
@@ -916,7 +931,7 @@ private fun MultiChoiceChips(options: List<String>, selected: MutableList<String
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> TickDropdown(
+internal fun <T> TickDropdown(
     label: String,
     options: List<Pair<T, String>>,
     selected: T,

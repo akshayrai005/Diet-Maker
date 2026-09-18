@@ -107,7 +107,11 @@ export async function generateAndSavePlan(
   }
 
   // Sunday-to-Saturday week in the user's timezone (falls back to UTC when offset is 0).
+  // Every generation bumps this, so "Regenerate week" picks different foods instead of
+  // reproducing the identical (deterministic) plan.
+  const variant = await prisma.dietPlan.count({ where: { userId } });
   const week = generateWeekPlan(foods.map(toFoodItem), targets, prefs, {
+    variant,
     days,
     startDate: localSunday(tzOffsetMin),
     today: localToday(tzOffsetMin),
