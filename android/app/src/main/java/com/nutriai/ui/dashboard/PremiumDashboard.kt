@@ -422,14 +422,19 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
     val target = cal.target?.toInt() ?: 0
     val bodyNeed = maintenanceKcal?.toInt() ?: target
     val burned = stepsKcal + exerciseKcal
-    val totalBudget = bodyNeed + burned
+    // Body Need already includes activity (the server raises the activity level from real steps + logged
+    // workouts), so "Burned" is shown for information and NOT added again - adding it double-counted and
+    // produced impossible budgets (e.g. 3,215 + 1,029 = 4,244 kcal for a 74 kg person).
+    val totalBudget = bodyNeed
     val remaining = if (hasTarget) (target - consumed).coerceAtLeast(0) else 0
     // Body Need (TDEE) is an activity-level AVERAGE, not a per-day number - a day that clearly
     // exceeds that average (e.g. a big step day) genuinely burns more than the average assumes,
     // so today's logged burn is added back on top before computing the deficit. This can overlap
     // with the averaged-in activity on a totally typical day, but undercounting a real high-effort
     // day is the worse failure mode.
-    val deficit = totalBudget - target
+    // Real energy balance: what the body needs today minus what was actually eaten. (It used to subtract
+    // the TARGET, which ignored food entirely - at 0 kcal eaten it still showed a big "deficit".)
+    val deficit = totalBudget - consumed
     val pct = if (hasTarget) (cal.consumed / cal.target!!).coerceIn(0.0, 1.5).toFloat() else 0f
 
     Card(

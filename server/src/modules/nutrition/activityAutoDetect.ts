@@ -34,7 +34,8 @@ const TIER_ORDER: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'active',
 
 /** Session-frequency -> inferred tier. Deliberately conservative: only frequency-based, no guessing at intensity. */
 function tierFromSessionsPerWeek(sessionsPerWeek: number): ActivityLevel {
-  if (sessionsPerWeek >= 6) return 'veryactive';
+  // Gym sessions alone never justify 'veryactive' (x1.9 = a physical-labour job or two-a-day athletes):
+  // an hour of training a day on an otherwise sedentary day is 'active' (x1.725) at most.
   if (sessionsPerWeek >= 4) return 'active';
   if (sessionsPerWeek >= 2) return 'moderate';
   if (sessionsPerWeek >= 1) return 'light';

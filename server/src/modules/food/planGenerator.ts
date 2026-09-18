@@ -106,6 +106,7 @@ const LIGHT_SLOT_TAGS = new Set([
  * (already eaten today, or the dish being swapped out). Shared by generation and swap.
  */
 function buildPlate(
+  slot: MealSlot,
   candidates: FoodItem[],
   eligible: FoodItem[],
   slotKcal: number,
@@ -129,7 +130,8 @@ function buildPlate(
   // itself has none (so a plate always gets a base + a dal).
   const pickGroup = (pred: (f: FoodItem) => boolean) => {
     const inSlot = candidates.filter(pred);
-    return inSlot.length ? inSlot : eligible.filter(pred);
+    // Only lunch/dinner may borrow from the whole pool. Breakfast must never pull in a dinner curry.
+    return inSlot.length ? inSlot : slot === 'breakfast' ? [] : eligible.filter(pred);
   };
   const nonGrain = (list: FoodItem[]) => list.filter((f) => !isGrain(f));
   const grains = pickGroup(isGrain);
@@ -174,7 +176,7 @@ function buildMeal(
 
   // Main meals = a proper Indian plate. Light slots stay a single, genuinely light item.
   if (MAIN_SLOTS.includes(slot) && candidates.length > 1) {
-    const items = buildPlate(candidates, eligible, slotKcal, slotSeed, (f) => usedToday.has(f.id));
+    const items = buildPlate(slot, candidates, eligible, slotKcal, slotSeed, (f) => usedToday.has(f.id));
     items.forEach((i) => usedToday.add(i.foodId));
     return meal(slot, items);
   }
@@ -219,7 +221,7 @@ export function buildSwapMeal(
   // Main meals get a proper plate (staple + dal/protein + veg), avoiding the swapped-out foods
   // so the dish actually changes - and never producing two grains.
   if (MAIN_SLOTS.includes(slot) && candidates.length > 1) {
-    const items = buildPlate(candidates, eligible, kcalTarget, slotSeed, (f) => avoid.has(f.id));
+    const items = buildPlate(slot, candidates, eligible, kcalTarget, slotSeed, (f) => avoid.has(f.id));
     return meal(slot, items);
   }
 
