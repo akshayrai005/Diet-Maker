@@ -294,6 +294,35 @@ function bucketsForFocus(focus: string): string[] {
   return [...b];
 }
 
+/**
+ * Beginner safety: swap technically demanding / loaded-bodyweight lifts for the same movement pattern
+ * in a machine or unweighted form (weighted pull-ups need real pulling strength; heavy conventional
+ * deadlifts and weighted dips are a common injury route for a first-month lifter). De-duplicates by
+ * name so a swap never doubles up an exercise already on the day.
+ */
+const BEGINNER_SWAPS: Record<string, string> = {
+  'weighted pull-ups': 'Lat pulldown',
+  'pull-ups (weighted)': 'Lat pulldown',
+  'weighted dips': 'Bench dips',
+  'chest dips': 'Machine chest press',
+  'deadlift': 'Romanian deadlift',
+  'rack pulls': 'Romanian deadlift',
+  'barbell shrugs': 'Dumbbell shrugs',
+};
+function beginnerSafe(items: ExerciseItem[]): ExerciseItem[] {
+  const seen = new Set<string>();
+  const out: ExerciseItem[] = [];
+  for (const ex of items) {
+    const swapped = BEGINNER_SWAPS[ex.name.toLowerCase()];
+    const next = swapped ? { ...ex, name: swapped } : ex;
+    const key = next.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(next);
+  }
+  return out;
+}
+
 /** Pad a day's main exercises up to `target`, drawing from the focus's muscle buckets. PURE. */
 function padMain(focus: string, items: ExerciseItem[], target: number): ExerciseItem[] {
   if (items.length >= target) return items;
@@ -504,7 +533,7 @@ function applyScaling(
     // Pad a SHORT day's main block up so there's enough to choose from before enrichDays applies
     // the level's total working-exercise budget (main + core + cardio - see LEVEL_TOTAL_WORKING).
     const padded = padMain(day.focus, withFavorites, TARGET_MAIN_EXERCISES);
-    const items = padded.map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
+    const items = (level === 'beginner' ? beginnerSafe(padded) : padded).map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
 
     return { ...day, exercises: items };
   });

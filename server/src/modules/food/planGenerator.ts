@@ -188,6 +188,11 @@ function buildMeal(
     const la = a.tags.some((t) => LIGHT_SLOT_TAGS.has(t)) ? 0 : 1;
     const lb = b.tags.some((t) => LIGHT_SLOT_TAGS.has(t)) ? 0 : 1;
     if (la !== lb) return la - lb;
+    // Fat-dense foods (nuts, seeds, ghee-heavy) go last: they blow the day's fat target far past the
+    // dashboard's (e.g. 87 g planned vs 58 g target from one 120 g peanut snack).
+    const fa = a.fatG > 25 ? 1 : 0;
+    const fb = b.fatG > 25 ? 1 : 0;
+    if (fa !== fb) return fa - fb;
     return a.kcal - b.kcal;
   });
   const only = pickRotated(
