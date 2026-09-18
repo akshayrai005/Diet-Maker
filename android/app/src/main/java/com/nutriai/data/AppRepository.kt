@@ -90,6 +90,35 @@ class AppRepository @Inject constructor(
         ).getOrThrow()
     }
 
+    /**
+     * Pushes a changed body-type / physique-goal selection to the server. Real bug fixed here:
+     * the standalone "Body type" screen used to save ONLY to local on-device prefs
+     * (BodyTypePrefs) - it never reached the server at all, so `physiqueGoal` (which the calorie
+     * engine actually reads to decide cut/lean_bulk/recomp/maintain) never changed, and neither
+     * did bodyTypeCurrent/bodyTypeGoal even though they round-trip through the profile. A user
+     * changing their goal here saw the exact same target as before because nothing was ever sent.
+     * Reuses saveProfile so the target/macros/plan regenerate immediately, same as every other
+     * profile field.
+     */
+    suspend fun updateBodyType(bodyTypeCurrent: String?, bodyTypeGoal: String?, physiqueGoal: String?): Result<Unit> = runCatching {
+        val p = api.getProfile().profile ?: return@runCatching
+        val s = p.sensitive ?: return@runCatching // incomplete profile - keep local only
+        saveProfile(
+            ProfileUpsertRequest(
+                heightCm = p.heightCm,
+                activityLevel = p.activityLevel,
+                goal = p.goal,
+                dietType = p.dietType,
+                reducedMobility = p.reducedMobility,
+                sensitive = s.copy(
+                    bodyTypeCurrent = bodyTypeCurrent ?: s.bodyTypeCurrent,
+                    bodyTypeGoal = bodyTypeGoal ?: s.bodyTypeGoal,
+                    physiqueGoal = physiqueGoal ?: s.physiqueGoal,
+                ),
+            ),
+        ).getOrThrow()
+    }
+
     suspend fun latestCalc(): Result<CalcResult?> = runCatching { api.latestCalc().result }
 
     /** Safe-pace preview for reaching [targetWeightKg] in [weeks] (server uses stored current weight). */

@@ -182,6 +182,10 @@ data class MoveState(
     val todayLoggedNames: Set<String> = emptySet(),
     /** Exercise names the user has starred into "My Gym" for quick-access logging. */
     val gymFavoriteNames: Set<String> = emptySet(),
+    /** Local date (yyyy-MM-dd) the plan was last loaded for - lets [MoveViewModel.refreshIfNewDay]
+     * detect a day boundary crossed while the app sat in the background, instead of silently
+     * showing yesterday's "Today" plan until the process is killed and relaunched. */
+    val loadedDayKey: String? = null,
 )
 
 @HiltViewModel
@@ -191,13 +195,25 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
 
     init { load() }
 
+    /** Re-fetches the plan only if the local date has moved on since it was last loaded - called
+     * on every screen resume so leaving the app open overnight doesn't strand "Today" on
+     * yesterday. Cheap no-op the rest of the time (same day = no network call). */
+    fun refreshIfNewDay() {
+        val today = java.time.LocalDate.now().toString()
+        if (_state.value.loadedDayKey != today) load()
+    }
+
     fun load() {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
             val r = repository.exercisePlanFull()
             _state.value = if (r.isSuccess) {
                 val env = r.getOrNull()
-                _state.value.copy(loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion, movementStage = env?.movementStage, splitSuggestion = env?.splitSuggestion, error = null)
+                _state.value.copy(
+                    loading = false, plan = env?.plan, levelSuggestion = env?.levelSuggestion,
+                    movementStage = env?.movementStage, splitSuggestion = env?.splitSuggestion, error = null,
+                    loadedDayKey = java.time.LocalDate.now().toString(),
+                )
             } else {
                 _state.value.copy(loading = false, error = "Generate a plan first (Diet tab)")
             }
@@ -264,11 +280,14 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         )
     }
 
-    fun logEntry(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?, durationMin: Int?) {
+    fun logEntry(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?, durationMin: Int?, performedAtDate: String? = null) {
         viewModelScope.launch {
             val sessionId = ensureSession()
             val r = repository.logExercise(
-                ExerciseLogRequest(exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets, durationMin = durationMin, sessionId = sessionId),
+                ExerciseLogRequest(
+                    exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets,
+                    durationMin = durationMin, sessionId = sessionId, performedAt = performedAtDate?.let { "${it}T12:00:00" },
+                ),
             )
             if (r.isSuccess) {
                 val kcal = r.getOrNull()?.kcal ?: 0
@@ -292,7 +311,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         }
     }
 
-    fun logSets(name: String, focus: String?, sets: List<LoggedSet>) {
+    fun logSets(name: String, focus: String?, sets: List<LoggedSet>, performedAtDate: String? = null) {
         if (sets.isEmpty()) return
         viewModelScope.launch {
             val sessionId = ensureSession()
@@ -309,6 +328,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                         durationMin = s.durationMin,
                         notes = s.note,
                         sessionId = sessionId,
+                        performedAt = performedAtDate?.let { "${it}T12:00:00" },
                         speedKmh = s.speedKmh,
                         inclinePct = s.inclinePct,
                         distanceKm = s.distanceKm,
@@ -354,6 +374,13 @@ internal fun estimateMinutes(reps: String, fallback: Int): Int {
 @Composable
 private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel = hiltViewModel(), planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Catches the case where the app sat open/backgrounded across midnight - without this,
+    // "Today" silently keeps showing whatever day it was when the ViewModel first loaded, since
+    // a still-alive process never re-triggers init{}. Cheap: no-op unless the date actually moved.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshIfNewDay()
+        onPauseOrDispose {}
+    }
     val plan = state.plan
     // Prefix match, not equality: a period day relabels to "Today · Period" (still today).
     val today = plan?.days?.firstOrNull { it.label?.startsWith("Today") == true } ?: plan?.days?.firstOrNull { !it.rest }
@@ -368,7 +395,11 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             exercise = ex,
             onDismiss = { logTarget = null },
             onConfirm = { sets ->
-                viewModel.logSets(ex.name, shownDay?.focus, sets)
+                // Logs against the day actually selected in the week strip (e.g. tapping back to
+                // Thursday to record a workout done that day), not always "right now" - previously
+                // every log silently got today's real timestamp regardless of which day was shown,
+                // corrupting history for anyone training on a different day than the plan expected.
+                viewModel.logSets(ex.name, shownDay?.focus, sets, performedAtDate = shownDay?.date)
                 logTarget = null
             },
             onPlanTomorrow = { name ->

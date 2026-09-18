@@ -1,6 +1,5 @@
 package com.nutriai.ui.bodytype
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,13 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.nutriai.data.AppRepository
 import com.nutriai.ui.theme.BrandAmber
 import com.nutriai.ui.theme.BrandGreen
 import com.nutriai.ui.theme.KaizenBlue
@@ -46,14 +43,11 @@ import com.nutriai.ui.theme.MovementColor
 import com.nutriai.ui.theme.NutritionColor
 import com.nutriai.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import javax.inject.Singleton
 
 // ---------------------------------------------------------------------------
 // Body-type model (spec Section 4). Silhouettes are drawn on a Canvas (no image
@@ -102,33 +96,60 @@ fun strategyFor(current: String?, goal: String?): Strategy = when {
     else -> Strategy("~1,900 kcal", "2 g/kg", "Body recomposition", "8–14 months")
 }
 
-// ---------------------------------------------------------------------------
-// Prefs + ViewModel (stored on-device).
-// ---------------------------------------------------------------------------
+/** Recomp / lean-bulk / cut / maintain - the field the calorie engine actually reads. */
+val PHYSIQUE_GOALS: List<Triple<String, String, String>> = listOf(
+    Triple("recomp", "🔄 Recomp", "Build muscle and lose fat at the same time (maintenance calories, high protein)."),
+    Triple("lean_bulk", "📈 Lean bulk", "Gain muscle slowly with a slight calorie surplus."),
+    Triple("cut", "📉 Cut", "Lose fat while keeping muscle (a safe calorie deficit)."),
+    Triple("maintain", "⚖️ Maintain", "Keep your current physique."),
+)
 
-private val Context.bodyTypeStore by preferencesDataStore(name = "bodytype")
+data class BodyTypeState(
+    val current: String? = null,
+    val goal: String? = null,
+    val physiqueGoal: String? = null,
+    val loading: Boolean = true,
+    val saving: Boolean = false,
+    val savedJustNow: Boolean = false,
+)
 
-@Singleton
-class BodyTypePrefs @Inject constructor(@ApplicationContext private val context: Context) {
-    private val currentKey = stringPreferencesKey("current_type")
-    private val goalKey = stringPreferencesKey("goal_type")
-    suspend fun current(): String? = context.bodyTypeStore.data.first()[currentKey]
-    suspend fun goal(): String? = context.bodyTypeStore.data.first()[goalKey]
-    suspend fun setCurrent(id: String) { context.bodyTypeStore.edit { it[currentKey] = id } }
-    suspend fun setGoal(id: String) { context.bodyTypeStore.edit { it[goalKey] = id } }
-}
-
-data class BodyTypeState(val current: String? = null, val goal: String? = null)
-
+/**
+ * Real bug fixed here: this screen used to save current/goal body type ONLY to on-device
+ * DataStore prefs - never reached the server, so it was purely decorative. A user changing their
+ * goal here (reasonably expecting it to affect their calorie target, since that's what "goal"
+ * means everywhere else in the app) saw the exact same numbers as before, because nothing was
+ * ever sent. Now backed by the real profile: bodyTypeCurrent/bodyTypeGoal round-trip for
+ * consistency, and the new Physique Goal picker writes `physiqueGoal` - the field
+ * computeAndSaveForUser() actually reads - so changing it here genuinely recalculates the target,
+ * same as every other profile-editing surface in the app.
+ */
 @HiltViewModel
-class BodyTypeViewModel @Inject constructor(private val prefs: BodyTypePrefs) : ViewModel() {
+class BodyTypeViewModel @Inject constructor(private val repository: AppRepository) : ViewModel() {
     private val _state = MutableStateFlow(BodyTypeState())
     val state: StateFlow<BodyTypeState> = _state.asStateFlow()
 
-    init { viewModelScope.launch { _state.value = BodyTypeState(prefs.current(), prefs.goal()) } }
+    init {
+        viewModelScope.launch {
+            val p = repository.getProfile().getOrNull()
+            val s = p?.sensitive
+            _state.value = BodyTypeState(
+                current = s?.bodyTypeCurrent, goal = s?.bodyTypeGoal, physiqueGoal = s?.physiqueGoal, loading = false,
+            )
+        }
+    }
 
-    fun selectCurrent(id: String) { _state.value = _state.value.copy(current = id); viewModelScope.launch { prefs.setCurrent(id) } }
-    fun selectGoal(id: String) { _state.value = _state.value.copy(goal = id); viewModelScope.launch { prefs.setGoal(id) } }
+    private fun persist() {
+        val st = _state.value
+        _state.value = st.copy(saving = true, savedJustNow = false)
+        viewModelScope.launch {
+            val ok = repository.updateBodyType(st.current, st.goal, st.physiqueGoal).isSuccess
+            _state.value = _state.value.copy(saving = false, savedJustNow = ok)
+        }
+    }
+
+    fun selectCurrent(id: String) { _state.value = _state.value.copy(current = id); persist() }
+    fun selectGoal(id: String) { _state.value = _state.value.copy(goal = id); persist() }
+    fun selectPhysiqueGoal(id: String) { _state.value = _state.value.copy(physiqueGoal = id); persist() }
 }
 
 // ---------------------------------------------------------------------------
@@ -216,7 +237,7 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
                         }
                         Spacer(Modifier.height(Spacing.xs))
                         Text(
-                            "Estimates — your actual targets come from your full profile & goal.",
+                            "A rough illustration of the current->goal journey - not your real numbers. Set Physique Goal below for that.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -225,11 +246,59 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
             }
         }
 
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("🎯 Physique Goal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                when {
+                    state.saving -> Text("Saving…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    state.savedJustNow -> Text("✓ Saved - target updated", style = MaterialTheme.typography.labelSmall, color = BrandGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        item {
+            Text(
+                "This is what actually drives your calorie/protein target and plan - not the illustration above.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        item { PhysiqueGoalGrid(state.physiqueGoal) { viewModel.selectPhysiqueGoal(it) } }
+
         item { Text("🏋️ Current Body Type", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         item { PhysiqueGrid(CURRENT_TYPES, state.current) { viewModel.selectCurrent(it) } }
 
         item { Text("🎯 Goal Body Type", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
         item { PhysiqueGrid(GOAL_TYPES, state.goal) { viewModel.selectGoal(it) } }
+    }
+}
+
+@Composable
+private fun PhysiqueGoalGrid(selectedId: String?, onSelect: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        PHYSIQUE_GOALS.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                row.forEach { (id, label, desc) ->
+                    val selected = selectedId == id
+                    Card(
+                        Modifier.weight(1f).clip(Sharp).clickable { onSelect(id) },
+                        shape = Sharp,
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(2.dp),
+                    ) {
+                        Box {
+                            if (selected) {
+                                Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))))
+                            }
+                            Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
+                                Text(desc, style = MaterialTheme.typography.labelSmall, color = if (selected) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                if (row.size == 1) Box(Modifier.weight(1f))
+            }
+        }
     }
 }
 
