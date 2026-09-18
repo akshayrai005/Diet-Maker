@@ -1,3 +1,4 @@
+import { computeAndSaveForUser } from '../nutrition/calc.service';
 import { prisma } from '../../lib/prisma';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import type { FoodItem, MealSlot } from '../food/food.types';
@@ -87,7 +88,8 @@ export async function clearChatHistory(userId: string): Promise<void> {
 
 export async function chat(userId: string, message: string, firstName?: string, offsetMin = 0): Promise<ChatReply> {
   const [snapshot, profile, foods, historyRows, coach] = await Promise.all([
-    prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+    // Fresh calc (same source as the dashboard), not the last saved snapshot - which goes stale after a profile change and made the coach quote a different kcal target.
+    computeAndSaveForUser(userId).then((r) => ({ result: r })).catch(() => prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } })),
     prisma.profile.findUnique({ where: { userId } }),
     prisma.food.findMany(),
     prisma.chatMessage.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 10 }),

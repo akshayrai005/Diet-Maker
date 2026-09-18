@@ -1,3 +1,4 @@
+import { computeAndSaveForUser } from '../nutrition/calc.service';
 import { prisma } from '../../lib/prisma';
 import { decryptJson } from '../../lib/crypto';
 import { dayKey, type WeightPoint } from '../logging/dashboard';
@@ -10,7 +11,7 @@ export async function getAdaptation(userId: string, now: Date = new Date()): Pro
   const since = new Date(now.getTime() - WINDOW_DAYS * 86_400_000);
 
   const [snapshot, profile, logs, checkins] = await Promise.all([
-    prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+    computeAndSaveForUser(userId).then((r) => ({ result: r })).catch(() => prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } })),
     prisma.profile.findUnique({ where: { userId } }),
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { loggedAt: true, kcal: true } }),
     prisma.weeklyCheckin.findMany({ where: { userId }, orderBy: { date: 'asc' } }),
