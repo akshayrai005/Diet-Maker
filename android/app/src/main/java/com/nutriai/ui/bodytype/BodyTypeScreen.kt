@@ -74,6 +74,7 @@ val CURRENT_TYPES = listOf(
     Physique("average", "📊", "Average", "Moderate build", shoulder = 0.42f, waist = 0.36f, hip = 0.38f),
     Physique("overweight", "⚖️", "Overweight", "Visible excess fat", shoulder = 0.46f, waist = 0.52f, hip = 0.48f),
     Physique("athletic", "💪", "Athletic", "Muscular, low fat", shoulder = 0.52f, waist = 0.32f, hip = 0.36f, muscular = true),
+    Physique("heavy", "🐻", "Heavy build", "Big frame, carrying extra weight", shoulder = 0.50f, waist = 0.50f, hip = 0.46f),
 )
 
 val GOAL_TYPES = listOf(
@@ -81,6 +82,8 @@ val GOAL_TYPES = listOf(
     Physique("vshape", "⚡", "Athletic V-shape", "Broad shoulders, defined abs", shoulder = 0.54f, waist = 0.30f, hip = 0.35f, muscular = true),
     Physique("bodybuilder", "🏆", "Muscular", "Maximum muscle mass", shoulder = 0.60f, waist = 0.36f, hip = 0.40f, muscular = true),
     Physique("endurance", "🏃", "Lean / endurance", "Lean, high stamina", shoulder = 0.40f, waist = 0.28f, hip = 0.32f),
+    Physique("strong", "🏋️", "Strong & solid", "Strength with size", shoulder = 0.56f, waist = 0.38f, hip = 0.42f, muscular = true),
+    Physique("slim", "🌿", "Slim & fit", "Light, slim, healthy", shoulder = 0.38f, waist = 0.26f, hip = 0.30f),
 )
 
 /** Auto strategy for a current->goal combination (spec Section 4 table). */
@@ -332,13 +335,31 @@ fun BodyTypeInlinePicker(
 
 @Composable
 private fun PhysiqueGrid(types: List<Physique>, selectedId: String?, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        types.chunked(2).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                row.forEach { p -> PhysiqueCard(p, selectedId == p.id, Modifier.weight(1f)) { onSelect(p.id) } }
-                if (row.size == 1) Box(Modifier.weight(1f))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        types.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { p -> PhysiqueTile(p, selectedId == p.id, Modifier.weight(1f)) { onSelect(p.id) } }
+                repeat(3 - row.size) { Box(Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+/** Small dashboard-style tile: emoji + label, tinted; filled brand colour when selected. */
+@Composable
+private fun PhysiqueTile(p: Physique, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
+    Column(
+        modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(p.emoji, fontSize = 20.sp)
+        Text(p.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = fg, textAlign = TextAlign.Center, maxLines = 2)
     }
 }
 

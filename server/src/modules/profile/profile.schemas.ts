@@ -78,8 +78,8 @@ export const sensitiveSchema = z.object({
     .enum(['home', 'office_canteen', 'office_no_canteen', 'field', 'night_shift', 'morning_night', 'omad', 'religious_fasting'])
     .optional(),
   /** Visual body-type selector (spec Section 4): where the user is now and their goal shape. */
-  bodyTypeCurrent: z.enum(['skinny', 'skinnyfat', 'average', 'overweight', 'athletic']).optional(),
-  bodyTypeGoal: z.enum(['lean', 'vshape', 'bodybuilder', 'endurance']).optional(),
+  bodyTypeCurrent: z.enum(['skinny', 'skinnyfat', 'average', 'overweight', 'athletic', 'heavy']).optional(),
+  bodyTypeGoal: z.enum(['lean', 'vshape', 'bodybuilder', 'endurance', 'strong', 'slim']).optional(),
   /** Gym membership (spec Section 5): join date + duration → drives the progressive-overload phase. */
   gymJoinDate: z.string().date().optional(),
   gymMembershipMonths: z.number().int().min(1).max(24).optional(),
