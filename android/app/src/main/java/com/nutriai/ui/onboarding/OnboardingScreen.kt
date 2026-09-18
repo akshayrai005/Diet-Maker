@@ -553,21 +553,13 @@ fun OnboardingScreen(
             // ---- About you ----
             run {
                     // Visual body-type selector (spec Section 4) - shape now → shape you're working toward.
-                    BorderedGroup("Where are you now?", "📍", accent = STEP_COLORS[0]) {
-                        TickDropdown(
-                            label = "Current body type",
-                            options = com.nutriai.ui.bodytype.CURRENT_TYPES.map { it.id as String? to "${it.emoji} ${it.label}" },
-                            selected = bodyTypeCurrent,
-                            descriptions = com.nutriai.ui.bodytype.CURRENT_TYPES.associate { it.id as String? to it.desc },
-                        ) { bodyTypeCurrent = it }
-                    }
-                    BorderedGroup("Where do you want to be?", "🎯", accent = STEP_COLORS[0]) {
-                        TickDropdown(
-                            label = "Goal body type",
-                            options = com.nutriai.ui.bodytype.GOAL_TYPES.map { it.id as String? to "${it.emoji} ${it.label}" },
-                            selected = bodyTypeGoal,
-                            descriptions = com.nutriai.ui.bodytype.GOAL_TYPES.associate { it.id as String? to it.desc },
-                        ) { bodyTypeGoal = it }
+                    BorderedGroup("Your body type", "🧍", accent = STEP_COLORS[0]) {
+                        com.nutriai.ui.bodytype.BodyTypeInlinePicker(
+                            currentId = bodyTypeCurrent,
+                            goalId = bodyTypeGoal,
+                            onCurrent = { bodyTypeCurrent = it },
+                            onGoal = { bodyTypeGoal = it },
+                        )
                     }
                     BorderedGroup("Measurements - where you are now", "📏", accent = STEP_COLORS[0]) {
                         RowDivided(
@@ -614,7 +606,7 @@ fun OnboardingScreen(
                     }
 
                     BorderedGroup("Timeframe", "⏰", accent = STEP_COLORS[1]) {
-                        TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
+                        TickDropdown("Reach target in", TIMEFRAMES.map { (m, l) -> monthsToWeeks(m) as Int? to l }, timeframeWeeks) { timeframeWeeks = it }
                         if (state.timeline != null) {
                             TimelinePreviewCard(state.timeline!!)
                         }
@@ -693,10 +685,10 @@ fun OnboardingScreen(
             run {
                     BorderedGroup("Health Conditions", "🏥", accent = STEP_COLORS[3]) {
                         Label("Conditions (optional)")
-                        MultiChoiceChips(CONDITIONS, conditions)
+                        MultiTickDropdown("Conditions", CONDITIONS, conditions)
                     }
                     BorderedGroup("Family History", "👨‍👩‍👧‍👦", accent = STEP_COLORS[3]) {
-                        MultiChoiceChips(FAMILY_HISTORY, familyHistory)
+                        MultiTickDropdown("Family history", FAMILY_HISTORY, familyHistory)
                         Text(
                             "Runs in your close family?",
                             style = MaterialTheme.typography.labelSmall,
@@ -735,7 +727,7 @@ fun OnboardingScreen(
                     }
 
                     BorderedGroup("Priority Muscles", "💪", accent = STEP_COLORS[3]) {
-                        PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
+                        MultiTickDropdown("Priority muscles", PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                         Text(
                             "Pick any for extra focus.",
                             style = MaterialTheme.typography.labelSmall,
@@ -904,22 +896,34 @@ private fun <T> Dropdown(label: String, options: List<Pair<T, String>>, selected
 
 private val chipBorderColor = Color(0xFF5C6B7A)
 
-@OptIn(ExperimentalLayoutApi::class)
+
+/** Multi-select dropdown with a tick beside each chosen option; menu stays open while ticking. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MultiChoiceChips(options: List<String>, selected: MutableList<String>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { opt ->
-            val isSel = selected.contains(opt)
-            FilterChip(
-                selected = isSel,
-                onClick = { if (isSel) selected.remove(opt) else selected.add(opt) },
-                label = { Text(opt.replace('_', ' ')) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = KaizenCoral,
-                    selectedLabelColor = Color.White,
-                ),
-                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
-            )
+private fun MultiTickDropdown(label: String, options: List<String>, selected: MutableList<String>, max: Int = Int.MAX_VALUE) {
+    var expanded by remember { mutableStateOf(false) }
+    val summary = if (selected.isEmpty()) "None" else selected.joinToString(", ") { it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() } }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = summary,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = fieldBorderColors(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { opt ->
+                val isSel = selected.contains(opt)
+                DropdownMenuItem(
+                    text = { Text(opt.replace('_', ' ').replaceFirstChar { it.uppercase() }, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                    leadingIcon = if (isSel) {
+                        { androidx.compose.material3.Icon(Icons.Filled.Check, contentDescription = "Selected", tint = BrandGreen) }
+                    } else null,
+                    onClick = { if (isSel) selected.remove(opt) else if (selected.size < max) selected.add(opt) },
+                )
+            }
         }
     }
 }
@@ -972,59 +976,7 @@ internal fun <T> TickDropdown(
     }
 }
 
-/** Multi-select muscle chips capped at [max]; chips past the cap are disabled until one is freed. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PriorityMusclesChips(options: List<String>, selected: MutableList<String>, max: Int) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { opt ->
-            val isSel = selected.contains(opt)
-            val atLimit = selected.size >= max
-            val display = opt.replaceFirstChar { it.uppercase() }
-            FilterChip(
-                selected = isSel,
-                enabled = isSel || !atLimit,
-                onClick = { if (isSel) selected.remove(opt) else if (!atLimit) selected.add(opt) },
-                label = { Text(display) },
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = if (isSel) "$display, selected" else display },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MovementColor,
-                    selectedLabelColor = Color.White,
-                ),
-                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
-            )
-        }
-    }
-}
 
-/** Single-select timeframe chips (1/2/3/6/12 months). Emits the chosen months converted to weeks. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TimeframeChips(selectedWeeks: Int?, onSelect: (Int) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TIMEFRAMES.forEach { (months, label) ->
-            val weeks = monthsToWeeks(months)
-            val isSel = selectedWeeks == weeks
-            FilterChip(
-                selected = isSel,
-                onClick = { onSelect(weeks) },
-                label = { Text(label) },
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics {
-                        contentDescription = if (isSel) "$label, selected timeframe" else "$label timeframe"
-                    },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = BrandGreen,
-                    selectedLabelColor = Color.White,
-                ),
-                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
-            )
-        }
-    }
-}
 
 /**
  * Body-neutral preview of the server's safe-pace assessment.
