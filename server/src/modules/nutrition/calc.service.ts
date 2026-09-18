@@ -112,6 +112,17 @@ async function computeAndSaveUncached(userId: string): Promise<CalcResult> {
     climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,
   });
 
+  // Lifters doing a recomposition / lean bulk: protein to ~2.0 g/kg (muscle-building range) instead of the
+  // generic 1.8. Calories stay the same - the extra protein is taken out of carbs. Never for kidney disease.
+  const buildsMuscle = s.physiqueGoal === 'recomp' || s.physiqueGoal === 'lean_bulk';
+  if (buildsMuscle && !(s.conditions ?? []).includes('kidney_disease') && !weightLossBlocked) {
+    const wanted = Math.round(2.0 * Math.min(sensitive.currentWeightKg, 95));
+    if (wanted > result.proteinG) {
+      const extraG = wanted - result.proteinG;
+      result = { ...result, proteinG: wanted, carbG: Math.max(60, Math.round(result.carbG - extraG)) };
+    }
+  }
+
   if (timelineOverrodePhysiqueGoal) {
     result = {
       ...result,

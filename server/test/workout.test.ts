@@ -147,3 +147,22 @@ describe('workout generator', () => {
     }
   });
 });
+
+describe('training the same muscle twice in a week', () => {
+  it('uses different exercises on the second session', () => {
+    const plan = generateWeeklyWorkout('muscular', 'gym', {
+      split: 'body_part',
+      fitnessLevel: 'intermediate',
+      startDate: new Date(Date.UTC(2026, 8, 13)),
+      today: new Date(Date.UTC(2026, 8, 13)),
+      dayFocusOverride: { 0: 'Chest', 1: 'Back', 2: 'Biceps & Forearms', 3: 'Rest', 4: 'Chest', 5: 'Legs & Abs', 6: 'Shoulders' },
+    });
+    const chest = plan.days.filter((d) => d.focus === 'Chest');
+    expect(chest.length).toBe(2);
+    const a = chest[0]!.exercises.map((e) => e.name).join('|');
+    const b = chest[1]!.exercises.map((e) => e.name).join('|');
+    expect(a).not.toBe(b);
+    // and no weighted calisthenics for an intermediate lifter
+    for (const d of plan.days) for (const e of d.exercises) expect(e.name.toLowerCase()).not.toContain('weighted');
+  });
+});

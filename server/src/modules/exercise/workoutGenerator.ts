@@ -309,6 +309,27 @@ const BEGINNER_SWAPS: Record<string, string> = {
   'rack pulls': 'Romanian deadlift',
   'barbell shrugs': 'Dumbbell shrugs',
 };
+const INTERMEDIATE_SWAPS: Record<string, string> = {
+  'weighted pull-ups': 'Pull-ups',
+  'pull-ups (weighted)': 'Pull-ups',
+  'weighted dips': 'Chest dips',
+};
+function levelSafe(items: ExerciseItem[], level: FitnessLevel): ExerciseItem[] {
+  if (level === 'beginner') return beginnerSafe(items);
+  if (level === 'advanced') return items;
+  const seen = new Set<string>();
+  const out: ExerciseItem[] = [];
+  for (const ex of items) {
+    const swapped = INTERMEDIATE_SWAPS[ex.name.toLowerCase()];
+    const next = swapped ? { ...ex, name: swapped } : ex;
+    const key = next.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(next);
+  }
+  return out;
+}
+
 function beginnerSafe(items: ExerciseItem[]): ExerciseItem[] {
   const seen = new Set<string>();
   const out: ExerciseItem[] = [];
@@ -533,7 +554,7 @@ function applyScaling(
     // Pad a SHORT day's main block up so there's enough to choose from before enrichDays applies
     // the level's total working-exercise budget (main + core + cardio - see LEVEL_TOTAL_WORKING).
     const padded = padMain(day.focus, withFavorites, TARGET_MAIN_EXERCISES);
-    const items = (level === 'beginner' ? beginnerSafe(padded) : padded).map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
+    const items = levelSafe(padded, level).map((ex) => ({ ...ex, ...annotate(ex.name), sets: scaleSets(ex.sets, factor, level) }));
 
     return { ...day, exercises: items };
   });
@@ -583,6 +604,7 @@ export function generateWeeklyWorkout(
 
   const days: WorkoutDay[] = [];
   let t = 0;
+  const focusSeen = new Map<string, number>();
   for (let d = 0; d < dayCount; d++) {
     let date: string | undefined;
     let weekday = d;
@@ -602,9 +624,17 @@ export function generateWeeklyWorkout(
     if (isRest) {
       days.push({ dayIndex: d, date, label: baseLabel ? `${baseLabel} · Rest` : 'Rest', focus: 'Rest & recovery', rest: true, exercises: REST_DAY });
     } else {
-      const tmpl = override !== undefined
+      let tmpl = override !== undefined
         ? (templates.find((tp) => tp.focus === override) ?? templates[t % templates.length]!)
         : templates[t % templates.length]!;
+      // Same muscle trained twice in one week (e.g. chest Sun + Thu): the 2nd session draws from the next
+      // mesocycle block, so it is a different session (different lifts/angles), not a copy-paste.
+      const seen = focusSeen.get(tmpl.focus) ?? 0;
+      focusSeen.set(tmpl.focus, seen + 1);
+      if (seen > 0 && program.length > 1) {
+        const alt = program[(block + seen) % program.length]!.find((tp) => tp.focus === tmpl.focus);
+        if (alt) tmpl = alt;
+      }
       t++;
       days.push({ dayIndex: d, date, label: baseLabel, focus: tmpl.focus, rest: false, exercises: tmpl.exercises });
     }
