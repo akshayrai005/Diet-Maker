@@ -109,6 +109,10 @@ data class SensitiveData(
     // Gym membership (spec Section 5): join date (yyyy-MM-dd) + duration → progressive-overload phase.
     val gymJoinDate: String? = null,
     val gymMembershipMonths: Int? = null,
+    // User-chosen day→focus overrides for a "body_part" trainingSplit (weekday "0".."6" → a focus
+    // label from that split's rotation, or "Rest"). Optional/additive - server falls back to the
+    // normal auto-rotation when absent.
+    val bodyPartDayFocus: Map<String, String>? = null,
 )
 
 // ---- Goal timeline (safe-pace preview) ----

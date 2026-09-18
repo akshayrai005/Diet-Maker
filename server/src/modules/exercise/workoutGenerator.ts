@@ -189,6 +189,11 @@ export interface WorkoutOptions {
    * muscle group matches a day's target, it's used ahead of the generic curated pool - the user
    * trains on equipment they actually have, not a generic template. */
   gymFavoriteNames?: string[];
+  /** User-chosen day→focus overrides for a "body_part" split (0=Sun..6=Sat → a focus label from
+   * the matching program's templates, e.g. "Chest", or "Rest"). Optional/additive - when absent
+   * the split falls back to its normal auto-rotation, skipping restDayOfWeek. Only applies when
+   * split === 'body_part'; ignored otherwise. */
+  dayFocusOverride?: Record<number, string>;
 }
 
 /** Progressive-overload phase from weeks since joining the gym (spec Section 5). */
@@ -549,11 +554,17 @@ export function generateWeeklyWorkout(
       baseLabel = labelFor(dt, options.today ?? options.startDate);
     }
 
-    const isRest = options.restDayOfWeek !== undefined && weekday === options.restDayOfWeek;
+    // A body_part split with a user-chosen day→focus map overrides the auto-rotation entirely for
+    // that weekday - "Rest" forces a rest day even outside restDayOfWeek, and a named focus picks
+    // the matching template regardless of where the auto rotation would otherwise land.
+    const override = options.split === 'body_part' ? options.dayFocusOverride?.[weekday] : undefined;
+    const isRest = override !== undefined ? override === 'Rest' : options.restDayOfWeek !== undefined && weekday === options.restDayOfWeek;
     if (isRest) {
       days.push({ dayIndex: d, date, label: baseLabel ? `${baseLabel} · Rest` : 'Rest', focus: 'Rest & recovery', rest: true, exercises: REST_DAY });
     } else {
-      const tmpl = templates[t % templates.length]!;
+      const tmpl = override !== undefined
+        ? (templates.find((tp) => tp.focus === override) ?? templates[t % templates.length]!)
+        : templates[t % templates.length]!;
       t++;
       days.push({ dayIndex: d, date, label: baseLabel, focus: tmpl.focus, rest: false, exercises: tmpl.exercises });
     }

@@ -49,5 +49,15 @@ export async function weeklyWorkoutForUser(userId: string, offsetMin = 0): Promi
     medicalCaution,
     priorityMuscles: (s as { priorityMuscles?: string[] }).priorityMuscles,
     split: (s as { trainingSplit?: import('./exercise.types').TrainingSplit }).trainingSplit,
+    dayFocusOverride: (() => {
+      const map = (s as { bodyPartDayFocus?: Record<string, string> }).bodyPartDayFocus;
+      if (!map) return undefined;
+      const out: Record<number, string> = {};
+      for (const [k, v] of Object.entries(map)) {
+        const idx = Number(k);
+        if (Number.isInteger(idx) && idx >= 0 && idx <= 6) out[idx] = v;
+      }
+      return out;
+    })(),
   });
 }

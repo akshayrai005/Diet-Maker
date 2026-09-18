@@ -109,6 +109,9 @@ export const sensitiveSchema = z.object({
   physiqueGoal: z.enum(['recomp', 'lean_bulk', 'cut', 'maintain']).optional(),
   /** Muscle groups to bring up - extra training volume within safe caps. */
   priorityMuscles: z.array(z.enum(['shoulders', 'back', 'chest', 'arms', 'legs', 'glutes', 'core'])).max(7).optional(),
+  /** User-chosen day→focus overrides for a "body_part" trainingSplit (weekday 0-6 → a focus
+   * label, or "Rest"). Optional/additive - absent falls back to the normal auto-rotation. */
+  bodyPartDayFocus: z.record(z.string(), z.string()).optional(),
   /** Lifestyle factors used for menstrual-health and general guidance + risk stratification. */
   smoking: z.enum(['no', 'occasional', 'regular']).optional(),
   alcohol: z.enum(['no', 'occasional', 'regular']).optional(),

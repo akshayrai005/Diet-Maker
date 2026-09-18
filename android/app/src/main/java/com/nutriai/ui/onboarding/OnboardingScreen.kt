@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -284,40 +286,46 @@ private fun bodyPartDayPreview(restDay: Int?, atGym: Boolean): List<Pair<String,
     }
 }
 
-/** Read-only 7-row Day → Body part table shown once "Body-part split" is chosen. */
+/**
+ * Editable 7-row Day → Body part table shown once "Body-part split" is chosen - each row is a
+ * tick-dropdown the user can actually set (explicit feedback: "i am not able to set" / "why the
+ * hell am i not able to change as per my plan"). Defaults to the server's normal auto-rotation
+ * until the user overrides a day; overrides are saved in `overrides` and sent to the server, which
+ * uses them instead of the auto-rotation for that weekday (see workoutGenerator.ts dayFocusOverride).
+ */
 @Composable
-private fun BodyPartDayTable(restDay: Int?, atGym: Boolean) {
-    val rows = remember(restDay, atGym) { bodyPartDayPreview(restDay, atGym) }
+private fun BodyPartDayTable(restDay: Int?, atGym: Boolean, overrides: MutableMap<Int, String>, onOverride: (Int, String) -> Unit) {
+    val defaults = remember(restDay, atGym) { bodyPartDayPreview(restDay, atGym) }
+    val focusChoices = remember(atGym) { (if (atGym) BODY_PART_FOCUS_GYM else BODY_PART_FOCUS_HOME) + "Rest" }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface),
     ) {
-        rows.forEachIndexed { i, (day, focus) ->
+        defaults.forEachIndexed { weekday, (day, autoFocus) ->
+            val focus = overrides[weekday] ?: autoFocus
             val isRest = focus == "Rest"
+            if (weekday > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(if (i % 2 == 0) MovementColor.copy(alpha = 0.05f) else Color.Transparent)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(
-                        Modifier.size(30.dp).clip(CircleShape).background(if (isRest) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MovementColor),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(day, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else Color.White)
-                    }
+                Box(
+                    Modifier.size(30.dp).clip(CircleShape).background(if (isRest) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MovementColor),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(day, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else Color.White)
                 }
-                Text(
-                    focus,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isRest) MaterialTheme.colorScheme.onSurfaceVariant else MovementColor,
-                    fontWeight = if (isRest) FontWeight.Normal else FontWeight.SemiBold,
-                )
+                Box(Modifier.weight(1f)) {
+                    TickDropdown(
+                        label = day,
+                        options = focusChoices.map { it to it },
+                        selected = focus,
+                        onSelect = { onOverride(weekday, it) },
+                    )
+                }
             }
         }
     }
@@ -373,6 +381,7 @@ fun OnboardingScreen(
     var bodyTypeGoal by remember { mutableStateOf<String?>(null) }
     var gymJoinDate by remember { mutableStateOf("") }
     var gymMonths by remember { mutableStateOf<Int?>(null) }
+    val bodyPartDayFocus = remember { mutableStateMapOf<Int, String>() }
 
     LaunchedEffect(state.prefillLoaded) {
         val p = state.prefill ?: return@LaunchedEffect
@@ -420,6 +429,8 @@ fun OnboardingScreen(
             bodyTypeGoal = s.bodyTypeGoal ?: bodyTypeGoal
             gymJoinDate = s.gymJoinDate ?: gymJoinDate
             gymMonths = s.gymMembershipMonths ?: gymMonths
+            bodyPartDayFocus.clear()
+            s.bodyPartDayFocus?.forEach { (k, v) -> k.toIntOrNull()?.let { bodyPartDayFocus[it] = v } }
         }
     }
 
@@ -492,6 +503,7 @@ fun OnboardingScreen(
                         bodyTypeGoal = bodyTypeGoal,
                         gymJoinDate = gymJoinDate.trim().ifBlank { null },
                         gymMembershipMonths = gymMonths,
+                        bodyPartDayFocus = if (bodyPartDayFocus.isEmpty()) null else bodyPartDayFocus.mapKeys { it.key.toString() },
                     ),
                 ),
                 onDone,
@@ -594,15 +606,15 @@ fun OnboardingScreen(
                     }
 
                     BorderedGroup("Timeframe", "⏰", accent = STEP_COLORS[1]) {
+                        TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
+                        if (state.timeline != null) {
+                            TimelinePreviewCard(state.timeline!!)
+                        }
                         Text(
                             "📅 We'll pace it safely.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        TimeframeChips(timeframeWeeks) { timeframeWeeks = it }
-                        if (state.timeline != null) {
-                            TimelinePreviewCard(state.timeline!!)
-                        }
                     }
 
                     BorderedGroup("Diet & Lifestyle", "🍽️", accent = STEP_COLORS[1]) {
@@ -629,21 +641,26 @@ fun OnboardingScreen(
                     }
 
                     BorderedGroup("Training Split", "📊", accent = STEP_COLORS[2]) {
-                        TrainingSplitPicker(TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
+                        TickDropdown("Training split", TRAINING_SPLIT, trainingSplit) { trainingSplit = it }
+                        if (trainingSplit == "body_part") {
+                            Text(
+                                "Tap any day to set its part:",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MovementColor,
+                            )
+                            BodyPartDayTable(
+                                restDay = workoutRest,
+                                atGym = exLocation != "home" && exLocation != "none",
+                                overrides = bodyPartDayFocus,
+                                onOverride = { day, focus -> bodyPartDayFocus[day] = focus },
+                            )
+                        }
                         Text(
                             "💡 Your Move plan updates to this.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        if (trainingSplit == "body_part") {
-                            Text(
-                                "Which day trains which part:",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MovementColor,
-                            )
-                            BodyPartDayTable(restDay = workoutRest, atGym = exLocation != "home" && exLocation != "none")
-                        }
                     }
 
                     BorderedGroup("Intensity & Rest", "⚡", accent = STEP_COLORS[2]) {
@@ -671,12 +688,12 @@ fun OnboardingScreen(
                         MultiChoiceChips(CONDITIONS, conditions)
                     }
                     BorderedGroup("Family History", "👨‍👩‍👧‍👦", accent = STEP_COLORS[3]) {
+                        MultiChoiceChips(FAMILY_HISTORY, familyHistory)
                         Text(
                             "Runs in your close family?",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        MultiChoiceChips(FAMILY_HISTORY, familyHistory)
                     }
                     BorderedGroup("Lifestyle", "🌿", accent = STEP_COLORS[3]) {
                         RowDivided(
@@ -688,12 +705,12 @@ fun OnboardingScreen(
                     }
 
                     BorderedGroup("Physique Goal", "🎯", accent = STEP_COLORS[3]) {
-                        Text(
-                            "💚 Only tunes your targets - every option is healthy.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        PhysiqueGoalPicker(physiqueOptions, physiqueGoal) { physiqueGoal = it }
+                        TickDropdown(
+                            label = "Physique goal",
+                            options = physiqueOptions.map { (value, ld) -> value as String? to ld.first } + (null to "Not sure / skip"),
+                            selected = physiqueGoal,
+                            descriptions = physiqueOptions.associate { (value, ld) -> (value as String?) to ld.second } + (null to "We'll pick balanced, healthy targets for you."),
+                        ) { physiqueGoal = it }
                         if (isMinor) {
                             FeatureCard(emoji = "🛡️", title = "Under-18 Safety", accentColor = BrandAmber) {
                                 Text(
@@ -702,15 +719,20 @@ fun OnboardingScreen(
                                 )
                             }
                         }
+                        Text(
+                            "💚 Only tunes your targets - every option is healthy.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
                     BorderedGroup("Priority Muscles", "💪", accent = STEP_COLORS[3]) {
+                        PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                         Text(
                             "Pick any for extra focus.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
                     }
             }
 
@@ -818,8 +840,9 @@ private fun DobPicker(dob: String, label: String = "Date of birth", onDob: (Stri
  * each boxes inside the card" (Material3's default unfocused border is too faint to read). */
 @Composable
 private fun fieldBorderColors() = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+    unfocusedBorderColor = Color(0xFF5C6B7A),
     focusedBorderColor = BrandGreen,
+    unfocusedLabelColor = Color(0xFF5C6B7A),
 )
 
 @Composable
@@ -864,6 +887,8 @@ private fun <T> Dropdown(label: String, options: List<Pair<T, String>>, selected
     }
 }
 
+private val chipBorderColor = Color(0xFF5C6B7A)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MultiChoiceChips(options: List<String>, selected: MutableList<String>) {
@@ -878,85 +903,56 @@ private fun MultiChoiceChips(options: List<String>, selected: MutableList<String
                     selectedContainerColor = KaizenCoral,
                     selectedLabelColor = Color.White,
                 ),
+                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
             )
         }
-    }
-}
-
-/** Single-select physique goal as radio rows with plain-language descriptions, plus a null "skip". */
-@Composable
-private fun PhysiqueGoalPicker(
-    options: List<Pair<String, Pair<String, String>>>,
-    selected: String?,
-    onSelect: (String?) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        options.forEach { (value, labelDesc) ->
-            PhysiqueOptionRow(
-                label = labelDesc.first,
-                desc = labelDesc.second,
-                selected = selected == value,
-                onClick = { onSelect(value) },
-            )
-        }
-        PhysiqueOptionRow(
-            label = "Not sure / skip",
-            desc = "We'll pick balanced, healthy targets for you.",
-            selected = selected == null,
-            onClick = { onSelect(null) },
-        )
     }
 }
 
 /**
- * Single-select training split as radio rows with plain-language, body-neutral labels.
+ * Dropdown-with-checkmark for a single choice, optionally with a one-line description per option -
+ * explicit request: "give this multiple choices in dropdown also give tick to select" (was a tall
+ * radio-button list before). Used for Training Split and Physique Goal.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TrainingSplitPicker(
-    options: List<Pair<String?, String>>,
-    selected: String?,
-    onSelect: (String?) -> Unit,
+private fun <T> TickDropdown(
+    label: String,
+    options: List<Pair<T, String>>,
+    selected: T,
+    descriptions: Map<T, String> = emptyMap(),
+    onSelect: (T) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        options.forEach { (value, label) ->
-            val isSel = selected == value
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isSel) MovementColor.copy(alpha = 0.1f) else Color.Transparent)
-                    .clickable { onSelect(value) }
-                    .heightIn(min = 48.dp)
-                    .padding(vertical = 4.dp)
-                    .semantics { contentDescription = if (isSel) "$label, selected" else label },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                RadioButton(selected = isSel, onClick = { onSelect(value) })
-                Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.weight(1f))
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: "Select"
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = selectedLabel,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = fieldBorderColors(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { (value, disp) ->
+                val isSel = value == selected
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(disp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                            descriptions[value]?.let {
+                                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    },
+                    leadingIcon = if (isSel) {
+                        { androidx.compose.material3.Icon(Icons.Filled.Check, contentDescription = "Selected", tint = BrandGreen) }
+                    } else null,
+                    onClick = { onSelect(value); expanded = false },
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun PhysiqueOptionRow(label: String, desc: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) BrandGreen.copy(alpha = 0.1f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .heightIn(min = 48.dp)
-            .padding(vertical = 4.dp)
-            .semantics { contentDescription = "$label. $desc" },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-            Text(desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -982,6 +978,7 @@ private fun PriorityMusclesChips(options: List<String>, selected: MutableList<St
                     selectedContainerColor = MovementColor,
                     selectedLabelColor = Color.White,
                 ),
+                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
             )
         }
     }
@@ -1008,6 +1005,7 @@ private fun TimeframeChips(selectedWeeks: Int?, onSelect: (Int) -> Unit) {
                     selectedContainerColor = BrandGreen,
                     selectedLabelColor = Color.White,
                 ),
+                border = FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel, borderColor = chipBorderColor, selectedBorderColor = chipBorderColor),
             )
         }
     }
