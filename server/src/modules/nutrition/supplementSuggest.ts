@@ -49,7 +49,11 @@ export function eligibleSupplements(input: SupplementSuggestInput): Supplement[]
  * unknown or already fine; a supplement is for a measured, real gap, not a default nudge.
  */
 export function suggestSupplements(input: SupplementSuggestInput): SuggestedSupplement[] {
-  const eligible = eligibleSupplements(input);
+  let eligible = eligibleSupplements(input);
+  // One protein powder is enough: the plant blend is only the fallback when whey isn't allowed.
+  if (eligible.some((x) => x.category === 'protein' && x.id !== 'plant-protein')) {
+    eligible = eligible.filter((x) => x.id !== 'plant-protein');
+  }
   const proteinLow = input.proteinAdherencePct !== null && input.proteinAdherencePct < 75;
 
   return eligible.map((s) => {
