@@ -269,6 +269,33 @@ function normaliseDayToTarget(meals: Meal[], dailyKcal: number): void {
 }
 
 /**
+ * Pulls the day's FAT and PROTEIN toward the dashboard targets (the calorie engine's numbers) by
+ * shrinking the item that overshoots most and putting its calories back onto the lowest-fat,
+ * lowest-protein item in the day (a grain/veg). Bounded and calorie-neutral, so kcal stays on target.
+ * Mutates `meals`. PURE besides that.
+ */
+function balanceMacros(meals: Meal[], targets: { proteinG: number; fatG: number }): void {
+  const items = () => meals.flatMap((m) => m.items);
+  const total = (pick: (i: MealItem) => number) => items().reduce((t, i) => t + pick(i), 0);
+  for (let pass = 0; pass < 8; pass++) {
+    const fat = total((i) => i.fatG);
+    const protein = total((i) => i.proteinG);
+    const fatOver = fat > targets.fatG * 1.12;
+    const proteinOver = protein > targets.proteinG * 1.25;
+    if (!fatOver && !proteinOver) return;
+    const key = (i: MealItem) => (fatOver ? i.fatG : i.proteinG);
+    const donor = items().filter((i) => i.grams > 40 && i.kcal >= 40).sort((a, b) => key(b) / Math.max(1, b.kcal) - key(a) / Math.max(1, a.kcal))[0];
+    const receiver = items()
+      .filter((i) => i !== donor && i.grams < MAX_GRAMS - 20)
+      .sort((a, b) => (a.fatG + a.proteinG) / Math.max(1, a.kcal) - (b.fatG + b.proteinG) / Math.max(1, b.kcal))[0];
+    if (!donor || !receiver) return;
+    const freed = donor.kcal * 0.2;
+    scaleItem(donor, 0.8);
+    scaleItem(receiver, 1 + freed / Math.max(1, receiver.kcal));
+  }
+}
+
+/**
  * When uniform scaling (normaliseDayToTarget) still leaves the day meaningfully short - because
  * items were already MAX_GRAMS-capped, common with high calorie targets, low-calorie-density
  * dishes, or few meal slots (e.g. the 3-slot morning+night pattern) - adds ONE more food item to
@@ -362,6 +389,11 @@ function buildDay(
   // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
   // rather than silently leaving the day under target.
   topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
+  balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
+  for (const m of meals) {
+    m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
+    m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);
+  }
 
   // Attach condition-friendliness scores per meal (diabetes/heart/gut/inflammation).
   const foodById = new Map(eligible.map((f) => [f.id, f]));
