@@ -4,7 +4,7 @@ import { round } from '../../calc/anthropometry';
 import { HttpError } from '../../middleware/error';
 
 export const savedFoodSchema = z.object({
-  name: z.string().min(1).max(120),
+  name: z.string().min(1).max(120).regex(/[a-zA-Z]/, 'Name must contain letters'),
   kcal: z.number().nonnegative().max(1000),
   proteinG: z.number().nonnegative().max(100).default(0),
   carbG: z.number().nonnegative().max(100).default(0),

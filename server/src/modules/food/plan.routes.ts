@@ -59,7 +59,8 @@ planRouter.get(
       orderBy: { name: 'asc' },
       take: 100,
     });
-    const foods = rows.map((f) => {
+    // Hide junk rows with no letters in the name (e.g. a mistyped "500" saved as a food).
+    const foods = rows.filter((f) => /[a-zA-Z]/.test(f.name)).map((f) => {
       const p = portionInfoFor({ name: f.name, tags: f.tags, category: f.category, typicalServingG: f.typicalServingG });
       return { ...f, portionUnit: p.portionUnit, unitGrams: p.unitGrams };
     });
