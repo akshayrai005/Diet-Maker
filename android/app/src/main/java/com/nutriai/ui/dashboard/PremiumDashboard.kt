@@ -434,7 +434,10 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
     // day is the worse failure mode.
     // Real energy balance: what the body needs today minus what was actually eaten. (It used to subtract
     // the TARGET, which ignored food entirely - at 0 kcal eaten it still showed a big "deficit".)
-    val deficit = totalBudget - consumed
+    // Uses max(eaten, target): at breakfast this shows the day's PLANNED deficit (Body Need - Target) instead
+    // of an alarming 3,000+ that only reflects that you haven't eaten yet; once you eat past the target it
+    // shrinks and flips to a surplus.
+    val deficit = totalBudget - maxOf(consumed, target)
     val pct = if (hasTarget) (cal.consumed / cal.target!!).coerceIn(0.0, 1.5).toFloat() else 0f
 
     Card(
