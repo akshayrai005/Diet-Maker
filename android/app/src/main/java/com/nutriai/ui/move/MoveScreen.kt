@@ -584,7 +584,8 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             item(span = { GridItemSpan(2) }) {
                 val context = buildString {
                     append(p.blockLabel.ifBlank { "Training block" }).append(" · ").append(p.location).append(" · ").append(p.goal)
-                    p.note?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
+                    // The server's note already opens with the block label ("Month 2 · Block B - exercises rotate..."); don't print it twice.
+                    p.note?.removePrefix(p.blockLabel)?.trimStart(' ', '-', '·', '—')?.takeIf { it.isNotBlank() }?.let { append(" — ").append(it) }
                 }
                 Card(
                     Modifier.fillMaxWidth(),
@@ -999,6 +1000,25 @@ private fun ProgressionChip(nextSession: NextSession?) {
 private fun isTimed(ex: ExerciseItem): Boolean =
     Regex("""min|\d+\s*s\b""", RegexOption.IGNORE_CASE).containsMatchIn(ex.reps)
 
+/** Strength-style movements that merely contain a cardio word ("Walking Lunge", "Jump Squat", "Row"). */
+private val STRENGTH_WORDS = Regex("""lunge|squat|press|curl|raise|deadlift|extension|fly|pulldown|pull-up|pullup|push-up|pushup|dip|shrug|crunch|kickback|thrust|bridge""", RegexOption.IGNORE_CASE)
+private val CARDIO_ACTIVITY = Regex("""\b(walk|walking|run|running|jog|jogging|hike|hiking|cycle|cycling|bike|biking|spin|treadmill|elliptical|stepmill|stair ?climber|swim|swimming|skipping|jump rope|rowing machine|cross trainer)\b""", RegexOption.IGNORE_CASE)
+private val STRETCH_ACTIVITY = Regex("""\b(stretch|stretching|yoga|pose|mobility|foam roll)\b""", RegexOption.IGNORE_CASE)
+
+/**
+ * A logged/typed exercise is judged by its NAME, not just its reps text: "walk" must be minutes (never
+ * 3 sets x reps x kg), and a stretch is a hold in seconds. Exercises that already carry a time-based
+ * reps value are left exactly as they are.
+ */
+private fun normalizeTimed(ex: ExerciseItem): ExerciseItem {
+    if (isTimed(ex) || STRENGTH_WORDS.containsMatchIn(ex.name)) return ex
+    return when {
+        CARDIO_ACTIVITY.containsMatchIn(ex.name) -> ex.copy(sets = 1, reps = "20 min", type = "cardio")
+        STRETCH_ACTIVITY.containsMatchIn(ex.name) -> ex.copy(sets = 2, reps = "45 s", type = "flexibility")
+        else -> ex
+    }
+}
+
 private fun isWeighted(ex: ExerciseItem): Boolean =
     !isTimed(ex) && ex.type == "strength" && ex.equipment != "bodyweight"
 
@@ -1026,23 +1046,24 @@ private class SetRow(amount: String, weight: String) {
 
 @Composable
 private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onConfirm: (List<LoggedSet>) -> Unit, onPlanTomorrow: ((String) -> Unit)? = null) {
-    val timed = isTimed(exercise)
-    val weighted = isWeighted(exercise)
-    val ns = exercise.nextSession
-    val defaultReps = (ns?.suggestedReps ?: firstInt(exercise.reps))?.toString() ?: ""
+    val ex = normalizeTimed(exercise)
+    val timed = isTimed(ex)
+    val weighted = isWeighted(ex)
+    val ns = ex.nextSession
+    val defaultReps = (ns?.suggestedReps ?: firstInt(ex.reps))?.toString() ?: ""
     val defaultWeight = ns?.suggestedWeightKg?.let { trimKg(it) } ?: ""
-    val singleBlock = timed && exercise.sets <= 1
-    val defaultCount = if (singleBlock) 1 else (ns?.suggestedSets ?: exercise.sets).coerceIn(1, 10)
-    val speedBased = singleBlock && isSpeedBased(exercise)
+    val singleBlock = timed && ex.sets <= 1
+    val defaultCount = if (singleBlock) 1 else (ns?.suggestedSets ?: ex.sets).coerceIn(1, 10)
+    val speedBased = singleBlock && isSpeedBased(ex)
 
     var addToPlan by remember { mutableStateOf(false) }
-    var speedKmh by remember(exercise.name) { mutableStateOf("") }
-    var inclinePct by remember(exercise.name) { mutableStateOf("") }
-    var distanceKm by remember(exercise.name) { mutableStateOf("") }
+    var speedKmh by remember(ex.name) { mutableStateOf("") }
+    var inclinePct by remember(ex.name) { mutableStateOf("") }
+    var distanceKm by remember(ex.name) { mutableStateOf("") }
 
-    val rows = remember(exercise.name) {
+    val rows = remember(ex.name) {
         mutableStateListOf<SetRow>().also { list ->
-            val amount = if (timed && !singleBlock) "45" else if (timed) estimateMinutes(exercise.reps, 2).toString() else defaultReps
+            val amount = if (timed && !singleBlock) "45" else if (timed) estimateMinutes(ex.reps, 2).toString() else defaultReps
             repeat(defaultCount) { list.add(SetRow(amount, defaultWeight)) }
         }
     }
@@ -1050,7 +1071,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(16.dp),
-        title = { Text("🏋️ Log · ${exercise.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall) },
+        title = { Text("🏋️ Log · ${ex.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -1120,7 +1141,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                 }
 
                 // Speed/incline/distance - only for treadmill/walk/run/cycle, sharpens the calorie
-                // estimate instead of treating every pace the same (dynamic logging per exercise type).
+                // estimate instead of treating every pace the same (dynamic logging per ex type).
                 if (speedBased) {
                     val fieldColors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -1139,7 +1160,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             shape = Sharp,
                             colors = fieldColors,
                         )
-                        if (isTreadmill(exercise)) {
+                        if (isTreadmill(ex)) {
                             OutlinedTextField(
                                 value = inclinePct,
                                 onValueChange = { v -> inclinePct = v.filter { c -> c.isDigit() || c == '.' } },
@@ -1197,7 +1218,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                     }
                     if (out.isNotEmpty()) {
                         onConfirm(out)
-                        if (addToPlan) onPlanTomorrow?.invoke(exercise.name)
+                        if (addToPlan) onPlanTomorrow?.invoke(ex.name)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
