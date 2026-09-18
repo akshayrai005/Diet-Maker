@@ -223,24 +223,12 @@ fun BodyTypeScreen(modifier: Modifier = Modifier, viewModel: BodyTypeViewModel =
                     Column(Modifier.padding(Spacing.md)) {
                         Text("📋 Your Plan", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(Spacing.sm))
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                        ) {
-                            PlanMetric(label = "Calories", value = s.calories)
-                            PlanMetric(label = "Protein", value = s.protein)
-                        }
-                        Spacer(Modifier.height(Spacing.sm))
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                        ) {
-                            PlanMetric(label = "Strategy", value = s.approach)
-                            PlanMetric(label = "Timeline", value = s.time)
-                        }
+                        // Only the approach is shown: the old generic "~1,900 kcal / 8-14 months" figures
+                        // contradicted the user's real, engine-computed target on the dashboard.
+                        PlanMetric(label = "Approach", value = s.approach)
                         Spacer(Modifier.height(Spacing.xs))
                         Text(
-                            "A rough illustration of the current->goal journey - not your real numbers. Set Physique Goal below for that.",
+                            "Your real calories, protein and timeline are on the Today dashboard - they come from your profile and the Physique Goal below.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

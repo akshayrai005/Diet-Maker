@@ -225,7 +225,9 @@ class ProgressViewModel @Inject constructor(
     fun loadSeries() {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            val r = repository.bodyMetrics(range = 365)
+            // Never spin forever: a request that hangs surfaces as an error with a retry instead.
+            val r = kotlinx.coroutines.withTimeoutOrNull(20_000) { repository.bodyMetrics(range = 365) }
+                ?: Result.failure(java.util.concurrent.TimeoutException("timeout"))
             _state.value = if (r.isSuccess) {
                 _state.value.copy(loading = false, series = r.getOrThrow(), error = null)
             } else {
@@ -243,8 +245,8 @@ class ProgressViewModel @Inject constructor(
     private fun loadPhotos() {
         _state.value = _state.value.copy(photosLoading = true)
         viewModelScope.launch {
-            val r = repository.bodyPhotos()
-            _state.value = _state.value.copy(photosLoading = false, photos = r.getOrNull() ?: emptyList())
+            val r = kotlinx.coroutines.withTimeoutOrNull(20_000) { repository.bodyPhotos() }
+            _state.value = _state.value.copy(photosLoading = false, photos = r?.getOrNull() ?: emptyList())
         }
     }
 

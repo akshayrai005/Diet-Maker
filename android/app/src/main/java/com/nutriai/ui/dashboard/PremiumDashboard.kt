@@ -683,7 +683,7 @@ private fun DomainCardsGrid(
                 mainUnit = if (heartRate != null) "bpm" else "",
                 progress = heartRate?.let { ((it - 50) / (120.0 - 50)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
                 accentColor = GridRed, bgColor = GridRedLight,
-                detail = if (heartRate != null) "Resting" else "Needs a synced watch reading",
+                detail = if (heartRate != null) "Latest reading" else "Needs a synced watch reading",
                 borderColor = GridRed,
                 onQuickAction = onOpenVitals,
             )
