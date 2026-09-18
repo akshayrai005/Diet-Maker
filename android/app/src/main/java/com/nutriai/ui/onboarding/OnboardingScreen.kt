@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DatePicker
@@ -200,6 +201,25 @@ private val CONTRA = listOf(
 private val STEP_EMOJIS = listOf("👤", "🎯", "🏋️", "🏥", "🚀")
 private val STEP_COLORS = listOf(KaizenBlue, BrandGreen, MovementColor, KaizenCoral, KaizenLavender)
 
+/**
+ * Section title for the single-page onboarding layout (was a per-step header + progress bar +
+ * dots when this was a 5-step wizard - flattened per explicit user request: "make all in 1 step
+ * sectionwise and arrange properly", disliking the multi-step click-through). A divider above
+ * every section but the first gives the page visual rhythm without needing step navigation.
+ */
+@Composable
+private fun OnboardingSectionTitle(emoji: String, title: String, color: Color) {
+    if (title != "About you") {
+        HorizontalDivider(Modifier.padding(vertical = Spacing.sm), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
+            Text(emoji, fontSize = 18.sp)
+        }
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = color)
+    }
+}
+
 @Composable
 fun OnboardingScreen(
     onDone: () -> Unit,
@@ -321,8 +341,6 @@ fun OnboardingScreen(
         target.toDoubleOrNull() != null && dob.isNotBlank()
 
     val steps = listOf("About you", "Your goals", "Movement", "Health", "Ready")
-    var step by remember { mutableIntStateOf(0) }
-    val lastStep = steps.lastIndex
 
     fun doSave() {
         val h = height.toDoubleOrNull(); val w = weight.toDoubleOrNull(); val t = target.toDoubleOrNull()
@@ -380,59 +398,33 @@ fun OnboardingScreen(
         }
     }
 
-    val stepColor = STEP_COLORS[step.coerceIn(0, STEP_COLORS.lastIndex)]
-    val stepEmoji = STEP_EMOJIS[step.coerceIn(0, STEP_EMOJIS.lastIndex)]
-
     Column(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.kaizenColors.pageBackground).padding(Spacing.screenHorizontal),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        // Step header with emoji and bold color
+        // Single header - no step count, no progress bar, no dots. One page, scroll through it.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Box(
-                Modifier.size(44.dp).clip(CircleShape).background(stepColor),
+                Modifier.size(44.dp).clip(CircleShape).background(BrandGreen),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(stepEmoji, fontSize = 22.sp)
+                Text("👤", fontSize = 22.sp)
             }
-            Column {
-                Text(
-                    if (editing) "Edit your profile" else steps[step],
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = stepColor,
-                )
-                Text("Step ${step + 1} of ${steps.size}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-
-        // Bold progress bar
-        LinearProgressIndicator(
-            progress = { (step + 1) / steps.size.toFloat() },
-            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-            color = stepColor,
-            trackColor = stepColor.copy(alpha = 0.12f),
-        )
-
-        // Step dots
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            steps.forEachIndexed { i, _ ->
-                Box(
-                    Modifier
-                        .padding(horizontal = 4.dp)
-                        .size(if (i == step) 12.dp else 8.dp)
-                        .clip(CircleShape)
-                        .background(if (i <= step) STEP_COLORS[i] else MaterialTheme.colorScheme.surfaceVariant),
-                )
-            }
+            Text(
+                if (editing) "Edit your profile" else "Complete your profile",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = BrandGreen,
+            )
         }
 
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            when (step) {
-                0 -> {
+            // ---- About you ----
+            run {
+                OnboardingSectionTitle(STEP_EMOJIS[0], steps[0], STEP_COLORS[0])
                     FeatureCard(emoji = "📋", title = "A few basics", accentColor = KaizenBlue) {
                         Text("So everything is personalised and safe.", style = MaterialTheme.typography.bodyMedium)
                     }
@@ -488,8 +480,11 @@ fun OnboardingScreen(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                1 -> {
+            }
+
+            // ---- Your goals ----
+            run {
+                OnboardingSectionTitle(STEP_EMOJIS[1], steps[1], STEP_COLORS[1])
                     SectionHeader(title = "Goals & Preferences", emoji = "🎯")
                     Dropdown("Goal", GOAL, goal) { goal = it }
 
@@ -520,8 +515,11 @@ fun OnboardingScreen(
                     Dropdown("Plan strictness", STRICTNESS, dietStrictness) { dietStrictness = it }
                     Dropdown("Living situation", LIVING, livingSituation) { livingSituation = it }
                     Dropdown("Kitchen access", KITCHEN, kitchen) { kitchen = it }
-                }
-                2 -> {
+            }
+
+            // ---- Movement ----
+            run {
+                OnboardingSectionTitle(STEP_EMOJIS[2], steps[2], STEP_COLORS[2])
                     SectionHeader(title = "Exercise Setup", emoji = "🏋️")
                     Dropdown("Where do you exercise?", EX_LOC, exLocation) { exLocation = it }
                     Dropdown("Body goal", BODY_GOAL, bodyGoal) { bodyGoal = it }
@@ -553,8 +551,11 @@ fun OnboardingScreen(
                         Text("📅 When did you join? Your plan's intensity phase is calculated from this.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         DobPicker(gymJoinDate, label = "Gym join date") { gymJoinDate = it }
                     }
-                }
-                3 -> {
+            }
+
+            // ---- Health ----
+            run {
+                OnboardingSectionTitle(STEP_EMOJIS[3], steps[3], STEP_COLORS[3])
                     SectionHeader(title = "Health Conditions", emoji = "🏥")
                     Label("Conditions (optional)")
                     MultiChoiceChips(CONDITIONS, conditions)
@@ -598,8 +599,11 @@ fun OnboardingScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     PriorityMusclesChips(PRIORITY_MUSCLES, priorityMuscles, MAX_PRIORITY_MUSCLES)
-                }
-                else -> {
+            }
+
+            // ---- Ready ----
+            run {
+                OnboardingSectionTitle(STEP_EMOJIS[4], steps[4], STEP_COLORS[4])
                     Spacer(Modifier.height(Spacing.lg))
                     FeatureCard(emoji = "🎉", title = "You're All Set!", accentColor = BrandGreen) {
                         Text(
@@ -617,7 +621,6 @@ fun OnboardingScreen(
                             )
                         }
                     }
-                }
             }
         }
 
@@ -626,10 +629,10 @@ fun OnboardingScreen(
                 Text(it, style = MaterialTheme.typography.bodySmall)
             }
         }
-        if (step == 0 && !canSave) {
+        if (!canSave) {
             GlassCard {
                 Text(
-                    "📝 Fill height, weight, target and date of birth to continue.",
+                    "📝 Fill height, weight, target and date of birth to continue - scroll up to \"About you\".",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -637,23 +640,7 @@ fun OnboardingScreen(
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            if (step > 0) {
-                OutlinedButton(
-                    onClick = { step-- },
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(Radius.md),
-                ) { Text("⬅️ Back", fontWeight = FontWeight.Bold) }
-            }
-            if (step < lastStep) {
-                Button(
-                    onClick = { if (step != 0 || canSave) step++ },
-                    enabled = step != 0 || canSave,
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp),
-                    shape = RoundedCornerShape(Radius.md),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = stepColor),
-                ) { Text("Next ➡️", fontWeight = FontWeight.Bold) }
-            } else {
-                Button(
+            Button(
                     onClick = { doSave() },
                     enabled = !state.loading && canSave,
                     modifier = Modifier.weight(1f).heightIn(min = 52.dp),
@@ -663,7 +650,6 @@ fun OnboardingScreen(
                     if (state.loading) CircularProgressIndicator(Modifier.padding(4.dp), color = Color.White)
                     else Text(if (editing) "✅ Save changes" else "🚀 Create my plan", fontWeight = FontWeight.Bold)
                 }
-            }
         }
     }
 }
