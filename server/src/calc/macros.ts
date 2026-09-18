@@ -54,7 +54,9 @@ export function computeMacros(input: MacroInput): MacroTargets {
   const MIN_CARB_G = 60;
   // Protein scales to the reference weight (current / obesity-adjusted), NOT the target - this
   // preserves lean mass during a calorie deficit. Fat floor still tracks target weight.
-  const proteinG = round(proteinPerKg * proteinRefWeightKg, 0);
+  // Protein never exceeds 35% of calories: at a 1,200 kcal floor, 1.8 g/kg would be ~40% of the day, which
+  // is neither realistic to eat nor kind to the kidneys/liver.
+  const proteinG = round(Math.min(proteinPerKg * proteinRefWeightKg, (0.35 * dailyKcal) / KCAL_PER_G_PROTEIN), 0);
   const fatFloorG = round(fatPerKgMin * targetWeightKg, 0);
   let fatG = round(Math.max(fatPerKgMin * targetWeightKg, (0.2 * dailyKcal) / KCAL_PER_G_FAT), 0);
 

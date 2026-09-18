@@ -84,11 +84,12 @@ describe('generated plans match the engine targets, for every persona', () => {
       });
       const prefs: PlanPreferences = { dietType: p.diet, allergies: [], conditions: [] };
       const week = generateWeekPlan(SEED_FOODS, { dailyKcal: r.dailyKcal, proteinG: r.proteinG, fatG: r.fatG, carbG: r.carbG, fiberG: r.fiberG }, prefs, { days: 7 });
-      let worstKcal = 0, worstFat = 0, worstProtein = 0;
+      let worstKcal = 0, worstFat = 0, worstProtein = 0, worstShort = 0;
       for (const d of week.days) {
         worstKcal = Math.max(worstKcal, Math.abs(d.totals.kcal - r.dailyKcal) / r.dailyKcal);
         worstFat = Math.max(worstFat, (d.totals.fatG - r.fatG) / r.fatG);
         worstProtein = Math.max(worstProtein, (d.totals.proteinG - r.proteinG) / r.proteinG);
+        worstShort = Math.max(worstShort, (r.proteinG - d.totals.proteinG) / r.proteinG);
         // No unrealistic single serving anywhere.
         for (const m of d.meals) for (const it of m.items) expect(it.grams).toBeLessThanOrEqual(400);
         // Snacks stay snacks.
@@ -99,6 +100,10 @@ describe('generated plans match the engine targets, for every persona', () => {
       expect(worstKcal).toBeLessThanOrEqual(0.2);
       expect(worstFat).toBeLessThanOrEqual(0.4);
       expect(worstProtein).toBeLessThanOrEqual(0.5);
+      // eslint-disable-next-line no-console
+      console.log(`${p.name}: protein short by up to ${(worstShort * 100).toFixed(0)}%`);
+      // Vegan menus at low calories are limited by the food database's protein density.
+      expect(worstShort).toBeLessThanOrEqual(p.diet === 'vegan' ? 0.6 : 0.35);
     });
   }
 });

@@ -269,6 +269,30 @@ function normaliseDayToTarget(meals: Meal[], dailyKcal: number): void {
 }
 
 /**
+ * When the day is still well short on protein after portion-shifting, add ONE lean protein food to
+ * lunch or dinner and pay for it by trimming that meal's biggest carb item (calorie-neutral).
+ */
+function proteinTopUp(meals: Meal[], targets: { proteinG: number }, pool: FoodItem[], usedToday: Set<string>): void {
+  const total = () => meals.reduce((t, m) => t + m.items.reduce((u, i) => u + i.proteinG, 0), 0);
+  const shortfall = targets.proteinG - total();
+  if (shortfall < targets.proteinG * 0.12) return;
+  const mainMeal = meals.filter((m) => (m.slot === 'lunch' || m.slot === 'dinner') && m.items.length > 0).sort((a, b) => b.kcal - a.kcal)[0];
+  if (!mainMeal) return;
+  const lean = pool
+    .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.08 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f))
+    .sort((a, b) => b.proteinG / Math.max(1, b.kcal) - a.proteinG / Math.max(1, a.kcal))[0];
+  if (!lean) return;
+  const wantProtein = Math.min(shortfall * 0.8, 40);
+  const grams = Math.min(250, Math.max(MIN_GRAMS, Math.round(((wantProtein / lean.proteinG) * 100) / 5) * 5));
+  const item = toItem(lean, grams);
+  const carb = [...mainMeal.items].sort((a, b) => b.carbG - a.carbG)[0];
+  if (!carb || carb.kcal <= item.kcal + 80) return;
+  scaleItem(carb, (carb.kcal - item.kcal) / carb.kcal);
+  mainMeal.items.push(item);
+  usedToday.add(lean.id);
+}
+
+/**
  * Pulls the day's FAT and PROTEIN toward the dashboard targets (the calorie engine's numbers) by
  * shrinking the item that overshoots most and putting its calories back onto the lowest-fat,
  * lowest-protein item in the day (a grain/veg). Bounded and calorie-neutral, so kcal stays on target.
@@ -282,6 +306,18 @@ function balanceMacros(meals: Meal[], targets: { proteinG: number; fatG: number 
     const protein = total((i) => i.proteinG);
     const fatOver = fat > targets.fatG * 1.12;
     const proteinOver = protein > targets.proteinG * 1.25;
+    const proteinUnder = protein < targets.proteinG * 0.9 && !fatOver;
+    if (proteinUnder) {
+      // Protein short: move calories from the most protein-poor bulky item to the most protein-dense one.
+      const dens = (i: MealItem) => i.proteinG / Math.max(1, i.kcal);
+      const from = items().filter((i) => i.grams > 60 && i.kcal >= 80).sort((a, b) => dens(a) - dens(b))[0];
+      const to = items().filter((i) => i !== from && i.grams < MAX_GRAMS - 20 && i.fatG / Math.max(1, i.kcal) < 0.06).sort((a, b) => dens(b) - dens(a))[0];
+      if (!from || !to || dens(to) <= dens(from)) return;
+      const moved = from.kcal * 0.15;
+      scaleItem(from, 0.85);
+      scaleItem(to, 1 + moved / Math.max(1, to.kcal));
+      continue;
+    }
     if (!fatOver && !proteinOver) return;
     const key = (i: MealItem) => (fatOver ? i.fatG : i.proteinG);
     const donor = items().filter((i) => i.grams > 40 && i.kcal >= 40).sort((a, b) => key(b) / Math.max(1, b.kcal) - key(a) / Math.max(1, a.kcal))[0];
@@ -390,6 +426,7 @@ function buildDay(
   // rather than silently leaving the day under target.
   topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
+  proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
   for (const m of meals) {
     m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
     m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);
