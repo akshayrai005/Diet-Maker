@@ -162,7 +162,8 @@ export async function getWeeklyReport(
     generatedAt,
     targets: targets ? { dailyKcal: targets.dailyKcal, proteinG: targets.proteinG, waterMl: targets.waterMl } : null,
     bmi: targets?.bmi ?? null,
-    latestWeightKg: trend.latestKg,
+    // No check-in yet -> show the profile weight instead of a blank "-".
+    latestWeightKg: trend.latestKg ?? curWeight ?? null,
     weightDeltaKg: trend.deltaKg,
     days,
     entries,
