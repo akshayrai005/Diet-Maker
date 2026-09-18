@@ -19,8 +19,25 @@ export function ageFromDob(dobISO: string, now: Date = new Date()): number {
   return age;
 }
 
+// Short per-user cache: the dashboard, coach chat, plan and adaptive advice all call this, and each call
+// used to re-run ~8 queries and write 2 rows. A 30 s window makes repeat calls instant and stops the
+// snapshot/audit tables filling with duplicates. Cleared whenever the profile is saved.
+const CALC_TTL_MS = 30_000;
+const calcCache = new Map<string, { at: number; result: CalcResult }>();
+export function invalidateCalcCache(userId: string): void {
+  calcCache.delete(userId);
+}
+
 /** Computes the authoritative CalcResult for a user and persists a versioned snapshot. */
 export async function computeAndSaveForUser(userId: string): Promise<CalcResult> {
+  const hit = calcCache.get(userId);
+  if (hit && Date.now() - hit.at < CALC_TTL_MS) return hit.result;
+  const result = await computeAndSaveUncached(userId);
+  calcCache.set(userId, { at: Date.now(), result });
+  return result;
+}
+
+async function computeAndSaveUncached(userId: string): Promise<CalcResult> {
   const { profile, sensitive } = await requireCompleteProfile(userId);
 
   // A physique goal (recomp/lean_bulk/cut/maintain) refines the base goal - but only via the SAFE

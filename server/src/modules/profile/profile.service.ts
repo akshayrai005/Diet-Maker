@@ -1,3 +1,4 @@
+import { invalidateCalcCache } from '../nutrition/calc.service';
 import { prisma } from '../../lib/prisma';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import { HttpError } from '../../middleware/error';
@@ -8,6 +9,7 @@ async function audit(userId: string, action: string, detail?: string) {
 }
 
 export async function upsertProfile(userId: string, body: ProfileUpsertBody) {
+  invalidateCalcCache(userId);
   const { sensitive, ...rest } = body;
   const sensitiveEnc = encryptJson(sensitive);
   const data = { ...rest, sensitiveEnc };
