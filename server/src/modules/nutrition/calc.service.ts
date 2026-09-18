@@ -29,14 +29,16 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
   const s = sensitive as { physiqueGoal?: PhysiqueGoal; conditions?: string[] };
   const weightLossBlocked =
     (s.conditions ?? []).some((c) => ['pregnancy', 'breastfeeding', 'cancer'].includes(c));
-  let effectiveGoal: Goal = s.physiqueGoal
+  const physiqueDerivedGoal: Goal | null = s.physiqueGoal
     ? physiqueNutrition(s.physiqueGoal, { isMinor: ageYears < 18, weightLossBlocked }).mappedGoal
-    : (profile.goal as Goal);
+    : null;
+  let effectiveGoal: Goal = physiqueDerivedGoal ?? (profile.goal as Goal);
 
   // A chosen "reach target by N weeks" timeline drives a SAFE, clamped weekly rate - and takes
   // precedence for the calorie direction (concrete intent), so picking a timeline changes the target.
   const tw = (sensitive as { targetTimeframeWeeks?: number }).targetTimeframeWeeks;
   let desiredWeeklyLossKg = sensitive.desiredWeeklyLossKg;
+  let timelineOverrodePhysiqueGoal = false;
   if (tw && sensitive.targetWeightKg) {
     const timeline = goalTimeline({
       currentWeightKg: sensitive.currentWeightKg,
@@ -46,9 +48,11 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
       weightLossBlocked,
     });
     if (!timeline.blocked && timeline.direction === 'lose') {
+      if (physiqueDerivedGoal !== null && physiqueDerivedGoal !== 'lose') timelineOverrodePhysiqueGoal = true;
       effectiveGoal = 'lose';
       desiredWeeklyLossKg = timeline.desiredWeeklyLossKg;
     } else if (!timeline.blocked && timeline.direction === 'gain') {
+      if (physiqueDerivedGoal !== null && physiqueDerivedGoal !== 'gain') timelineOverrodePhysiqueGoal = true;
       effectiveGoal = 'gain';
     }
   }
@@ -90,6 +94,20 @@ export async function computeAndSaveForUser(userId: string): Promise<CalcResult>
     reducedMobility: profile.reducedMobility,
     climate: (sensitive as { climate?: 'temperate' | 'hot' | 'cold' }).climate,
   });
+
+  if (timelineOverrodePhysiqueGoal) {
+    result = {
+      ...result,
+      flags: [
+        ...result.flags,
+        {
+          code: 'TIMELINE_OVERRIDES_PHYSIQUE_GOAL',
+          severity: 'info',
+          message: `Your target-weight timeline (reach ${sensitive.targetWeightKg}kg in ${tw} weeks) is currently driving your calorie target, not your Physique Goal - so changing Physique Goal alone won't change this number. Clear the timeline in Profile if you want Physique Goal to decide the direction instead.`,
+        },
+      ],
+    };
+  }
 
   if (activityDetection.higherThanReported) {
     const deltaKcal = tdeeDeltaForLevelChange(result.bmr, reportedActivityLevel, activityDetection.effectiveLevel);
