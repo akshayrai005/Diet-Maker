@@ -261,19 +261,19 @@ const LEVEL_MAX_EXERCISES: Record<FitnessLevel, number> = {
 };
 
 /** Every day's main block is padded to this many exercises, so the user can pick any ~5 to do. */
-const TARGET_MAIN_EXERCISES = 7;
+const TARGET_MAIN_EXERCISES = 9;
 
 /**
  * Extra exercises per muscle bucket, used to pad a short day up to TARGET_MAIN_EXERCISES. All are
  * common, demo-friendly moves (they have GIF demos in the app). Deterministic order.
  */
 const EXTRA_POOL: Record<string, ExerciseItem[]> = {
-  chest: [s('Push-ups', 3, '12-15'), s('Incline dumbbell press', 3, '12'), s('Cable fly', 3, '15'), s('Chest dips', 3, '10'), s('Dumbbell bench press', 3, '12')],
-  back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Face pull', 3, '15'), s('Superman', 3, '15')],
-  shoulders: [s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12')],
-  biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12')],
-  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12')],
-  legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15')],
+  chest: [s('Push-ups', 3, '12-15'), s('Incline dumbbell press', 3, '12'), s('Cable fly', 3, '15'), s('Chest dips', 3, '10'), s('Dumbbell bench press', 3, '12'), s('Decline dumbbell press', 3, '10'), s('Machine chest press', 3, '12'), s('Pec-deck fly', 3, '15'), s('Incline cable press', 3, '12')],
+  back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Face pull', 3, '15'), s('Superman', 3, '15'), s('T-bar row', 3, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Chest-supported row', 3, '12')],
+  shoulders: [s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
+  biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12'), s('Preacher curl', 3, '12'), s('Cable curl', 3, '12'), s('EZ-bar curl', 3, '10'), s('Incline dumbbell curl', 3, '12')],
+  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15')],
+  legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15'), s('Back squat', 3, '10'), s('Leg curl', 3, '12'), s('Leg extension', 3, '15'), s('Hack squat', 3, '12'), s('Hip thrust', 3, '12')],
   core: [s('Plank', 3, '45s'), s('Russian twist', 3, '20'), s('Hanging leg raise', 3, '15'), s('Dead bug', 3, '10 each side'), s('Bicycle crunch', 3, '20')],
   cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
 };
@@ -819,10 +819,11 @@ function dailyAbsFor(dayIndex: number, gentle: boolean, block = 0): ExerciseItem
  * cap it to a handful of high-impact movements instead of padding the list out. Deliberately
  * generalizes across every goal/split, not one specific program.
  */
+/** MAIN lifts per training day (user-set: beginner 5, intermediate 6-7, advanced 7-9). Abs (1) + cardio (1) come on top. */
 const LEVEL_TOTAL_WORKING: Record<FitnessLevel, number> = {
-  beginner: 6,
-  intermediate: 7,
-  advanced: 7,
+  beginner: 5,
+  intermediate: 6,
+  advanced: 8,
 };
 
 /**
@@ -873,7 +874,7 @@ function capWorkingExercises(
 ): { main: ExerciseItem[]; core: ExerciseItem[]; cardio: ExerciseItem } {
   const cardioSlots = 1;
   const coreSlots = Math.min(core.length, 1); // one abs move a day - the rest of the budget goes to the main lifts
-  const mainSlots = dedicatedMuscleDay ? Math.max(1, budget) : Math.max(1, budget - cardioSlots - coreSlots);
+  const mainSlots = Math.max(1, budget); // budget is the number of MAIN lifts; core + cardio ride along on top
   return { main: selectDiverse(main, mainSlots), core: core.slice(0, coreSlots), cardio };
 }
 
@@ -886,7 +887,7 @@ function enrichDays(
   // A dedicated single-muscle day always offers the full 7-exercise ceiling regardless of level -
   // the user picks how many of them to actually do that session based on their own energy, rather
   // than the app deciding a beginner only gets 5. Sets-per-exercise still scale by level/intensity.
-  const budget = dedicatedMuscleDay ? TARGET_MAIN_EXERCISES : LEVEL_TOTAL_WORKING[opts.level];
+  const budget = LEVEL_TOTAL_WORKING[opts.level];
   const days: WorkoutDay[] = plan.days.map((day) => {
     // Daily abs is done every day, training or rest, by explicit user request - rest days just get
     // that one no-equipment move and nothing else added. Rotates with the mesocycle block too, same
