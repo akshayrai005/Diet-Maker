@@ -153,7 +153,9 @@ fun SettingsScreen(
             // Notifications
             item {
                 SettingsSection(emoji = "🔔", title = "Notifications") {
-                    ReminderGroup.entries.forEachIndexed { i, group ->
+                    // The custom "Workout pre-alert" (with its own time picker) below replaces the fixed 6 pm group toggle;
+                    // showing both was a duplicate switch.
+                    ReminderGroup.entries.filter { remoteReminders == null || it != ReminderGroup.WORKOUT }.forEachIndexed { i, group ->
                         if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                         SwitchRow(
                             title = group.label,
