@@ -157,7 +157,8 @@ const NOT_A_SNACK = /\b(onion|garlic|ginger|chilli|chili|lemon|lime|salt|oil|mas
 /** Light-slot portion: sized to the slot but never more than a realistic single serving (no 400 g of raw onion). */
 function lightGrams(food: FoodItem, kcalTarget: number): number {
   const cap = Math.max(100, Math.min(MAX_GRAMS, food.typicalServingG * 2));
-  return Math.min(cap, gramsForKcal(food, kcalTarget));
+  // A snack is a snack: never more than ~250 kcal (the day's top-up puts any shortfall in main meals).
+  return Math.min(cap, gramsForKcal(food, Math.min(kcalTarget, 250)));
 }
 
 function buildMeal(

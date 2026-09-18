@@ -607,9 +607,6 @@ fun OnboardingScreen(
 
                     BorderedGroup("Timeframe", "⏰", accent = STEP_COLORS[1]) {
                         TickDropdown("Reach target in", TIMEFRAMES.map { (m, l) -> monthsToWeeks(m) as Int? to l }, timeframeWeeks) { timeframeWeeks = it }
-                        if (state.timeline != null) {
-                            TimelinePreviewCard(state.timeline!!)
-                        }
                         Text(
                             "📅 We'll pace it safely.",
                             style = MaterialTheme.typography.labelSmall,
@@ -754,6 +751,7 @@ fun OnboardingScreen(
                             )
                         }
                     }
+                    state.timeline?.let { TimelinePreviewCard(it) }
             }
         }
 
