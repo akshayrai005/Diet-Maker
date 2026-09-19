@@ -278,6 +278,37 @@ const EXTRA_POOL: Record<string, ExerciseItem[]> = {
   cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
 };
 
+/**
+ * Combined training days (user-requested split): Back+Biceps, Chest+Triceps, Shoulders+Triceps (different
+ * triceps lifts than chest day), Arms+Core. Built from the SAME curated gym templates as the classic split,
+ * so form cues / GIFs / progressions all keep working. Only used when a day is chosen explicitly
+ * (dayFocusOverride) - the automatic rotation is unchanged. Items are listed primary-first then accessory,
+ * and the level budget + round-robin selection then gives an even split (e.g. intermediate: 3 + 3).
+ */
+function comboTemplates(block: DayTemplate[]): DayTemplate[] {
+  const by = (focus: string) => block.find((t) => t.focus === focus)?.exercises ?? [];
+  const nonCore = (items: ExerciseItem[]) => items.filter((e) => !/plank|crunch|raise|rollout/i.test(e.name));
+  const uniq = (items: ExerciseItem[], avoid: Set<string> = new Set()) => {
+    const seen = new Set<string>(avoid);
+    return items.filter((e) => (seen.has(e.name.toLowerCase()) ? false : (seen.add(e.name.toLowerCase()), true)));
+  };
+  const biceps = uniq([...nonCore(by('Biceps & Forearms')), ...EXTRA_POOL.biceps!]);
+  const tricepsAll = uniq([...nonCore(by('Triceps & Core')), ...EXTRA_POOL.triceps!]);
+  const chestTri = tricepsAll.slice(0, 3);
+  const chestTriNames = new Set(chestTri.map((e) => e.name.toLowerCase()));
+  const shoulderTri = tricepsAll.filter((e) => !chestTriNames.has(e.name.toLowerCase())).slice(0, 4);
+  const armsBi = biceps.slice(0, 3);
+  const armsTri = tricepsAll.slice(0, 3);
+  const coreItems = EXTRA_POOL.core!.slice(0, 3);
+  return [
+    { focus: 'Back & Biceps', exercises: [...by('Back'), ...biceps.slice(0, 4)] },
+    { focus: 'Chest & Triceps', exercises: [...by('Chest'), ...chestTri] },
+    // Shrugs are a traps move and would take a slot from the 3 shoulders + 3 triceps split, so they're left out here.
+    { focus: 'Shoulders & Triceps', exercises: [...by('Shoulders').filter((e) => !/shrug/i.test(e.name)), ...shoulderTri] },
+    { focus: 'Arms & Core', exercises: [...armsBi, ...armsTri, ...coreItems] },
+  ];
+}
+
 /** Muscle buckets a focus label trains, used to pick padding exercises. */
 function bucketsForFocus(focus: string): string[] {
   const f = focus.toLowerCase();
@@ -600,6 +631,8 @@ export function generateWeeklyWorkout(
       ? Math.floor(options.weeksSinceJoin / 4) % Math.max(1, program.length)
       : blockForDate(refDate, program.length);
   const templates = program[block]!;
+  // Combined days (Back+Biceps, Chest+Triceps ...) exist for the gym body-part program and are looked up by name only.
+  const withCombos = (blk: DayTemplate[]) => (key === 'muscular:gym' ? [...blk, ...comboTemplates(blk)] : blk);
   const dayCount = options.days ?? 7;
 
   const days: WorkoutDay[] = [];
@@ -625,14 +658,14 @@ export function generateWeeklyWorkout(
       days.push({ dayIndex: d, date, label: baseLabel ? `${baseLabel} · Rest` : 'Rest', focus: 'Rest & recovery', rest: true, exercises: REST_DAY });
     } else {
       let tmpl = override !== undefined
-        ? (templates.find((tp) => tp.focus === override) ?? templates[t % templates.length]!)
+        ? (withCombos(templates).find((tp) => tp.focus === override) ?? templates[t % templates.length]!)
         : templates[t % templates.length]!;
       // Same muscle trained twice in one week (e.g. chest Sun + Thu): the 2nd session draws from the next
       // mesocycle block, so it is a different session (different lifts/angles), not a copy-paste.
       const seen = focusSeen.get(tmpl.focus) ?? 0;
       focusSeen.set(tmpl.focus, seen + 1);
       if (seen > 0 && program.length > 1) {
-        const alt = program[(block + seen) % program.length]!.find((tp) => tp.focus === tmpl.focus);
+        const alt = withCombos(program[(block + seen) % program.length]!).find((tp) => tp.focus === tmpl.focus);
         if (alt) tmpl = alt;
       }
       t++;

@@ -270,6 +270,8 @@ private fun RowDivided(vararg rows: @Composable () -> Unit) {
 // so "body part split" answers "which day / which part" instead of staying a mystery.
 private val BODY_PART_FOCUS_GYM = listOf("Chest", "Back", "Shoulders", "Biceps & Forearms", "Triceps & Core", "Legs & Abs")
 private val BODY_PART_FOCUS_HOME = listOf("Push (Chest/Shoulders/Triceps)", "Pull (Back/Biceps)", "Legs & Abs")
+// Combined gym days the server also understands (Back+Biceps, Chest+Triceps, ...). Offered in the day picker.
+private val BODY_PART_COMBOS_GYM = listOf("Back & Biceps", "Chest & Triceps", "Shoulders & Triceps", "Arms & Core")
 private val WEEKDAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 /** Computes the Sun-Sat → focus (or "Rest") preview for a body-part split, matching server rotation. */
@@ -296,7 +298,7 @@ private fun bodyPartDayPreview(restDay: Int?, atGym: Boolean): List<Pair<String,
 @Composable
 private fun BodyPartDayTable(restDay: Int?, atGym: Boolean, overrides: MutableMap<Int, String>, onOverride: (Int, String) -> Unit) {
     val defaults = remember(restDay, atGym) { bodyPartDayPreview(restDay, atGym) }
-    val focusChoices = remember(atGym) { (if (atGym) BODY_PART_FOCUS_GYM else BODY_PART_FOCUS_HOME) + "Rest" }
+    val focusChoices = remember(atGym) { (if (atGym) BODY_PART_COMBOS_GYM + BODY_PART_FOCUS_GYM else BODY_PART_FOCUS_HOME) + "Rest" }
     Column(
         modifier = Modifier
             .fillMaxWidth()
