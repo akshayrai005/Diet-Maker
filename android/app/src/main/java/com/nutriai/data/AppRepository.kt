@@ -122,6 +122,9 @@ class AppRepository @Inject constructor(
     suspend fun latestCalc(): Result<CalcResult?> = runCatching { api.latestCalc().result }
 
     /** Safe-pace preview for reaching [targetWeightKg] in [weeks] (server uses stored current weight). */
+    suspend fun goalFeasibility(req: com.nutriai.data.remote.dto.FeasibilityRequest): Result<com.nutriai.data.remote.dto.FeasibilityReport> =
+        runCatching { api.goalFeasibility(req).report }
+
     suspend fun goalTimeline(targetWeightKg: Double, weeks: Int): Result<com.nutriai.data.remote.dto.GoalTimeline> =
         runCatching { api.goalTimeline(com.nutriai.data.remote.dto.GoalTimelineRequest(targetWeightKg, weeks)) }
 

@@ -58,6 +58,12 @@ export const sensitiveSchema = z.object({
   hipCm: z.number().positive().max(300).optional(),
   neckCm: z.number().positive().max(300).optional(),
   armCm: z.number().positive().max(100).optional(),
+  /** Extra body measurements + goals used by the goal-feasibility check (all optional). */
+  thighCm: z.number().positive().max(200).optional(),
+  targetThighCm: z.number().positive().max(200).optional(),
+  forearmCm: z.number().positive().max(100).optional(),
+  targetForearmCm: z.number().positive().max(100).optional(),
+  targetBodyFatPct: z.number().positive().max(60).optional(),
   /** Goal measurements - what the user wants to reach, shown alongside current on Progress. */
   targetWaistCm: z.number().positive().max(300).optional(),
   targetChestCm: z.number().positive().max(300).optional(),

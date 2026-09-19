@@ -7,8 +7,21 @@ import { profileUpsertSchema, calcPreviewSchema } from './profile.schemas';
 import { computeCalcResult } from '../nutrition/calcResult';
 import { computeAndSaveForUser, latestCalcResult, ageFromDob } from '../nutrition/calc.service';
 import { goalTimeline } from '../../calc/goalTimeline';
+import { assessGoals } from '../../calc/goalFeasibility';
 
 export const profileRouter = Router();
+
+const opt = z.number().positive().max(500).optional();
+/** Everything is optional - the client sends the (possibly unsaved) values from the form. */
+const feasibilitySchema = z.object({
+  sex: z.enum(['male', 'female']),
+  heightCm: z.number().positive().max(272),
+  weightKg: z.number().positive().max(500),
+  targetWeightKg: opt, waistCm: opt, targetWaistCm: opt, chestCm: opt, targetChestCm: opt, armCm: opt, targetArmCm: opt,
+  thighCm: opt, targetThighCm: opt, forearmCm: opt, targetForearmCm: opt,
+  bodyFatPct: z.number().positive().max(70).optional(), targetBodyFatPct: z.number().positive().max(60).optional(),
+  trainingMonths: z.number().min(0).max(600).optional(),
+});
 
 const goalTimelineSchema = z.object({
   targetWeightKg: z.number().positive().max(500),
@@ -50,6 +63,15 @@ profileRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const result = await latestCalcResult(req.user!.id);
     res.json({ result });
+  }),
+);
+
+/** "Is this target realistic, and how long will it take?" - pure calculation, nothing stored. */
+profileRouter.post(
+  '/goal-feasibility',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    res.json({ report: assessGoals(feasibilitySchema.parse(req.body)) });
   }),
 );
 

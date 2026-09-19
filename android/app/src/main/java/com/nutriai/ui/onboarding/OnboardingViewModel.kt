@@ -23,6 +23,8 @@ data class OnboardingUiState(
     /** Live safe-pace preview for the chosen target + timeframe (null until requested). */
     val timeline: GoalTimeline? = null,
     val timelineLoading: Boolean = false,
+    /** Live "is each target realistic, and how long?" report for the measurements in the form. */
+    val feasibility: com.nutriai.data.remote.dto.FeasibilityReport? = null,
 )
 
 @HiltViewModel
@@ -63,6 +65,20 @@ class OnboardingViewModel @Inject constructor(
     }
 
     /** Drop the preview when the inputs become incomplete (e.g. timeframe deselected). */
+    private var feasibilityJob: Job? = null
+
+    fun checkFeasibility(req: com.nutriai.data.remote.dto.FeasibilityRequest) {
+        feasibilityJob?.cancel()
+        feasibilityJob = viewModelScope.launch {
+            repository.goalFeasibility(req).onSuccess { r -> _state.value = _state.value.copy(feasibility = r) }
+        }
+    }
+
+    fun clearFeasibility() {
+        feasibilityJob?.cancel()
+        _state.value = _state.value.copy(feasibility = null)
+    }
+
     fun clearTimeline() {
         timelineJob?.cancel()
         _state.value = _state.value.copy(timeline = null, timelineLoading = false)

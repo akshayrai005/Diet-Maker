@@ -113,7 +113,39 @@ data class SensitiveData(
     // label from that split's rotation, or "Rest"). Optional/additive - server falls back to the
     // normal auto-rotation when absent.
     val bodyPartDayFocus: Map<String, String>? = null,
+    // Extra measurements + goals for the goal-feasibility check (all optional/additive).
+    val thighCm: Double? = null,
+    val targetThighCm: Double? = null,
+    val forearmCm: Double? = null,
+    val targetForearmCm: Double? = null,
+    val targetBodyFatPct: Double? = null,
 )
+
+// ---- Goal feasibility ("is this target realistic, and how long?") ----
+@Serializable
+data class FeasibilityRequest(
+    val sex: String, val heightCm: Double, val weightKg: Double,
+    val targetWeightKg: Double? = null, val waistCm: Double? = null, val targetWaistCm: Double? = null,
+    val chestCm: Double? = null, val targetChestCm: Double? = null, val armCm: Double? = null, val targetArmCm: Double? = null,
+    val thighCm: Double? = null, val targetThighCm: Double? = null, val forearmCm: Double? = null, val targetForearmCm: Double? = null,
+    val bodyFatPct: Double? = null, val targetBodyFatPct: Double? = null, val trainingMonths: Double? = null,
+)
+
+@Serializable
+data class FeasibilityItem(
+    val key: String = "", val label: String = "", val unit: String = "",
+    val current: Double = 0.0, val target: Double = 0.0, val verdict: String = "realistic",
+    val monthsMin: Int? = null, val monthsMax: Int? = null, val suggestedTarget: Double? = null, val note: String = "",
+)
+
+@Serializable
+data class FeasibilityReport(
+    val items: List<FeasibilityItem> = emptyList(), val recommendedMonths: Int? = null,
+    val summary: String = "", val disclaimer: String = "",
+)
+
+@Serializable
+data class FeasibilityEnvelope(val report: FeasibilityReport)
 
 // ---- Goal timeline (safe-pace preview) ----
 @Serializable

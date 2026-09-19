@@ -350,6 +350,11 @@ fun OnboardingScreen(
     var targetWaist by remember { mutableStateOf("") }
     var targetChest by remember { mutableStateOf("") }
     var targetArm by remember { mutableStateOf("") }
+    var thigh by remember { mutableStateOf("") }
+    var targetThigh by remember { mutableStateOf("") }
+    var forearm by remember { mutableStateOf("") }
+    var targetForearm by remember { mutableStateOf("") }
+    var targetBodyFat by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var sex by remember { mutableStateOf("male") }
@@ -402,6 +407,11 @@ fun OnboardingScreen(
             targetWaist = s.targetWaistCm?.let { fmt(it) } ?: targetWaist
             targetChest = s.targetChestCm?.let { fmt(it) } ?: targetChest
             targetArm = s.targetArmCm?.let { fmt(it) } ?: targetArm
+            thigh = s.thighCm?.let { fmt(it) } ?: thigh
+            targetThigh = s.targetThighCm?.let { fmt(it) } ?: targetThigh
+            forearm = s.forearmCm?.let { fmt(it) } ?: forearm
+            targetForearm = s.targetForearmCm?.let { fmt(it) } ?: targetForearm
+            targetBodyFat = s.targetBodyFatPct?.let { fmt(it) } ?: targetBodyFat
             dob = s.dob
             sex = s.sex.ifBlank { sex }
             gender = s.gender ?: s.sex.ifBlank { gender }
@@ -437,6 +447,28 @@ fun OnboardingScreen(
     }
 
     // Live, debounced safe-pace preview: whenever a valid target + timeframe are set, ask the server.
+    // Live "is each target realistic, and how long will it take?" check (debounced), from the numbers in the form.
+    LaunchedEffect(height, weight, target, waist, neck, hip, chest, arm, thigh, forearm, targetWaist, targetChest, targetArm, targetThigh, targetForearm, targetBodyFat, fitnessLevel, sex) {
+        val h = height.toDoubleOrNull(); val w = weight.toDoubleOrNull()
+        val anyGoal = listOf(targetWaist, targetChest, targetArm, targetThigh, targetForearm, targetBodyFat, target).any { it.toDoubleOrNull() != null }
+        if (h == null || w == null || !anyGoal) { viewModel.clearFeasibility(); return@LaunchedEffect }
+        kotlinx.coroutines.delay(500)
+        viewModel.checkFeasibility(
+            com.nutriai.data.remote.dto.FeasibilityRequest(
+                sex = if (sex == "female") "female" else "male", heightCm = h, weightKg = w,
+                targetWeightKg = target.toDoubleOrNull(),
+                waistCm = waist.toDoubleOrNull(), targetWaistCm = targetWaist.toDoubleOrNull(),
+                chestCm = chest.toDoubleOrNull(), targetChestCm = targetChest.toDoubleOrNull(),
+                armCm = arm.toDoubleOrNull(), targetArmCm = targetArm.toDoubleOrNull(),
+                thighCm = thigh.toDoubleOrNull(), targetThighCm = targetThigh.toDoubleOrNull(),
+                forearmCm = forearm.toDoubleOrNull(), targetForearmCm = targetForearm.toDoubleOrNull(),
+                bodyFatPct = navyBodyFat(sex == "female", h, waist.toDoubleOrNull(), neck.toDoubleOrNull(), hip.toDoubleOrNull()),
+                targetBodyFatPct = targetBodyFat.toDoubleOrNull(),
+                trainingMonths = when (fitnessLevel) { "advanced" -> 36.0; "intermediate" -> 18.0; else -> 0.0 },
+            ),
+        )
+    }
+
     LaunchedEffect(target, timeframeWeeks) {
         val t = target.toDoubleOrNull()
         val w = timeframeWeeks
@@ -487,6 +519,11 @@ fun OnboardingScreen(
                         targetWaistCm = targetWaist.toDoubleOrNull(),
                         targetChestCm = targetChest.toDoubleOrNull(),
                         targetArmCm = targetArm.toDoubleOrNull(),
+                        thighCm = thigh.toDoubleOrNull(),
+                        targetThighCm = targetThigh.toDoubleOrNull(),
+                        forearmCm = forearm.toDoubleOrNull(),
+                        targetForearmCm = targetForearm.toDoubleOrNull(),
+                        targetBodyFatPct = targetBodyFat.toDoubleOrNull(),
                         conditions = conditions.toList(),
                         familyHistory = familyHistory.toList(),
                         fastDayOfWeek = fastDay,
@@ -571,6 +608,8 @@ fun OnboardingScreen(
                             { numberField(chest, { chest = it }, "Chest (cm) - optional") },
                             { numberField(arm, { arm = it }, "Arm / bicep (cm) - optional") },
                             { numberField(neck, { neck = it }, "Neck (cm) - optional") },
+                            { numberField(thigh, { thigh = it }, "Thigh (cm) - optional") },
+                            { numberField(forearm, { forearm = it }, "Forearm (cm) - optional") },
                         )
                         if (sex == "female") numberField(hip, { hip = it }, "Hip (cm) - optional")
                     }
@@ -580,6 +619,9 @@ fun OnboardingScreen(
                             { numberField(targetWaist, { targetWaist = it }, "Target waist (cm) - optional") },
                             { numberField(targetChest, { targetChest = it }, "Target chest (cm) - optional") },
                             { numberField(targetArm, { targetArm = it }, "Target arm / bicep (cm) - optional") },
+                            { numberField(targetThigh, { targetThigh = it }, "Target thigh (cm) - optional") },
+                            { numberField(targetForearm, { targetForearm = it }, "Target forearm (cm) - optional") },
+                            { numberField(targetBodyFat, { targetBodyFat = it }, "Target body fat % - optional") },
                         )
                     }
                     BorderedGroup("Identity", "🪪", accent = STEP_COLORS[0]) {
@@ -753,6 +795,7 @@ fun OnboardingScreen(
                             )
                         }
                     }
+                    state.feasibility?.takeIf { it.items.isNotEmpty() }?.let { GoalFeasibilityCard(it) }
                     state.timeline?.let { TimelinePreviewCard(it) }
             }
         }
@@ -797,6 +840,19 @@ fun OnboardingScreen(
 
 private fun <T> labelOf(options: List<Pair<T, String>>, value: T): String =
     options.firstOrNull { it.first == value }?.second ?: ""
+
+/** US-Navy tape-measure body-fat estimate (%), or null when the needed measurements are missing. */
+private fun navyBodyFat(female: Boolean, heightCm: Double, waist: Double?, neck: Double?, hip: Double?): Double? {
+    if (waist == null || neck == null || heightCm <= 0) return null
+    val v = if (female) {
+        if (hip == null || waist + hip - neck <= 0) return null
+        495.0 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.22100 * Math.log10(heightCm)) - 450.0
+    } else {
+        if (waist - neck <= 0) return null
+        495.0 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(heightCm)) - 450.0
+    }
+    return if (v.isNaN() || v < 3 || v > 60) null else Math.round(v * 10) / 10.0
+}
 
 private fun fmt(v: Double): String = if (v % 1.0 == 0.0) v.toLong().toString() else v.toString()
 
@@ -977,6 +1033,35 @@ internal fun <T> TickDropdown(
 }
 
 
+
+/** "Your goals - how long each really takes": realistic / ambitious / beyond natural limits, with suggested targets. */
+@Composable
+private fun GoalFeasibilityCard(report: com.nutriai.data.remote.dto.FeasibilityReport) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text("🧭 Your goals - how long each really takes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = BrandGreen)
+            Text(report.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+            report.items.forEachIndexed { i, item ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+                val (chip, color) = when (item.verdict) {
+                    "realistic" -> "Realistic" to BrandGreen
+                    "ambitious" -> "Ambitious" to BrandAmber
+                    "long_term" -> "Long-term" to BrandAmber
+                    else -> "Beyond natural limits" to KaizenCoral
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("${item.label}: ${fmt(item.current)} → ${fmt(item.target)} ${item.unit}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Text(chip, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = color)
+                }
+                val time = if (item.monthsMin != null && item.monthsMax != null) "≈ ${item.monthsMin}–${item.monthsMax} months" else "not reachable naturally"
+                Text(time, style = MaterialTheme.typography.labelMedium, color = color)
+                item.suggestedTarget?.let { sug -> Text("Suggested target: ${fmt(sug)} ${item.unit}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                Text(item.note, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(report.disclaimer, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
 
 /**
  * Body-neutral preview of the server's safe-pace assessment.
