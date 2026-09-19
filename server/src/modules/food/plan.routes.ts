@@ -28,7 +28,7 @@ planRouter.post(
     // days <= 2 means "just today and tomorrow": rebuild those two days and leave the rest of the week alone.
     const plan = days !== undefined && days <= 2
       ? await regenerateTodayTomorrow(req.user!.id, tzOffsetMin(req))
-      : await generateAndSavePlan(req.user!.id, days ?? 7, tzOffsetMin(req));
+      : await generateAndSavePlan(req.user!.id, days ?? 2, tzOffsetMin(req));
     res.status(201).json({ plan });
   }),
 );

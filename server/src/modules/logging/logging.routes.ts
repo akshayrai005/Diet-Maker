@@ -35,7 +35,7 @@ loggingRouter.get(
   '/logs/food',
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
-    const entries = await svc.listFood(req.user!.id, dateParam(req.query.date));
+    const entries = await svc.listFood(req.user!.id, dateParam(req.query.date), tzOffsetMin(req));
     res.json({ entries });
   }),
 );
@@ -64,7 +64,7 @@ loggingRouter.get(
   '/logs/water',
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
-    const totalMl = await svc.waterTotal(req.user!.id, dateParam(req.query.date));
+    const totalMl = await svc.waterTotal(req.user!.id, dateParam(req.query.date), tzOffsetMin(req));
     res.json({ totalMl });
   }),
 );

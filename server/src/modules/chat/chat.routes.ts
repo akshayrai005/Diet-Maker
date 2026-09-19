@@ -77,7 +77,7 @@ chatRouter.post(
     const adaptation = await getAdaptation(req.user!.id);
     // Only a target-adjustment recommendation changes calories; behaviour/on-track just rebuild.
     const kcalDelta = adaptation.status === 'adjust_target' ? adaptation.suggestedKcalDelta : 0;
-    const plan = await generateAndSavePlan(req.user!.id, 7, tzOffsetMin(req), kcalDelta);
+    const plan = await generateAndSavePlan(req.user!.id, 2, tzOffsetMin(req), kcalDelta);
     res.status(201).json({ adaptation, applied: kcalDelta !== 0, kcalDelta, plan });
   }),
 );
