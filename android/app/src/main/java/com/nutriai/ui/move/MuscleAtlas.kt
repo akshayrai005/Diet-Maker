@@ -61,8 +61,8 @@ private val DEMO_ID = mapOf(
     ExerciseCatalog.Category.ARMS to "biceps/barbell-curl",
     ExerciseCatalog.Category.CORE to "abs/crunch-floor",
     ExerciseCatalog.Category.LEGS to "quads/barbell-bench-squat",
-    ExerciseCatalog.Category.GLUTES to "glutes/barbell-glute-bridge",
-    ExerciseCatalog.Category.CARDIO to "cardio/burpee",
+    ExerciseCatalog.Category.GLUTES to "glutes/low-glute-bridge-on-floor",
+    ExerciseCatalog.Category.CARDIO to "cardio/jump-rope",
     ExerciseCatalog.Category.MOBILITY to "hamstrings/world-greatest-stretch",
 )
 

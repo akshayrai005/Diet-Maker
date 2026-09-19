@@ -76,3 +76,15 @@ describe('morning + night pattern (breakfast, evening meal, dinner)', () => {
     });
   }
 });
+
+describe('week-level nutrition stays near the targets (morning + night pattern)', () => {
+  const prefs: PlanPreferences = { dietType: 'nonveg', allergies: [], conditions: [] };
+  it('average fat and protein over the training days are within 15% / 25% of target, no meal over 45% of the day', () => {
+    const plan = generateWeekPlan(POOL, { dailyKcal: 2895, proteinG: 150, fatG: 64, carbG: 430, fiberG: 36 }, prefs, { eatingPattern: 'morning_night', fastDayOfWeek: 2 });
+    const days = plan.days.filter((d) => d.totals.kcal > 2000);
+    const avg = (pick: (d: (typeof days)[number]) => number) => days.reduce((s, d) => s + pick(d), 0) / days.length;
+    expect(Math.abs(avg((d) => d.totals.fatG) - 64) / 64, 'avg fat').toBeLessThanOrEqual(0.15);
+    expect(Math.abs(avg((d) => d.totals.proteinG) - 150) / 150, 'avg protein').toBeLessThanOrEqual(0.25);
+    for (const d of days) for (const m of d.meals) expect(m.kcal / 2895, `${d.dayIndex}/${m.slot}`).toBeLessThanOrEqual(0.45);
+  });
+});
