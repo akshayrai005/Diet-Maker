@@ -131,8 +131,13 @@ function buildPlate(
     }
   };
   const pickFrom = (list: FoodItem[], s: number) => {
-    const fresh = list.filter((f) => !chosen.has(f.id) && !skip(f));
-    const notInMeal = list.filter((f) => !chosen.has(f.id));
+    // Never double up a protein family on one plate (Rajma chawal + Rajma, two chickens...).
+    const famTaken = (f: FoodItem) => {
+      const fam = proteinFamily(f.name);
+      return !!fam && items.some((i) => proteinFamily(i.name) === fam);
+    };
+    const fresh = list.filter((f) => !chosen.has(f.id) && !skip(f) && !famTaken(f));
+    const notInMeal = list.filter((f) => !chosen.has(f.id) && !famTaken(f));
     return pickRotated(fresh.length ? fresh : notInMeal.length ? notInMeal : list, s);
   };
   // Staples/proteins/veg from the slot's candidates, falling back to the whole pool if the slot
@@ -160,6 +165,28 @@ function buildPlate(
     add(pickFrom(complement.length ? complement : candidates, seed + 3), 0.5);
   }
   return items;
+}
+
+/** Coarse protein family of a dish name, so one meal never serves two chickens or soya + chicken. 'dal' is the only family allowed alongside another. */
+function proteinFamily(name: string): string | null {
+  const n = name.toLowerCase();
+  if (/chicken/.test(n)) return 'chicken';
+  if (/(^|[^a-z])egg|omelette|omelet/.test(n)) return 'egg';
+  if (/fish|prawn|shrimp|salmon|tuna|rohu|surmai|pomfret/.test(n)) return 'fish';
+  if (/mutton|lamb|keema|goat/.test(n)) return 'mutton';
+  if (/soya|soy |tofu|nutrela/.test(n)) return 'soya';
+  if (/paneer|cottage cheese/.test(n)) return 'paneer';
+  if (/dal|lentil|moong|masoor|toor|arhar|urad|rajma|chole|chana|kidney bean|sprout/.test(n)) return 'dal';
+  return null;
+}
+/** True when adding `name` would double up a protein in this meal (two chickens, soya + chicken, ...). */
+function clashesWithMeal(m: Meal, name: string): boolean {
+  const fam = proteinFamily(name);
+  if (!fam) return false;
+  const have = m.items.map((i) => proteinFamily(i.name)).filter((f): f is string => !!f);
+  if (have.includes(fam)) return true;
+  if (fam === 'dal') return false;
+  return have.some((f) => f !== 'dal'); // already has a non-dal main protein
 }
 
 /** Cooking ingredients / condiments - never a standalone snack. */
@@ -267,10 +294,13 @@ function scaleItem(it: MealItem, factor: number, ignoreCap = false): void {
  * then refreshes each meal's kcal/protein totals. Mutates in place.
  */
 function normaliseDayToTarget(meals: Meal[], dailyKcal: number): void {
-  const scalable = meals.flatMap((m) => m.items).filter((i) => i.kcal >= 20);
+  // Snacks stay snacks: only main meals get scaled up.
+  const scalable = meals.filter((m) => MAIN_SLOTS.includes(m.slot)).flatMap((m) => m.items).filter((i) => i.kcal >= 20);
   const rawKcal = scalable.reduce((s, i) => s + i.kcal, 0);
   if (rawKcal <= 0) return;
-  const factor = Math.min(1.3, Math.max(1, dailyKcal / rawKcal));
+  // Snacks are not scaled, so the main meals only have to cover what the snacks leave of the day.
+  const fixedKcal = meals.reduce((t, m) => t + m.kcal, 0) - meals.filter((m) => MAIN_SLOTS.includes(m.slot)).reduce((t, m) => t + m.kcal, 0);
+  const factor = Math.min(1.3, Math.max(1, (dailyKcal - fixedKcal) / rawKcal));
   if (factor <= 1.01) return;
   for (const it of scalable) scaleItem(it, factor);
   for (const m of meals) {
@@ -287,10 +317,11 @@ function proteinTopUp(meals: Meal[], targets: { proteinG: number }, pool: FoodIt
   const total = () => meals.reduce((t, m) => t + m.items.reduce((u, i) => u + i.proteinG, 0), 0);
   const shortfall = targets.proteinG - total();
   if (shortfall < targets.proteinG * 0.12) return;
-  const mainMeal = meals.filter((m) => (m.slot === 'lunch' || m.slot === 'dinner') && m.items.length > 0).sort((a, b) => b.kcal - a.kcal)[0];
+  // Lunch first (dinner is kept light, especially after the gym); never stack a second main protein on a plate.
+  const mainMeal = meals.filter((m) => (m.slot === 'lunch' || m.slot === 'dinner') && m.items.length > 0).sort((a, b) => (a.slot === 'lunch' ? 0 : 1) - (b.slot === 'lunch' ? 0 : 1))[0];
   if (!mainMeal) return;
   const lean = pool
-    .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.11 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f))
+    .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.11 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f) && !clashesWithMeal(mainMeal, f.name))
     .sort((a, b) => b.proteinG / Math.max(1, b.kcal) - a.proteinG / Math.max(1, a.kcal))[0];
   if (!lean) return;
   const wantProtein = Math.min(shortfall * 0.8, 40);
@@ -369,17 +400,20 @@ function topUpDayToTarget(
   dietType: string,
   dayIndex: number,
   usedToday: Set<string>,
+  shares: Record<string, number> = {},
 ): void {
   const currentKcal = meals.reduce((s, m) => s + m.kcal, 0);
   const shortfall = dailyKcal - currentKcal;
   if (shortfall < dailyKcal * 0.08) return; // close enough - not worth a whole extra item
   const mainMeals = meals.filter((m) => MAIN_SLOTS.includes(m.slot) && m.items.length > 0);
+  // The main meal furthest below its own share of the day (so lunch fills up before breakfast or dinner balloon).
+  const deficit = (m: Meal) => (shares[m.slot] ?? 0.25) * dailyKcal - m.kcal;
   const target = (mainMeals.length ? mainMeals : meals.filter((m) => m.items.length > 0)).reduce(
-    (best, m) => (best === undefined || m.kcal > best.kcal ? m : best),
+    (best, m) => (best === undefined || deficit(m) > deficit(best) ? m : best),
     undefined as Meal | undefined,
   );
   if (!target) return;
-  const candidates = candidatesForSlot(pool, target.slot, dietType).filter((f) => !usedToday.has(f.id));
+  const candidates = candidatesForSlot(pool, target.slot, dietType).filter((f) => !usedToday.has(f.id) && !clashesWithMeal(target, f.name) && !NOT_A_SNACK.test(f.name));
   const pick = candidates[0];
   if (!pick) {
     // Nothing new suits this slot (few-meal patterns): enlarge what is already there, at most 1.4x and never past 400 g.
@@ -390,7 +424,7 @@ function topUpDayToTarget(
     target.proteinG = round(target.items.reduce((s2, i) => s2 + i.proteinG, 0), 1);
     return;
   }
-  const item = toItem(pick, gramsForKcal(pick, shortfall));
+  const item = toItem(pick, gramsForKcal(pick, Math.min(shortfall, Math.max(150, deficit(target)))));
   target.items.push(item);
   usedToday.add(pick.id);
   target.kcal = round(target.items.reduce((s, i) => s + i.kcal, 0), 0);
@@ -457,7 +491,7 @@ function buildDay(
   // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
   // rather than silently leaving the day under target.
   // Realistic serving caps can leave a big target short (esp. with only 3 meals) - add up to 3 extra items, one per pass.
-  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
+  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday, Object.fromEntries(slots.map((sl) => [sl, slotWeight[sl]! / weightSum])));
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday); // a second lean item if the day is still well short

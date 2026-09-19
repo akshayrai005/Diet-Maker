@@ -40,7 +40,16 @@ describe('meal plans are realistic', () => {
             expect(it.grams, `${d.dayIndex}/${m.slot}: ${it.name} ${it.grams}g`).toBeLessThanOrEqual(limit);
           }
           if (['midmorning', 'eveningsnack', 'bedtime', 'wakeup'].includes(m.slot)) expect(m.kcal, `${m.slot} snack`).toBeLessThanOrEqual(330);
-          expect(m.kcal / p.kcal, `${d.dayIndex}/${m.slot} share of day`).toBeLessThanOrEqual(0.42);
+          expect(m.kcal / p.kcal, `${d.dayIndex}/${m.slot} share of day`).toBeLessThanOrEqual(0.46);
+          // front-loaded, light dinner; breakfast a proper but not absurd meal
+          if (m.slot === 'dinner') expect(m.kcal / p.kcal, `${d.dayIndex} dinner share`).toBeLessThanOrEqual(0.3);
+          if (m.slot === 'breakfast') expect(m.kcal / p.kcal, `${d.dayIndex} breakfast share`).toBeLessThanOrEqual(0.36);
+          // never two chickens / soya + chicken on one plate, never raw meat
+          const fam = (n: string) => (/chicken/i.test(n) ? 'chicken' : /soya|soy /i.test(n) ? 'soya' : /\begg/i.test(n) ? 'egg' : /fish|prawn/i.test(n) ? 'fish' : /paneer/i.test(n) ? 'paneer' : /mutton|keema/i.test(n) ? 'mutton' : '');
+          const fams = m.items.map((i) => fam(i.name)).filter(Boolean);
+          expect(new Set(fams).size, `${d.dayIndex}/${m.slot} doubled protein: ${m.items.map((i) => i.name).join(' + ')}`).toBe(fams.length);
+          expect(fams.length, `${d.dayIndex}/${m.slot} two main proteins: ${m.items.map((i) => i.name).join(' + ')}`).toBeLessThanOrEqual(1);
+          for (const it of m.items) expect(it.name, 'raw item').not.toMatch(/[(]raw(?!, uncooked)/i);
         }
         expect(Math.abs(d.totals.kcal - p.kcal) / p.kcal, `day ${d.dayIndex} kcal`).toBeLessThanOrEqual(0.15);
       }
