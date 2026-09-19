@@ -61,6 +61,11 @@ export function conditionAvoidTags(conditions: string[]): string[] {
   }
   if (conditions.includes('heart_disease')) avoid.add('high-satfat');
   if (conditions.includes('gout')) avoid.add('high-purine');
+  // Hard stools / fissure history: refined and fried foods are constipating or irritating - keep them out of the plan.
+  if (conditions.includes('constipation')) {
+    avoid.add('refined');
+    avoid.add('fried');
+  }
   if (conditions.includes('kidney_disease')) {
     avoid.add('high-potassium');
     avoid.add('high-phosphorus');
@@ -118,10 +123,13 @@ export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodIt
   // NOTE: kitchen access does NOT restrict the menu. In India a PG/hostel/mess or tiffin still
   // serves cooked roti/dal/sabji/rice — not cooking yourself doesn't mean assemble-only food. The
   // only hard "what do I actually have" constraint is an explicit availableFoodIds list.
+  const lowFibreStarch = prefs.conditions.includes('constipation');
   const availableSet = prefs.availableFoodIds && prefs.availableFoodIds.length > 0 ? new Set(prefs.availableFoodIds) : null;
 
   return foods.filter((f) => {
     if (isIngredientOnly(f.name)) return false;
+    // Hard stools: also drop starchy, low-fibre staples (white rice, plain idli...) - whole grains, dal and veg stay.
+    if (lowFibreStarch && f.fiberG < 1.2 && f.carbG > 20 && f.kcal > 100) return false;
     if (f.tags.includes('ai-estimated')) return false; // unreviewed AI lookups are for logging only, never for planning
     if (/\(raw(?!, uncooked)/i.test(f.name)) return false; // raw meat/fish is not a meal (dry "raw, uncooked" grains are fine)
     if (!categoryAllowed(prefs.dietType, f.category)) return false;

@@ -88,3 +88,21 @@ describe('week-level nutrition stays near the targets (morning + night pattern)'
     for (const d of days) for (const m of d.meals) expect(m.kcal / 2895, `${d.dayIndex}/${m.slot}`).toBeLessThanOrEqual(0.45);
   });
 });
+
+describe('constipation / hard-stool mode', () => {
+  const prefs: PlanPreferences = { dietType: 'nonveg', allergies: [], conditions: ['constipation'] as PlanPreferences['conditions'] };
+  it('plans stay complete and fibre-rich, with no refined, fried or low-fibre starchy foods', () => {
+    const plain = generateWeekPlan(POOL, { dailyKcal: 2600, proteinG: 150, fatG: 64, carbG: 380, fiberG: 36 }, { ...prefs, conditions: [] }, {});
+    const gut = generateWeekPlan(POOL, { dailyKcal: 2600, proteinG: 150, fatG: 64, carbG: 380, fiberG: 36 }, prefs, {});
+    const byId = new Map(POOL.map((f) => [f.id, f]));
+    const avgFibre = (p: typeof gut) => p.days.reduce((s, d) => s + d.totals.fiberG, 0) / p.days.length;
+    for (const d of gut.days) for (const m of d.meals) for (const it of m.items) {
+      const f = byId.get(it.foodId)!;
+      expect(f.tags, it.name).not.toContain('refined');
+      expect(f.tags, it.name).not.toContain('fried');
+      expect(!(f.fiberG < 1.2 && f.carbG > 20 && f.kcal > 100), `${it.name} is a low-fibre starch`).toBe(true);
+    }
+    expect(gut.days.every((d) => d.meals.filter((m) => m.kcal > 100).length >= 3), 'every day still has its meals').toBe(true);
+    expect(avgFibre(gut)).toBeGreaterThanOrEqual(avgFibre(plain) * 0.95);
+  });
+});

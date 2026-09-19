@@ -268,6 +268,14 @@ export function applyGuardrails(input: GuardrailInput): GuardrailResult {
     });
   }
 
+  if (has(conditions, 'constipation')) {
+    flags.push({
+      code: 'GUT_FIBRE',
+      severity: 'info',
+      message: 'Hard stools / fissure history: plan avoids refined and fried foods and leans on fibre and fluids. Severe pain, bleeding or symptoms beyond 2-3 weeks need a doctor.',
+    });
+  }
+
   if (has(conditions, 'gout')) {
     flags.push({
       code: 'GOUT_PURINES',

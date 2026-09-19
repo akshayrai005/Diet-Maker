@@ -13,6 +13,7 @@ export const CONDITIONS = [
   'heart_disease',
   'cancer',
   'post_surgery',
+  'constipation',
 ] as const;
 
 export const ACTIVITY_LEVELS = [

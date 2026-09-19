@@ -13,7 +13,8 @@ export type Condition =
   | 'gout'
   | 'heart_disease'
   | 'cancer'
-  | 'post_surgery';
+  | 'post_surgery'
+  | 'constipation';
 
 export type FlagSeverity = 'info' | 'warning' | 'critical';
 

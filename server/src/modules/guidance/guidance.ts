@@ -74,6 +74,11 @@ export function buildGuidance(input: GuidanceInput): Guidance {
     diet.push('Thyroid: take medication on an empty stomach and keep it away from calcium/iron and high-fibre meals by a few hours. Expect a realistic pace.');
   }
 
+  // ---- Hard stools / fissure history ----
+  if (has(conditions, 'constipation')) {
+    diet.push('Hard stools: fibre 30-40 g a day (build up slowly), 3+ litres of water, oats/dalia/papaya/guava daily, and keep whey and paneer moderate. After passing stool, a 10-15 minute warm sitz bath can ease fissure pain. Avoid straining; see your doctor for bleeding, severe pain or symptoms beyond 2-3 weeks.');
+  }
+
   // ---- Gout ----
   if (has(conditions, 'gout')) {
     diet.push('Gout: limit organ meats, red meat and certain seafood; stay well hydrated and go easy on alcohol and sugary drinks.');

@@ -183,7 +183,7 @@ private val EATING_PATTERN: List<Pair<String?, String>> = listOf(
 private val GYM_MONTHS: List<Pair<Int?, String>> = listOf(
     null to "Not a member", 1 to "1 month", 3 to "3 months", 6 to "6 months", 12 to "12 months",
 )
-private val CONDITIONS = listOf("diabetes", "hypertension", "kidney_disease", "thyroid", "pcos", "heart_disease", "fatty_liver", "gout")
+private val CONDITIONS = listOf("diabetes", "hypertension", "kidney_disease", "thyroid", "pcos", "heart_disease", "fatty_liver", "gout", "constipation")
 private val FAMILY_HISTORY = listOf("diabetes", "heart_disease", "hypertension", "stroke", "cancer", "thyroid")
 // Physique goal: value → (label, body-neutral, plain-language description). Never framed around appearance/shame.
 private val PHYSIQUE_GOAL: List<Pair<String, Pair<String, String>>> = listOf(
