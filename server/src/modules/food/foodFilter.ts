@@ -122,6 +122,7 @@ export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodIt
 
   return foods.filter((f) => {
     if (isIngredientOnly(f.name)) return false;
+    if (f.tags.includes('ai-estimated')) return false; // unreviewed AI lookups are for logging only, never for planning
     if (/\(raw(?!, uncooked)/i.test(f.name)) return false; // raw meat/fish is not a meal (dry "raw, uncooked" grains are fine)
     if (!categoryAllowed(prefs.dietType, f.category)) return false;
 

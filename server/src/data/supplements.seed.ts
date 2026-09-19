@@ -15,6 +15,8 @@ export interface Supplement {
   /** Plain-language reason this is trusted/evidence-based - not marketing copy. */
   whyTrusted: string;
   typicalDosage: string;
+  /** How strong the evidence and the need are. No supplement is ever mandatory: food comes first. */
+  tier: 'evidence_supported' | 'potentially_useful' | 'optional';
   /** Diet types this fits (undefined = fits everyone). */
   dietCompatible?: string[];
   /** Conditions where this should NOT be suggested (safety gate, not optional). */
@@ -26,6 +28,7 @@ export interface Supplement {
 export const SUPPLEMENTS: Supplement[] = [
   {
     id: 'whey-protein',
+    tier: 'optional',
     name: 'Whey protein isolate/concentrate',
     category: 'protein',
     whyTrusted:
@@ -36,6 +39,7 @@ export const SUPPLEMENTS: Supplement[] = [
   },
   {
     id: 'plant-protein',
+    tier: 'optional',
     name: 'Plant-based protein blend (pea + rice)',
     category: 'protein',
     whyTrusted:
@@ -47,6 +51,7 @@ export const SUPPLEMENTS: Supplement[] = [
   },
   {
     id: 'creatine-monohydrate',
+    tier: 'evidence_supported',
     name: 'Creatine monohydrate',
     category: 'creatine',
     whyTrusted:
@@ -56,14 +61,16 @@ export const SUPPLEMENTS: Supplement[] = [
   },
   {
     id: 'vitamin-d3',
+    tier: 'potentially_useful',
     name: 'Vitamin D3',
     category: 'vitamin',
     whyTrusted:
       'Widely deficient in people with limited sun exposure or darker skin tones regardless of diet quality - one of the few single-nutrient supplements with genuinely strong evidence behind correcting a real, common gap.',
-    typicalDosage: '1000-2000 IU daily (get a blood level checked before going higher).',
+    typicalDosage: '1000-2000 IU daily. Do not exceed 4000 IU/day (the adult upper limit) without a blood test and doctor advice.',
   },
   {
     id: 'omega-3',
+    tier: 'potentially_useful',
     name: 'Omega-3 (fish oil or algae-based)',
     category: 'omega3',
     whyTrusted:
@@ -73,6 +80,7 @@ export const SUPPLEMENTS: Supplement[] = [
   },
   {
     id: 'electrolytes',
+    tier: 'optional',
     name: 'Electrolyte supplement (sodium/potassium/magnesium)',
     category: 'electrolyte',
     whyTrusted:

@@ -57,7 +57,8 @@ export async function estimateAndSaveFood(name: string) {
       name: name.trim(),
       locale: 'IN',
       category,
-      mealSlots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner'],
+      // An estimate is a lookup for logging, not a curated dish: no meal slots, so it can never be planned into anyone's diet.
+      mealSlots: [],
       kcal,
       proteinG: num(result.proteinG),
       carbG: num(result.carbG),

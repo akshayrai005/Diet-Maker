@@ -53,6 +53,23 @@ export const RED_FLAGS: RedFlag[] = [
   },
 ];
 
+/**
+ * Disordered-eating language. NOT a diagnosis and not an emergency: it only triggers a supportive reply that
+ * declines to coach the behaviour and points to a professional. A single mention is enough - better a gentle
+ * check-in than coaching someone through starving or purging.
+ */
+const DISORDERED_EATING = [
+  'starve myself', 'starving myself', 'stop eating completely', 'stop eating altogether', 'not eat for days', "haven't eaten in days", 'make myself throw up', 'make myself puke',
+  'purge', 'purging', 'laxatives to lose', 'laxative to lose', 'diuretics to lose', 'eat under 800', 'eat 500 calories', '500 calories a day',
+  '600 calories a day', '800 calories a day', 'hate my body', 'feel guilty after eating', 'binge and', 'anorexia', 'bulimia',
+];
+export const DISORDERED_EATING_MESSAGE =
+  'I can’t coach that safely - eating very little, purging, or using laxatives/diuretics to lose weight can seriously harm your health, and it isn’t something to push through alone. Please talk to a doctor, a registered dietitian or a counsellor who works with eating concerns (in India, your GP or a psychiatrist/psychologist can refer you). If you feel unwell, faint, or have chest pain, get medical help now. I’m glad to help you build a sustainable, well-fed plan whenever you want.';
+export function checkDisorderedEating(text: string): boolean {
+  const hay = text.toLowerCase().replace(/\s+/g, ' ');
+  return DISORDERED_EATING.some((t) => hay.includes(t));
+}
+
 export interface RedFlagResult {
   urgent: boolean;
   matched: { id: string; label: string }[];

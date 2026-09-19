@@ -14,7 +14,8 @@ export async function getAdaptation(userId: string, now: Date = new Date()): Pro
     computeAndSaveForUser(userId).then((r) => ({ result: r })).catch(() => prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } })),
     prisma.profile.findUnique({ where: { userId } }),
     prisma.foodLog.findMany({ where: { userId, loggedAt: { gte: since } }, select: { loggedAt: true, kcal: true } }),
-    prisma.weeklyCheckin.findMany({ where: { userId }, orderBy: { date: 'asc' } }),
+    // Only the recent trend (6 weeks) - an old start weight must not dominate the slope.
+    prisma.weeklyCheckin.findMany({ where: { userId, date: { gte: new Date(now.getTime() - 42 * 86_400_000) } }, orderBy: { date: 'asc' } }),
   ]);
 
   const result = snapshot?.result as { dailyKcal: number } | undefined;

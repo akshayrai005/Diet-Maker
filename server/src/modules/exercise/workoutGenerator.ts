@@ -275,7 +275,9 @@ const EXTRA_POOL: Record<string, ExerciseItem[]> = {
   biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12'), s('Preacher curl', 3, '12'), s('Cable curl', 3, '12'), s('EZ-bar curl', 3, '10'), s('Incline dumbbell curl', 3, '12')],
   triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15'), s('Straight-bar pushdown', 3, '12'), s('Reverse-grip pushdown', 3, '12'), s('Tricep dips (machine)', 3, '12'), s('Tricep kickback (cable)', 3, '15')],
   legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15'), s('Back squat', 3, '10'), s('Leg curl', 3, '12'), s('Leg extension', 3, '15'), s('Hack squat', 3, '12'), s('Hip thrust', 3, '12')],
-  core: [s('Plank', 3, '45s'), s('Russian twist', 3, '20'), s('Hanging leg raise', 3, '15'), s('Dead bug', 3, '10 each side'), s('Bicycle crunch', 3, '20')],
+  // Ordered so any first three cover different trunk jobs: anti-extension (plank), anti-rotation (Pallof), flexion (reverse crunch);
+  // then lateral control (side plank), stability (dead bug) and the harder loaded/hanging work.
+  core: [s('Plank', 3, '45s'), s('Pallof press', 3, '12 each side'), s('Reverse crunch', 3, '15'), s('Side plank', 3, '30s each side'), s('Dead bug', 3, '10 each side'), s('Cable crunch', 3, '15'), s('Ab wheel rollout', 3, '10'), s('Hanging leg raise', 3, '12'), s('Russian twist', 3, '20'), s('Bicycle crunch', 3, '20')],
   cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
 };
 
@@ -392,6 +394,10 @@ const BEGINNER_SWAPS: Record<string, string> = {
   'deadlift': 'Romanian deadlift',
   'rack pulls': 'Romanian deadlift',
   'barbell shrugs': 'Dumbbell shrugs',
+  // advanced trunk work needs a progression first: beginners start from the regressions
+  'ab wheel rollout': 'Dead bug',
+  'hanging leg raise': 'Reverse crunch',
+  'hanging knee raise': 'Reverse crunch',
 };
 const INTERMEDIATE_SWAPS: Record<string, string> = {
   'weighted pull-ups': 'Pull-ups',
@@ -527,6 +533,7 @@ const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = 
   { match: ["farmer's carry", 'farmers carry', 'wrist curl'], muscleGroup: 'forearms', cue: 'shoulders back, walk tall, grip tight' },
   { match: ['curl'], muscleGroup: 'biceps', cue: 'keep your elbows pinned, no swinging' },
   { match: ['lunge', 'step-up', 'step up'], muscleGroup: 'legs', cue: 'torso tall, front knee over the ankle' },
+  { match: ['pallof'], muscleGroup: 'core', cue: 'stand side-on to the cable, press out and resist the pull - do not let your torso rotate' },
   { match: ['plank'], muscleGroup: 'core', cue: "brace your core, straight line, don't let the hips sag" },
   { match: ['crunch', 'leg raise', 'knee raise', 'russian twist', 'hollow', 'dead bug', 'ab wheel', 'sit-up'], muscleGroup: 'core', cue: 'brace your core, move slowly and controlled' },
   { match: ['glute bridge', 'hip thrust', 'kettlebell swing'], muscleGroup: 'glutes', cue: 'squeeze the glutes at the top, ribs down' },

@@ -9,7 +9,7 @@ export interface AdaptationInput {
 }
 
 export interface Adaptation {
-  status: 'insufficient_data' | 'on_track' | 'adjust_behaviour' | 'adjust_target';
+  status: 'insufficient_data' | 'on_track' | 'adjust_behaviour' | 'adjust_target' | 'review_deficit';
   message: string;
   /** Suggested change to the daily calorie target (kcal). 0 = keep target, change behaviour. */
   suggestedKcalDelta: number;
@@ -21,15 +21,29 @@ function mean(xs: number[]): number {
   return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
-/** Weekly weight change (kg/week) from the first and last points, or null. */
-function weeklyWeightChange(points: WeightPoint[]): number | null {
-  if (points.length < 2) return null;
+/** A weight trend needs real time and several weigh-ins: one high or low reading (water, salt, glycogen, a heavy training day) must never move calories. */
+export const MIN_TREND_DAYS = 14;
+export const MIN_TREND_POINTS = 3;
+/** Days of food logs needed before the plan's calories may be changed (behaviour advice needs only 3). */
+export const MIN_LOG_DAYS_TO_ADJUST = 5;
+
+/**
+ * Weekly weight change (kg/week) as a least-squares slope over all weigh-ins, or null when there are too few
+ * points or they span under two weeks. A slope over several points is far less noisy than first-vs-last.
+ */
+export function weeklyWeightChange(points: WeightPoint[]): number | null {
+  if (points.length < MIN_TREND_POINTS) return null;
   const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date));
-  const first = sorted[0]!;
-  const last = sorted[sorted.length - 1]!;
-  const days = (new Date(last.date).getTime() - new Date(first.date).getTime()) / 86_400_000;
-  if (days < 1) return null;
-  return round(((last.weightKg - first.weightKg) / days) * 7, 2);
+  const t0 = new Date(sorted[0]!.date).getTime();
+  const xs = sorted.map((p) => (new Date(p.date).getTime() - t0) / 86_400_000);
+  if (xs[xs.length - 1]! < MIN_TREND_DAYS) return null;
+  const ys = sorted.map((p) => p.weightKg);
+  const mx = mean(xs);
+  const my = mean(ys);
+  const den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+  if (den === 0) return null;
+  const slope = xs.reduce((s, x, i) => s + (x - mx) * (ys[i]! - my), 0) / den;
+  return round(slope * 7, 2);
 }
 
 /**
@@ -67,8 +81,19 @@ export function computeAdaptation(input: AdaptationInput): Adaptation {
     };
   }
 
-  // Intake is close to target - judge by the scale.
-  if (weekly !== null) {
+  const latestKg = [...weightPoints].sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.weightKg ?? 0;
+  // Losing faster than ~1% of body weight a week is more likely muscle/water loss than fat: flag it, never push it harder.
+  if (goal === 'lose' && weekly !== null && latestKg > 0 && -weekly > latestKg * 0.01) {
+    return {
+      status: 'review_deficit',
+      message: `Weight is falling ${Math.abs(weekly)} kg/week - faster than the ~1% of body weight a week that is generally sustainable. The deficit may be too aggressive for keeping muscle and energy; consider eating a little more, and see a doctor or dietitian if you feel weak, dizzy or unwell.`,
+      suggestedKcalDelta: 0,
+      avgLoggedKcal: avg,
+      weeklyWeightChangeKg: weekly,
+    };
+  }
+  // Intake is close to target - judge by the scale, and only with enough logging and a real trend.
+  if (weekly !== null && loggedDailyKcals.length >= MIN_LOG_DAYS_TO_ADJUST) {
     if (goal === 'lose' && weekly >= -0.05) {
       return {
         status: 'adjust_target',

@@ -214,3 +214,19 @@ describe('combined split - robustness', () => {
     expect(r.success).toBe(true);
   });
 });
+
+describe('core programming covers different trunk functions, not spot-reduction filler', () => {
+  for (const level of ['beginner', 'intermediate', 'advanced'] as const) {
+    it(`${level}: the Arms & Core day trains anti-extension, anti-rotation and flexion; beginners get no advanced core lifts`, () => {
+      const day = week(level).days.find((d) => d.focus === 'Arms & Core')!;
+      const core = day.exercises.filter((e) => e.muscleGroup === 'core').map((e) => e.name.toLowerCase());
+      expect(core.length).toBeGreaterThanOrEqual(2);
+      expect(new Set(core).size).toBe(core.length);
+      if (level !== 'beginner') {
+        expect(core.some((n) => /plank|dead bug|rollout/.test(n))).toBe(true);
+        expect(core.some((n) => /pallof/.test(n))).toBe(true);
+      }
+      if (level === 'beginner') for (const n of core) expect(n).not.toMatch(/ab wheel|hanging|rollout/);
+    });
+  }
+});

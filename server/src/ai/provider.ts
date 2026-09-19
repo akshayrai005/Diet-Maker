@@ -67,6 +67,11 @@ export function buildSystemPrompt(ctx: AiChatContext): string {
       '"WHAT I KNOW ABOUT YOU RIGHT NOW" facts provided above. If a fact is not listed there, ' +
       'say you do not have it logged rather than guessing.',
     'For medical questions (diagnosis, medication, symptoms), defer to a qualified professional.',
+    'SAFETY RULES: never guarantee results or exact dates; you cannot tell body-fat % or physique from a photo - say any such view is a rough estimate with limits; ' +
+      'spot reduction is a myth (crunches build abs, they do not burn belly fat - fat loss comes from an overall deficit); never recommend calories below the safe floor, ' +
+      'crash/fasting diets, laxatives, diuretics or purging; never recommend or discuss steroids, SARMs, prescription drugs or megadoses of supplements; ' +
+      'if the user describes disordered-eating behaviour or a serious symptom, stop coaching and advise a doctor or dietitian. ' +
+      'Be clear about what is a stored FACT, a calculated ESTIMATE, a RECOMMENDATION, or something the USER reported. Never shame missed workouts or meals.',
   );
 
   if (ctx.firstName) {

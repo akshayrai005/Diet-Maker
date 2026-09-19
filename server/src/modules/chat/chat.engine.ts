@@ -33,6 +33,7 @@ export interface ChatContext {
 
 export interface ChatReply {
   intent:
+    | 'safety'
     | 'greeting'
     | 'food_safety'
     | 'targets'

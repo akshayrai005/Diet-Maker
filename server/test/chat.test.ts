@@ -134,12 +134,12 @@ describe('computeAdaptation', () => {
     expect(a.suggestedKcalDelta).toBe(0);
   });
 
-  it('lowers the target when on-plan but weight is flat', () => {
+  it('lowers the target when on-plan but the weight TREND (3+ weigh-ins over 2+ weeks) is flat', () => {
     const a = computeAdaptation({
       goal: 'lose',
       targetKcal: 1800,
-      loggedDailyKcals: [1800, 1820, 1790],
-      weightPoints: [wp('2026-07-01T00:00:00Z', 80), wp('2026-07-15T00:00:00Z', 80)],
+      loggedDailyKcals: [1800, 1820, 1790, 1805, 1810],
+      weightPoints: [wp('2026-07-01T00:00:00Z', 80), wp('2026-07-08T00:00:00Z', 80.1), wp('2026-07-15T00:00:00Z', 80)],
     });
     expect(a.status).toBe('adjust_target');
     expect(a.suggestedKcalDelta).toBe(-150);

@@ -6,6 +6,7 @@ import { generateWeekPlan, buildSwapMeal } from './planGenerator';
 import { eligibleFoods } from './foodFilter';
 import { localSunday, localToday } from '../../lib/tz';
 import { round } from '../../calc/anthropometry';
+import { CALORIE_FLOOR } from '../../guardrails';
 import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets } from './food.types';
 import { SLOT_KCAL_WEIGHTS } from './food.types';
 import type { Food } from '@prisma/client';
@@ -103,7 +104,9 @@ export async function generateAndSavePlan(
   // Adaptive override: when the user applies the coach's recommendation, bake the
   // suggested calorie delta into this plan (still floored for safety).
   if (kcalDeltaOverride) {
-    targets.dailyKcal = Math.max(1200, targets.dailyKcal + kcalDeltaOverride);
+    // Never below the same sex-specific safety floor the calorie engine uses (1,500 men / 1,200 women).
+    const floor = sensitive.sex === 'female' ? CALORIE_FLOOR.female : CALORIE_FLOOR.male;
+    targets.dailyKcal = Math.max(floor, targets.dailyKcal + kcalDeltaOverride);
   }
 
   // Sunday-to-Saturday week in the user's timezone (falls back to UTC when offset is 0).

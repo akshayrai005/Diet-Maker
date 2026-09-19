@@ -1,4 +1,5 @@
 import { computeAndSaveForUser } from '../nutrition/calc.service';
+import { checkRedFlags, checkDisorderedEating, DISORDERED_EATING_MESSAGE } from '../safety/redFlags';
 import { prisma } from '../../lib/prisma';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import type { FoodItem, MealSlot } from '../food/food.types';
@@ -87,6 +88,13 @@ export async function clearChatHistory(userId: string): Promise<void> {
 }
 
 export async function chat(userId: string, message: string, firstName?: string, offsetMin = 0): Promise<ChatReply> {
+  // Safety first, before any data lookup or LLM: emergencies and disordered-eating language get a fixed, careful reply.
+  const flag = checkRedFlags(message);
+  const safetyText = flag.urgent ? flag.message : checkDisorderedEating(message) ? DISORDERED_EATING_MESSAGE : null;
+  if (safetyText) {
+    await prisma.auditLog.create({ data: { userId, action: 'chat.safety', detail: flag.urgent ? flag.matched.map((m) => m.id).join(',') : 'disordered_eating' } });
+    return { intent: 'safety', reply: safetyText, sources: [] };
+  }
   const [snapshot, profile, foods, historyRows, coach] = await Promise.all([
     // Fresh calc (same source as the dashboard), not the last saved snapshot - which goes stale after a profile change and made the coach quote a different kcal target.
     computeAndSaveForUser(userId).then((r) => ({ result: r })).catch(() => prisma.calcResultSnapshot.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } })),
