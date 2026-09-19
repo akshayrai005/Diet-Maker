@@ -29,9 +29,9 @@ object ExerciseInstructions {
         return parsed
     }
 
-    private fun slugOf(text: String): String =
+    internal fun slugOf(text: String): String =
         text.trim().lowercase()
-            .replace(Regex("[’']s\b"), "") // world's -> world
+            .replace(Regex("[\\u2019']s\\b"), "") // world's -> world
             .replace(Regex("[^a-z0-9]+"), "-").trim('-')
 
     /** The dataset's own steps for this exercise, or null when it has none. Combined names ("A / B", "A + B") try each part. */
