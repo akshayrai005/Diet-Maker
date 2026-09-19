@@ -273,7 +273,7 @@ const EXTRA_POOL: Record<string, ExerciseItem[]> = {
   back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Superman', 3, '15'), s('T-bar row', 3, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Chest-supported row', 3, '12')],
   shoulders: [s('Face pull', 3, '15'), s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
   biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12'), s('Preacher curl', 3, '12'), s('Cable curl', 3, '12'), s('EZ-bar curl', 3, '10'), s('Incline dumbbell curl', 3, '12')],
-  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15')],
+  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15'), s('Straight-bar pushdown', 3, '12'), s('Reverse-grip pushdown', 3, '12'), s('Tricep dips (machine)', 3, '12'), s('Tricep kickback (cable)', 3, '15')],
   legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15'), s('Back squat', 3, '10'), s('Leg curl', 3, '12'), s('Leg extension', 3, '15'), s('Hack squat', 3, '12'), s('Hip thrust', 3, '12')],
   core: [s('Plank', 3, '45s'), s('Russian twist', 3, '20'), s('Hanging leg raise', 3, '15'), s('Dead bug', 3, '10 each side'), s('Bicycle crunch', 3, '20')],
   cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
@@ -286,7 +286,18 @@ const EXTRA_POOL: Record<string, ExerciseItem[]> = {
  * (dayFocusOverride) - the automatic rotation is unchanged. Items are listed primary-first then accessory,
  * and the level budget + round-robin selection then gives an even split (e.g. intermediate: 3 + 3).
  */
-function comboTemplates(block: DayTemplate[]): DayTemplate[] {
+const MIX_FOCUS = 'Mix (weak point)';
+// muscle groups (as tagged by annotate()) that each priority muscle covers
+const PRIORITY_GROUPS: Record<string, string[]> = {
+  chest: ['chest'], shoulders: ['shoulders', 'traps'], back: ['back'], arms: ['biceps', 'triceps'],
+  legs: ['legs', 'quads', 'glutes', 'posterior chain', 'calves', 'hamstrings'], glutes: ['legs', 'glutes', 'posterior chain'], core: ['core'],
+};
+function mixMuscles(priority?: string[]): string[] {
+  const valid = (priority ?? []).filter((m) => PRIORITY_GROUPS[m]);
+  return (valid.length ? valid : ['chest', 'shoulders']).slice(0, 2);
+}
+
+function comboTemplates(block: DayTemplate[], priority?: string[]): DayTemplate[] {
   const by = (focus: string) => block.find((t) => t.focus === focus)?.exercises ?? [];
   const nonCore = (items: ExerciseItem[]) => items.filter((e) => !/plank|crunch|raise|rollout/i.test(e.name));
   const uniq = (items: ExerciseItem[], avoid: Set<string> = new Set()) => {
@@ -317,15 +328,28 @@ function comboTemplates(block: DayTemplate[]): DayTemplate[] {
   };
   const usedBi = new Set(biceps.slice(0, 3).map((e) => e.name.toLowerCase()));
   const usedTri = new Set([...chestTri, ...shoulderTri].map((e) => e.name.toLowerCase()));
-  const armsBi = takeFresh(biceps, usedBi, 3);
-  const armsTri = takeFresh(tricepsAll, usedTri, 3);
+  const armsBi = takeFresh(biceps, usedBi, 4);
+  const armsTri = takeFresh(tricepsAll, usedTri, 4);
   const coreItems = EXTRA_POOL.core!.slice(0, 3);
+  // Mix (weak-point) day: the user's priority muscles (default chest + shoulders), 4 lifts each, taken from the
+  // LATER part of each pool so the session differs from that muscle's main day.
+  const poolFor = (m: string): ExerciseItem[] => {
+    const base = m === 'chest' ? by('Chest') : m === 'shoulders' ? by('Shoulders') : m === 'back' ? by('Back')
+      : m === 'arms' ? [...biceps, ...tricepsAll] : (m === 'legs' || m === 'glutes') ? [...by('Legs & Abs'), ...EXTRA_POOL.legs!] : EXTRA_POOL.core!;
+    const extra = EXTRA_POOL[m === 'arms' || m === 'legs' || m === 'glutes' ? '' : m] ?? [];
+    // Fresh extras first (not in that muscle's main-day template), main-day lifts only as a fallback.
+    const baseNames = new Set(base.map((e) => e.name.toLowerCase()));
+    const fresh = extra.filter((e) => !baseNames.has(e.name.toLowerCase()));
+    return only(uniq([...fresh, ...base]), PRIORITY_GROUPS[m]!);
+  };
+  const mixItems = mixMuscles(priority).flatMap((m) => poolFor(m));
   return [
     { focus: 'Back & Biceps', exercises: [...only(by('Back'), ['back']), ...biceps.slice(0, 3)] },
     { focus: 'Chest & Triceps', exercises: [...only(by('Chest'), ['chest']), ...chestTri] },
     // Shrugs are a traps move and would take a slot from the 3 shoulders + 3 triceps split, so they're left out here.
     { focus: 'Shoulders & Triceps', exercises: [...only(by('Shoulders'), ['shoulders']), ...shoulderTri] },
     { focus: 'Arms & Core', exercises: [...armsBi, ...armsTri, ...coreItems] },
+    { focus: MIX_FOCUS, exercises: mixItems },
   ];
 }
 
@@ -337,6 +361,7 @@ function bucketsForFocus(focus: string): string[] {
     'Chest & Triceps': ['chest'],
     'Shoulders & Triceps': ['shoulders'],
     'Arms & Core': ['biceps', 'triceps', 'core'],
+    'Mix (weak point)': [],
   };
   if (primaryOnly[focus]) return primaryOnly[focus]!;
   const f = focus.toLowerCase();
@@ -660,7 +685,7 @@ export function generateWeeklyWorkout(
       : blockForDate(refDate, program.length);
   const templates = program[block]!;
   // Combined days (Back+Biceps, Chest+Triceps ...) exist for the gym body-part program and are looked up by name only.
-  const withCombos = (blk: DayTemplate[]) => (key === 'muscular:gym' ? [...blk, ...comboTemplates(blk)] : blk);
+  const withCombos = (blk: DayTemplate[]) => (key === 'muscular:gym' ? [...blk, ...comboTemplates(blk, options.priorityMuscles)] : blk);
   const dayCount = options.days ?? 7;
 
   const days: WorkoutDay[] = [];
@@ -727,7 +752,7 @@ export function generateWeeklyWorkout(
   // Aesthetic priority: add volume to chosen muscle groups within the level's set cap.
   const prioritised = applyMusclePriority(scaled, options.priorityMuscles, LEVEL_MAX_SETS[level]);
   // Exercise depth: warm-up + core/abs + cool-down + a cardio element + per-exercise substitutions.
-  return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution, split: options.split });
+  return enrichDays(prioritised, { level, intensity, medicalCaution: options.medicalCaution, split: options.split, priority: options.priorityMuscles });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -973,11 +998,13 @@ function capWorkingExercises(
  * Combined days (user rule): AT LEAST 5 lifts for the main muscle + 3 for the accessory muscle
  * (e.g. 5 chest + 3 triceps = 8). Advanced gets 6 main. Arms & Core = 3 biceps + 3 triceps + 2 core.
  */
-const COMBO_PLAN: Record<string, (level: FitnessLevel) => Array<[string[], number]>> = {
+const COMBO_PLAN: Record<string, (level: FitnessLevel, priority?: string[]) => Array<[string[], number]>> = {
   'Back & Biceps': (l) => [[['back'], l === 'advanced' ? 6 : 5], [['biceps'], 3]],
   'Chest & Triceps': (l) => [[['chest'], l === 'advanced' ? 6 : 5], [['triceps'], 3]],
   'Shoulders & Triceps': (l) => [[['shoulders', 'traps'], l === 'advanced' ? 6 : 5], [['triceps'], 3]],
-  'Arms & Core': () => [[['biceps'], 3], [['triceps'], 3], [['core'], 2]],
+  'Arms & Core': () => [[['biceps'], 4], [['triceps'], 4], [['core'], 2]],
+  'Mix (weak point)': (_l, priority) => mixMuscles(priority).flatMap((m): Array<[string[], number]> =>
+    m === 'arms' ? [[['biceps'], 2], [['triceps'], 2]] : [[PRIORITY_GROUPS[m]!, 4]]),
 };
 
 /** Picks the fixed per-muscle counts for a combined day, topping up from the leftover lifts if a muscle runs short. */
@@ -993,7 +1020,7 @@ function pickCombo(items: ExerciseItem[], plan: Array<[string[], number]>): Exer
 
 function enrichDays(
   plan: WeeklyWorkout,
-  opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean; split?: TrainingSplit },
+  opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean; split?: TrainingSplit; priority?: string[] },
 ): WeeklyWorkout {
   const gentle = !!opts.medicalCaution;
   const dedicatedMuscleDay = opts.split === 'body_part';
@@ -1009,7 +1036,7 @@ function enrichDays(
     const mainAnnotated = day.exercises.map(withSubstitutions);
     const coreAnnotated = dailyAbsFor(day.dayIndex, gentle, plan.block).map(withSubstitutions);
     const cardio = cardioFor(opts.intensity, opts.medicalCaution);
-    const comboPlan = COMBO_PLAN[day.focus]?.(opts.level);
+    const comboPlan = COMBO_PLAN[day.focus]?.(opts.level, opts.priority);
     const capped = comboPlan
       ? { main: pickCombo(mainAnnotated, comboPlan), core: day.focus === 'Arms & Core' ? [] : coreAnnotated.slice(0, 1), cardio }
       : capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);

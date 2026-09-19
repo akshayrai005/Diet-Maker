@@ -11,6 +11,9 @@ object ExerciseDemoMap {
         "ab rollout wheel" to "abs/barbell-standing-ab-rollerout",
         // Added by hand: plain pull-ups (no weight) and reverse crunch had no exact demo and fell to a fuzzy guess.
         "pull ups" to "lats/weighted-pull-up",
+        "grip pushdown reverse" to "triceps/cable-pushdown",
+        "bar pushdown straight" to "triceps/cable-pushdown",
+        "decline dumbbell press" to "pectorals/dumbbell-decline-hammer-press",
         "crunch reverse" to "abs/cable-reverse-crunch",
         "body hold hollow" to "abs/power-point-plank",
         "arm chair controlled from if needed sit stand use" to "quads/smith-chair-squat",

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateWeeklyWorkout } from '../src/modules/exercise/workoutGenerator';
 
-const MAP = { 0: 'Back & Biceps', 1: 'Legs & Abs', 2: 'Arms & Core', 3: 'Rest', 4: 'Chest & Triceps', 5: 'Legs & Abs', 6: 'Shoulders & Triceps' };
+const MAP = { 0: 'Back & Biceps', 1: 'Mix (weak point)', 2: 'Arms & Core', 3: 'Rest', 4: 'Chest & Triceps', 5: 'Legs & Abs', 6: 'Shoulders & Triceps' };
 const START = new Date(Date.UTC(2026, 8, 13)); // a Sunday
 
 function week(level: 'beginner' | 'intermediate' | 'advanced' = 'intermediate') {
@@ -18,7 +18,7 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
 
   it('lays the week out exactly as requested, rest on Wednesday', () => {
     expect(plan.days.map((d) => (d.rest ? 'Rest' : d.focus))).toEqual([
-      'Back & Biceps', 'Legs & Abs', 'Arms & Core', 'Rest', 'Chest & Triceps', 'Legs & Abs', 'Shoulders & Triceps',
+      'Back & Biceps', 'Mix (weak point)', 'Arms & Core', 'Rest', 'Chest & Triceps', 'Legs & Abs', 'Shoulders & Triceps',
     ]);
   });
 
@@ -54,8 +54,8 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
 
   it('arms day mixes biceps, triceps and core', () => {
     const d = byLabel('Arms & Core');
-    expect(count(d, 'biceps')).toBe(3);
-    expect(count(d, 'triceps')).toBe(3);
+    expect(count(d, 'biceps')).toBe(4);
+    expect(count(d, 'triceps')).toBe(4);
     expect(count(d, 'core')).toBe(2);
   });
 
@@ -63,22 +63,47 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
     const arms = byLabel('Arms & Core');
     const used = new Set([...byLabel('Back & Biceps').exercises, ...byLabel('Chest & Triceps').exercises, ...byLabel('Shoulders & Triceps').exercises].map((e) => e.name));
     const armLifts = arms.exercises.filter((e) => e.muscleGroup === 'biceps' || e.muscleGroup === 'triceps');
-    expect(armLifts.length).toBe(6);
+    expect(armLifts.length).toBe(8);
     for (const e of armLifts) expect(used.has(e.name), e.name).toBe(false);
   });
 
-  it('legs days have legs + abs, and the two leg days differ', () => {
+  it('legs are trained ONE day a week, with abs', () => {
     const legs = plan.days.filter((d) => d.focus === 'Legs & Abs');
-    expect(legs.length).toBe(2);
-    expect(legs[0]!.exercises.map((e) => e.name).join('|')).not.toBe(legs[1]!.exercises.map((e) => e.name).join('|'));
-    for (const d of legs) expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(1);
+    expect(legs.length).toBe(1);
+    expect((legs[0]!.core?.length ?? 0) + legs[0]!.exercises.filter((e) => e.muscleGroup === 'core').length).toBeGreaterThanOrEqual(1);
+    expect(legs[0]!.exercises.filter((e) => e.muscleGroup !== 'core').length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('Mix day trains the priority muscles (default chest + shoulders) 4 lifts each, different from their main days', () => {
+    const mix = byLabel('Mix (weak point)');
+    expect(mix.exercises.length).toBe(8);
+    expect(count(mix, 'chest')).toBe(4);
+    expect(count(mix, 'shoulders') + count(mix, 'traps')).toBe(4);
+    const mainNames = new Set([...byLabel('Chest & Triceps').exercises, ...byLabel('Shoulders & Triceps').exercises].map((e) => e.name));
+    const overlap = mix.exercises.filter((e) => mainNames.has(e.name)).length;
+    expect(overlap).toBeLessThanOrEqual(2);
+  });
+
+  it('Mix day follows the priority muscles (back + arms, legs, none, junk)', () => {
+    const mk = (priorityMuscles?: string[]) => generateWeeklyWorkout('muscular', 'gym', { split: 'body_part', fitnessLevel: 'intermediate', startDate: START, today: START, priorityMuscles, dayFocusOverride: MAP }).days[1]!;
+    const backArms = mk(['back', 'arms']);
+    expect(count(backArms, 'back')).toBe(4);
+    expect(count(backArms, 'biceps') + count(backArms, 'triceps')).toBe(4);
+    const legs = mk(['legs']);
+    expect(legs.exercises.length).toBeGreaterThanOrEqual(4);
+    for (const e of legs.exercises) expect(['legs', 'quads', 'glutes', 'posterior chain', 'calves', 'hamstrings']).toContain(e.muscleGroup);
+    for (const bad of [undefined, [], ['nonsense'], ['chest', 'shoulders', 'back', 'arms', 'core']]) {
+      const d = mk(bad as string[] | undefined);
+      expect(d.exercises.length, JSON.stringify(bad)).toBeGreaterThanOrEqual(4);
+      expect(new Set(d.exercises.map((e) => e.name)).size).toBe(d.exercises.length);
+    }
   });
 
   it('no duplicate exercise within a day; combined days are 8 lifts (5 main + 3 accessory), legs 6', () => {
     for (const d of plan.days.filter((x) => !x.rest)) {
       const names = d.exercises.map((e) => e.name);
       expect(new Set(names).size, d.focus).toBe(names.length);
-      expect(names.length, d.focus).toBe(d.focus === 'Legs & Abs' ? 6 : 8);
+      expect(names.length, d.focus).toBe(d.focus === 'Legs & Abs' ? 6 : d.focus === 'Arms & Core' ? 10 : 8);
     }
   });
 
@@ -87,8 +112,8 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
       const p = week(lvl);
       for (const d of p.days.filter((x) => !x.rest)) {
         const combined = d.focus !== 'Legs & Abs';
-        // combined days: 5 main + 3 (advanced 6 + 3, Arms & Core always 8); legs follow the level budget
-        const exact = combined ? (lvl === 'advanced' && d.focus !== 'Arms & Core' ? 9 : 8) : { beginner: 5, advanced: 8 }[lvl];
+        // combined days: 5 main + 3 (advanced 6 + 3); Arms & Core 4+4+2 = 10; Mix 4+4 = 8; legs follow the level budget
+        const exact = d.focus === 'Arms & Core' ? 10 : d.focus === 'Mix (weak point)' ? 8 : combined ? (lvl === 'advanced' ? 9 : 8) : { beginner: 5, advanced: 8 }[lvl];
         expect(d.exercises.length, `${lvl}/${d.focus}`).toBe(exact);
       }
     }
@@ -113,7 +138,7 @@ describe('combined split - robustness', () => {
         });
         const tag = `week ${weeksSinceJoin}/${level}`;
         expect(p.days.map((d) => (d.rest ? 'Rest' : d.focus)), tag).toEqual([
-          'Back & Biceps', 'Legs & Abs', 'Arms & Core', 'Rest', 'Chest & Triceps', 'Legs & Abs', 'Shoulders & Triceps',
+          'Back & Biceps', 'Mix (weak point)', 'Arms & Core', 'Rest', 'Chest & Triceps', 'Legs & Abs', 'Shoulders & Triceps',
         ]);
         const chest = p.days[4]!; const sh = p.days[6]!; const back = p.days[0]!;
         const tri = (d: typeof chest) => d.exercises.filter((e) => e.muscleGroup === 'triceps').map((e) => e.name);
@@ -129,7 +154,7 @@ describe('combined split - robustness', () => {
         check(back.exercises.filter((e) => e.muscleGroup === 'biceps').length, `${tag} biceps`);
         for (const d of p.days.filter((x) => !x.rest)) {
           const isCombo = d.focus !== 'Legs & Abs';
-          const size = isCombo ? (level === 'advanced' && d.focus !== 'Arms & Core' ? 9 : 8) : { beginner: 5, intermediate: 6, advanced: 8 }[level];
+          const size = d.focus === 'Arms & Core' ? 10 : d.focus === 'Mix (weak point)' ? 8 : isCombo ? (level === 'advanced' ? 9 : 8) : { beginner: 5, intermediate: 6, advanced: 8 }[level];
           expect(d.exercises.length, `${tag}/${d.focus} size`).toBe(size);
           expect(new Set(d.exercises.map((e) => e.name)).size, `${tag}/${d.focus} dupes`).toBe(d.exercises.length);
           expect((d.core?.length ?? 0) >= 1 || d.focus === 'Arms & Core', `${tag}/${d.focus} abs`).toBe(true);

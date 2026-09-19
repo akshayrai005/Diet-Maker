@@ -271,7 +271,7 @@ private fun RowDivided(vararg rows: @Composable () -> Unit) {
 private val BODY_PART_FOCUS_GYM = listOf("Chest", "Back", "Shoulders", "Biceps & Forearms", "Triceps & Core", "Legs & Abs")
 private val BODY_PART_FOCUS_HOME = listOf("Push (Chest/Shoulders/Triceps)", "Pull (Back/Biceps)", "Legs & Abs")
 // Combined gym days the server also understands (Back+Biceps, Chest+Triceps, ...). Offered in the day picker.
-private val BODY_PART_COMBOS_GYM = listOf("Back & Biceps", "Chest & Triceps", "Shoulders & Triceps", "Arms & Core")
+private val BODY_PART_COMBOS_GYM = listOf("Back & Biceps", "Chest & Triceps", "Shoulders & Triceps", "Arms & Core", "Mix (weak point)")
 private val WEEKDAY_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
 /** Computes the Sun-Sat → focus (or "Rest") preview for a body-part split, matching server rotation. */
