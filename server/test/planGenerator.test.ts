@@ -210,11 +210,11 @@ describe('generateWeekPlan', () => {
     expect(plan.days[0]!.meals.map((m) => m.slot)).toEqual(['lunch', 'eveningsnack', 'dinner']);
   });
 
-  it('a high calorie target on a FEW-slot pattern (morning+night, only 3 meals) still lands within ~10% of target - uniform scaling alone hits the 400g-per-item cap on low-density dishes and needs a top-up item to close the gap', () => {
+  it('a high calorie target on a FEW-slot pattern (morning+night: 2 meals + 3 snacks) still lands within ~10% of target - uniform scaling alone hits the 400g-per-item cap on low-density dishes and needs a top-up item to close the gap', () => {
     for (const dailyKcal of [2200, 2478, 2800]) {
       const plan = generateWeekPlan(SEED_FOODS, { ...targets, dailyKcal }, prefs(), { eatingPattern: 'morning_night' });
       for (const day of plan.days) {
-        expect(day.meals.map((m) => m.slot)).toEqual(['breakfast', 'eveningsnack', 'dinner']);
+        expect(day.meals.map((m) => m.slot)).toEqual(['breakfast', 'midmorning', 'eveningsnack', 'dinner', 'bedtime']);
         const ratio = day.totals.kcal / dailyKcal;
         // Realistic serving sizes (<= 2x a normal serving per item) limit how much 3 meals can hold; the old
         // >0.9 needed 400 g of raw-ish items. Within ~15% is the honest bound for a 3-meal day at 2,800 kcal.

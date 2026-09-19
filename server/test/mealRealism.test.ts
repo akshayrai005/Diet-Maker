@@ -57,20 +57,19 @@ describe('meal plans are realistic', () => {
   }
 });
 
-describe('morning + night pattern (breakfast, evening meal, dinner)', () => {
+describe('morning + night pattern: two real meals + three small snacks (matches the Office tab)', () => {
   const prefs: PlanPreferences = { dietType: 'nonveg', allergies: [], conditions: [] };
-  for (const kcal of [1800, 2400, 2895, 3300]) {
-    it(`${kcal} kcal: three real meals, dinner stays the lightest big meal, day lands on target`, () => {
+  for (const kcal of [1800, 2400, 2913, 3300]) {
+    it(`${kcal} kcal: breakfast + dinner are the meals, three snacks stay small, day lands near target`, () => {
       const plan = generateWeekPlan(POOL, { dailyKcal: kcal, proteinG: 150, fatG: 64, carbG: 380, fiberG: 36 }, prefs, { eatingPattern: 'morning_night', fastDayOfWeek: 2 });
       for (const d of plan.days) {
         if (d.totals.kcal < kcal * 0.6) continue; // the weekly fasting day is deliberately light
         const by = Object.fromEntries(d.meals.filter((m) => m.kcal > 0).map((m) => [m.slot, m]));
-        expect(Object.keys(by).sort(), 'only the three meals').toEqual(['breakfast', 'dinner', 'eveningsnack']);
-        expect(by.eveningsnack!.items.length, 'evening is a plate, not one snack').toBeGreaterThanOrEqual(2);
-        expect(by.breakfast!.kcal / kcal, `${d.dayIndex} breakfast`).toBeLessThanOrEqual(0.42);
-        expect(by.eveningsnack!.kcal / kcal, `${d.dayIndex} evening`).toBeLessThanOrEqual(0.4);
-        expect(by.dinner!.kcal / kcal, `${d.dayIndex} dinner`).toBeLessThanOrEqual(0.33);
-        expect(Math.abs(d.totals.kcal - kcal) / kcal, `day ${d.dayIndex} kcal`).toBeLessThanOrEqual(0.12);
+        expect(Object.keys(by).sort(), 'the five slots').toEqual(['bedtime', 'breakfast', 'dinner', 'eveningsnack', 'midmorning']);
+        expect(by.breakfast!.kcal / kcal, `${d.dayIndex} breakfast`).toBeLessThanOrEqual(0.4);
+        expect(by.dinner!.kcal / kcal, `${d.dayIndex} dinner`).toBeLessThanOrEqual(0.4);
+        for (const sn of ['midmorning', 'eveningsnack', 'bedtime']) expect(by[sn]!.kcal / kcal, `${d.dayIndex} ${sn}`).toBeLessThanOrEqual(0.24);
+        expect(Math.abs(d.totals.kcal - kcal) / kcal, `day ${d.dayIndex} kcal`).toBeLessThanOrEqual(0.15);
         for (const m of d.meals) for (const it of m.items) expect(it.grams, it.name).toBeLessThanOrEqual(400);
       }
     });
