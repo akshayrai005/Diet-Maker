@@ -59,6 +59,14 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
     expect(count(d, 'core')).toBeGreaterThanOrEqual(1);
   });
 
+  it('arms day uses biceps/triceps variations not already used on back, chest or shoulder day', () => {
+    const arms = byLabel('Arms & Core');
+    const used = new Set([...byLabel('Back & Biceps').exercises, ...byLabel('Chest & Triceps').exercises, ...byLabel('Shoulders & Triceps').exercises].map((e) => e.name));
+    const armLifts = arms.exercises.filter((e) => e.muscleGroup === 'biceps' || e.muscleGroup === 'triceps');
+    expect(armLifts.length).toBeGreaterThanOrEqual(4);
+    for (const e of armLifts) expect(used.has(e.name), e.name).toBe(false);
+  });
+
   it('legs days have legs + abs, and the two leg days differ', () => {
     const legs = plan.days.filter((d) => d.focus === 'Legs & Abs');
     expect(legs.length).toBe(2);

@@ -309,8 +309,16 @@ function comboTemplates(block: DayTemplate[]): DayTemplate[] {
     const kept = items.filter((e) => groups.includes(annotate(e.name).muscleGroup ?? ''));
     return kept.length >= 3 ? kept : items;
   };
-  const armsBi = biceps.slice(0, 3);
-  const armsTri = tricepsAll.slice(0, 3);
+  // Arms day uses variations NOT already trained on back / chest / shoulder day (falls back to repeats only
+  // if the pool runs out).
+  const takeFresh = (pool: ExerciseItem[], used: Set<string>, n: number) => {
+    const fresh = pool.filter((e) => !used.has(e.name.toLowerCase())).slice(0, n);
+    return fresh.length >= n ? fresh : [...fresh, ...pool.filter((e) => !fresh.includes(e)).slice(0, n - fresh.length)];
+  };
+  const usedBi = new Set(biceps.slice(0, 3).map((e) => e.name.toLowerCase()));
+  const usedTri = new Set([...chestTri, ...shoulderTri].map((e) => e.name.toLowerCase()));
+  const armsBi = takeFresh(biceps, usedBi, 3);
+  const armsTri = takeFresh(tricepsAll, usedTri, 3);
   const coreItems = EXTRA_POOL.core!.slice(0, 3);
   return [
     { focus: 'Back & Biceps', exercises: [...only(by('Back'), ['back']), ...biceps.slice(0, 3)] },
