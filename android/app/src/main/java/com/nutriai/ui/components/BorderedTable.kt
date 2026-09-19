@@ -10,47 +10,75 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-private val TableLine = Color(0xFF5C6B7A)
-private val TableHeader = Color(0xFF37474F)
+private val Ink = Color(0xFF1B1F23)
 
 /**
- * A plain spreadsheet-style table: dark header row with white text, white cells, a dark border around every cell,
- * columns sized by [weights]. Used wherever the app lists steps, ingredients or facts.
+ * A colourful table with real columns and rows: a rounded card with a solid [accent] title bar, a tinted column-header
+ * row, alternating tinted body rows and soft cell dividers. A first column made only of a short number (1, 2, 3...) is
+ * drawn as a round badge. Columns are sized by [weights].
  */
 @Composable
-fun BorderedTable(headers: List<String>, rows: List<List<String>>, weights: List<Float>, modifier: Modifier = Modifier) {
+fun BorderedTable(
+    headers: List<String>,
+    rows: List<List<String>>,
+    weights: List<Float>,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    accent: Color = Color(0xFF5C6BC0),
+) {
+    val divider = accent.copy(alpha = 0.28f)
+
     @Composable
-    fun tableRow(cells: List<String>, header: Boolean) {
+    fun tableRow(cells: List<String>, index: Int, header: Boolean) {
+        val bg = when {
+            header -> accent.copy(alpha = 0.20f)
+            index % 2 == 0 -> Color.White
+            else -> accent.copy(alpha = 0.07f)
+        }
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             cells.forEachIndexed { i, text ->
                 Box(
                     Modifier
                         .weight(weights[i])
                         .fillMaxHeight()
-                        .background(if (header) TableHeader else Color.White)
-                        .border(0.8.dp, TableLine)
-                        .padding(horizontal = 6.dp, vertical = 5.dp),
+                        .background(bg)
+                        .border(0.5.dp, divider)
+                        .padding(horizontal = 6.dp, vertical = 7.dp),
+                    contentAlignment = if (!header && i == 0 && text.length <= 2 && text.all { it.isDigit() || it == '#' }) Alignment.TopCenter else Alignment.TopStart,
                 ) {
-                    Text(
-                        text,
-                        style = if (header) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
-                        fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
-                        color = if (header) Color.White else Color(0xFF1B1F23),
-                    )
+                    val isBadge = !header && i == 0 && text.length <= 2 && text.all { it.isDigit() }
+                    when {
+                        isBadge -> Box(Modifier.defaultMinSize(minWidth = 24.dp, minHeight = 24.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                            Text(text, color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
+                        }
+                        header -> Text(text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = accent.copy(red = accent.red * 0.7f, green = accent.green * 0.7f, blue = accent.blue * 0.7f))
+                        else -> Text(text, style = MaterialTheme.typography.bodySmall, color = Ink)
+                    }
                 }
             }
         }
     }
-    Column(modifier.fillMaxWidth()) {
-        tableRow(headers, header = true)
-        rows.forEach { tableRow(it, header = false) }
+
+    Column(modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.5.dp, accent, RoundedCornerShape(12.dp))) {
+        if (title != null) {
+            Box(Modifier.fillMaxWidth().background(accent).padding(horizontal = 10.dp, vertical = 8.dp)) {
+                Text(title, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            }
+        }
+        tableRow(headers, 0, header = true)
+        rows.forEachIndexed { i, r -> tableRow(r, i, header = false) }
     }
 }

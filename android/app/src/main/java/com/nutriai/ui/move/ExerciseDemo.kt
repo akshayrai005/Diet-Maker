@@ -106,21 +106,25 @@ fun ExerciseDemo(
                         headers = listOf("Main muscle", "Also works"),
                         rows = listOf(listOf(muscleGroup?.replaceFirstChar { it.uppercase() } ?: "-", secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ') } ?: "-")),
                         weights = listOf(0.4f, 0.6f),
+                        title = "💪 Muscles", accent = Color(0xFF7E57C2),
                     )
                     BorderedTable(
                         headers = listOf("Step", "How to perform"),
                         rows = guide.steps.mapIndexed { i, step -> listOf("${i + 1}", step) },
-                        weights = listOf(0.16f, 0.84f),
+                        weights = listOf(0.2f, 0.8f),
+                        title = "🎯 How to perform", accent = Color(0xFF1E88E5),
                     )
                     BorderedTable(
                         headers = listOf("#", "Common mistakes"),
                         rows = guide.mistakes.mapIndexed { i, m -> listOf("${i + 1}", m) },
-                        weights = listOf(0.16f, 0.84f),
+                        weights = listOf(0.2f, 0.8f),
+                        title = "⚠️ Watch out", accent = Color(0xFFE53935),
                     )
                     BorderedTable(
                         headers = listOf("Safety"),
                         rows = listOf(listOf(guide.safety)),
                         weights = listOf(1f),
+                        title = "🛡️ Stay safe", accent = Color(0xFFF59E0B),
                     )
                     Text(
                         "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
