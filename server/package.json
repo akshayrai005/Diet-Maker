@@ -10,7 +10,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/heal-migrations.js",
     "start": "node dist/index.js",
     "test": "vitest",
     "test:cov": "vitest run --coverage",
