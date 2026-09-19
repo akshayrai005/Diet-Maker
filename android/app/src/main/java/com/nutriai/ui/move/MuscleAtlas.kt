@@ -65,6 +65,13 @@ private fun highlightFor(cat: ExerciseCatalog.Category): Map<String, Color>? {
     }
 }
 
+/** Which side of the body shows this muscle: (front, back). Chest/core are only on the front, back/glutes only on the back. */
+private fun viewsFor(cat: ExerciseCatalog.Category): Pair<Boolean, Boolean> = when (cat) {
+    ExerciseCatalog.Category.CHEST, ExerciseCatalog.Category.CORE -> true to false
+    ExerciseCatalog.Category.BACK, ExerciseCatalog.Category.GLUTES -> false to true
+    else -> true to true
+}
+
 /**
  * Visual muscle picker: real anatomy figures (front and back) with the trained muscles coloured. Tap one to list its
  * exercises (each card shows its animated demo); tap it again to clear the filter.
@@ -95,7 +102,10 @@ fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.C
                     ) {
                         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                if (highlight != null) BodyDiagram(highlight, Modifier.fillMaxSize(), female = female, highlightAlpha = pulse)
+                                if (highlight != null) {
+                                    val (front, back) = viewsFor(cat)
+                                    BodyDiagram(highlight, Modifier.fillMaxSize(), female = female, showFront = front, showBack = back, highlightAlpha = pulse)
+                                }
                                 else Text(cat.emoji, fontSize = 44.sp)
                             }
                             Text(cat.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color(0xFF1B1F23))
