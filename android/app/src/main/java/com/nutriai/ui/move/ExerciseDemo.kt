@@ -68,8 +68,15 @@ fun ExerciseDemo(
             .semantics { contentDescription = "$name demonstration, tap to enlarge" },
         contentAlignment = Alignment.Center,
     ) {
-        // Shown only for cards on screen (lazy grid), so nothing is fetched until a muscle is chosen and scrolled to.
-        GifImage(url = url, onError = { failed = true })
+        // Card = tiny still preview (~19 KB WebP, loads instantly); the full ~280 KB looping GIF loads only when tapped.
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(thumbUrl(url)).crossfade(true).build(),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxWidth(),
+            onState = { st -> if (st is AsyncImagePainter.State.Error) failed = true },
+        )
+        Text("▶", color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).background(Color(0xAA000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp))
     }
 
     if (showDialog) {
@@ -93,6 +100,10 @@ fun ExerciseDemo(
         )
     }
 }
+
+/** The dataset's `main` branch ships a small WebP still next to every GIF (same path, `.thumb.webp`). */
+private fun thumbUrl(gifUrl: String): String =
+    gifUrl.replace("@v1.1.0/", "@main/").removeSuffix(".gif") + ".thumb.webp"
 
 /** Loads an animated GIF with a decoder-enabled Coil ImageLoader; reports load failures to fall back. */
 @Composable
