@@ -39,6 +39,7 @@ export interface ChatReply {
     | 'targets'
     | 'weight_pace'
     | 'water'
+    | 'digestion'
     | 'help'
     | 'coach_today'
     | 'coach_trend'
@@ -497,6 +498,22 @@ export function answer(message: string, ctx: ChatContext): ChatReply {
       const r = coachTodayReply(coach);
       if (r) return { intent: 'coach_today', reply: withDisclaimer(r), sources: [] };
     }
+  }
+
+  // Constipation / bowel trouble: practical diet steps, and a clear line for when a doctor is needed. Never diagnoses.
+  if (/constipat|hard stool|hard poop|not (passing|pooping)|can'?t poo|cannot poo|no bowel|bowel movement|irregular (stool|bowel)|kabz|kabj/.test(msg)) {
+    const fiber = ctx.targets?.fiberG;
+    const water = ctx.targets?.waterMl;
+    const lines = [
+      `Constipation is common when protein goes up and fibre or water goes down${name ? ',' + name : ''}. What usually helps, in this order:`,
+      `1. Fibre: aim for ${fiber ? `about ${fiber} g` : '25-40 g'} a day, and build up slowly over 1-2 weeks so you don't get bloated. Good picks: dalia, oats, whole-wheat roti, dal, rajma/chana, sprouts, a fruit with skin (guava, apple, pear), papaya, and vegetables at lunch and dinner.`,
+      `2. Water: ${water ? `about ${water} ml` : '2.5-3 litres'} a day. Fibre without enough water can make it worse. Warm water in the morning helps some people.`,
+      '3. Protein: keep the protein but do not let it replace vegetables and whole grains. Whey shakes and lots of paneer/cheese can be constipating - pair them with fibre and fluids.',
+      '4. Routine: do not hold it in; sit for a few minutes at the same time daily (often after breakfast); walking and training also help.',
+      '5. Optional, if diet changes are not enough: a psyllium husk (isabgol) teaspoon in a full glass of water at night is a well-studied option. Skip stimulant laxatives as a habit.',
+      'See a doctor if you have blood in the stool, severe belly pain, vomiting, unexplained weight loss, alternating with diarrhoea, symptoms lasting more than 2-3 weeks, or a sudden change in your usual pattern. If you take iron, calcium or other medicines, ask your doctor - some cause constipation.',
+    ];
+    return { intent: 'digestion', reply: withDisclaimer(lines.join(String.fromCharCode(10))), sources: [] };
   }
 
   if (/water|hydrat/.test(msg)) {

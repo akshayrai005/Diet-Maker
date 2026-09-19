@@ -47,3 +47,22 @@ describe('supplements', () => {
     expect(SUPPLEMENTS.find((s) => s.id === 'vitamin-d3')!.typicalDosage).toMatch(/4000 IU/);
   });
 });
+
+import { answer } from '../src/modules/chat/chat.engine';
+describe('constipation', () => {
+  const ctx = { targets: { dailyKcal: 2895, proteinG: 150, waterMl: 3200, fiberG: 40 }, conditions: [], findFood: () => undefined } as never;
+  for (const q of ['I am constipated', 'i have constipation since 3 days', 'kabz ho gaya', 'hard stool and not passing']) {
+    it(`"${q}" gets the diet steps, the doctor line and the user's own targets`, () => {
+      const r = answer(q, ctx);
+      expect(r.intent).toBe('digestion');
+      expect(r.reply).toMatch(/40 g/);
+      expect(r.reply).toMatch(/3200 ml/);
+      expect(r.reply).toMatch(/blood in the stool/);
+      expect(r.reply).toMatch(/doctor/);
+      expect(r.reply).not.toMatch(/diagnos(e|is) you/i);
+    });
+  }
+  it('does not hijack normal questions', () => {
+    expect(answer('how much water should I drink', ctx).intent).toBe('water');
+  });
+});

@@ -161,7 +161,7 @@ export async function chat(userId: string, message: string, firstName?: string, 
   const DATA_INTENTS = new Set<ChatReply['intent']>([
     'coach_today', 'coach_trend', 'coach_frequency', 'coach_habits', 'coach_plan',
     'coach_suggest', 'coach_exercise', 'coach_mind', 'coach_alternative',
-    'food_safety', 'targets', 'water', 'weight_pace',
+    'food_safety', 'targets', 'water', 'weight_pace', 'digestion',
   ]);
 
   let reply: ChatReply | null = null;
