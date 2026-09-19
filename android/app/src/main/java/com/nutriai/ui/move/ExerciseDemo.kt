@@ -100,7 +100,10 @@ fun ExerciseDemo(
                         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)).background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) { GifImage(url = url, onError = { failed = true }) }
+                    val context = LocalContext.current
                     val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
+                    // Exercise-specific steps when the dataset has them (84% of the library); otherwise the movement-type steps.
+                    val specificSteps = remember(name) { ExerciseInstructions.forName(context, name) }
                     val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty().ifEmpty { ExerciseGuide.secondaryFor(name, muscleGroup) } }
                     // Always show a muscle name: the recorded one, else worked out from the exercise name, else "Full body".
                     val mainName = muscleGroup?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
@@ -114,7 +117,7 @@ fun ExerciseDemo(
                     )
                     BorderedTable(
                         headers = listOf("Step", "How to perform"),
-                        rows = guide.steps.mapIndexed { i, step -> listOf("${i + 1}", step) },
+                        rows = (specificSteps ?: guide.steps).mapIndexed { i, step -> listOf("${i + 1}", step) },
                         weights = listOf(0.2f, 0.8f),
                         centeredColumns = setOf(0),
                         title = "🎯 How to perform", accent = Color(0xFF1E88E5),
@@ -133,7 +136,7 @@ fun ExerciseDemo(
                         title = "🛡️ Safety", accent = Color(0xFFF59E0B), startExpanded = false,
                     )
                     Text(
-                        "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
+                        if (specificSteps != null) "General guidance, not medical advice. Steps: exercise-library dataset. Demo GIFs: ExerciseGymGifsDB." else "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
