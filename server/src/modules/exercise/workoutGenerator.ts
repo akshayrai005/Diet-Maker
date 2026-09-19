@@ -969,6 +969,28 @@ function capWorkingExercises(
   return { main: selectDiverse(main, mainSlots), core: core.slice(0, coreSlots), cardio };
 }
 
+/**
+ * Combined days (user rule): AT LEAST 5 lifts for the main muscle + 3 for the accessory muscle
+ * (e.g. 5 chest + 3 triceps = 8). Advanced gets 6 main. Arms & Core = 3 biceps + 3 triceps + 2 core.
+ */
+const COMBO_PLAN: Record<string, (level: FitnessLevel) => Array<[string[], number]>> = {
+  'Back & Biceps': (l) => [[['back'], l === 'advanced' ? 6 : 5], [['biceps'], 3]],
+  'Chest & Triceps': (l) => [[['chest'], l === 'advanced' ? 6 : 5], [['triceps'], 3]],
+  'Shoulders & Triceps': (l) => [[['shoulders', 'traps'], l === 'advanced' ? 6 : 5], [['triceps'], 3]],
+  'Arms & Core': () => [[['biceps'], 3], [['triceps'], 3], [['core'], 2]],
+};
+
+/** Picks the fixed per-muscle counts for a combined day, topping up from the leftover lifts if a muscle runs short. */
+function pickCombo(items: ExerciseItem[], plan: Array<[string[], number]>): ExerciseItem[] {
+  const out: ExerciseItem[] = [];
+  const taken = new Set<ExerciseItem>();
+  for (const [groups, n] of plan) {
+    const pool = items.filter((e) => !taken.has(e) && groups.includes(e.muscleGroup ?? ''));
+    for (const e of pool.slice(0, n)) { out.push(e); taken.add(e); }
+  }
+  return out;
+}
+
 function enrichDays(
   plan: WeeklyWorkout,
   opts: { level: FitnessLevel; intensity: IntensityPreference; medicalCaution?: boolean; split?: TrainingSplit },
@@ -987,7 +1009,10 @@ function enrichDays(
     const mainAnnotated = day.exercises.map(withSubstitutions);
     const coreAnnotated = dailyAbsFor(day.dayIndex, gentle, plan.block).map(withSubstitutions);
     const cardio = cardioFor(opts.intensity, opts.medicalCaution);
-    const capped = capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);
+    const comboPlan = COMBO_PLAN[day.focus]?.(opts.level);
+    const capped = comboPlan
+      ? { main: pickCombo(mainAnnotated, comboPlan), core: day.focus === 'Arms & Core' ? [] : coreAnnotated.slice(0, 1), cardio }
+      : capWorkingExercises(mainAnnotated, coreAnnotated, cardio, budget, dedicatedMuscleDay);
     return {
       ...day,
       warmup: warmupFor(day.focus),

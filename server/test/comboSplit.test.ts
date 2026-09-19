@@ -33,13 +33,13 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
   it('back day has 3 biceps exercises', () => {
     const d = byLabel('Back & Biceps');
     expect(count(d, 'biceps')).toBe(3);
-    expect(count(d, 'back')).toBeGreaterThanOrEqual(3);
+    expect(count(d, 'back')).toBe(5);
   });
 
   it('chest day has 3 triceps exercises', () => {
     const d = byLabel('Chest & Triceps');
     expect(count(d, 'triceps')).toBe(3);
-    expect(count(d, 'chest')).toBeGreaterThanOrEqual(3);
+    expect(count(d, 'chest')).toBe(5);
   });
 
   it('shoulder day has 3 triceps exercises, all different from chest day', () => {
@@ -49,21 +49,21 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
     const chestTri = new Set(chest.exercises.filter((e) => e.muscleGroup === 'triceps').map((e) => e.name));
     const shTri = sh.exercises.filter((e) => e.muscleGroup === 'triceps').map((e) => e.name);
     for (const n of shTri) expect(chestTri.has(n)).toBe(false);
-    expect(count(sh, 'shoulders') + count(sh, 'traps')).toBeGreaterThanOrEqual(3);
+    expect(count(sh, 'shoulders') + count(sh, 'traps')).toBe(5);
   });
 
   it('arms day mixes biceps, triceps and core', () => {
     const d = byLabel('Arms & Core');
-    expect(count(d, 'biceps')).toBeGreaterThanOrEqual(2);
-    expect(count(d, 'triceps')).toBeGreaterThanOrEqual(2);
-    expect(count(d, 'core')).toBeGreaterThanOrEqual(1);
+    expect(count(d, 'biceps')).toBe(3);
+    expect(count(d, 'triceps')).toBe(3);
+    expect(count(d, 'core')).toBe(2);
   });
 
   it('arms day uses biceps/triceps variations not already used on back, chest or shoulder day', () => {
     const arms = byLabel('Arms & Core');
     const used = new Set([...byLabel('Back & Biceps').exercises, ...byLabel('Chest & Triceps').exercises, ...byLabel('Shoulders & Triceps').exercises].map((e) => e.name));
     const armLifts = arms.exercises.filter((e) => e.muscleGroup === 'biceps' || e.muscleGroup === 'triceps');
-    expect(armLifts.length).toBeGreaterThanOrEqual(4);
+    expect(armLifts.length).toBe(6);
     for (const e of armLifts) expect(used.has(e.name), e.name).toBe(false);
   });
 
@@ -74,18 +74,23 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
     for (const d of legs) expect((d.core?.length ?? 0)).toBeGreaterThanOrEqual(1);
   });
 
-  it('no duplicate exercise within a day and 6 main lifts for intermediate', () => {
+  it('no duplicate exercise within a day; combined days are 8 lifts (5 main + 3 accessory), legs 6', () => {
     for (const d of plan.days.filter((x) => !x.rest)) {
       const names = d.exercises.map((e) => e.name);
       expect(new Set(names).size, d.focus).toBe(names.length);
-      expect(names.length, d.focus).toBe(6);
+      expect(names.length, d.focus).toBe(d.focus === 'Legs & Abs' ? 6 : 8);
     }
   });
 
   it('beginner and advanced levels still produce every day with sensible sizes', () => {
-    for (const [lvl, n] of [['beginner', 5], ['advanced', 8]] as const) {
+    for (const lvl of ['beginner', 'advanced'] as const) {
       const p = week(lvl);
-      for (const d of p.days.filter((x) => !x.rest)) expect(d.exercises.length, `${lvl}/${d.focus}`).toBeLessThanOrEqual(n + 1);
+      for (const d of p.days.filter((x) => !x.rest)) {
+        const combined = d.focus !== 'Legs & Abs';
+        // combined days: 5 main + 3 (advanced 6 + 3, Arms & Core always 8); legs follow the level budget
+        const exact = combined ? (lvl === 'advanced' && d.focus !== 'Arms & Core' ? 9 : 8) : { beginner: 5, advanced: 8 }[lvl];
+        expect(d.exercises.length, `${lvl}/${d.focus}`).toBe(exact);
+      }
     }
   });
 
@@ -99,7 +104,6 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
 
 describe('combined split - robustness', () => {
   const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
-  const mainMax = { beginner: 5, intermediate: 6, advanced: 8 } as const;
 
   it('every training block (weeks 0-15) x every level keeps the rules', () => {
     for (let weeksSinceJoin = 0; weeksSinceJoin <= 15; weeksSinceJoin++) {
@@ -113,17 +117,20 @@ describe('combined split - robustness', () => {
         ]);
         const chest = p.days[4]!; const sh = p.days[6]!; const back = p.days[0]!;
         const tri = (d: typeof chest) => d.exercises.filter((e) => e.muscleGroup === 'triceps').map((e) => e.name);
-        // 3 triceps for intermediate; scales with level but never fewer than 2 and never overlapping between days
-        // exactly 3 accessory lifts (user's rule) for intermediate/advanced; beginner has a 5-lift budget -> at least 2
-        const want = level === 'beginner' ? 2 : 3;
-        const check = (n: number, label: string) => (level === 'beginner' ? expect(n, label).toBeGreaterThanOrEqual(want) : expect(n, label).toBe(want));
+        // user's rule at EVERY level: exactly 3 accessory lifts, 5 main (advanced 6)
+        const check = (n: number, label: string) => expect(n, label).toBe(3);
+        const mainWant = level === 'advanced' ? 6 : 5;
+        expect(chest.exercises.filter((e) => e.muscleGroup === 'chest').length, `${tag} chest`).toBe(mainWant);
+        expect(back.exercises.filter((e) => e.muscleGroup === 'back').length, `${tag} back`).toBe(mainWant);
+        expect(sh.exercises.filter((e) => e.muscleGroup === 'shoulders' || e.muscleGroup === 'traps').length, `${tag} shoulders`).toBe(mainWant);
         check(tri(chest).length, `${tag} chest triceps`);
         check(tri(sh).length, `${tag} shoulder triceps`);
         for (const n of tri(sh)) expect(tri(chest), `${tag} overlap`).not.toContain(n);
         check(back.exercises.filter((e) => e.muscleGroup === 'biceps').length, `${tag} biceps`);
         for (const d of p.days.filter((x) => !x.rest)) {
-          expect(d.exercises.length, `${tag}/${d.focus} size`).toBeLessThanOrEqual(mainMax[level]);
-          expect(d.exercises.length, `${tag}/${d.focus} size min`).toBeGreaterThanOrEqual(3);
+          const isCombo = d.focus !== 'Legs & Abs';
+          const size = isCombo ? (level === 'advanced' && d.focus !== 'Arms & Core' ? 9 : 8) : { beginner: 5, intermediate: 6, advanced: 8 }[level];
+          expect(d.exercises.length, `${tag}/${d.focus} size`).toBe(size);
           expect(new Set(d.exercises.map((e) => e.name)).size, `${tag}/${d.focus} dupes`).toBe(d.exercises.length);
           expect((d.core?.length ?? 0) >= 1 || d.focus === 'Arms & Core', `${tag}/${d.focus} abs`).toBe(true);
           expect(d.warmup?.length ?? 0, `${tag}/${d.focus} warmup`).toBeGreaterThan(0);
