@@ -105,3 +105,25 @@ describe('constipation / hard-stool mode', () => {
     expect(avgFibre(gut)).toBeGreaterThanOrEqual(avgFibre(plain) * 0.95);
   });
 });
+
+import { EATING_PATTERNS } from '../src/modules/food/planGenerator';
+describe('every eating pattern produces the meals it promises', () => {
+  for (const [id, pat] of Object.entries(EATING_PATTERNS)) {
+    it(`${id}: only its own slots, snacks stay small, main plates realistic, day near target`, () => {
+      const kcal = id === 'omad' ? 2000 : 2500;
+      const plan = generateWeekPlan(POOL, { dailyKcal: kcal, proteinG: 140, fatG: 64, carbG: 340, fiberG: 34 }, { dietType: 'nonveg', allergies: [], conditions: [] }, { eatingPattern: id, fastDayOfWeek: 2 });
+      for (const d of plan.days) {
+        if (d.totals.kcal < kcal * 0.6) continue;
+        const slots = d.meals.filter((m) => m.kcal > 0).map((m) => m.slot);
+        expect([...slots].sort(), `${id} slots`).toEqual([...pat.slots].sort());
+        expect(Math.abs(d.totals.kcal - kcal) / kcal, `${id} day ${d.dayIndex} kcal`).toBeLessThanOrEqual(0.2);
+        for (const m of d.meals) {
+          const isMain = pat.mains.includes(m.slot);
+          if (!isMain) expect(m.kcal / kcal, `${id} snack ${m.slot}`).toBeLessThanOrEqual(0.26);
+          else if (id !== 'omad') expect(m.kcal / kcal, `${id} main ${m.slot}`).toBeLessThanOrEqual(0.4);
+          for (const it of m.items) expect(it.grams, it.name).toBeLessThanOrEqual(400);
+        }
+      }
+    });
+  }
+});

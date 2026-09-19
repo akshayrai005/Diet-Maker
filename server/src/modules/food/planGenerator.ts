@@ -444,6 +444,32 @@ function topUpDayToTarget(
 
 const LIGHT_TAGS = new Set(['fruit', 'beverage', 'light', 'probiotic', 'high-fiber']);
 
+/**
+ * What a day looks like for each eating pattern the user can pick (these mirror the Meal Timing cards in the app's Office tab).
+ * `mains` are the real plates; every other slot is a small snack. Weights are the share of the day's calories per slot.
+ */
+export interface EatingPatternPlan {
+  slots: MealSlot[];
+  weights: Partial<Record<MealSlot, number>>;
+  mains: MealSlot[];
+}
+export const EATING_PATTERNS: Record<string, EatingPatternPlan> = {
+  // 7:30 big meal, 10:30 pocket snack, pre-gym snack, 8:30 pm high-protein meal, optional bedtime curd/milk
+  morning_night: { slots: ['breakfast', 'midmorning', 'eveningsnack', 'dinner', 'bedtime'], weights: { breakfast: 0.28, midmorning: 0.13, eveningsnack: 0.19, dinner: 0.28, bedtime: 0.12 }, mains: ['breakfast', 'dinner'] },
+  // 5 meals through the day
+  home: { slots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner'], weights: { breakfast: 0.25, midmorning: 0.09, lunch: 0.29, eveningsnack: 0.10, dinner: 0.27 }, mains: ['breakfast', 'lunch', 'dinner'] },
+  // breakfast, snack, canteen lunch, pre-gym, dinner
+  office_canteen: { slots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner'], weights: { breakfast: 0.27, midmorning: 0.09, lunch: 0.26, eveningsnack: 0.11, dinner: 0.27 }, mains: ['breakfast', 'lunch', 'dinner'] },
+  // biggest breakfast, pocket snack, tiffin, pre-gym, dinner
+  office_no_canteen: { slots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner'], weights: { breakfast: 0.29, midmorning: 0.10, lunch: 0.24, eveningsnack: 0.10, dinner: 0.27 }, mains: ['breakfast', 'lunch', 'dinner'] },
+  // breakfast before leaving, dhaba lunch, pocket fuel, dinner
+  field: { slots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner'], weights: { breakfast: 0.28, midmorning: 0.10, lunch: 0.28, eveningsnack: 0.11, dinner: 0.23 }, mains: ['breakfast', 'lunch', 'dinner'] },
+  // "breakfast" before the shift, "lunch" mid-shift, pre-gym snack, LIGHT "dinner" after the shift
+  night_shift: { slots: ['breakfast', 'lunch', 'eveningsnack', 'dinner', 'bedtime'], weights: { breakfast: 0.31, lunch: 0.29, eveningsnack: 0.13, dinner: 0.17, bedtime: 0.10 }, mains: ['breakfast', 'lunch', 'dinner'] },
+  // one large meal in the eating window plus a small closer
+  omad: { slots: ['dinner', 'bedtime'], weights: { dinner: 0.85, bedtime: 0.15 }, mains: ['dinner'] },
+};
+
 function buildDay(
   dayIndex: number,
   eligible: FoodItem[],
@@ -454,22 +480,19 @@ function buildDay(
 ): DayPlan {
   // Morning + Night working pattern (spec Section 6): most common for office users who skip lunch.
   // Only 3 slots, front-loaded 40% breakfast / 25% evening snack / 35% dinner.
-  const morningNight = !fasting && dietType !== 'if' && eatingPattern === 'morning_night';
+  const pattern = !fasting && dietType !== 'if' && eatingPattern ? EATING_PATTERNS[eatingPattern] : undefined;
 
   // Fasting day: fewer, lighter meals at ~40% of calories.
   const slots: MealSlot[] = fasting
     ? (['midmorning', 'lunch', 'eveningsnack'] as MealSlot[])
-    : morningNight
-      ? (['breakfast', 'midmorning', 'eveningsnack', 'dinner', 'bedtime'] as MealSlot[])
+    : pattern
+      ? pattern.slots
       : dietType === 'if'
         ? (['lunch', 'eveningsnack', 'dinner'] as MealSlot[])
         : MEAL_SLOTS;
 
   // Per-slot calorie weights: the morning+night pattern overrides the standard distribution.
-  const slotWeight: Record<string, number> = morningNight
-    // Two real meals (big morning + dinner) and three SMALL snacks (pocket snack, pre-gym, bedtime): the shape the Office tab describes.
-    ? { breakfast: 0.28, midmorning: 0.13, eveningsnack: 0.19, dinner: 0.28, bedtime: 0.12 }
-    : SLOT_KCAL_WEIGHTS;
+  const slotWeight: Record<string, number> = pattern ? (pattern.weights as Record<string, number>) : SLOT_KCAL_WEIGHTS;
 
   const dailyKcal = fasting ? Math.round(targets.dailyKcal * FASTING_KCAL_FACTOR) : targets.dailyKcal;
 
@@ -489,7 +512,7 @@ function buildDay(
   // Shared across the day's meals so the same food is never served twice in one day.
   const usedToday = new Set<string>();
   // With only three meals the evening one is a real plate, not a snack (otherwise its calories pile onto breakfast/dinner).
-  const mains: MealSlot[] = morningNight ? ['breakfast', 'dinner'] : MAIN_SLOTS;
+  const mains: MealSlot[] = pattern ? pattern.mains : MAIN_SLOTS;
   const meals = slots.map((slot) => {
     const slotKcal = (dailyKcal * slotWeight[slot]!) / weightSum;
     return buildMeal(slot, pool, slotKcal, dietType, dayIndex, usedToday, mains);
