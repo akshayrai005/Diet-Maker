@@ -547,12 +547,33 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
-        // Week strip
+        // Just two choices: what to do today, and what is planned for tomorrow.
         plan?.days?.takeIf { it.isNotEmpty() }?.let { days ->
-            item(span = { GridItemSpan(2) }) { Text("📅 This Week", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-            item(span = { GridItemSpan(2) }) {
-                val current = selectedIdx ?: days.indexOfFirst { it === shownDay }
-                WeekStrip(days, selectedIndex = current, onSelect = { selectedIdx = it })
+            val todayIdx = days.indexOfFirst { it === today }.takeIf { it >= 0 } ?: 0
+            val tomorrowIdx = (todayIdx + 1).takeIf { it < days.size }
+            if (tomorrowIdx != null) {
+                item(span = { GridItemSpan(2) }) {
+                    val current = selectedIdx ?: todayIdx
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        listOf("Today" to todayIdx, "Tomorrow" to tomorrowIdx).forEach { (label, idx) ->
+                            val on = current == idx
+                            val focus = days[idx].let { if (it.rest) "Rest" else it.focus }
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (on) SpectrumBrush else androidx.compose.ui.graphics.SolidColor(Color.White))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                                    .clickable { selectedIdx = idx }
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(label, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleSmall, color = if (on) Color.White else Color(0xFF1B1F23))
+                                Text(focus, style = MaterialTheme.typography.labelSmall, maxLines = 1, color = if (on) Color.White.copy(alpha = 0.9f) else Color(0xFF6B7280))
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -745,7 +766,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var female by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
     val results = remember(query, category, equipment, sub) {
-        ExerciseCatalog.search(query, category, equipment).let { list -> if (sub == null) list else list.filter { SubParts.classify(category, it.name) == sub } }
+        ExerciseCatalog.search(query, category, equipment).let { list -> if (sub == null || sub == ALL_REGIONS) list else list.filter { SubParts.classify(category, it.name) == sub } }
     }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
@@ -767,50 +788,53 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("📚 Exercise Library", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         if (category == ExerciseCatalog.Category.ALL) {
-            // Step 1: just the body pictures. Nothing loads until a muscle is chosen.
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                MuscleAtlas(selected = category, onSelect = { category = it; query = "" }, female = female)
-            }
-            return@Column
-        }
-        // Step 2: the chosen muscle, with search, equipment and its exercises.
-        // One row: back to all muscles, the chosen muscle, and search.
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(
-                onClick = { category = ExerciseCatalog.Category.ALL; query = "" },
-                shape = Sharp,
-                contentPadding = PaddingValues(horizontal = 10.dp),
-                modifier = Modifier.height(48.dp).semantics { contentDescription = "Back to all muscles" },
-            ) { Text("←", style = MaterialTheme.typography.titleMedium) }
-            Text("${category.emoji} ${category.label}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            // Search everything from the first screen: type a name, get exercises you can log straight away.
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = { Text("Search...", style = MaterialTheme.typography.labelSmall) },
+                placeholder = { Text("🔍 Search any exercise to log...", style = MaterialTheme.typography.bodySmall) },
+                trailingIcon = { if (query.isNotEmpty()) Text("✕", modifier = Modifier.clickable { query = "" }.padding(12.dp), style = MaterialTheme.typography.titleSmall) },
                 singleLine = true,
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = Sharp,
-                textStyle = MaterialTheme.typography.bodySmall,
+                textStyle = MaterialTheme.typography.bodyMedium,
             )
-        }
-        val subParts = remember(category) { SubParts.forCategory(category) }
-        if (subParts.isNotEmpty()) {
-            Text("🎯 Which part?", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(listOf<String?>(null) + subParts) { label ->
-                    FilterChip(
-                        selected = sub == label,
-                        onClick = { sub = label },
-                        label = { Text(label ?: "All", style = MaterialTheme.typography.labelMedium, fontWeight = if (sub == label) FontWeight.Bold else FontWeight.Normal) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MoveAccent,
-                            selectedLabelColor = Color.White,
-                            containerColor = MoveAccent.copy(alpha = 0.08f),
-                            labelColor = MoveAccent,
-                        ),
-                    )
+            if (query.isBlank()) {
+                // Step 1: the body pictures. Nothing loads until a muscle is chosen.
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    MuscleAtlas(selected = category, onSelect = { category = it; query = "" }, female = female)
                 }
+                return@Column
             }
+        }
+        val regionCount = remember(category) { SubParts.forCategory(category).size }
+        if (regionCount > 0 && sub == null && query.isBlank()) {
+            // Step 2: pick a region of the body part (cards, like the muscle picker).
+            LibraryHeader(title = "${category.emoji} ${category.label}", onBack = { category = ExerciseCatalog.Category.ALL; query = "" })
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                SubPartTiles(category = category, onPick = { sub = it })
+            }
+            return@Column
+        }
+        // Step 3: the chosen part, with search, equipment and its exercises.
+        if (category != ExerciseCatalog.Category.ALL) {
+            // Header card: back arrow + the body part / region as the title, then a search box for this part.
+            LibraryHeader(
+                title = "${category.emoji} ${category.label}" + (sub?.takeIf { it != ALL_REGIONS }?.let { " · $it" } ?: ""),
+                onBack = { if (regionCount > 0 && sub != null) { sub = null; query = "" } else { category = ExerciseCatalog.Category.ALL; query = "" } },
+            )
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("🔍 Search in ${category.label.lowercase()}...", style = MaterialTheme.typography.bodySmall) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = Sharp,
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
+        } else {
+            // Searching from the first screen: a header card too, so the way back is always the same.
+            LibraryHeader(title = "🔍 Results for \"${query.trim()}\"", onBack = { query = "" })
         }
         Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -828,7 +852,10 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                 )
             }
         }
+        // a new list (other part, region or search text) always starts at the top
+        val gridState = remember(category, sub, query) { androidx.compose.foundation.lazy.grid.LazyGridState() }
         LazyVerticalGrid(
+            state = gridState,
             columns = GridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),

@@ -80,6 +80,8 @@ exerciseRouter.get(
           restDayOfWeek: s.workoutRestDay,
           startDate: localSunday(offset),
           today: localToday(offset),
+          // On a Saturday, tomorrow is next week's Sunday - give the app that 8th day so "Tomorrow" always exists.
+          days: localToday(offset).getUTCDay() === 6 ? 8 : 7,
           fitnessLevel: currentLevel,
           intensity: s.intensityPreference,
           under18,

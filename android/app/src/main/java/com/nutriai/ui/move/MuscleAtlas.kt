@@ -10,6 +10,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -104,6 +107,7 @@ private fun viewsFor(cat: ExerciseCatalog.Category): Pair<Boolean, Boolean> = wh
  */
 @Composable
 fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.Category) -> Unit, modifier: Modifier = Modifier, female: Boolean = false) {
+    val counts = remember { ExerciseCatalog.entries.groupingBy { it.category }.eachCount() }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Pick a muscle", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         ATLAS.chunked(2).forEach { rowItems ->
@@ -136,11 +140,106 @@ fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.C
                                 }
                             }
                             Text(cat.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color(0xFF1B1F23))
+                            Text((counts[cat] ?: 0).toString() + " exercises", style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B7280))
                         }
                     }
                 }
                 repeat(2 - rowItems.size) { Box(Modifier.weight(1f)) }
             }
         }
+    }
+}
+
+/** Sentinel for "show every region of this body part". */
+const val ALL_REGIONS = "*"
+
+/**
+ * Second step of the Library: one card per region of the chosen body part (Chest -> Upper / Middle / Lower, Shoulders -> Front /
+ * Side / Rear ...). Each card shows a real exercise for that region, so you see what the region looks like before opening it.
+ */
+@Composable
+fun SubPartTiles(category: ExerciseCatalog.Category, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
+    val regions = remember(category) { SubParts.forCategory(category) }
+    // representative exercise per region: the first one that has a real demo GIF
+    val pictures = remember(category) {
+        regions.associateWith { label ->
+            ExerciseCatalog.entries.firstOrNull { e ->
+                e.category == category && SubParts.classify(category, e.item.name) == label && ExerciseDemoMap.gifUrl(e.item.name) != null
+            }?.item?.name
+        }
+    }
+    val counts = remember(category) {
+        regions.associateWith { label -> ExerciseCatalog.entries.count { it.category == category && SubParts.classify(category, it.item.name) == label } }
+    }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text("Which part of ${category.label.lowercase()}?", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        (regions + ALL_REGIONS).chunked(2).forEach { rowItems ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                rowItems.forEach { label ->
+                    val isAll = label == ALL_REGIONS
+                    val demo = if (isAll) null else pictures[label]?.let { ExerciseDemoMap.gifUrl(it) }
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1.05f)
+                            .clickable { onPick(label) }
+                            .semantics { contentDescription = (if (isAll) "All ${category.label}" else "$label ${category.label}") + " exercises" },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                    ) {
+                        Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                if (demo != null) DemoPreview(demo, Modifier.fillMaxSize())
+                                else Text(category.emoji, fontSize = 44.sp)
+                            }
+                            Text(
+                                if (isAll) "All" else label,
+                                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color(0xFF1B1F23),
+                            )
+                            Text(
+                                (if (isAll) counts.values.sum() else counts[label] ?: 0).toString() + " exercises",
+                                style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B7280),
+                            )
+                        }
+                    }
+                }
+                repeat(2 - rowItems.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/**
+ * Header card for the Library's inner screens: the theme gradient with a white back arrow on the left and the body part /
+ * region name as the title. Tapping anywhere on the arrow goes back one step.
+ */
+@Composable
+fun LibraryHeader(title: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(com.nutriai.ui.theme.SpectrumBrush)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(50))
+                .clickable(onClick = onBack)
+                .semantics { contentDescription = "Back" },
+            contentAlignment = Alignment.Center,
+        ) { Text("←", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold) }
+        Text(
+            title,
+            modifier = Modifier.weight(1f).padding(end = 44.dp),
+            color = Color.White,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
     }
 }
