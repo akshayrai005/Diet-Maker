@@ -14,7 +14,7 @@ private val Context.themeStore by preferencesDataStore(name = "theme")
 
 /** Accent palette + light/dark preference. Persisted locally, offline. */
 data class ThemePrefs(
-    val accent: String = "green", // green | pink | yellow
+    val accent: String = "spectrum", // spectrum | ocean | sunset | forest | berry | gold | graphite
     val mode: String = "system", // system | light | dark
 )
 
@@ -22,11 +22,11 @@ data class ThemePrefs(
 class ThemeStore @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    private val accentKey = stringPreferencesKey("accent")
+    private val accentKey = stringPreferencesKey("accent_v2")
     private val modeKey = stringPreferencesKey("mode")
 
     val prefs: Flow<ThemePrefs> = context.themeStore.data.map { p ->
-        ThemePrefs(accent = p[accentKey] ?: "green", mode = p[modeKey] ?: "system")
+        ThemePrefs(accent = p[accentKey] ?: "spectrum", mode = p[modeKey] ?: "system")
     }
 
     suspend fun setAccent(accent: String) {

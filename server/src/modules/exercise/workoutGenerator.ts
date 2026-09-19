@@ -87,7 +87,7 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'Lower strength & core', exercises: [s('Back squat', 4, '6'), s('Romanian deadlift', 3, '8'), s('Walking lunges', 3, '12'), s('Hanging leg raise', 3, '15'), s('Calf raise', 3, '20')] },
     { focus: 'HIIT conditioning', exercises: [c('Cycle cross trainer', 10, '30s hard / 30s easy'), s('Kettlebell swings', 4, '20'), c('Battle ropes', 4, '30s'), c('Burpees', 4, '12')] },
     { focus: 'Upper hypertrophy', exercises: [s('Incline dumbbell press', 4, '10'), s('Lat pulldown', 4, '12'), s('Lateral raise', 4, '15'), s('Cable curl', 3, '12'), s('Tricep pushdown', 3, '12')] },
-    { focus: 'Lower power', exercises: [c('Box jumps', 5, '5'), s('Trap-bar deadlift', 4, '5'), s('Bulgarian split squat', 3, '10'), s('Nordic curl', 3, '8'), m('Plank', 3, '60s')] },
+    { focus: 'Lower power', exercises: [c('Jump squat', 5, '5'), s('Trap-bar deadlift', 4, '5'), s('Bulgarian split squat', 3, '10'), s('Nordic curl', 3, '8'), m('Plank', 3, '60s')] },
     { focus: 'Cardio & mobility', exercises: [c('Stationary bike run', 1, '30-40 min'), m("World's greatest stretch", 1, '15 min'), s('Air bike', 3, 'rounds')] },
   ]],
   'athletic:home': [[
@@ -95,7 +95,7 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'HIIT', exercises: [c('Burpees', 5, '12'), c('High knees', 5, '30s'), c('Jump squats', 5, '15'), c('Mountain climbers', 5, '30s')] },
     { focus: 'Core & mobility', exercises: [m('Plank', 3, '60s'), s('Leg raises', 3, '15'), s('Russian twists', 3, '20'), s('Dead bug', 3, '12'), m("World's greatest stretch", 1, '10 min')] },
     { focus: 'Full-body circuit', exercises: [s('Pike push-ups', 3, '10'), s('Reverse lunges', 3, '15'), s('Chair dips', 3, '15'), s('Glute bridges', 3, '20'), s('Superman', 3, '15')] },
-    { focus: 'Plyometrics', exercises: [c('Jump squats', 4, '15'), c('Broad jumps', 4, '8'), c('Skater jumps', 4, '20'), c('Burpees', 4, '10'), c('Plank jacks', 4, '20')] },
+    { focus: 'Plyometrics', exercises: [c('Jump squats', 4, '15'), c('Forward jump', 4, '8'), c('Skater jumps', 4, '20'), c('Burpees', 4, '10'), c('Plank jacks', 4, '20')] },
     { focus: 'Cardio & core', exercises: [c('Walking on incline treadmill', 1, '30-40 min'), s('Air bike', 3, 'rounds')] },
   ]],
   'fatloss:gym': [[
@@ -929,7 +929,7 @@ const DAILY_ABS_POOL: ExerciseItem[] = [
 ];
 const GENTLE_DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Dead bug (slow, controlled)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
-  { name: 'Bird dog (anti-rotation)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Front plank with twist', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Glute bridge', sets: 2, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
 ];
 function dailyAbsFor(dayIndex: number, gentle: boolean, block = 0): ExerciseItem[] {

@@ -5,29 +5,26 @@ import androidx.compose.ui.graphics.Color
 // ---- Kaizen v4 — Light-first, bold & vibrant health-app palette ----
 
 // Primary brand — vivid coral-orange (warm, energetic)
-val BrandGreen = Color(0xFF00C896)
-val BrandGreenDark = Color(0xFF00A67D)
-val BrandGreenDeep = Color(0xFF007A5C)
-val BrandGreenLight = Color(0xFF5DFFC2)
-val BrandMint = Color(0xFFE0FFF5)
-val BrandLime = Color(0xFFF0FFF8)
-
+val BrandGreen: Color get() = AppPalette.primary
+val BrandGreenDark: Color get() = AppPalette.primaryDark
+val BrandGreenDeep: Color get() = AppPalette.primaryDeep
+val BrandGreenLight: Color get() = AppPalette.primaryLight
+val BrandMint: Color get() = AppPalette.tint(AppPalette.primary, 0.16f)
+val BrandLime: Color get() = AppPalette.tint(AppPalette.primary, 0.08f)
 // Hero section — warm gradient
-val HeroGradientTop = Color(0xFF667EEA)
-val HeroGradientBottom = Color(0xFF764BA2)
-
+val HeroGradientTop: Color get() = AppPalette.stop(0)
+val HeroGradientBottom: Color get() = AppPalette.stop(3)
 // Accent palette — bold & saturated
-val BrandAmber = Color(0xFFE8763D)
-val BrandAmberContainer = Color(0xFFFCE7D8)
-
-val KaizenLavender = Color(0xFF7C4DFF)
-val KaizenLavenderContainer = Color(0xFFEDE7F6)
-val KaizenCoral = Color(0xFFFF6B6B)
-val KaizenCoralContainer = Color(0xFFFFEBEE)
-val KaizenBlue = Color(0xFF2196F3)
-val KaizenBlueContainer = Color(0xFFE3F2FD)
-val KaizenTeal = Color(0xFF00897B)
-val CardTealLight = Color(0xFFE0F2F1)
+val BrandAmber: Color get() = AppPalette.stop(0)
+val BrandAmberContainer: Color get() = AppPalette.tint(AppPalette.stop(0), 0.16f)
+val KaizenLavender: Color get() = AppPalette.stop(2)
+val KaizenLavenderContainer: Color get() = AppPalette.tint(AppPalette.stop(2), 0.16f)
+val KaizenCoral: Color get() = AppPalette.stop(1)
+val KaizenCoralContainer: Color get() = AppPalette.tint(AppPalette.stop(1), 0.16f)
+val KaizenBlue: Color get() = AppPalette.stop(3)
+val KaizenBlueContainer: Color get() = AppPalette.tint(AppPalette.stop(3), 0.16f)
+val KaizenTeal: Color get() = AppPalette.primaryDeep
+val CardTealLight: Color get() = AppPalette.tint(AppPalette.primary, 0.14f)
 val KaizenInk = Color(0xFF1A1A2E)
 
 // Surface system — LIGHT mode first
@@ -42,30 +39,28 @@ val AppSurfaceVariantDark = Color(0xFF252540)
 val OnSurfaceDark = Color(0xFFF0F0F5)
 
 // Card colors — bold pastels for light, rich tones for dark
-val CardGreenLight = Color(0xFFE8F5E9)
-val CardBlueLight = Color(0xFFE3F2FD)
-val CardCoralLight = Color(0xFFFFEBEE)
-val CardAmberLight = Color(0xFFFCEAE0)
-val KaizenRose = Color(0xFFB0546B)
-val CardRoseLight = Color(0xFFF6E4E9)
-val CardLavenderLight = Color(0xFFEDE7F6)
-val CardMintLight = Color(0xFFE0F7FA)
-
+val CardGreenLight: Color get() = AppPalette.tint(AppPalette.primary, 0.14f)
+val CardBlueLight: Color get() = AppPalette.tint(AppPalette.stop(3), 0.14f)
+val CardCoralLight: Color get() = AppPalette.tint(AppPalette.stop(1), 0.14f)
+val CardAmberLight: Color get() = AppPalette.tint(AppPalette.stop(0), 0.16f)
+val KaizenRose: Color get() = AppPalette.stop(1)
+val CardRoseLight: Color get() = AppPalette.tint(AppPalette.stop(1), 0.16f)
+val CardLavenderLight: Color get() = AppPalette.tint(AppPalette.stop(2), 0.14f)
+val CardMintLight: Color get() = AppPalette.tint(AppPalette.primary, 0.12f)
 // ---- "Your Day" grid — 6 cards, deliberately spread across the wheel (not the muted
 // pastel brand tokens above, which cluster too close together at low saturation) ----
-val GridGreen = Color(0xFF2E7D32)
-val GridGreenLight = Color(0xFFE1F0E2)
-val GridOrange = Color(0xFFEF6C00)
-val GridOrangeLight = Color(0xFFFCE7D3)
-val GridPurple = Color(0xFF6A1B9A)
-val GridPurpleLight = Color(0xFFEDE0F2)
-val GridBlue = Color(0xFF0277BD)
-val GridBlueLight = Color(0xFFDCEEF9)
-val GridPink = Color(0xFFAD1457)
-val GridPinkLight = Color(0xFFF6DDE7)
-val GridRed = Color(0xFFC62828)
-val GridRedLight = Color(0xFFF7DEDE)
-
+val GridGreen: Color get() = AppPalette.primaryDeep
+val GridGreenLight: Color get() = AppPalette.tint(AppPalette.primaryDeep, 0.14f)
+val GridOrange: Color get() = AppPalette.stop(0)
+val GridOrangeLight: Color get() = AppPalette.tint(AppPalette.stop(0), 0.16f)
+val GridPurple: Color get() = AppPalette.stop(2)
+val GridPurpleLight: Color get() = AppPalette.tint(AppPalette.stop(2), 0.14f)
+val GridBlue: Color get() = AppPalette.stop(3)
+val GridBlueLight: Color get() = AppPalette.tint(AppPalette.stop(3), 0.14f)
+val GridPink: Color get() = AppPalette.stop(1)
+val GridPinkLight: Color get() = AppPalette.tint(AppPalette.stop(1), 0.14f)
+val GridRed: Color get() = AppPalette.primaryDark
+val GridRedLight: Color get() = AppPalette.tint(AppPalette.primaryDark, 0.14f)
 // ---- Semantic status roles ----
 val PositiveLight = Color(0xFF00C896)
 val PositiveDark = Color(0xFF00E5A8)
@@ -79,20 +74,18 @@ val DisabledLight = Color(0xFFBDBDBD)
 val DisabledDark = Color(0xFF616161)
 
 // Semantic domain colors — vivid
-val NutritionColor = Color(0xFF00C896)
-val MovementColor = Color(0xFF2196F3)
-val RecoveryColor = Color(0xFF7C4DFF)
-val HydrationColor = Color(0xFF00BCD4)
-val CoralAccent = Color(0xFFFF6B6B)
-
+val NutritionColor: Color get() = AppPalette.stop(0)
+val MovementColor: Color get() = AppPalette.stop(3)
+val RecoveryColor: Color get() = AppPalette.stop(2)
+val HydrationColor: Color get() = AppPalette.stop(1)
+val CoralAccent: Color get() = AppPalette.stop(1)
 // Gradient endpoints
-val GradientStart = Color(0xFF667EEA)
-val GradientMid = Color(0xFF764BA2)
-val GradientEnd = Color(0xFFF093FB)
-val GradientAccentStart = Color(0xFF00C896)
-val GradientAccentEnd = Color(0xFF00E5A8)
-
-val ChartColors = listOf(
+val GradientStart: Color get() = AppPalette.stop(0)
+val GradientMid: Color get() = AppPalette.stop(1)
+val GradientEnd: Color get() = AppPalette.stop(3)
+val GradientAccentStart: Color get() = AppPalette.primary
+val GradientAccentEnd: Color get() = AppPalette.primaryLight
+val ChartColors: List<Color> get() = listOf(
     BrandGreen,
     KaizenBlue,
     KaizenCoral,

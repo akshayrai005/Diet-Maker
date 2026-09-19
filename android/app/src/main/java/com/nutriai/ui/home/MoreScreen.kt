@@ -85,7 +85,7 @@ private val GROUPS = listOf(
         listOf(
             ProfileItem("mind", "🧠", "Mind", "Mindfulness & wellness", RecoveryColor),
             ProfileItem("discipline", "🎯", "Discipline", "Habit tracking", NutritionColor),
-            ProfileItem("badges", "🏅", "Badges", "Achievements", Color(0xFFF4B740)),
+            ProfileItem("badges", "🏅", "Badges", "Achievements", com.nutriai.ui.theme.AppPalette.stop(0)),
         ),
     ),
     ProfileGroup(

@@ -587,7 +587,7 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
                             rows = listOf(listOf(recipe.timeMin?.let { "$it min" } ?: "-", recipe.servings?.toString() ?: "-")),
                             weights = listOf(0.5f, 0.5f),
                             centeredColumns = setOf(0, 1),
-                            title = "⏱ Time & servings", accent = androidx.compose.ui.graphics.Color(0xFF8E24AA),
+                            title = "⏱ Time & servings", accent = com.nutriai.ui.theme.AppPalette.stop(2),
                         )
                     }
                     if (recipe.ingredients.isNotEmpty()) {
@@ -596,7 +596,7 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
                             rows = recipe.ingredients.mapIndexed { i, line -> val (q, item) = splitIngredient(line); listOf("${i + 1}", q, item) },
                             weights = listOf(0.16f, 0.3f, 0.54f),
                             centeredColumns = setOf(0, 1),
-                            title = "🧂 Ingredients", accent = androidx.compose.ui.graphics.Color(0xFF43A047),
+                            title = "🧂 Ingredients", accent = com.nutriai.ui.theme.AppPalette.stop(3),
                         )
                     }
                     if (recipe.steps.isNotEmpty()) {
@@ -605,7 +605,7 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
                             rows = recipe.steps.mapIndexed { i, s -> listOf("${i + 1}", s.replace(Regex("^\\s*\\d+[.)]\\s*"), "")) },
                             weights = listOf(0.2f, 0.8f),
                             centeredColumns = setOf(0),
-                            title = "👨‍🍳 Steps", accent = androidx.compose.ui.graphics.Color(0xFFFB8C00),
+                            title = "👨‍🍳 Steps", accent = com.nutriai.ui.theme.AppPalette.stop(0),
                         )
                     }
                     recipe.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

@@ -10,6 +10,8 @@ import androidx.core.content.FileProvider
 import java.io.File
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -207,30 +209,44 @@ fun SettingsScreen(
             // Appearance
             item {
                 SettingsSection(emoji = "🎨", title = "Appearance") {
-                    Text("Accent", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) {
-                        listOf("green" to "Calm Green", "pink" to "Pastel Pink", "yellow" to "Warm Yellow").forEach { (key, label) ->
-                            val selected = theme.accent == key
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (selected) Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)))
-                                        else Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                    Text("Colour theme - changes every card, button and bar", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    var themeMenu by remember { mutableStateOf(false) }
+                    val currentDef = com.nutriai.ui.theme.AppPalette.themes[com.nutriai.ui.theme.AppPalette.themeKey]
+                    Box(Modifier.padding(top = 6.dp, bottom = 12.dp)) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                                .clickable { themeMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(Modifier.width(64.dp).height(22.dp).clip(RoundedCornerShape(6.dp)).background(Brush.horizontalGradient(currentDef?.stops ?: listOf(Color.Gray, Color.DarkGray))))
+                            Text(currentDef?.label ?: "Spectrum", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                            Text("▼", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        androidx.compose.material3.DropdownMenu(expanded = themeMenu, onDismissRequest = { themeMenu = false }) {
+                            listOf("Blended colours" to false, "Single colours" to true).forEach { (heading, solid) ->
+                                Text(heading, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                                com.nutriai.ui.theme.AppPalette.themes.filter { it.value.solid == solid }.forEach { (key, def) ->
+                                    val selected = com.nutriai.ui.theme.AppPalette.themeKey == key
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                Box(Modifier.width(56.dp).height(20.dp).clip(RoundedCornerShape(6.dp)).background(Brush.horizontalGradient(def.stops)))
+                                                Text(def.label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+                                            }
+                                        },
+                                        trailingIcon = { if (selected) Text("✓", fontWeight = FontWeight.Bold, color = def.primary) },
+                                        onClick = { viewModel.setAccent(key); themeMenu = false },
                                     )
-                                    .clickable { viewModel.setAccent(key) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                            ) {
-                                Text(
-                                    label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                                }
                             }
                         }
                     }
-                    Text("Theme", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Light / dark", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
                         listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
                             val selected = theme.mode == key

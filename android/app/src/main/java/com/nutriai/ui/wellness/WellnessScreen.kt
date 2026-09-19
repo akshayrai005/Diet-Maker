@@ -124,7 +124,7 @@ class WellnessViewModel @Inject constructor(
 }
 
 private val sectionEmojis = listOf("🧘" to "Meditate", "🧘‍♀️" to "Yoga", "😌" to "Mood")
-private val sectionColors = listOf(RecoveryColor, BrandGreen, BrandAmber)
+private val sectionColors: List<androidx.compose.ui.graphics.Color> get() = listOf(RecoveryColor, BrandGreen, BrandAmber)
 
 @Composable
 fun WellnessScreen(modifier: Modifier = Modifier, viewModel: WellnessViewModel = hiltViewModel()) {

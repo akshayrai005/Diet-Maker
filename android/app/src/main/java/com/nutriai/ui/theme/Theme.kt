@@ -14,7 +14,7 @@ private val LocalKaizenColors = staticCompositionLocalOf { kaizenColorTokens(dar
 val MaterialTheme.kaizenColors: KaizenColorTokens
     @Composable get() = LocalKaizenColors.current
 
-private val LightColors = lightColorScheme(
+private val LightColors get() = lightColorScheme(
     primary = BrandGreen,
     onPrimary = Color.White,
     primaryContainer = CardGreenLight,
@@ -38,7 +38,7 @@ private val LightColors = lightColorScheme(
     onError = Color.White,
 )
 
-private val DarkColors = darkColorScheme(
+private val DarkColors get() = darkColorScheme(
     primary = BrandGreen,
     onPrimary = Color(0xFF003322),
     primaryContainer = BrandGreenDeep,
@@ -62,30 +62,24 @@ private val DarkColors = darkColorScheme(
     onError = Color(0xFF3A0A0A),
 )
 
-private data class Accent(val primary: Color, val onPrimary: Color, val container: Color, val onContainer: Color)
-
-private fun accentFor(name: String, dark: Boolean): Accent = when (name) {
-    "pink" -> if (dark) Accent(Color(0xFFF3A9C6), Color(0xFF4A1229), Color(0xFF7A2947), Color(0xFFFAE0EA))
-    else Accent(Color(0xFFD46A93), Color.White, Color(0xFFFAE0EA), Color(0xFF7A2947))
-    "yellow" -> if (dark) Accent(Color(0xFFEBD07A), Color(0xFF3D2F05), Color(0xFF6B540A), Color(0xFFFAF0CE))
-    else Accent(Color(0xFFC9A227), Color.White, Color(0xFFFAF0CE), Color(0xFF6B540A))
-    else -> if (dark) Accent(BrandGreen, Color(0xFF003322), BrandGreenDeep, BrandMint)
-    else Accent(BrandGreen, Color.White, CardGreenLight, BrandGreenDeep)
-}
-
 @Composable
 fun NutriAiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    accent: String = "green",
+    accent: String = "spectrum",
     content: @Composable () -> Unit,
 ) {
+    // One palette drives everything: pick the theme, then build the Material colours from it.
+    AppPalette.apply(accent, darkTheme)
     val base = if (darkTheme) DarkColors else LightColors
-    val a = accentFor(accent, darkTheme)
     val colorScheme = base.copy(
-        primary = a.primary,
-        onPrimary = a.onPrimary,
-        primaryContainer = a.container,
-        onPrimaryContainer = a.onContainer,
+        primary = AppPalette.primary,
+        onPrimary = Color.White,
+        primaryContainer = AppPalette.tint(AppPalette.primary, 0.18f),
+        onPrimaryContainer = AppPalette.primaryDeep,
+        secondary = AppPalette.stop(3),
+        secondaryContainer = AppPalette.tint(AppPalette.stop(3), 0.16f),
+        tertiary = AppPalette.stop(1),
+        tertiaryContainer = AppPalette.tint(AppPalette.stop(1), 0.16f),
     )
     MaterialTheme(
         colorScheme = colorScheme,

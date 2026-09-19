@@ -114,27 +114,27 @@ fun ExerciseDemo(
                         rows = listOf(listOf(mainName, secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ').replaceFirstChar { c -> c.uppercase() } } ?: "—")),
                         weights = listOf(0.4f, 0.6f),
                         centeredColumns = setOf(0, 1),
-                        title = "💪 Muscles", accent = Color(0xFF7E57C2),
+                        title = "💪 Muscles", accent = com.nutriai.ui.theme.AppPalette.stop(2),
                     )
                     BorderedTable(
                         headers = listOf("Step", "How to perform"),
                         rows = (specificSteps ?: guide.steps).mapIndexed { i, step -> listOf("${i + 1}", step) },
                         weights = listOf(0.2f, 0.8f),
                         centeredColumns = setOf(0),
-                        title = "🎯 How to perform", accent = Color(0xFF1E88E5),
+                        title = "🎯 How to perform", accent = com.nutriai.ui.theme.AppPalette.stop(3),
                     )
                     BorderedTable(
                         headers = listOf("#", "Common mistakes"),
                         rows = guide.mistakes.mapIndexed { i, m -> listOf("${i + 1}", m) },
                         weights = listOf(0.2f, 0.8f),
                         centeredColumns = setOf(0),
-                        title = "⚠️ Common mistakes", accent = Color(0xFFE53935), startExpanded = false,
+                        title = "⚠️ Common mistakes", accent = com.nutriai.ui.theme.AppPalette.stop(1), startExpanded = false,
                     )
                     BorderedTable(
                         headers = listOf("Safety"),
                         rows = listOf(listOf(guide.safety)),
                         weights = listOf(1f),
-                        title = "🛡️ Safety", accent = Color(0xFFF59E0B), startExpanded = false,
+                        title = "🛡️ Safety", accent = com.nutriai.ui.theme.AppPalette.stop(0), startExpanded = false,
                     )
                     Text(
                         if (specificSteps != null) "General guidance, not medical advice. Steps: exercise-library dataset. Demo GIFs: ExerciseGymGifsDB." else "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
