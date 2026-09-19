@@ -91,40 +91,46 @@ fun ExerciseDemo(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            containerColor = Color.White,
+            containerColor = Color(0xFFF3F5FA),
             confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Close") } },
             title = { Text(name, fontWeight = FontWeight.Bold) },
             text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)).background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) { GifImage(url = url, onError = { failed = true }) }
                     val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
                     val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty() }
+                    // Always show a muscle name: the recorded one, else worked out from the exercise name, else "Full body".
+                    val mainName = muscleGroup?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
+                        ?: muscleGroupOf(name).let { if (it == MuscleGroup.GENERIC) "Full body" else it.label() }
                     BorderedTable(
                         headers = listOf("Main muscle", "Also works"),
-                        rows = listOf(listOf(muscleGroup?.replaceFirstChar { it.uppercase() } ?: "-", secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ') } ?: "-")),
+                        rows = listOf(listOf(mainName, secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ').replaceFirstChar { c -> c.uppercase() } } ?: "—")),
                         weights = listOf(0.4f, 0.6f),
+                        centeredColumns = setOf(0, 1),
                         title = "💪 Muscles", accent = Color(0xFF7E57C2),
                     )
                     BorderedTable(
                         headers = listOf("Step", "How to perform"),
                         rows = guide.steps.mapIndexed { i, step -> listOf("${i + 1}", step) },
                         weights = listOf(0.2f, 0.8f),
+                        centeredColumns = setOf(0),
                         title = "🎯 How to perform", accent = Color(0xFF1E88E5),
                     )
                     BorderedTable(
                         headers = listOf("#", "Common mistakes"),
                         rows = guide.mistakes.mapIndexed { i, m -> listOf("${i + 1}", m) },
                         weights = listOf(0.2f, 0.8f),
-                        title = "⚠️ Watch out", accent = Color(0xFFE53935),
+                        centeredColumns = setOf(0),
+                        title = "⚠️ Common mistakes", accent = Color(0xFFE53935), startExpanded = false,
                     )
                     BorderedTable(
                         headers = listOf("Safety"),
                         rows = listOf(listOf(guide.safety)),
                         weights = listOf(1f),
-                        title = "🛡️ Stay safe", accent = Color(0xFFF59E0B),
+                        title = "🛡️ Safety", accent = Color(0xFFF59E0B), startExpanded = false,
                     )
                     Text(
                         "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",

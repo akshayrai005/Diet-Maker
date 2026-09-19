@@ -14,6 +14,14 @@ object ExerciseGuide {
         Rule(Regex(pattern, RegexOption.IGNORE_CASE), Guide(steps, mistakes, safety))
 
     private val RULES = listOf(
+        // Dynamic warm-ups / mobility drills come first, so "leg swings" is never mistaken for a kettlebell swing or hinge.
+        r("leg swing|arm swing|arm circle|hip circle|world.?s greatest|cat.?cow|thoracic|march|jog on spot|light cardio|shoulder roll|torso twist|inchworm|walkout|dynamic",
+            listOf("Stand tall near a wall or rail for balance, with your abs lightly braced.",
+                "Move slowly and smoothly through a comfortable range - swing, circle or reach without forcing it.",
+                "Do 10-15 controlled reps (each side where it applies), gradually making the range a little bigger.",
+                "Keep your torso still and breathe normally; stop short of any pinch or pain."),
+            listOf("Bouncing or jerking to get more range", "Leaning the whole body instead of moving the joint", "Rushing through the reps"),
+            "This is a warm-up, not a workout: the effort should feel easy. Skip any movement that hurts."),
         r("plank|hollow|dead bug|bird dog|rollout|wheel|pallof|stability",
             listOf("Get into position with your body in one straight line and your abs braced, as if about to be poked in the stomach.",
                 "Keep your ribs down and your lower back neutral - do not let it sag or arch.",
@@ -63,7 +71,7 @@ object ExerciseGuide {
                 "Lower slowly until your arms are fully extended; keep your torso still."),
             listOf("Rounding the back", "Jerking the weight up with your hips", "Pulling with your arms only, no shoulder-blade squeeze"),
             "Keep your spine neutral; reduce the weight if your back starts to round."),
-        r("deadlift|romanian|good morning|hip thrust|glute bridge|bridge|nordic|hyperextension|back extension|pull through|swing",
+        r("deadlift|romanian|good morning|hip thrust|glute bridge|bridge|nordic|hyperextension|back extension|pull through|kettlebell swing|kb swing",
             listOf("Stand (or set up) with the weight close to your body, feet hip-width, spine neutral, abs braced.",
                 "Push your hips back like closing a car door with your bottom, keeping your back flat, until you feel a stretch in your hamstrings.",
                 "Drive your hips forward and squeeze your glutes to stand tall (or to lift into the bridge), exhaling.",
