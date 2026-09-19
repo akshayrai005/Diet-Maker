@@ -30,6 +30,21 @@ object ExerciseCatalog {
         HIIT("HIIT", "🔥"),
         MOBILITY("Stretch", "🧘"),
         YOGA("Yoga", "🕉️"),
+
+        // ---- one per body part (what the Library shows) ----
+        LATS("Lats", "🦅"),
+        UPPER_BACK("Upper back", "🔙"),
+        TRAPS("Traps", "🔺"),
+        NECK("Neck", "🧣"),
+        LOWER_BACK("Lower back", "🪑"),
+        BICEPS("Biceps", "💪"),
+        TRICEPS("Triceps", "🔱"),
+        FOREARMS("Forearms", "✊"),
+        QUADS("Quads", "🦵"),
+        HAMSTRINGS("Hamstrings", "🦿"),
+        CALVES("Calves", "🥾"),
+        INNER_THIGH("Inner thigh", "🔻"),
+        OUTER_THIGH("Outer thigh", "🔺"),
     }
 
     data class Entry(val item: ExerciseItem, val category: Category)
@@ -255,6 +270,7 @@ object ExerciseCatalog {
         (curated + ExerciseCatalogGifDb.entries.filter { seen.add(it.item.name.lowercase()) } +
             ExerciseCatalogAnatome.entries.filter { seen.add(it.item.name.lowercase()) })
             .filter { e -> e.item.name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-') !in ExerciseDemoOverrides.hiddenFromLibrary }
+            .map { e -> e.copy(category = BodyParts.categoryFor(e)) }
             .map { e ->
             // The dataset's equipment is authoritative; keep our own label only for medicine-ball moves (the dataset files those under bodyweight).
             val m = ExerciseMetaDb.forName(e.item.name)

@@ -738,11 +738,15 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
+    // Region inside the chosen body part (Chest -> Upper / Middle / Lower ...); reset whenever the body part changes.
+    var sub by remember(category) { mutableStateOf<String?>(null) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     // Female users get the female anatomy figure in the muscle picker.
     var female by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
-    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, category, equipment) }
+    val results = remember(query, category, equipment, sub) {
+        ExerciseCatalog.search(query, category, equipment).let { list -> if (sub == null) list else list.filter { SubParts.classify(category, it.name) == sub } }
+    }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
@@ -788,6 +792,25 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                 shape = Sharp,
                 textStyle = MaterialTheme.typography.bodySmall,
             )
+        }
+        val subParts = remember(category) { SubParts.forCategory(category) }
+        if (subParts.isNotEmpty()) {
+            Text("🎯 Which part?", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(listOf<String?>(null) + subParts) { label ->
+                    FilterChip(
+                        selected = sub == label,
+                        onClick = { sub = label },
+                        label = { Text(label ?: "All", style = MaterialTheme.typography.labelMedium, fontWeight = if (sub == label) FontWeight.Bold else FontWeight.Normal) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MoveAccent,
+                            selectedLabelColor = Color.White,
+                            containerColor = MoveAccent.copy(alpha = 0.08f),
+                            labelColor = MoveAccent,
+                        ),
+                    )
+                }
+            }
         }
         Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -947,9 +970,11 @@ private fun ExerciseGridCard(
     if (showInfo && ex.info != null) ExerciseInfoDialog(ex) { showInfo = false }
     Card(
         Modifier.fillMaxWidth().height(226.dp).clickable(onClick = onClick),
-        shape = Sharp,
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // Same look as the muscle picker tiles: white card, rounded, a clear outline.
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Box(Modifier.fillMaxSize()) {
             Column(

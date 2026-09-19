@@ -1,5 +1,7 @@
 package com.nutriai.ui.move
 
+import com.nutriai.ui.move.ExerciseCatalog.Category as C
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -41,50 +43,58 @@ private val Sharp = RoundedCornerShape(12.dp)
 private val MoveAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary
 
-private val ATLAS = listOf(
-    ExerciseCatalog.Category.CHEST,
-    ExerciseCatalog.Category.BACK,
-    ExerciseCatalog.Category.SHOULDERS,
-    ExerciseCatalog.Category.ARMS,
-    ExerciseCatalog.Category.CORE,
-    ExerciseCatalog.Category.LEGS,
-    ExerciseCatalog.Category.GLUTES,
-    ExerciseCatalog.Category.CARDIO,
-    ExerciseCatalog.Category.MOBILITY,
-)
+private val ATLAS get() = BodyParts.tiles
 
-/** One representative exercise per tile (dataset id): its GIF shows the working muscles highlighted on a realistic body. */
+/** One representative exercise per tile (dataset id): its GIF shows the working muscle highlighted on a realistic body. */
 private val DEMO_ID = mapOf(
-    ExerciseCatalog.Category.CHEST to "pectorals/barbell-bench-press",
-    ExerciseCatalog.Category.BACK to "upper-back/barbell-bent-over-row",
-    ExerciseCatalog.Category.SHOULDERS to "delts/dumbbell-lateral-raise",
-    ExerciseCatalog.Category.ARMS to "biceps/barbell-curl",
-    ExerciseCatalog.Category.CORE to "abs/crunch-floor",
-    ExerciseCatalog.Category.LEGS to "quads/barbell-bench-squat",
-    ExerciseCatalog.Category.GLUTES to "glutes/low-glute-bridge-on-floor",
-    ExerciseCatalog.Category.CARDIO to "cardio/jump-rope",
-    ExerciseCatalog.Category.MOBILITY to "hamstrings/world-greatest-stretch",
+    C.CHEST to "pectorals/barbell-bench-press",
+    C.LATS to "lats/cable-pulldown",
+    C.UPPER_BACK to "upper-back/barbell-bent-over-row",
+    C.TRAPS to "traps/barbell-shrug",
+    C.NECK to "levator-scapulae/neck-side-stretch",
+    C.LOWER_BACK to "spine/lever-back-extension",
+    C.SHOULDERS to "delts/dumbbell-lateral-raise",
+    C.BICEPS to "biceps/barbell-curl",
+    C.TRICEPS to "triceps/cable-pushdown",
+    C.FOREARMS to "forearms/barbell-wrist-curl",
+    C.CORE to "abs/crunch-floor",
+    C.GLUTES to "glutes/low-glute-bridge-on-floor",
+    C.QUADS to "quads/barbell-bench-squat",
+    C.HAMSTRINGS to "hamstrings/barbell-straight-leg-deadlift",
+    C.CALVES to "calves/bodyweight-standing-calf-raise",
+    C.INNER_THIGH to "adductors/lever-seated-hip-adduction",
+    C.OUTER_THIGH to "abductors/lever-seated-hip-abduction",
+    C.CARDIO to "cardio/jump-rope",
+    C.MOBILITY to "hamstrings/world-greatest-stretch",
 )
 
-/** Which anatomy muscles (and colour) each library category lights up on the figure. */
+/** Which anatomy muscles (and colour) each tile lights up on the offline figure (used if a GIF cannot load). */
 private fun highlightFor(cat: ExerciseCatalog.Category): Map<String, Color>? {
     fun paint(color: Color, vararg slugs: String) = slugs.associateWith { color }
     return when (cat) {
-        ExerciseCatalog.Category.CHEST -> paint(Color(0xFFE53935), "chest")
-        ExerciseCatalog.Category.BACK -> paint(Color(0xFF1E88E5), "upper-back", "lower-back", "trapezius")
-        ExerciseCatalog.Category.SHOULDERS -> paint(Color(0xFFFB8C00), "deltoids")
-        ExerciseCatalog.Category.ARMS -> paint(Color(0xFF8E24AA), "biceps", "triceps", "forearm")
-        ExerciseCatalog.Category.CORE -> paint(Color(0xFF7CB342), "abs", "obliques")
-        ExerciseCatalog.Category.LEGS -> paint(Color(0xFF00ACC1), "quadriceps", "hamstring", "calves", "adductors", "tibialis")
-        ExerciseCatalog.Category.GLUTES -> paint(Color(0xFFEC407A), "gluteal")
+        C.CHEST -> paint(Color(0xFFE53935), "chest")
+        C.LATS, C.UPPER_BACK -> paint(Color(0xFF1E88E5), "upper-back")
+        C.TRAPS -> paint(Color(0xFF3949AB), "trapezius")
+        C.NECK -> paint(Color(0xFF00897B), "neck")
+        C.LOWER_BACK -> paint(Color(0xFF6D4C41), "lower-back")
+        C.SHOULDERS -> paint(Color(0xFFFB8C00), "deltoids")
+        C.BICEPS -> paint(Color(0xFF8E24AA), "biceps")
+        C.TRICEPS -> paint(Color(0xFF5E35B1), "triceps")
+        C.FOREARMS -> paint(Color(0xFFAB47BC), "forearm")
+        C.CORE -> paint(Color(0xFF7CB342), "abs", "obliques")
+        C.GLUTES -> paint(Color(0xFFEC407A), "gluteal")
+        C.QUADS -> paint(Color(0xFF00ACC1), "quadriceps")
+        C.HAMSTRINGS -> paint(Color(0xFF00897B), "hamstring")
+        C.CALVES -> paint(Color(0xFF43A047), "calves", "tibialis")
+        C.INNER_THIGH, C.OUTER_THIGH -> paint(Color(0xFF26A69A), "adductors")
         else -> null
     }
 }
 
-/** Which side of the body shows this muscle: (front, back). Chest/core are only on the front, back/glutes only on the back. */
+/** Which side of the body shows this muscle: (front, back). */
 private fun viewsFor(cat: ExerciseCatalog.Category): Pair<Boolean, Boolean> = when (cat) {
-    ExerciseCatalog.Category.CHEST, ExerciseCatalog.Category.CORE -> true to false
-    ExerciseCatalog.Category.BACK, ExerciseCatalog.Category.GLUTES -> false to true
+    C.CHEST, C.CORE, C.BICEPS, C.QUADS, C.INNER_THIGH -> true to false
+    C.LATS, C.UPPER_BACK, C.TRAPS, C.NECK, C.LOWER_BACK, C.GLUTES, C.HAMSTRINGS, C.TRICEPS, C.OUTER_THIGH -> false to true
     else -> true to true
 }
 
