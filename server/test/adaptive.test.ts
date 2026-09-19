@@ -42,3 +42,23 @@ describe('adaptation never reacts to a single weigh-in', () => {
     expect(a.status).toBe('on_track');
   });
 });
+
+import { completeLoggedDays } from '../src/modules/chat/adaptive';
+describe('adaptation only averages finished, non-fast days', () => {
+  const perDay = new Map<string, number>([
+    ['2026-09-14', 2900], ['2026-09-15', 506], // Tuesday = fast day
+    ['2026-09-16', 2850], ['2026-09-17', 2950], ['2026-09-18', 2880],
+    ['2026-09-19', 875], // today, still in progress
+  ]);
+  it("drops today's partial day and the fast day", () => {
+    expect(completeLoggedDays(perDay, '2026-09-19', 2)).toEqual([2900, 2850, 2950, 2880]);
+  });
+  it('without a fast day only today is dropped', () => {
+    expect(completeLoggedDays(perDay, '2026-09-19')).toEqual([2900, 506, 2850, 2950, 2880]);
+  });
+  it('so a normal week no longer reads as under-eating', () => {
+    const days = completeLoggedDays(perDay, '2026-09-19', 2);
+    const a = computeAdaptation({ goal: 'lose', targetKcal: 2895, loggedDailyKcals: days, weightPoints: [] });
+    expect(a.status).not.toBe('adjust_behaviour');
+  });
+});

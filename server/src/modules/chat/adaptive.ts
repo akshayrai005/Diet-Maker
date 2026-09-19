@@ -21,6 +21,20 @@ function mean(xs: number[]): number {
   return xs.reduce((a, b) => a + b, 0) / xs.length;
 }
 
+/**
+ * The days that may be averaged into "you're eating X kcal a day": finished days only. Today is still in progress and a
+ * fast day is deliberately tiny, so both would read as "under-eating" and trigger a false nag. Pure.
+ */
+export function completeLoggedDays(perDay: Map<string, number>, todayKey: string, fastDayOfWeek?: number): number[] {
+  const out: number[] = [];
+  for (const [key, kcal] of perDay) {
+    if (key >= todayKey) continue;
+    if (fastDayOfWeek !== undefined && new Date(`${key}T12:00:00Z`).getUTCDay() === fastDayOfWeek) continue;
+    out.push(Math.round(kcal));
+  }
+  return out;
+}
+
 /** A weight trend needs real time and several weigh-ins: one high or low reading (water, salt, glycogen, a heavy training day) must never move calories. */
 export const MIN_TREND_DAYS = 14;
 export const MIN_TREND_POINTS = 3;

@@ -2,7 +2,7 @@ import { computeAndSaveForUser } from '../nutrition/calc.service';
 import { prisma } from '../../lib/prisma';
 import { decryptJson } from '../../lib/crypto';
 import { dayKey, type WeightPoint } from '../logging/dashboard';
-import { computeAdaptation, type Adaptation } from './adaptive';
+import { computeAdaptation, completeLoggedDays, type Adaptation } from './adaptive';
 
 const WINDOW_DAYS = 7;
 
@@ -20,6 +20,14 @@ export async function getAdaptation(userId: string, now: Date = new Date()): Pro
 
   const result = snapshot?.result as { dailyKcal: number } | undefined;
   const targetKcal = result?.dailyKcal ?? 2000;
+  let fastDayOfWeek: number | undefined;
+  if (profile?.sensitiveEnc) {
+    try {
+      fastDayOfWeek = decryptJson<{ fastDayOfWeek?: number }>(profile.sensitiveEnc).fastDayOfWeek;
+    } catch {
+      fastDayOfWeek = undefined;
+    }
+  }
   const goal = (profile?.goal as 'lose' | 'maintain' | 'gain') ?? 'maintain';
 
   // Sum logged kcal per day.
@@ -44,7 +52,7 @@ export async function getAdaptation(userId: string, now: Date = new Date()): Pro
   return computeAdaptation({
     goal,
     targetKcal,
-    loggedDailyKcals: [...perDay.values()].map((v) => Math.round(v)),
+    loggedDailyKcals: completeLoggedDays(perDay, dayKey(now), fastDayOfWeek),
     weightPoints,
   });
 }
