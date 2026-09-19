@@ -10,6 +10,7 @@ import org.json.JSONObject
  */
 object ExerciseInstructions {
     @Volatile private var table: Map<String, List<String>>? = null
+    @Volatile private var anatomeTable: Map<String, List<String>>? = null
 
     private fun load(context: Context): Map<String, List<String>> {
         table?.let { return it }
@@ -29,6 +30,19 @@ object ExerciseInstructions {
         return parsed
     }
 
+    private fun loadAnatome(context: Context): Map<String, List<String>> {
+        anatomeTable?.let { return it }
+        val parsed = try {
+            val text = context.assets.open("anatome_instructions.json").bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val json = JSONObject(text)
+            buildMap { for (key in json.keys()) { val arr = json.getJSONArray(key); put(key, List(arr.length()) { arr.getString(it) }) } }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+        anatomeTable = parsed
+        return parsed
+    }
+
     internal fun slugOf(text: String): String =
         text.trim().lowercase()
             .replace(Regex("[\\u2019']s\\b"), "") // world's -> world
@@ -41,6 +55,8 @@ object ExerciseInstructions {
             val id = ExerciseDemoMapFull.exactSlugToId[slugOf(c)] ?: continue
             load(context)[id]?.takeIf { it.isNotEmpty() }?.let { return it }
         }
+        // Exercises only the Anatome set has
+        for (c in candidates) loadAnatome(context)[slugOf(c)]?.takeIf { it.isNotEmpty() }?.let { return it }
         return null
     }
 }

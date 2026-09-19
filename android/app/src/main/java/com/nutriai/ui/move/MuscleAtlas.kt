@@ -1,5 +1,12 @@
 package com.nutriai.ui.move
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +71,11 @@ private fun highlightFor(cat: ExerciseCatalog.Category): Map<String, Color>? {
  */
 @Composable
 fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.Category) -> Unit, modifier: Modifier = Modifier, female: Boolean = false) {
+    // The trained muscles softly blink (one shared animation for all tiles keeps it cheap).
+    val pulse by rememberInfiniteTransition(label = "musclePulse").animateFloat(
+        initialValue = 0.30f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(850, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse",
+    )
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Pick a muscle", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         ATLAS.chunked(2).forEach { rowItems ->
@@ -83,7 +95,7 @@ fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.C
                     ) {
                         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                if (highlight != null) BodyDiagram(highlight, Modifier.fillMaxSize(), female = female)
+                                if (highlight != null) BodyDiagram(highlight, Modifier.fillMaxSize(), female = female, highlightAlpha = pulse)
                                 else Text(cat.emoji, fontSize = 44.sp)
                             }
                             Text(cat.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color(0xFF1B1F23))

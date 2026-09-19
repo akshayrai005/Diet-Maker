@@ -147,7 +147,8 @@ fun ExerciseDemo(
 }
 
 /** The dataset's `main` branch ships a small WebP still next to every GIF (same path, `.thumb.webp`). */
-private fun thumbUrl(gifUrl: String): String = gifUrl.removeSuffix(".gif") + ".thumb.webp"
+private fun thumbUrl(gifUrl: String): String =
+    if ("/anatome-gifs/" in gifUrl) gifUrl else gifUrl.removeSuffix(".gif") + ".thumb.webp"
 
 /** Loads an animated GIF with a decoder-enabled Coil ImageLoader; reports load failures to fall back. */
 @Composable

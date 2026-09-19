@@ -284,8 +284,6 @@ object ExerciseDemoMap {
     fun gifUrl(name: String): String? {
         // The dataset has a real clip for this one...
         if (Regex("world.?s greatest", RegexOption.IGNORE_CASE).containsMatchIn(name)) return BASE + "hamstrings/world-greatest-stretch.gif"
-        // ...but none for these, and a fuzzy guess showed an unrelated exercise (leg swings -> pull-up). Better no GIF than a wrong one.
-        if (Regex("leg swing|arm swing|arm circle|shoulder roll|hip circle", RegexOption.IGNORE_CASE).containsMatchIn(name)) return null
         // Exact match: the ~1300 auto-generated catalog entries' names ARE dataset slugs
         // (title-cased), so reversing that (lowercase + hyphenate) recovers the exact slug.
         val slug = name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
@@ -294,6 +292,13 @@ object ExerciseDemoMap {
         // Same exercise, different word order (curated names aren't always slug-order) - e.g.
         // "Incline Dumbbell Fly" vs the dataset's "dumbbell-incline-fly".
         canonicalFullIndex[canon(name)]?.let { return BASE + it + ".gif" }
+
+        // Anatome has this exact exercise and our set does not (exact / reordered-words matches above always win, so OUR GIF is
+        // kept whenever we have the exercise). This beats the hand-made "close enough" table below, which mapped e.g. Face pull to a reverse fly.
+        ExerciseDemoMapAnatome.gifUrl(slug)?.let { return it }
+
+        // Neither set has a clip for these, and a fuzzy guess showed an unrelated exercise (leg swings -> pull-up). Better no GIF than a wrong one.
+        if (Regex("leg swing|arm swing|arm circle|shoulder roll|hip circle", RegexOption.IGNORE_CASE).containsMatchIn(name)) return null
 
         ids[canon(name)]?.let { return BASE + it + ".gif" }
 

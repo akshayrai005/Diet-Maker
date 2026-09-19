@@ -61,7 +61,7 @@ private val BodyMid = Color(0xFF9AA3AF)
  * every other muscle is dark grey. Falls back to nothing if the asset is missing (the tile still has its label).
  */
 @Composable
-fun BodyDiagram(highlight: Map<String, Color>, modifier: Modifier = Modifier, female: Boolean = false, showFront: Boolean = true, showBack: Boolean = true) {
+fun BodyDiagram(highlight: Map<String, Color>, modifier: Modifier = Modifier, female: Boolean = false, showFront: Boolean = true, showBack: Boolean = true, highlightAlpha: Float = 1f) {
     val context = LocalContext.current
     val views = remember(female) { runCatching { BodyPaths.load(context, female) }.getOrNull() } ?: return
     Canvas(modifier) {
@@ -78,7 +78,7 @@ fun BodyDiagram(highlight: Map<String, Color>, modifier: Modifier = Modifier, fe
                 translate(-v.bounds.left, -v.bounds.top)
             }) {
                 for (piece in v.pieces) {
-                    val color = highlight[piece.slug] ?: if (piece.slug in NON_MUSCLE) BodyMid else BodyDark
+                    val color = highlight[piece.slug]?.copy(alpha = highlightAlpha) ?: if (piece.slug in NON_MUSCLE) BodyMid else BodyDark
                     drawPath(piece.path, color)
                 }
             }
