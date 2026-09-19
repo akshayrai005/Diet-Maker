@@ -201,6 +201,9 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
 
     init { load() }
 
+    /** True when the saved profile says female (for the anatomy figure); false when unknown. */
+    suspend fun isFemale(): Boolean = repository.getProfile().getOrNull()?.sensitive?.sex.equals("female", ignoreCase = true)
+
     /** Re-fetches the plan only if the local date has moved on since it was last loaded - called
      * on every screen resume so leaving the app open overnight doesn't strand "Today" on
      * yesterday. Cheap no-op the rest of the time (same day = no network call). */
@@ -730,6 +733,9 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
+    // Female users get the female anatomy figure in the muscle picker.
+    var female by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
     val results = remember(query, category, equipment) { ExerciseCatalog.search(query, category, equipment) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
@@ -753,7 +759,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
         if (category == ExerciseCatalog.Category.ALL) {
             // Step 1: just the body pictures. Nothing loads until a muscle is chosen.
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                MuscleAtlas(selected = category, onSelect = { category = it; query = "" })
+                MuscleAtlas(selected = category, onSelect = { category = it; query = "" }, female = female)
             }
             return@Column
         }
