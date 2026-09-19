@@ -216,7 +216,7 @@ class DashboardViewModel @Inject constructor(
 
 // ---- Plan ----
 /** Server's PLAN_VERSION. Plans with a lower version auto-refresh on open. Keep in sync. */
-private const val CURRENT_PLAN_VERSION = 4
+private const val CURRENT_PLAN_VERSION = 5
 
 data class PlanState(
     val loading: Boolean = true,

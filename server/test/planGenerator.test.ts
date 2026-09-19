@@ -216,7 +216,9 @@ describe('generateWeekPlan', () => {
       for (const day of plan.days) {
         expect(day.meals.map((m) => m.slot)).toEqual(['breakfast', 'eveningsnack', 'dinner']);
         const ratio = day.totals.kcal / dailyKcal;
-        expect(ratio, `dailyKcal=${dailyKcal} got=${day.totals.kcal}`).toBeGreaterThan(0.9);
+        // Realistic serving sizes (<= 2x a normal serving per item) limit how much 3 meals can hold; the old
+        // >0.9 needed 400 g of raw-ish items. Within ~15% is the honest bound for a 3-meal day at 2,800 kcal.
+        expect(ratio, `dailyKcal=${dailyKcal} got=${day.totals.kcal}`).toBeGreaterThan(0.82);
       }
     }
   });

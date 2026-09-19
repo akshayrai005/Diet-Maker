@@ -1,0 +1,49 @@
+import { describe, it, expect } from 'vitest';
+import { SEED_FOODS } from '../src/data/foods.seed';
+import { generateWeekPlan } from '../src/modules/food/planGenerator';
+import { isIngredientOnly } from '../src/modules/food/foodFilter';
+import type { FoodItem, PlanPreferences } from '../src/modules/food/food.types';
+
+/** Ingredient rows like the ones users' food tables collect from recipes / AI estimates (tagged for every slot). */
+const junk = (id: string, name: string, kcal: number, serving: number): FoodItem => ({
+  ...SEED_FOODS[0]!, id, name, kcal, proteinG: 8, carbG: 70, fatG: 1, typicalServingG: serving,
+  mealSlots: ['breakfast', 'midmorning', 'lunch', 'eveningsnack', 'dinner', 'bedtime'] as FoodItem['mealSlots'], tags: [],
+});
+const JUNK = [junk('j1', 'wheat flour', 364, 30), junk('j2', 'Whole wheat flour (atta)', 340, 30), junk('j3', 'maida', 350, 30), junk('j4', 'Sunflower oil', 884, 10), junk('j5', 'sugar', 387, 10), junk('j6', 'Garam masala', 300, 5), junk('j7', 'Rice flour', 360, 30)];
+const POOL = [...SEED_FOODS, ...JUNK];
+
+const PERSONAS: Array<{ name: string; kcal: number; protein: number; diet: string; conditions: string[] }> = [
+  { name: 'user (fatty liver, non-veg)', kcal: 2597, protein: 148, diet: 'nonveg', conditions: ['fatty_liver'] },
+  { name: 'small woman veg', kcal: 1500, protein: 90, diet: 'veg', conditions: [] },
+  { name: 'big eater', kcal: 3200, protein: 170, diet: 'nonveg', conditions: [] },
+  { name: 'vegan', kcal: 1900, protein: 100, diet: 'vegan', conditions: [] },
+];
+
+describe('meal plans are realistic', () => {
+  it('raw ingredients are recognised as ingredients, real dishes are not', () => {
+    for (const n of ['wheat flour', 'Whole wheat flour (atta)', 'maida', 'Rice flour', 'Sunflower oil', 'sugar', 'ghee', 'Garam masala', 'Cumin powder']) expect(isIngredientOnly(n), n).toBe(true);
+    for (const n of ['Sattu drink (roasted gram flour + water)', 'Whole-wheat roti', 'Besan chilla', 'Whole-wheat bread + peanut butter', 'Coffee (milk + sugar)', 'Roasted makhana (fox nuts)', 'Paneer (cottage cheese)', 'Peanut butter']) expect(isIngredientOnly(n), n).toBe(false);
+  });
+
+  for (const p of PERSONAS) {
+    it(`${p.name}: no ingredient rows, sane portions and meals, snacks stay snacks`, () => {
+      const prefs: PlanPreferences = { dietType: p.diet, allergies: [], conditions: p.conditions as PlanPreferences['conditions'] };
+      const plan = generateWeekPlan(POOL, { dailyKcal: p.kcal, proteinG: p.protein, fatG: 60, carbG: 300, fiberG: 30 }, prefs, {});
+      const serving = new Map(POOL.map((f) => [f.id, f.typicalServingG]));
+      for (const d of plan.days) {
+        for (const m of d.meals) {
+          for (const it of m.items) {
+            expect(JUNK.some((j) => j.id === it.foodId), `${d.dayIndex}/${m.slot}: ${it.name}`).toBe(false);
+            expect(isIngredientOnly(it.name), it.name).toBe(false);
+            // <= 2x a normal serving (up to 1.4x more only when nothing new fits), never above 400 g
+            const limit = Math.min(400, Math.max(90, (serving.get(it.foodId) ?? 100) * 2) * 1.4 + 5);
+            expect(it.grams, `${d.dayIndex}/${m.slot}: ${it.name} ${it.grams}g`).toBeLessThanOrEqual(limit);
+          }
+          if (['midmorning', 'eveningsnack', 'bedtime', 'wakeup'].includes(m.slot)) expect(m.kcal, `${m.slot} snack`).toBeLessThanOrEqual(330);
+          expect(m.kcal / p.kcal, `${d.dayIndex}/${m.slot} share of day`).toBeLessThanOrEqual(0.42);
+        }
+        expect(Math.abs(d.totals.kcal - p.kcal) / p.kcal, `day ${d.dayIndex} kcal`).toBeLessThanOrEqual(0.15);
+      }
+    });
+  }
+});

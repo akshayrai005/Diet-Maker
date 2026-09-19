@@ -23,17 +23,24 @@ function proteinDensity(f: FoodItem): number {
   return f.proteinG / Math.max(1, f.kcal);
 }
 
+/** Realistic upper bound for one item: about 2x a normal serving (never below 90 g, never above MAX_GRAMS). */
+function capFor(food: FoodItem): number {
+  return Math.max(90, Math.min(MAX_GRAMS, Math.round(food.typicalServingG * 2)));
+}
+/** Per-item serving cap, remembered when the item is built so later scaling/balancing can respect it. */
+const itemCaps = new WeakMap<MealItem, number>();
+
 /** Sizes a serving (g) to deliver `kcalTarget`, clamped and rounded to 5 g. */
 function gramsForKcal(food: FoodItem, kcalTarget: number): number {
   if (food.kcal <= 0) return food.typicalServingG;
   const grams = (kcalTarget / food.kcal) * 100;
-  const clamped = Math.min(MAX_GRAMS, Math.max(MIN_GRAMS, grams));
+  const clamped = Math.min(capFor(food), Math.max(MIN_GRAMS, grams));
   return Math.round(clamped / 5) * 5;
 }
 
 function toItem(food: FoodItem, grams: number): MealItem {
   const factor = grams / 100;
-  return {
+  const item: MealItem = {
     foodId: food.id,
     name: food.name,
     grams,
@@ -45,6 +52,8 @@ function toItem(food: FoodItem, grams: number): MealItem {
     sugarG: round(food.sugarG * factor, 1),
     sodiumMg: round(food.sodiumMg * factor, 0),
   };
+  itemCaps.set(item, capFor(food));
+  return item;
 }
 
 /** Candidate foods for a slot, ordered so rotation yields variety and good protein. */
@@ -236,8 +245,10 @@ export function buildSwapMeal(
 }
 
 /** Scales a meal item's grams (and every nutrient, linearly) by `factor`, capped at MAX_GRAMS. */
-function scaleItem(it: MealItem, factor: number): void {
-  const newGrams = Math.min(MAX_GRAMS, Math.round((it.grams * factor) / 5) * 5);
+function scaleItem(it: MealItem, factor: number, ignoreCap = false): void {
+  const cap = ignoreCap ? MAX_GRAMS : (itemCaps.get(it) ?? MAX_GRAMS);
+  // Never shrink below the current size when the item is already over its cap (so a scale-up can never grow it).
+  const newGrams = Math.min(Math.max(cap, factor < 1 ? 0 : it.grams), Math.round((it.grams * factor) / 5) * 5);
   const r = it.grams > 0 ? newGrams / it.grams : 1;
   if (r === 1) return;
   it.grams = newGrams;
@@ -279,7 +290,7 @@ function proteinTopUp(meals: Meal[], targets: { proteinG: number }, pool: FoodIt
   const mainMeal = meals.filter((m) => (m.slot === 'lunch' || m.slot === 'dinner') && m.items.length > 0).sort((a, b) => b.kcal - a.kcal)[0];
   if (!mainMeal) return;
   const lean = pool
-    .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.08 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f))
+    .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.11 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f))
     .sort((a, b) => b.proteinG / Math.max(1, b.kcal) - a.proteinG / Math.max(1, a.kcal))[0];
   if (!lean) return;
   const wantProtein = Math.min(shortfall * 0.8, 40);
@@ -301,33 +312,46 @@ function proteinTopUp(meals: Meal[], targets: { proteinG: number }, pool: FoodIt
 function balanceMacros(meals: Meal[], targets: { proteinG: number; fatG: number }): void {
   const items = () => meals.flatMap((m) => m.items);
   const total = (pick: (i: MealItem) => number) => items().reduce((t, i) => t + pick(i), 0);
+  const roomFor = (i: MealItem) => i.grams < (itemCaps.get(i) ?? MAX_GRAMS) - 10;
+  const dens = (i: MealItem) => i.proteinG / Math.max(1, i.kcal);
   for (let pass = 0; pass < 8; pass++) {
     const fat = total((i) => i.fatG);
     const protein = total((i) => i.proteinG);
     const fatOver = fat > targets.fatG * 1.12;
     const proteinOver = protein > targets.proteinG * 1.25;
     const proteinUnder = protein < targets.proteinG * 0.9 && !fatOver;
+    if (!fatOver && !proteinOver && !proteinUnder) return;
+    // Calories only move between items of the SAME meal, so no meal (or snack) can balloon - the earlier
+    // day-wide version dumped everything on the "leanest" item anywhere (flour snack, 1,200 kcal dinner).
+    let moved = false;
     if (proteinUnder) {
-      // Protein short: move calories from the most protein-poor bulky item to the most protein-dense one.
-      const dens = (i: MealItem) => i.proteinG / Math.max(1, i.kcal);
-      const from = items().filter((i) => i.grams > 60 && i.kcal >= 80).sort((a, b) => dens(a) - dens(b))[0];
-      const to = items().filter((i) => i !== from && i.grams < MAX_GRAMS - 20 && i.fatG / Math.max(1, i.kcal) < 0.06).sort((a, b) => dens(b) - dens(a))[0];
-      if (!from || !to || dens(to) <= dens(from)) return;
-      const moved = from.kcal * 0.15;
-      scaleItem(from, 0.85);
-      scaleItem(to, 1 + moved / Math.max(1, to.kcal));
-      continue;
+      for (const m of meals) {
+        const from = m.items.filter((i) => i.grams > 60 && i.kcal >= 80).sort((a, b) => dens(a) - dens(b))[0];
+        const to = m.items.filter((i) => i !== from && roomFor(i) && i.fatG / Math.max(1, i.kcal) < 0.06).sort((a, b) => dens(b) - dens(a))[0];
+        if (!from || !to || dens(to) <= dens(from)) continue;
+        const freed = from.kcal * 0.15;
+        scaleItem(from, 0.85);
+        scaleItem(to, 1 + freed / Math.max(1, to.kcal));
+        moved = true;
+        break;
+      }
+    } else {
+      const key = (i: MealItem) => (fatOver ? i.fatG : i.proteinG);
+      const donors = items().filter((i) => i.grams > 40 && i.kcal >= 40).sort((a, b) => key(b) / Math.max(1, b.kcal) - key(a) / Math.max(1, a.kcal));
+      for (const donor of donors) {
+        const meal = meals.find((m) => m.items.includes(donor));
+        const receiver = meal?.items
+          .filter((i) => i !== donor && roomFor(i))
+          .sort((a, b) => (a.fatG + a.proteinG) / Math.max(1, a.kcal) - (b.fatG + b.proteinG) / Math.max(1, b.kcal))[0];
+        if (!meal || !receiver) continue;
+        const freed = donor.kcal * 0.2;
+        scaleItem(donor, 0.8);
+        scaleItem(receiver, 1 + freed / Math.max(1, receiver.kcal));
+        moved = true;
+        break;
+      }
     }
-    if (!fatOver && !proteinOver) return;
-    const key = (i: MealItem) => (fatOver ? i.fatG : i.proteinG);
-    const donor = items().filter((i) => i.grams > 40 && i.kcal >= 40).sort((a, b) => key(b) / Math.max(1, b.kcal) - key(a) / Math.max(1, a.kcal))[0];
-    const receiver = items()
-      .filter((i) => i !== donor && i.grams < MAX_GRAMS - 20)
-      .sort((a, b) => (a.fatG + a.proteinG) / Math.max(1, a.kcal) - (b.fatG + b.proteinG) / Math.max(1, b.kcal))[0];
-    if (!donor || !receiver) return;
-    const freed = donor.kcal * 0.2;
-    scaleItem(donor, 0.8);
-    scaleItem(receiver, 1 + freed / Math.max(1, receiver.kcal));
+    if (!moved) return;
   }
 }
 
@@ -357,7 +381,15 @@ function topUpDayToTarget(
   if (!target) return;
   const candidates = candidatesForSlot(pool, target.slot, dietType).filter((f) => !usedToday.has(f.id));
   const pick = candidates[0];
-  if (!pick) return;
+  if (!pick) {
+    // Nothing new suits this slot (few-meal patterns): enlarge what is already there, at most 1.4x and never past 400 g.
+    const factor = Math.min(1.4, (target.kcal + shortfall) / Math.max(1, target.kcal));
+    if (factor <= 1.02) return;
+    for (const it of target.items) scaleItem(it, factor, true);
+    target.kcal = round(target.items.reduce((s2, i) => s2 + i.kcal, 0), 0);
+    target.proteinG = round(target.items.reduce((s2, i) => s2 + i.proteinG, 0), 1);
+    return;
+  }
   const item = toItem(pick, gramsForKcal(pick, shortfall));
   target.items.push(item);
   usedToday.add(pick.id);
@@ -424,9 +456,11 @@ function buildDay(
   // time (common for high-calorie targets on low-calorie-density Indian dishes, or few meal slots
   // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
   // rather than silently leaving the day under target.
-  topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
+  // Realistic serving caps can leave a big target short (esp. with only 3 meals) - add up to 3 extra items, one per pass.
+  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday);
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
+  proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday); // a second lean item if the day is still well short
   for (const m of meals) {
     m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
     m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);

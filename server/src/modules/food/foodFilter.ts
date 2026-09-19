@@ -101,6 +101,16 @@ export function expandAllergen(a: string): string[] {
  * Returns the foods a user may eat: diet-compatible, allergen-free, and not carrying any
  * condition-avoid tag. Deterministic and pure.
  */
+/**
+ * Raw cooking ingredients (flour, oil, spices...) are not meals. They enter the food table when a user builds a
+ * recipe or the AI estimator saves an ingredient, and are tagged for every slot - so without this a plan served
+ * "wheat flour 165 g" as an evening snack.
+ */
+const INGREDIENT_ONLY = /^([a-z\- ]+ )?(flour|atta|maida|suji|rava|semolina|starch)( \(.*\))?$|\b(yeast|essence|extract|syrup|vinegar|baking soda)\b|^(oil|ghee|salt|sugar|jaggery|masala|spice)s?( \(.*\))?$|^[a-z ]+ (oil|powder)( \(.*\))?$|^(garam|chaat|chat|sambar|rasam|tandoori|biryani|curry|chole|chana|kitchen king|pav bhaji) masala( powder)?$/i;
+export function isIngredientOnly(name: string): boolean {
+  return INGREDIENT_ONLY.test(name.trim());
+}
+
 export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodItem[] {
   const allergyTerms = prefs.allergies.flatMap(expandAllergen).filter(Boolean);
   const forbidden = new Set(forbiddenTags(prefs.dietType).map(norm));
@@ -111,6 +121,7 @@ export function eligibleFoods(foods: FoodItem[], prefs: PlanPreferences): FoodIt
   const availableSet = prefs.availableFoodIds && prefs.availableFoodIds.length > 0 ? new Set(prefs.availableFoodIds) : null;
 
   return foods.filter((f) => {
+    if (isIngredientOnly(f.name)) return false;
     if (!categoryAllowed(prefs.dietType, f.category)) return false;
 
     // Only foods the user explicitly says they have access to (rarely set).
