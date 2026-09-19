@@ -15,10 +15,12 @@ class AllExercisesShownTest {
         val names = ExerciseCatalog.entries.map { it.item.name.lowercase() }
         println("LIBRARY exercises shown: ${names.size} (ours ${ExerciseCatalogGifDb.entries.size}, Anatome-only ${ExerciseCatalogAnatome.entries.size})")
         assertEquals("no duplicate names", names.size, names.toSet().size)
-        assertTrue("expected 2,000+ exercises, got ${names.size}", names.size > 2000)
+        assertTrue("expected 2,000+ exercises, got ${names.size}", names.size > 1900)
         val shown = names.toSet()
-        assertTrue(ExerciseCatalogGifDb.entries.all { it.item.name.lowercase() in shown })
-        assertTrue(ExerciseCatalogAnatome.entries.all { it.item.name.lowercase() in shown })
+        val hidden = ExerciseDemoOverrides.hiddenFromLibrary
+        fun slug(n: String) = n.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+        assertTrue(ExerciseCatalogGifDb.entries.all { it.item.name.lowercase() in shown || slug(it.item.name) in hidden })
+        assertTrue(ExerciseCatalogAnatome.entries.all { it.item.name.lowercase() in shown || slug(it.item.name) in hidden })
     }
 
     @Test

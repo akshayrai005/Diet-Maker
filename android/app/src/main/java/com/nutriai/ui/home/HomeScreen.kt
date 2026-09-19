@@ -115,6 +115,7 @@ fun HomeScreen(
         }
     }
 
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = MaterialTheme.kaizenColors.pageBackground,
         bottomBar = {
@@ -192,6 +193,9 @@ fun HomeScreen(
                 )
             }
         }
+    }
+    // "Saving..." while a log request runs (blocks double taps) and the animated tick when it is done.
+    com.nutriai.ui.components.LogFeedbackHost()
     }
 }
 

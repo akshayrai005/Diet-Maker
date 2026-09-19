@@ -284,6 +284,9 @@ object ExerciseDemoMap {
     fun gifUrl(name: String): String? {
         // The dataset has a real clip for this one...
         if (Regex("world.?s greatest", RegexOption.IGNORE_CASE).containsMatchIn(name)) return BASE + "hamstrings/world-greatest-stretch.gif"
+        // A hand-verified exact GIF for this exact name (generated; fixes shared / wrongly borrowed GIFs) beats every guess below.
+        ExerciseDemoOverrides.gifPathBySlug[name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')]?.let { return BASE + it + ".gif" }
+
         // Exact match: the ~1300 auto-generated catalog entries' names ARE dataset slugs
         // (title-cased), so reversing that (lowercase + hyphenate) recovers the exact slug.
         val slug = name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')

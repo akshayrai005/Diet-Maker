@@ -253,7 +253,9 @@ object ExerciseCatalog {
     val entries: List<Entry> = run {
         val seen = curated.mapTo(HashSet()) { it.item.name.lowercase() }
         (curated + ExerciseCatalogGifDb.entries.filter { seen.add(it.item.name.lowercase()) } +
-            ExerciseCatalogAnatome.entries.filter { seen.add(it.item.name.lowercase()) }).map { e ->
+            ExerciseCatalogAnatome.entries.filter { seen.add(it.item.name.lowercase()) })
+            .filter { e -> e.item.name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-') !in ExerciseDemoOverrides.hiddenFromLibrary }
+            .map { e ->
             // The dataset's equipment is authoritative; keep our own label only for medicine-ball moves (the dataset files those under bodyweight).
             val m = ExerciseMetaDb.forName(e.item.name)
             val eq = if (m == null || e.item.equipment == "medicine-ball") e.item.equipment else m.equipment

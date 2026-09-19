@@ -464,9 +464,12 @@ class LogFoodViewModel @Inject constructor(
     }
 
     fun log(food: com.nutriai.data.remote.dto.FoodDto, gramsOverride: Double? = null) {
+        if (com.nutriai.ui.components.LogFeedback.busy) return // a second tap while saving must not log the food again
         val grams = gramsOverride ?: _state.value.grams.toDoubleOrNull() ?: food.typicalServingG
+        com.nutriai.ui.components.LogFeedback.start("Saving ${food.name}...")
         viewModelScope.launch {
             val r = repository.logFoodItem(com.nutriai.util.MealSlot.now(), food, grams)
+            com.nutriai.ui.components.LogFeedback.done(r.isSuccess, "Logged")
             _state.value = _state.value.copy(
                 message = if (r.isSuccess) {
                     "✓ Logged ${grams.toInt()} g of ${food.name} to ${com.nutriai.util.MealSlot.now()}"

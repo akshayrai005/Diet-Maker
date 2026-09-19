@@ -290,6 +290,8 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
     }
 
     fun logEntry(name: String, focus: String?, weightKg: Double?, reps: Int?, sets: Int?, durationMin: Int?, performedAtDate: String? = null) {
+        if (com.nutriai.ui.components.LogFeedback.busy) return
+        com.nutriai.ui.components.LogFeedback.start("Saving $name...")
         viewModelScope.launch {
             val sessionId = ensureSession()
             val r = repository.logExercise(
@@ -298,6 +300,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                     durationMin = durationMin, sessionId = sessionId, performedAt = performedAtDate?.let { "${it}T12:00:00" },
                 ),
             )
+            com.nutriai.ui.components.LogFeedback.done(r.isSuccess, "Logged")
             if (r.isSuccess) {
                 val kcal = r.getOrNull()?.kcal ?: 0
                 val env = repository.exercisePlanFull().getOrNull()
@@ -321,7 +324,8 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
     }
 
     fun logSets(name: String, focus: String?, sets: List<LoggedSet>, performedAtDate: String? = null) {
-        if (sets.isEmpty()) return
+        if (sets.isEmpty() || com.nutriai.ui.components.LogFeedback.busy) return // a second tap while saving must not save again
+        com.nutriai.ui.components.LogFeedback.start("Saving $name...")
         viewModelScope.launch {
             val sessionId = ensureSession()
             var kcal = 0
@@ -346,6 +350,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                 )
                 if (r.isSuccess) { ok++; kcal += r.getOrNull()?.kcal ?: 0 }
             }
+            com.nutriai.ui.components.LogFeedback.done(ok > 0, "Logged") // tick immediately; the plan refresh below happens behind it
             val env = repository.exercisePlanFull().getOrNull()
             val detail = listOfNotNull(
                 if (ok > 0) "$ok set${if (ok == 1) "" else "s"}" else null,
