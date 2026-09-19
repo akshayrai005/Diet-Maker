@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.nutriai.ui.components.BorderedTable
 import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
@@ -90,6 +91,7 @@ fun ExerciseDemo(
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
+            containerColor = Color.White,
             confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Close") } },
             title = { Text(name, fontWeight = FontWeight.Bold) },
             text = {
@@ -100,22 +102,22 @@ fun ExerciseDemo(
                     ) { GifImage(url = url, onError = { failed = true }) }
                     val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
                     val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty() }
-                    GuideTable(
+                    BorderedTable(
                         headers = listOf("Main muscle", "Also works"),
                         rows = listOf(listOf(muscleGroup?.replaceFirstChar { it.uppercase() } ?: "-", secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ') } ?: "-")),
                         weights = listOf(0.4f, 0.6f),
                     )
-                    GuideTable(
+                    BorderedTable(
                         headers = listOf("Step", "How to perform"),
                         rows = guide.steps.mapIndexed { i, step -> listOf("${i + 1}", step) },
                         weights = listOf(0.16f, 0.84f),
                     )
-                    GuideTable(
+                    BorderedTable(
                         headers = listOf("#", "Common mistakes"),
                         rows = guide.mistakes.mapIndexed { i, m -> listOf("${i + 1}", m) },
                         weights = listOf(0.16f, 0.84f),
                     )
-                    GuideTable(
+                    BorderedTable(
                         headers = listOf("Safety"),
                         rows = listOf(listOf(guide.safety)),
                         weights = listOf(1f),
@@ -132,8 +134,7 @@ fun ExerciseDemo(
 }
 
 /** The dataset's `main` branch ships a small WebP still next to every GIF (same path, `.thumb.webp`). */
-private fun thumbUrl(gifUrl: String): String =
-    gifUrl.replace("@v1.1.0/", "@main/").removeSuffix(".gif") + ".thumb.webp"
+private fun thumbUrl(gifUrl: String): String = gifUrl.removeSuffix(".gif") + ".thumb.webp"
 
 /** Loads an animated GIF with a decoder-enabled Coil ImageLoader; reports load failures to fall back. */
 @Composable
@@ -160,36 +161,5 @@ private fun GifImage(url: String, onError: () -> Unit, showSpinner: Boolean = tr
             },
         )
         if (loading && showSpinner) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
-    }
-}
-
-/** A bordered table: shaded header row, every cell boxed, columns sized by [weights]. */
-@Composable
-private fun GuideTable(headers: List<String>, rows: List<List<String>>, weights: List<Float>) {
-    val line = Color(0xFF5C6B7A)
-    @Composable
-    fun tableRow(cells: List<String>, header: Boolean) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            cells.forEachIndexed { i, text ->
-                Box(
-                    Modifier
-                        .weight(weights[i])
-                        .fillMaxHeight()
-                        .background(if (header) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent)
-                        .border(0.8.dp, line)
-                        .padding(horizontal = 6.dp, vertical = 5.dp),
-                ) {
-                    Text(
-                        text,
-                        style = if (header) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
-                        fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
-                    )
-                }
-            }
-        }
-    }
-    Column(Modifier.fillMaxWidth()) {
-        tableRow(headers, header = true)
-        rows.forEach { tableRow(it, header = false) }
     }
 }

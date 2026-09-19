@@ -1,5 +1,6 @@
 package com.nutriai.ui.calendar
 
+import com.nutriai.ui.components.BorderedTable
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -566,6 +567,7 @@ fun CalendarScreen(
 private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = androidx.compose.ui.graphics.Color.White,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("📖", style = MaterialTheme.typography.titleMedium)
@@ -579,18 +581,26 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
                     Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    val meta = listOfNotNull(
-                        recipe.timeMin?.let { "⏱ $it min" },
-                        recipe.servings?.let { "🍽 $it servings" },
-                    ).joinToString("   ·   ")
-                    if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (recipe.timeMin != null || recipe.servings != null) {
+                        BorderedTable(
+                            headers = listOf("Time", "Servings"),
+                            rows = listOf(listOf(recipe.timeMin?.let { "$it min" } ?: "-", recipe.servings?.toString() ?: "-")),
+                            weights = listOf(0.5f, 0.5f),
+                        )
+                    }
                     if (recipe.ingredients.isNotEmpty()) {
-                        SectionHeader(title = "Ingredients", emoji = "🧂")
-                        recipe.ingredients.forEach { Text("•  $it", style = MaterialTheme.typography.bodySmall) }
+                        BorderedTable(
+                            headers = listOf("#", "Quantity", "Ingredient"),
+                            rows = recipe.ingredients.mapIndexed { i, line -> val (q, item) = splitIngredient(line); listOf("${i + 1}", q, item) },
+                            weights = listOf(0.1f, 0.3f, 0.6f),
+                        )
                     }
                     if (recipe.steps.isNotEmpty()) {
-                        SectionHeader(title = "Steps", emoji = "👨‍🍳")
-                        recipe.steps.forEachIndexed { i, s -> Text("${i + 1}. $s", style = MaterialTheme.typography.bodyMedium) }
+                        BorderedTable(
+                            headers = listOf("Step", "What to do"),
+                            rows = recipe.steps.mapIndexed { i, s -> listOf("${i + 1}", s.replace(Regex("^\\s*\\d+[.)]\\s*"), "")) },
+                            weights = listOf(0.14f, 0.86f),
+                        )
                     }
                     recipe.note?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
@@ -599,6 +609,17 @@ private fun RecipeDialog(loading: Boolean, recipe: Recipe?, onDismiss: () -> Uni
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
     )
+}
+
+private val INGREDIENT_QTY = Regex(
+    "^([\\d\u00BC\u00BD\u00BE./-]+(?:\\s+(?:tablespoons?|tbsp|teaspoons?|tsp|cups?|grams?|g|kg|ml|litres?|liters?|l|cloves?|pieces?|slices?|sprigs?|pinch(?:es)?|inch|handful|large|medium|small))?)\\s+(.+)$",
+    RegexOption.IGNORE_CASE,
+)
+
+/** Splits "2 tablespoons finely chopped onions" into ("2 tablespoons", "finely chopped onions"); "Salt to taste" stays whole. */
+private fun splitIngredient(line: String): Pair<String, String> {
+    val m = INGREDIENT_QTY.find(line.trim()) ?: return "-" to line.trim()
+    return m.groupValues[1] to m.groupValues[2]
 }
 
 @Composable

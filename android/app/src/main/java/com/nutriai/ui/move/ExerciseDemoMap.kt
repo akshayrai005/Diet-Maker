@@ -5,7 +5,7 @@ package com.nutriai.ui.move
 // stripped, simple plurals singularised, tokens sorted) so "Squat jumps" and "Jump squats" both
 // resolve. Value = dataset id ("<muscle>/<slug>"). Unmatched → bundled muscle diagram fallback.
 object ExerciseDemoMap {
-    const val BASE = "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/"
+    const val BASE = "https://cdn.jsdelivr.net/gh/akshayrai005/kaizen-exercise-media@ee09a8a10dbf0addb436af6b671ab6854bec7f18/"
     private val stop = setOf("the", "a", "to", "of", "and", "on", "with", "up")
     private val ids: Map<String, String> = mapOf(
         "ab rollout wheel" to "abs/barbell-standing-ab-rollerout",
