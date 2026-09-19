@@ -281,6 +281,10 @@ object ExerciseDemoMap {
      * is conservative so we don't show an unrelated clip.
      */
     fun gifUrl(name: String): String? {
+        // The dataset has a real clip for this one...
+        if (Regex("world.?s greatest", RegexOption.IGNORE_CASE).containsMatchIn(name)) return BASE + "hamstrings/world-greatest-stretch.gif"
+        // ...but none for these, and a fuzzy guess showed an unrelated exercise (leg swings -> pull-up). Better no GIF than a wrong one.
+        if (Regex("leg swing|arm swing|arm circle|shoulder roll|hip circle", RegexOption.IGNORE_CASE).containsMatchIn(name)) return null
         // Exact match: the ~1300 auto-generated catalog entries' names ARE dataset slugs
         // (title-cased), so reversing that (lowercase + hyphenate) recovers the exact slug.
         val slug = name.trim().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')

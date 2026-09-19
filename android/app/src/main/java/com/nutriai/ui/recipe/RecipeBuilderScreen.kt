@@ -1,5 +1,6 @@
 package com.nutriai.ui.recipe
 
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -167,7 +168,7 @@ fun RecipeBuilderScreen(modifier: Modifier = Modifier, viewModel: RecipeViewMode
         // Gradient header - matches every other sub-screen in the app (Discipline, Badges, Family…).
         Box(
             Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                .background(SpectrumBrush)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         ) {
             Text("🍳 My Recipes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
@@ -279,7 +280,7 @@ private fun RecipeDialogScaffold(title: String, emoji: String, onDismiss: () -> 
         ) {
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                    .background(SpectrumBrush)
                     .padding(horizontal = Spacing.md, vertical = Spacing.md),
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

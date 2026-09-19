@@ -71,14 +71,14 @@ fun BorderedTable(
                         .background(bg)
                         .border(0.5.dp, divider)
                         .padding(horizontal = 6.dp, vertical = 7.dp),
-                    contentAlignment = if (i in centeredColumns) Alignment.Center else Alignment.TopStart,
+                    contentAlignment = if (header || i in centeredColumns) Alignment.Center else Alignment.TopStart,
                 ) {
                     val isBadge = !header && i == 0 && text.length <= 2 && text.all { it.isDigit() }
                     when {
                         isBadge -> Box(Modifier.defaultMinSize(minWidth = 24.dp, minHeight = 24.dp).clip(RoundedCornerShape(50)).background(accent).padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
                             Text(text, color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1, softWrap = false)
                         }
-                        header -> Text(text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, textAlign = if (i in centeredColumns) TextAlign.Center else TextAlign.Start, color = accent.copy(red = accent.red * 0.7f, green = accent.green * 0.7f, blue = accent.blue * 0.7f))
+                        header -> Text(text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = accent.copy(red = accent.red * 0.7f, green = accent.green * 0.7f, blue = accent.blue * 0.7f))
                         else -> Text(text, style = MaterialTheme.typography.bodySmall, textAlign = if (i in centeredColumns) TextAlign.Center else TextAlign.Start, color = Ink)
                     }
                 }
@@ -90,16 +90,16 @@ fun BorderedTable(
     Column(modifier.fillMaxWidth().shadow(3.dp, shape).clip(shape).border(1.5.dp, accent, shape).background(Color.White)) {
         if (title != null) {
             // Tap the coloured bar to fold the section away or open it again.
-            Row(
+            Box(
                 Modifier.fillMaxWidth()
                     .background(Brush.horizontalGradient(listOf(accent, accent.copy(red = (accent.red + 0.25f).coerceAtMost(1f), green = (accent.green + 0.25f).coerceAtMost(1f), blue = (accent.blue + 0.25f).coerceAtMost(1f)))))
                     .clickable { expanded = !expanded }
                     .padding(horizontal = 12.dp, vertical = 10.dp)
                     .semantics { contentDescription = "$title, ${if (expanded) "expanded" else "collapsed"}. Tap to ${if (expanded) "collapse" else "expand"}" },
-                verticalAlignment = Alignment.CenterVertically,
+                contentAlignment = Alignment.Center,
             ) {
-                Text(title, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Box(Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.28f)).padding(horizontal = 8.dp, vertical = 2.dp)) {
+                Text(title, color = Color.White, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 44.dp))
+                Box(Modifier.align(Alignment.CenterEnd).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.28f)).padding(horizontal = 8.dp, vertical = 2.dp)) {
                     Text(if (expanded) "▲" else "▼", color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }

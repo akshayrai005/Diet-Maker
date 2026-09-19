@@ -101,7 +101,7 @@ fun ExerciseDemo(
                         contentAlignment = Alignment.Center,
                     ) { GifImage(url = url, onError = { failed = true }) }
                     val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
-                    val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty() }
+                    val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty().ifEmpty { ExerciseGuide.secondaryFor(name, muscleGroup) } }
                     // Always show a muscle name: the recorded one, else worked out from the exercise name, else "Full body".
                     val mainName = muscleGroup?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
                         ?: muscleGroupOf(name).let { if (it == MuscleGroup.GENERIC) "Full body" else it.label() }

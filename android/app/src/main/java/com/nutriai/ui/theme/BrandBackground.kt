@@ -34,3 +34,11 @@ fun BrandGradientBox(content: @Composable BoxScope.() -> Unit) {
         content = content,
     )
 }
+
+/**
+ * The app's signature multi-colour blend (orange -> hot pink -> violet -> indigo), used on every top bar and primary
+ * action so the theme flows through several hues instead of a single flat accent. White text reads on every stop.
+ */
+val SpectrumBrush: Brush = Brush.horizontalGradient(
+    listOf(Color(0xFFF57C00), Color(0xFFE91E63), Color(0xFF8E24AA), Color(0xFF3949AB)),
+)

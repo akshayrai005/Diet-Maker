@@ -1,5 +1,6 @@
 package com.nutriai.ui.diet
 
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -90,7 +91,7 @@ fun DietScreen(
 
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                    .background(SpectrumBrush)
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

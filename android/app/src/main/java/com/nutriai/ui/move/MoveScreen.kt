@@ -1,5 +1,6 @@
 package com.nutriai.ui.move
 
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -110,7 +111,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         // Purple gradient header
         Box(
             Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                .background(SpectrumBrush)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         ) {
             Text("🏃 Move", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
@@ -925,9 +926,15 @@ private fun ExerciseGridCard(
     onSwap: (() -> Unit)? = null,
 ) {
     var showInfo by remember { mutableStateOf(false) }
+    val mainMuscle = remember(ex.name, ex.muscleGroup) {
+        ex.muscleGroup?.takeIf { it.isNotBlank() } ?: muscleGroupOf(ex.name).let { if (it == MuscleGroup.GENERIC) "Full body" else it.label() }
+    }
+    val alsoMuscles = remember(ex.name, ex.muscleGroup, ex.secondaryMuscles) {
+        ex.secondaryMuscles.ifEmpty { ExerciseMetaDb.forName(ex.name)?.secondary.orEmpty().ifEmpty { ExerciseGuide.secondaryFor(ex.name, ex.muscleGroup) } }
+    }
     if (showInfo && ex.info != null) ExerciseInfoDialog(ex) { showInfo = false }
     Card(
-        Modifier.fillMaxWidth().height(232.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().height(226.dp).clickable(onClick = onClick),
         shape = Sharp,
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -939,18 +946,16 @@ private fun ExerciseGridCard(
             ) {
                 ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 100, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text(labelOverride ?: ex.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, minLines = 2, maxLines = 2, modifier = Modifier.padding(end = 20.dp))
-                ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
-                    Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                }
+                Text(mainMuscle.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 // Always one line (blank when none) so every card is the same height.
-                Text(if (ex.secondaryMuscles.isNotEmpty()) "Also: " + ex.secondaryMuscles.take(3).joinToString(", ") { it.replace('-', ' ') } else " ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
+                Text(if (alsoMuscles.isNotEmpty()) "Also: " + alsoMuscles.take(3).joinToString(", ") { it.replace('-', ' ') } else " ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
                 ProgressionChip(ex.nextSession)
                 Spacer(Modifier.weight(1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
                             .clip(Sharp)
-                            .background(MoveAccent)
+                            .background(SpectrumBrush)
                             .padding(horizontal = Spacing.sm, vertical = 3.dp),
                     ) {
                         Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)

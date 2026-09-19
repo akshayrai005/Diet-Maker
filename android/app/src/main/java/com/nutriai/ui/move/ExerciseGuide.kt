@@ -152,6 +152,56 @@ object ExerciseGuide {
         safety = "Stop if anything hurts sharply. This is general guidance, not a substitute for a coach, physiotherapist or doctor.",
     )
 
+    private val SECONDARY_RULES: List<Pair<Regex, List<String>>> = listOf(
+        "leg swing" to listOf("hip flexors", "glutes"),
+        "arm circle|shoulder roll" to listOf("shoulders", "upper back"),
+        "hip circle|world.?s greatest" to listOf("glutes", "core", "hamstrings"),
+        "cat.?cow|thoracic|inchworm|walkout" to listOf("core", "shoulders"),
+        "march|jog on spot|light cardio|jumping jack|high knees" to listOf("calves", "hip flexors", "core"),
+        "bench press|chest press|push-up|push up|pushup|dip|floor press" to listOf("triceps", "front delts"),
+        "fly|flye|pec deck|crossover" to listOf("front delts", "biceps"),
+        "overhead press|shoulder press|military|arnold|push press" to listOf("triceps", "upper chest", "core"),
+        "lateral raise|side raise|front raise|upright row" to listOf("traps", "forearms"),
+        "rear delt|reverse fly|reverse pec|face pull|band pull apart" to listOf("traps", "rhomboids"),
+        "pull-up|pull up|pullup|chin-up|chin up|pulldown|pull down" to listOf("biceps", "rear delts", "forearms"),
+        "row|rack pull|t-bar|pendlay" to listOf("biceps", "rear delts", "lower back"),
+        "kettlebell swing|kb swing" to listOf("glutes", "hamstrings", "core"),
+        "deadlift|romanian|good morning|hyperextension|back extension" to listOf("glutes", "hamstrings", "lower back"),
+        "hip thrust|glute bridge|bridge" to listOf("hamstrings", "core"),
+        "squat|leg press|hack|wall sit|sissy|pistol" to listOf("glutes", "hamstrings", "core"),
+        "lunge|split squat|step-up|step up" to listOf("glutes", "hamstrings", "core"),
+        "leg curl|hamstring curl" to listOf("calves", "glutes"),
+        "leg extension" to listOf("hip flexors"),
+        "calf" to listOf("ankle stabilizers"),
+        "curl|preacher|concentration|spider|drag" to listOf("forearms", "front delts"),
+        "tricep|triceps|pushdown|push down|skull|extension|jm press|close grip|close-grip|diamond|kickback" to listOf("shoulders", "chest"),
+        "shrug|farmer|carry|suitcase" to listOf("upper back", "forearms", "core"),
+        "plank|hollow|dead bug|bird dog|pallof|stability" to listOf("shoulders", "glutes", "obliques"),
+        "rollout|wheel" to listOf("lats", "shoulders", "obliques"),
+        "crunch|sit-up|sit up|v-up|flutter" to listOf("obliques", "hip flexors"),
+        "leg raise|knee raise" to listOf("hip flexors", "obliques"),
+        "russian|bicycle|twist" to listOf("obliques", "hip flexors"),
+        "run|jog|sprint|cycle|bike|treadmill|elliptical|jump|burpee|climber|skater|hiit|cardio|swim|skipping" to listOf("calves", "glutes", "core"),
+        "stretch|yoga|mobility|foam|pose" to listOf("core", "hips"),
+    ).map { (p, l) -> Regex(p, RegexOption.IGNORE_CASE) to l }
+
+    private val SECONDARY_BY_GROUP = mapOf(
+        "chest" to listOf("triceps", "front delts"), "pectorals" to listOf("triceps", "front delts"),
+        "back" to listOf("biceps", "rear delts"), "lats" to listOf("biceps", "rear delts"), "upper-back" to listOf("biceps", "rear delts"),
+        "shoulders" to listOf("triceps", "traps"), "delts" to listOf("triceps", "traps"),
+        "biceps" to listOf("forearms"), "triceps" to listOf("shoulders"), "forearms" to listOf("biceps"),
+        "legs" to listOf("glutes", "hamstrings", "core"), "quads" to listOf("glutes", "hamstrings"),
+        "hamstrings" to listOf("glutes", "lower back"), "glutes" to listOf("hamstrings", "core"), "calves" to listOf("ankle stabilizers"),
+        "abs" to listOf("obliques", "hip flexors"), "core" to listOf("obliques", "hip flexors"), "traps" to listOf("upper back", "forearms"),
+        "cardio" to listOf("calves", "glutes", "core"),
+    )
+
+    /** Supporting muscles for an exercise when the dataset lists none: worked out from the movement, then from the main muscle. */
+    fun secondaryFor(name: String, muscleGroup: String? = null): List<String> {
+        SECONDARY_RULES.firstOrNull { it.first.containsMatchIn(name) }?.let { return it.second }
+        return muscleGroup?.lowercase()?.let { SECONDARY_BY_GROUP[it] }.orEmpty()
+    }
+
     /** A guide for any exercise; never null. */
     fun forName(name: String, muscleGroup: String? = null): Guide {
         val n = name.trim()

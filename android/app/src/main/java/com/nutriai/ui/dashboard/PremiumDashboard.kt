@@ -1,5 +1,6 @@
 package com.nutriai.ui.dashboard
 
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -380,7 +381,7 @@ private fun HeroSection(greetingName: String?, streakDays: Int, dashboard: Dashb
 
     Box(
         Modifier.fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+            .background(SpectrumBrush)
             .padding(horizontal = Spacing.screenHorizontal)
             .padding(vertical = Spacing.md),
     ) {

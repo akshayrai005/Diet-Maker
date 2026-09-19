@@ -1,5 +1,6 @@
 package com.nutriai.ui.settings
 
+import com.nutriai.ui.theme.SpectrumBrush
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -121,7 +122,7 @@ fun SettingsScreen(
         // Purple gradient header
         Box(
             Modifier.fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                .background(SpectrumBrush)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
         ) {
             Text("⚙️ Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)

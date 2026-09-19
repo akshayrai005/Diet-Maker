@@ -1,5 +1,6 @@
 package com.nutriai.ui.home
 
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -122,7 +123,7 @@ fun MoreScreen(
             // Back header with gradient
             Box(
                 Modifier.fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                    .background(SpectrumBrush)
                     .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.sm),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -173,7 +174,7 @@ private fun ProfileMenu(modifier: Modifier = Modifier, onSelect: (String) -> Uni
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))))
+                .background(SpectrumBrush)
                 .padding(horizontal = Spacing.screenHorizontal)
                 .padding(top = Spacing.xxl, bottom = Spacing.xl),
         ) {
