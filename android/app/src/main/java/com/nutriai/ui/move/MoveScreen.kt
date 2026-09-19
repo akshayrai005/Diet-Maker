@@ -795,6 +795,9 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             modifier = Modifier.fillMaxSize(),
         ) {
+            if (typed.isEmpty()) {
+                item(span = { GridItemSpan(2) }) { MuscleAtlas(selected = category, onSelect = { category = it }) }
+            }
             if (typed.isNotEmpty() && !hasExactName) {
                 item {
                     ExerciseGridCard(
