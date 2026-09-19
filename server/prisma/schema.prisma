@@ -601,3 +601,42 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+
+/// AI-written recipes, saved the first time a dish is opened so they never have to be regenerated (instant, works when
+/// the AI is busy, and the content is ours). Shared across users: a recipe for "Vegetable upma" is the same for everyone.
+model RecipeCache {
+  id          String   @id @default(uuid())
+  /// Normalised dish name (lower-case, single spaces).
+  key         String   @unique
+  title       String
+  timeMin     Int?
+  servings    Int?
+  ingredients Json
+  steps       Json
+  source      String   @default("ai")
+  hits        Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("recipe_cache")
+}
+
+/// The exercise library (1,323 exercises) stored in our own database: equipment, muscles, GIF/still paths inside the
+/// kaizen-exercise-media repo, and step-by-step instructions where the dataset has them.
+model ExerciseLibrary {
+  /// Dataset id, e.g. "biceps/barbell-curl".
+  id               String   @id
+  name             String
+  muscle           String
+  bodyPart         String
+  equipment        String
+  category         String
+  secondaryMuscles String[]
+  instructions     Json
+  gifPath          String
+  thumbPath        String?
+  createdAt        DateTime @default(now())
+
+  @@index([muscle])
+  @@index([equipment])
+  @@map("exercise_library")
+}
