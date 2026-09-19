@@ -18,6 +18,8 @@ export interface NextSession {
   rationale: string;
 }
 
+import type { ExerciseInfo } from './exerciseInfo';
+
 export interface ExerciseItem {
   name: string;
   sets: number;
@@ -33,6 +35,8 @@ export interface ExerciseItem {
   equipment?: string;
   /** Equipment-free / injury-friendly alternatives. */
   substitutions?: string[];
+  /** Coaching metadata: movement pattern, secondary muscles, difficulty, setup, mistakes, safety, regression/progression. */
+  info?: ExerciseInfo;
 }
 
 export interface WorkoutDay {

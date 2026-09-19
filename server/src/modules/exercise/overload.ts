@@ -26,6 +26,8 @@ export type LoggedSet = {
   weightKg: number | null;
   reps: number | null;
   sets: number | null;
+  /** Reps in reserve at the end of the set (0 = failure). Optional. */
+  rir?: number | null;
 };
 
 /** A recommendation for the next session of a single exercise. */
@@ -41,6 +43,41 @@ export interface PerExercise {
 export interface RecommendOptions {
   /** Deload cadence in weeks (default 4). Values ≤ 0 fall back to the default. */
   deloadEveryWeeks?: number;
+  /** When recovery looks poor, loads are held instead of increased (never auto-deloaded from sleep alone). */
+  recovery?: RecoveryAssessment;
+}
+
+export interface RecoveryAssessment {
+  low: boolean;
+  reason: string;
+}
+
+/** A recent self-reported wellness check-in (weekly check-in fields). */
+export interface RecoverySample {
+  sleepHours?: number | null;
+  sleepQuality?: number | null; // 1..5
+  energy?: number | null; // 1..5
+  pain?: number | null; // 1..5
+}
+
+/**
+ * Coarse recovery read from recent check-ins - PURE. Sleep is self-reported and imprecise, so this only ever
+ * HOLDS load increases; it never diagnoses, and never cuts training on its own.
+ */
+export function assessRecovery(samples: RecoverySample[]): RecoveryAssessment {
+  const nums = (pick: (s: RecoverySample) => number | null | undefined) =>
+    samples.map(pick).filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  const sleep = avg(nums((s) => s.sleepHours));
+  const quality = avg(nums((s) => s.sleepQuality));
+  const energy = avg(nums((s) => s.energy));
+  const pain = Math.max(0, ...nums((s) => s.pain));
+  const why: string[] = [];
+  if (sleep !== null && sleep < 6) why.push(`you reported about ${sleep.toFixed(1)} h sleep`);
+  if (quality !== null && quality <= 2) why.push('sleep quality has been poor');
+  if (energy !== null && energy <= 2) why.push('energy has been low');
+  if (pain >= 4) why.push('you reported significant pain (if it persists, see a physiotherapist or doctor)');
+  return why.length ? { low: true, reason: `Recovery looks low - ${why.join(', ')}.` } : { low: false, reason: '' };
 }
 
 const WEIGHT_INCREMENT_KG = 2.5; // one small plate jump for weighted lifts
@@ -98,6 +135,7 @@ function recommendForExercise(
   name: string,
   sets: LoggedSet[],
   deloadEveryWeeks: number,
+  recovery?: RecoveryAssessment,
 ): PerExercise {
   // Oldest → newest (stable). The last element is the most recent session.
   const sorted = [...sets].sort((a, b) => toMs(a.date) - toMs(b.date));
@@ -141,6 +179,30 @@ function recommendForExercise(
       rationale:
         `Last session (${describe(recent)}) fell short of the prior (${describe(prev)}). ` +
         `Holding at ${describe(recent)} - nail every rep before adding load.`,
+    };
+  }
+
+  // 2b) Went to failure (0 reps in reserve): the load is at the limit - repeat it and add reps in reserve before adding weight.
+  if (recent.rir === 0) {
+    return {
+      exerciseName: name,
+      suggestedWeightKg: baseWeight,
+      suggestedReps: baseReps,
+      suggestedSets: baseSets,
+      deload: false,
+      rationale: `Last session (${describe(recent)}) went to failure. Repeat the same load and stop 1-2 reps short of failure before adding weight.`,
+    };
+  }
+
+  // 2c) Poor recovery: do not add load on top of it.
+  if (recovery?.low) {
+    return {
+      exerciseName: name,
+      suggestedWeightKg: baseWeight,
+      suggestedReps: baseReps,
+      suggestedSets: baseSets,
+      deload: false,
+      rationale: `${recovery.reason} Hold ${describe(recent)} today rather than adding load; progress resumes when recovery improves.`,
     };
   }
 
@@ -206,7 +268,7 @@ export function recommendNextSession(
 
   const out: PerExercise[] = [];
   for (const [name, setsList] of groups) {
-    out.push(recommendForExercise(name, setsList, deloadEveryWeeks));
+    out.push(recommendForExercise(name, setsList, deloadEveryWeeks, opts.recovery));
   }
   out.sort((a, b) => a.exerciseName.localeCompare(b.exerciseName));
   return out;

@@ -1,3 +1,4 @@
+import { infoFor } from './exerciseInfo';
 import {
   BodyGoal,
   ExerciseItem,
@@ -558,7 +559,11 @@ function equipmentFor(lower: string): string | undefined {
 }
 
 /** Deterministic cue/muscleGroup/equipment annotation for a movement, keyed by name. */
-export function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> {
+export function annotate(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment' | 'info'> {
+  const base = annotateBase(name);
+  return { ...base, info: infoFor(name, base.muscleGroup) };
+}
+function annotateBase(name: string): Pick<ExerciseItem, 'cue' | 'muscleGroup' | 'equipment'> {
   const lower = name.toLowerCase();
   for (const rule of CUE_RULES) {
     if (rule.match.some((token) => lower.includes(token))) {

@@ -313,6 +313,8 @@ model ExerciseLog {
   sets         Int?
   reps         Int?
   weightKg     Float?
+  /// Reps in reserve at the end of the set (0 = to failure). Optional.
+  rir          Int?
   durationMin  Int? // for cardio / timed work
   kcal         Int? // estimated calories burned (server-computed, MET-based)
   notes        String?

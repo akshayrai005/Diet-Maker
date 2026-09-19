@@ -13,7 +13,7 @@ import type { BodyGoal, ExerciseLocation, FitnessLevel } from './exercise.types'
 import { exerciseLogSchema } from './exerciseLog.schemas';
 import * as logSvc from './exerciseLog.service';
 import { adaptWorkoutToCycle } from './cycleAdapt';
-import { recommendNextSession, suggestLevelChange, type LoggedSet } from './overload';
+import { recommendNextSession, suggestLevelChange, assessRecovery, type LoggedSet } from './overload';
 import { rampFor } from './rampUp';
 import { defaultTrainingSplit, suggestSplitUpgrade } from './splitSuggestion';
 import { ageFromDob } from '../nutrition/calc.service';
@@ -123,9 +123,11 @@ exerciseRouter.get(
       weightKg: l.weightKg,
       reps: l.reps,
       sets: l.sets,
+      rir: l.rir,
     }));
     if (history.length > 0) {
-      const byName = new Map(recommendNextSession(history).map((s) => [s.exerciseName, s]));
+      const recent = await prisma.weeklyCheckin.findMany({ where: { userId: req.user!.id, date: { gte: new Date(Date.now() - 14 * 86_400_000) } }, select: { sleepHours: true, sleepQuality: true, energy: true, pain: true } });
+      const byName = new Map(recommendNextSession(history, { recovery: assessRecovery(recent) }).map((s) => [s.exerciseName, s]));
       plan = {
         ...plan,
         days: plan.days.map((day) => ({

@@ -7,6 +7,8 @@ export const exerciseLogSchema = z.object({
   sets: z.number().int().min(0).max(50).optional(),
   reps: z.number().int().min(0).max(1000).optional(),
   weightKg: z.number().min(0).max(1000).optional(),
+  /** Reps in reserve (0 = to failure, 4+ = easy). Lets progression judge effort, not just reps. */
+  rir: z.number().int().min(0).max(10).optional(),
   durationMin: z.number().int().min(0).max(1000).optional(),
   notes: z.string().max(500).optional(),
   performedAt: z.string().datetime().optional(),

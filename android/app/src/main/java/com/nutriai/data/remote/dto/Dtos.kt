@@ -296,6 +296,8 @@ data class ExerciseLogRequest(
     val sets: Int? = null,
     val reps: Int? = null,
     val weightKg: Double? = null,
+    /** Reps in reserve at the end of the set (0 = to failure); null when not reported. */
+    val rir: Int? = null,
     val durationMin: Int? = null,
     val notes: String? = null,
     val performedAt: String? = null,

@@ -26,6 +26,9 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
@@ -324,6 +327,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                         focus = focus,
                         weightKg = s.weightKg,
                         reps = s.reps,
+                        rir = s.rir,
                         sets = if (s.reps != null) 1 else null,
                         durationMin = s.durationMin,
                         notes = s.note,
@@ -1032,6 +1036,8 @@ private fun isTreadmill(ex: ExerciseItem): Boolean =
 data class LoggedSet(
     val weightKg: Double? = null,
     val reps: Int? = null,
+    /** Reps in reserve (0 = failure); null = not reported. */
+    val rir: Int? = null,
     val durationMin: Int? = null,
     val note: String? = null,
     val speedKmh: Double? = null,
@@ -1057,6 +1063,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
     val speedBased = singleBlock && isSpeedBased(ex)
 
     var addToPlan by remember { mutableStateOf(false) }
+    var rir by remember { mutableStateOf<Int?>(null) }
     var speedKmh by remember(ex.name) { mutableStateOf("") }
     var inclinePct by remember(ex.name) { mutableStateOf("") }
     var distanceKm by remember(ex.name) { mutableStateOf("") }
@@ -1185,6 +1192,26 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                     }
                 }
 
+                // How hard was it? Reps in reserve lets the app decide whether to add weight or hold it.
+                if (weighted && !timed && !singleBlock) {
+                    var rirOpen by remember { mutableStateOf(false) }
+                    val rirOptions = listOf<Pair<Int?, String>>(null to "Not sure", 0 to "Failure (0 left)", 1 to "1 rep left", 2 to "2 reps left", 3 to "3+ reps left")
+                    Box {
+                        OutlinedButton(onClick = { rirOpen = true }, shape = Sharp, modifier = Modifier.fillMaxWidth()) {
+                            Text("Effort: " + (rirOptions.first { it.first == rir }.second), style = MaterialTheme.typography.labelMedium)
+                        }
+                        DropdownMenu(expanded = rirOpen, onDismissRequest = { rirOpen = false }) {
+                            rirOptions.forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    trailingIcon = { if (rir == value) Text("✓", fontWeight = FontWeight.Bold) },
+                                    onClick = { rir = value; rirOpen = false },
+                                )
+                            }
+                        }
+                    }
+                }
+
                 if (!timed) RestTimer(compact = true)
 
                 // Plan tomorrow option
@@ -1213,7 +1240,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                                 distanceKm = if (speedBased) distanceKm.toDoubleOrNull() else null,
                             )
                             timed -> LoggedSet(durationMin = maxOf(1, Math.round(n / 60.0).toInt()), note = "${n}s")
-                            else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n)
+                            else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n, rir = if (weighted) rir else null)
                         }
                     }
                     if (out.isNotEmpty()) {

@@ -27,6 +27,7 @@ export async function logExercise(userId: string, body: ExerciseLogBody) {
       sets: body.sets ?? null,
       reps: body.reps ?? null,
       weightKg: body.weightKg ?? null,
+      rir: body.rir ?? null,
       durationMin: body.durationMin ?? null,
       kcal,
       notes: body.notes ?? null,
