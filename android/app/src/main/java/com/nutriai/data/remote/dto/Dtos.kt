@@ -201,6 +201,8 @@ data class ExerciseItem(
     val cue: String? = null,
     val muscleGroup: String? = null,
     val equipment: String? = null,
+    /** Other muscles this movement works (from the exercise dataset). Optional. */
+    val secondaryMuscles: List<String> = emptyList(),
     val nextSession: NextSession? = null,
     // Equipment-free / injury-friendly alternatives for this movement. Additive & defaulted -
     // older payloads simply omit it (ignoreUnknownKeys is on).

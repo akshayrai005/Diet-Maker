@@ -106,6 +106,22 @@ export function detectActivityLevel(
   };
 }
 
+/** Minimum completed days of step history before steps may influence the activity level. */
+export const MIN_STEP_DAYS = 5;
+
+/**
+ * Average daily steps over COMPLETED days only. Today's count is still growing (and a watch that hasn't synced
+ * reads 0), so including it makes the average - and therefore the activity tier and the calorie target -
+ * swing by hundreds of kcal within a single day whenever the average sits near a tier boundary.
+ * Zero-step days are treated as "no data" (unsynced watch), not as a lazy day. Returns undefined with too little data.
+ */
+export function averageCompletedDaySteps(rows: { date: Date; steps: number }[], now: Date): number | undefined {
+  const todayKey = now.toISOString().slice(0, 10);
+  const done = rows.filter((r) => r.date.toISOString().slice(0, 10) < todayKey && r.steps > 0);
+  if (done.length < MIN_STEP_DAYS) return undefined;
+  return done.reduce((s, r) => s + r.steps, 0) / done.length;
+}
+
 /** TDEE delta (kcal) between two activity levels at a given BMR - used to explain the bump in a flag message. */
 export function tdeeDeltaForLevelChange(bmr: number, from: ActivityLevel, to: ActivityLevel): number {
   return Math.round(bmr * (ACTIVITY_FACTORS[to] - ACTIVITY_FACTORS[from]));

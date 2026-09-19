@@ -6,7 +6,7 @@ import { goalTimeline } from '../../calc/goalTimeline';
 import type { ActivityLevel, Goal } from '../../calc/types';
 import { CALORIE_FLOOR, type Condition } from '../../guardrails';
 import { dietRampFor, applyDietRamp } from './dietRamp';
-import { detectActivityLevel, tdeeDeltaForLevelChange, type ExerciseSessionSample } from './activityAutoDetect';
+import { detectActivityLevel, averageCompletedDaySteps, tdeeDeltaForLevelChange, type ExerciseSessionSample } from './activityAutoDetect';
 import { computeAdaptiveTdee } from './adaptiveTdee';
 import { decryptJson } from '../../lib/crypto';
 
@@ -91,9 +91,9 @@ async function computeAndSaveUncached(userId: string): Promise<CalcResult> {
   // movement is daily walking rather than structured workouts deserves the same fair credit.
   const recentSteps = await prisma.dailySteps.findMany({
     where: { userId, date: { gte: windowStart } },
-    select: { steps: true },
+    select: { date: true, steps: true },
   });
-  const avgDailySteps = recentSteps.length > 0 ? recentSteps.reduce((s, r) => s + r.steps, 0) / recentSteps.length : undefined;
+  const avgDailySteps = averageCompletedDaySteps(recentSteps, new Date());
   const activityDetection = detectActivityLevel(reportedActivityLevel, sessionSamples, WINDOW_DAYS, avgDailySteps);
 
   let result = computeCalcResult({

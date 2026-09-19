@@ -252,7 +252,12 @@ object ExerciseCatalog {
      */
     val entries: List<Entry> = run {
         val seen = curated.mapTo(HashSet()) { it.item.name.lowercase() }
-        curated + ExerciseCatalogGifDb.entries.filter { seen.add(it.item.name.lowercase()) }
+        (curated + ExerciseCatalogGifDb.entries.filter { seen.add(it.item.name.lowercase()) }).map { e ->
+            // The dataset's equipment is authoritative; keep our own label only for medicine-ball moves (the dataset files those under bodyweight).
+            val m = ExerciseMetaDb.forName(e.item.name) ?: return@map e
+            val eq = if (e.item.equipment == "medicine-ball") e.item.equipment else m.equipment
+            e.copy(item = e.item.copy(equipment = eq, secondaryMuscles = m.secondary))
+        }
     }
 
     /** Convenience: just the items (whole library) for callers that don't need the category. */
@@ -264,10 +269,11 @@ object ExerciseCatalog {
     enum class EquipmentFilter(val label: String, val emoji: String, val matches: (String?) -> Boolean) {
         ANY("Any", "🔎", { true }),
         NO_EQUIPMENT("No Equipment", "🚫", { it == null || it == "bodyweight" || it == "none" }),
-        BARBELL("Barbell", "🏋️", { it == "barbell" }),
+        BARBELL("Barbell", "🏋️", { it == "barbell" || it == "ez-bar" }),
         DUMBBELL("Dumbbell", "💪", { it == "dumbbell" }),
         CABLE("Cable", "🔗", { it == "cable" }),
-        MACHINE("Machine", "⚙️", { it == "machine" }),
+        MACHINE("Machine", "⚙️", { it == "machine" || it == "lever" || it == "sled" }),
+        SMITH("Smith", "🏗️", { it == "smith" }),
         BAND("Bands", "➰", { it == "band" }),
         KETTLEBELL("Kettlebell", "🔔", { it == "kettlebell" }),
     }
@@ -289,7 +295,8 @@ object ExerciseCatalog {
             scoped
         } else {
             scoped.filter { e ->
-                e.item.name.lowercase().contains(q) || (e.item.muscleGroup?.lowercase()?.contains(q) == true)
+                e.item.name.lowercase().contains(q) || (e.item.muscleGroup?.lowercase()?.contains(q) == true) ||
+                    e.item.secondaryMuscles.any { it.lowercase().contains(q) }
             }.sortedBy { if (it.item.name.lowercase().startsWith(q)) 0 else 1 }
         }
         return matched.map { it.item }

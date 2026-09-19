@@ -936,6 +936,9 @@ private fun ExerciseGridCard(
                 ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                     Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
+                if (ex.secondaryMuscles.isNotEmpty()) {
+                    Text("Also: " + ex.secondaryMuscles.take(3).joinToString(", ") { it.replace('-', ' ') }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
+                }
                 ProgressionChip(ex.nextSession)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(

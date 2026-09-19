@@ -68,7 +68,8 @@ fun ExerciseDemo(
             .semantics { contentDescription = "$name demonstration, tap to enlarge" },
         contentAlignment = Alignment.Center,
     ) {
-        // Card = tiny still preview (~19 KB WebP, loads instantly); the full ~280 KB looping GIF loads only when tapped.
+        // Card = tiny still (~19 KB, instant) with the looping GIF fading in on top once downloaded.
+        // Only cards on screen are composed (lazy grid), so nothing is fetched for off-screen rows.
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current).data(thumbUrl(url)).crossfade(true).build(),
             contentDescription = null,
@@ -76,7 +77,7 @@ fun ExerciseDemo(
             modifier = Modifier.fillMaxWidth(),
             onState = { st -> if (st is AsyncImagePainter.State.Error) failed = true },
         )
-        Text("▶", color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).background(Color(0xAA000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp))
+        GifImage(url = url, onError = { }, showSpinner = false)
     }
 
     if (showDialog) {
@@ -107,7 +108,7 @@ private fun thumbUrl(gifUrl: String): String =
 
 /** Loads an animated GIF with a decoder-enabled Coil ImageLoader; reports load failures to fall back. */
 @Composable
-private fun GifImage(url: String, onError: () -> Unit) {
+private fun GifImage(url: String, onError: () -> Unit, showSpinner: Boolean = true) {
     val context = LocalContext.current
     val loader = remember {
         ImageLoader.Builder(context)
@@ -129,6 +130,6 @@ private fun GifImage(url: String, onError: () -> Unit) {
                 if (state is AsyncImagePainter.State.Error) onError()
             },
         )
-        if (loading) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+        if (loading && showSpinner) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
     }
 }
