@@ -503,7 +503,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
                         // Only real catalog foods (source == "local") - a recipe ingredient must
                         // resolve to an actual Food row server-side so its nutrition can be summed;
                         // USDA search results have no local row and would fail to save.
-                        scope.launch { results = if (q.length >= 2) viewModel.search(q).filter { it.source != "usda" } else emptyList() }
+                        scope.launch { results = if (q.length >= 2) viewModel.search(q).filter { it.source == "local" } else emptyList() }
                     },
                     label = { Text("Search a food (try \"oil\", \"paneer\"...)") },
                     singleLine = true,

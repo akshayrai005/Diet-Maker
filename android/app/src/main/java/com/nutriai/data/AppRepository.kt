@@ -338,7 +338,7 @@ class AppRepository @Inject constructor(
                 grams = grams,
                 // Link local catalog foods by id so the server can estimate vitamins & minerals.
                 // USDA results have no local Food row, so leave foodId null for them.
-                foodId = if (food.source == "usda") null else food.id,
+                foodId = if (food.source != "local") null else food.id,
                 foodName = food.name,
                 per100g = com.nutriai.data.remote.dto.FoodLogPer100g(
                     kcal = food.kcal,
@@ -349,10 +349,10 @@ class AppRepository @Inject constructor(
                     sugarG = food.sugarG,
                     sodiumMg = food.sodiumMg,
                 ),
-                entryMethod = if (food.source == "usda") "barcode" else "text",
+                entryMethod = if (food.source != "local") "barcode" else "text",
             ),
         )
-        if (food.source == "usda") autoSaveFood(food.name, com.nutriai.data.remote.dto.FoodLogPer100g(food.kcal, food.proteinG, food.carbG, food.fatG, food.fiberG, food.sugarG, food.sodiumMg))
+        if (food.source != "local") autoSaveFood(food.name, com.nutriai.data.remote.dto.FoodLogPer100g(food.kcal, food.proteinG, food.carbG, food.fatG, food.fiberG, food.sugarG, food.sodiumMg))
     }
 
     /** Logs any food by name + per-100g (used by recents, saved foods and photo detection). */

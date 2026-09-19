@@ -13,7 +13,7 @@ export interface FoodSearchItem {
   sugarG: number;
   sodiumMg: number;
   typicalServingG: number;
-  source: 'local' | 'usda';
+  source: 'local' | 'usda' | 'off';
   /** Smart portion unit for logging (spec Section 8); grams for anything measured by weight. */
   portionUnit?: string;
   /** Grams in one base portion unit (e.g. 1 egg = 50 g). */

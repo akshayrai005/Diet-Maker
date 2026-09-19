@@ -6,6 +6,7 @@ import { generateAndSavePlan, latestPlan, swapMeal } from './plan.service';
 import { tzOffsetMin } from '../../lib/tz';
 import { prisma } from '../../lib/prisma';
 import { searchUsda, type FoodSearchItem } from './usda';
+import { searchOpenFoodFacts } from './openFoodFacts';
 import { MEAL_SLOTS, type MealSlot } from './food.types';
 import { portionInfoFor } from './portionUnit';
 
@@ -130,9 +131,9 @@ planRouter.get(
     });
 
     // USDA is best-effort: [] when no key or on error.
-    const usda = q ? await searchUsda(q) : [];
+    const [usda, off] = q ? await Promise.all([searchUsda(q), searchOpenFoodFacts(q)]) : [[], []];
 
-    res.json({ foods: [...localItems, ...usda] });
+    res.json({ foods: [...localItems, ...usda, ...off] });
   }),
 );
 
