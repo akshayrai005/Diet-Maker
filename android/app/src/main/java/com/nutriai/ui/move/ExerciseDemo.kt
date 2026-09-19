@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -67,7 +68,9 @@ fun ExerciseDemo(
             .semantics { contentDescription = "$name demonstration, tap to enlarge" },
         contentAlignment = Alignment.Center,
     ) {
-        GifImage(url = url, onError = { failed = true })
+        // No automatic download: the thumbnail is the offline muscle picture; the GIF loads only when tapped.
+        ExerciseIllustration(muscleGroup = muscleGroup, sizeDp = sizeDp)
+        Text("▶", color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).background(Color(0xAA000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp))
     }
 
     if (showDialog) {
@@ -103,12 +106,19 @@ private fun GifImage(url: String, onError: () -> Unit) {
             }
             .build()
     }
-    AsyncImage(
-        model = ImageRequest.Builder(context).data(url).crossfade(true).build(),
-        imageLoader = loader,
-        contentDescription = null,
-        contentScale = ContentScale.Fit,
-        modifier = Modifier.fillMaxWidth(),
-        onState = { state -> if (state is AsyncImagePainter.State.Error) onError() },
-    )
+    var loading by remember(url) { mutableStateOf(true) }
+    Box(contentAlignment = Alignment.Center) {
+        AsyncImage(
+            model = ImageRequest.Builder(context).data(url).crossfade(true).build(),
+            imageLoader = loader,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxWidth(),
+            onState = { state ->
+                loading = state is AsyncImagePainter.State.Loading
+                if (state is AsyncImagePainter.State.Error) onError()
+            },
+        )
+        if (loading) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+    }
 }

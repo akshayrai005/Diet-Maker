@@ -729,7 +729,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
-    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, if (query.isBlank()) category else ExerciseCatalog.Category.ALL, equipment) }
+    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, category, equipment) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
@@ -749,6 +749,18 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
 
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("📚 Exercise Library", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        if (category == ExerciseCatalog.Category.ALL) {
+            // Step 1: just the body pictures. Nothing loads until a muscle is chosen.
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                MuscleAtlas(selected = category, onSelect = { category = it; query = "" })
+            }
+            return@Column
+        }
+        // Step 2: the chosen muscle, with search, equipment and its exercises.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            OutlinedButton(onClick = { category = ExerciseCatalog.Category.ALL; query = "" }, shape = Sharp) { Text("← All muscles", style = MaterialTheme.typography.labelMedium) }
+            Text("${category.emoji} ${category.label}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        }
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -780,9 +792,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             modifier = Modifier.fillMaxSize(),
         ) {
-            if (typed.isEmpty()) {
-                item(span = { GridItemSpan(2) }) { MuscleAtlas(selected = category, onSelect = { category = it }) }
-            }
             if (typed.isNotEmpty() && !hasExactName) {
                 item {
                     ExerciseGridCard(
