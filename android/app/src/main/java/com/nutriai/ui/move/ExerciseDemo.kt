@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -143,6 +144,24 @@ fun ExerciseDemo(
                 }
             },
         )
+    }
+}
+
+/**
+ * A non-clickable animated demo (still first, GIF fading in) for use inside other tappable components, e.g. the muscle picker.
+ * [onError] fires when the still cannot be loaded so the caller can show a fallback.
+ */
+@Composable
+fun DemoPreview(url: String, modifier: Modifier = Modifier, onError: () -> Unit = {}) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current).data(thumbUrl(url)).crossfade(true).build(),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+            onState = { st -> if (st is AsyncImagePainter.State.Error) onError() },
+        )
+        GifImage(url = url, onError = { }, showSpinner = false)
     }
 }
 

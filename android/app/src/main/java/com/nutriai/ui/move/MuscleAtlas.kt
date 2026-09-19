@@ -23,6 +23,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,6 +51,19 @@ private val ATLAS = listOf(
     ExerciseCatalog.Category.GLUTES,
     ExerciseCatalog.Category.CARDIO,
     ExerciseCatalog.Category.MOBILITY,
+)
+
+/** One representative exercise per tile (dataset id): its GIF shows the working muscles highlighted on a realistic body. */
+private val DEMO_ID = mapOf(
+    ExerciseCatalog.Category.CHEST to "pectorals/barbell-bench-press",
+    ExerciseCatalog.Category.BACK to "upper-back/barbell-bent-over-row",
+    ExerciseCatalog.Category.SHOULDERS to "delts/dumbbell-lateral-raise",
+    ExerciseCatalog.Category.ARMS to "biceps/barbell-curl",
+    ExerciseCatalog.Category.CORE to "abs/crunch-floor",
+    ExerciseCatalog.Category.LEGS to "quads/barbell-bench-squat",
+    ExerciseCatalog.Category.GLUTES to "glutes/barbell-glute-bridge",
+    ExerciseCatalog.Category.CARDIO to "cardio/burpee",
+    ExerciseCatalog.Category.MOBILITY to "hamstrings/world-greatest-stretch",
 )
 
 /** Which anatomy muscles (and colour) each library category lights up on the figure. */
@@ -78,11 +94,6 @@ private fun viewsFor(cat: ExerciseCatalog.Category): Pair<Boolean, Boolean> = wh
  */
 @Composable
 fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.Category) -> Unit, modifier: Modifier = Modifier, female: Boolean = false) {
-    // The trained muscles softly blink (one shared animation for all tiles keeps it cheap).
-    val pulse by rememberInfiniteTransition(label = "musclePulse").animateFloat(
-        initialValue = 0.30f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(850, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "pulse",
-    )
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Pick a muscle", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         ATLAS.chunked(2).forEach { rowItems ->
@@ -102,11 +113,17 @@ fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.C
                     ) {
                         Column(Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
                             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                if (highlight != null) {
-                                    val (front, back) = viewsFor(cat)
-                                    BodyDiagram(highlight, Modifier.fillMaxSize(), female = female, showFront = front, showBack = back, highlightAlpha = pulse)
+                                var failed by remember(cat) { mutableStateOf(false) }
+                                val demo = DEMO_ID[cat]
+                                when {
+                                    // A real 3D render of a representative exercise: the working muscle glows red and moves.
+                                    demo != null && !failed -> DemoPreview(ExerciseDemoMap.BASE + demo + ".gif", Modifier.fillMaxSize(), onError = { failed = true })
+                                    highlight != null -> {
+                                        val (front, back) = viewsFor(cat)
+                                        BodyDiagram(highlight, Modifier.fillMaxSize(), female = female, showFront = front, showBack = back)
+                                    }
+                                    else -> Text(cat.emoji, fontSize = 44.sp)
                                 }
-                                else Text(cat.emoji, fontSize = 44.sp)
                             }
                             Text(cat.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = Color(0xFF1B1F23))
                         }
