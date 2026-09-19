@@ -206,13 +206,18 @@ function buildMeal(
   dietType: string,
   dayIndex: number,
   usedToday: Set<string>,
+  mains: MealSlot[] = MAIN_SLOTS,
 ): Meal {
   const candidates = candidatesForSlot(eligible, slot, dietType);
   const slotSeed = MEAL_SLOTS.indexOf(slot) * 3 + dayIndex * 2;
 
   // Main meals = a proper Indian plate. Light slots stay a single, genuinely light item.
-  if (MAIN_SLOTS.includes(slot) && candidates.length > 1) {
-    const items = buildPlate(slot, candidates, eligible, slotKcal, slotSeed, (f) => usedToday.has(f.id));
+  if (mains.includes(slot) && candidates.length > 1) {
+    // A promoted evening meal (morning+night pattern) is built like a lunch plate, from lunch-type dishes -
+    // its own "snack" foods (chai, shakes, yoghurt) made a jumble that under-filled the meal.
+    const plateSlot: MealSlot = slot === 'eveningsnack' ? 'lunch' : slot;
+    const plateCandidates = slot === 'eveningsnack' ? candidatesForSlot(eligible, 'lunch', dietType) : candidates;
+    const items = buildPlate(plateSlot, plateCandidates.length > 1 ? plateCandidates : candidates, eligible, slotKcal, slotSeed, (f) => usedToday.has(f.id));
     items.forEach((i) => usedToday.add(i.foodId));
     return meal(slot, items);
   }
@@ -293,13 +298,13 @@ function scaleItem(it: MealItem, factor: number, ignoreCap = false): void {
  * (skips near-zero drinks like plain tea) up by up to +30%, never past MAX_GRAMS per serving,
  * then refreshes each meal's kcal/protein totals. Mutates in place.
  */
-function normaliseDayToTarget(meals: Meal[], dailyKcal: number): void {
+function normaliseDayToTarget(meals: Meal[], dailyKcal: number, mains: MealSlot[] = MAIN_SLOTS): void {
   // Snacks stay snacks: only main meals get scaled up.
-  const scalable = meals.filter((m) => MAIN_SLOTS.includes(m.slot)).flatMap((m) => m.items).filter((i) => i.kcal >= 20);
+  const scalable = meals.filter((m) => mains.includes(m.slot)).flatMap((m) => m.items).filter((i) => i.kcal >= 20);
   const rawKcal = scalable.reduce((s, i) => s + i.kcal, 0);
   if (rawKcal <= 0) return;
   // Snacks are not scaled, so the main meals only have to cover what the snacks leave of the day.
-  const fixedKcal = meals.reduce((t, m) => t + m.kcal, 0) - meals.filter((m) => MAIN_SLOTS.includes(m.slot)).reduce((t, m) => t + m.kcal, 0);
+  const fixedKcal = meals.reduce((t, m) => t + m.kcal, 0) - meals.filter((m) => mains.includes(m.slot)).reduce((t, m) => t + m.kcal, 0);
   const factor = Math.min(1.3, Math.max(1, (dailyKcal - fixedKcal) / rawKcal));
   if (factor <= 1.01) return;
   for (const it of scalable) scaleItem(it, factor);
@@ -318,7 +323,8 @@ function proteinTopUp(meals: Meal[], targets: { proteinG: number }, pool: FoodIt
   const shortfall = targets.proteinG - total();
   if (shortfall < targets.proteinG * 0.12) return;
   // Lunch first (dinner is kept light, especially after the gym); never stack a second main protein on a plate.
-  const mainMeal = meals.filter((m) => (m.slot === 'lunch' || m.slot === 'dinner') && m.items.length > 0).sort((a, b) => (a.slot === 'lunch' ? 0 : 1) - (b.slot === 'lunch' ? 0 : 1))[0];
+  const order: Record<string, number> = { lunch: 0, eveningsnack: 1, dinner: 2 };
+  const mainMeal = meals.filter((m) => m.slot in order && m.items.length > (m.slot === 'eveningsnack' ? 1 : 0)).sort((a, b) => order[a.slot]! - order[b.slot]!)[0];
   if (!mainMeal) return;
   const lean = pool
     .filter((f) => !usedToday.has(f.id) && f.proteinG >= 8 && f.fatG / Math.max(1, f.kcal) < 0.11 && f.mealSlots.includes(mainMeal.slot) && isProteinFood(f) && !isGrain(f) && !clashesWithMeal(mainMeal, f.name))
@@ -401,11 +407,16 @@ function topUpDayToTarget(
   dayIndex: number,
   usedToday: Set<string>,
   shares: Record<string, number> = {},
+  mains: MealSlot[] = MAIN_SLOTS,
 ): void {
   const currentKcal = meals.reduce((s, m) => s + m.kcal, 0);
   const shortfall = dailyKcal - currentKcal;
   if (shortfall < dailyKcal * 0.08) return; // close enough - not worth a whole extra item
-  const mainMeals = meals.filter((m) => MAIN_SLOTS.includes(m.slot) && m.items.length > 0);
+  // Never fill a meal past ~110% of its own share of the day (that is how dinner used to balloon); prefer any meal with room.
+  const roomy = (m: Meal) => m.kcal < (shares[m.slot] ?? 0.3) * dailyKcal * 1.1;
+  const withItems = meals.filter((m) => mains.includes(m.slot) && m.items.length > 0);
+  const mainMeals = withItems.filter(roomy);
+  if (mainMeals.length === 0) return;
   // The main meal furthest below its own share of the day (so lunch fills up before breakfast or dinner balloon).
   const deficit = (m: Meal) => (shares[m.slot] ?? 0.25) * dailyKcal - m.kcal;
   const target = (mainMeals.length ? mainMeals : meals.filter((m) => m.items.length > 0)).reduce(
@@ -456,7 +467,7 @@ function buildDay(
 
   // Per-slot calorie weights: the morning+night pattern overrides the standard distribution.
   const slotWeight: Record<string, number> = morningNight
-    ? { breakfast: 0.4, eveningsnack: 0.25, dinner: 0.35 }
+    ? { breakfast: 0.37, eveningsnack: 0.35, dinner: 0.28 } // big morning, a proper pre/post-gym evening meal, light dinner
     : SLOT_KCAL_WEIGHTS;
 
   const dailyKcal = fasting ? Math.round(targets.dailyKcal * FASTING_KCAL_FACTOR) : targets.dailyKcal;
@@ -476,22 +487,24 @@ function buildDay(
 
   // Shared across the day's meals so the same food is never served twice in one day.
   const usedToday = new Set<string>();
+  // With only three meals the evening one is a real plate, not a snack (otherwise its calories pile onto breakfast/dinner).
+  const mains: MealSlot[] = morningNight ? ['breakfast', 'eveningsnack', 'dinner'] : MAIN_SLOTS;
   const meals = slots.map((slot) => {
     const slotKcal = (dailyKcal * slotWeight[slot]!) / weightSum;
-    return buildMeal(slot, pool, slotKcal, dietType, dayIndex, usedToday);
+    return buildMeal(slot, pool, slotKcal, dietType, dayIndex, usedToday, mains);
   });
 
   // Greedy per-slot sizing tends to UNDERSHOOT the target by ~5% (grams clamping + rounding),
   // which makes portions look unrealistically small. Nudge every item up (once) so the day lands
   // on its calorie target. Capped so no single serving blows past MAX_GRAMS.
-  normaliseDayToTarget(meals, dailyKcal);
+  normaliseDayToTarget(meals, dailyKcal, mains);
 
   // Uniform scaling still can't close the gap when items were already MAX_GRAMS-capped at build
   // time (common for high-calorie targets on low-calorie-density Indian dishes, or few meal slots
   // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
   // rather than silently leaving the day under target.
   // Realistic serving caps can leave a big target short (esp. with only 3 meals) - add up to 3 extra items, one per pass.
-  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday, Object.fromEntries(slots.map((sl) => [sl, slotWeight[sl]! / weightSum])));
+  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday, Object.fromEntries(slots.map((sl) => [sl, slotWeight[sl]! / weightSum])), mains);
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday); // a second lean item if the day is still well short
