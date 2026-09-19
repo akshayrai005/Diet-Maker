@@ -269,8 +269,9 @@ const TARGET_MAIN_EXERCISES = 9;
  */
 const EXTRA_POOL: Record<string, ExerciseItem[]> = {
   chest: [s('Push-ups', 3, '12-15'), s('Incline dumbbell press', 3, '12'), s('Cable fly', 3, '15'), s('Chest dips', 3, '10'), s('Dumbbell bench press', 3, '12'), s('Decline dumbbell press', 3, '10'), s('Machine chest press', 3, '12'), s('Pec-deck fly', 3, '15'), s('Incline cable press', 3, '12')],
-  back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Face pull', 3, '15'), s('Superman', 3, '15'), s('T-bar row', 3, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Chest-supported row', 3, '12')],
-  shoulders: [s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
+  // (Face pull is a rear-delt/shoulder move - it lives in the shoulders pool, not here, or it steals a back-day slot.)
+  back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Superman', 3, '15'), s('T-bar row', 3, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Chest-supported row', 3, '12')],
+  shoulders: [s('Face pull', 3, '15'), s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
   biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12'), s('Preacher curl', 3, '12'), s('Cable curl', 3, '12'), s('EZ-bar curl', 3, '10'), s('Incline dumbbell curl', 3, '12')],
   triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15')],
   legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15'), s('Back squat', 3, '10'), s('Leg curl', 3, '12'), s('Leg extension', 3, '15'), s('Hack squat', 3, '12'), s('Hip thrust', 3, '12')],
@@ -292,25 +293,44 @@ function comboTemplates(block: DayTemplate[]): DayTemplate[] {
     const seen = new Set<string>(avoid);
     return items.filter((e) => (seen.has(e.name.toLowerCase()) ? false : (seen.add(e.name.toLowerCase()), true)));
   };
-  const biceps = uniq([...nonCore(by('Biceps & Forearms')), ...EXTRA_POOL.biceps!]);
-  const tricepsAll = uniq([...nonCore(by('Triceps & Core')), ...EXTRA_POOL.triceps!]);
+  const strictly = (items: ExerciseItem[], group: string) => items.filter((e) => annotate(e.name).muscleGroup === group);
+  const biceps = strictly(uniq([...nonCore(by('Biceps & Forearms')), ...EXTRA_POOL.biceps!]), 'biceps');
+  // No weighted dips here: level-safety swaps turn them into chest dips (a chest move), which would cost a triceps slot.
+  const tricepsAll = strictly(uniq([...nonCore(by('Triceps & Core')), ...EXTRA_POOL.triceps!]), 'triceps').filter((e) => !/weighted/i.test(e.name));
   const chestTri = tricepsAll.slice(0, 3);
   const chestTriNames = new Set(chestTri.map((e) => e.name.toLowerCase()));
-  const shoulderTri = tricepsAll.filter((e) => !chestTriNames.has(e.name.toLowerCase())).slice(0, 4);
+  // Weighted dips and bench dips are the same movement once the beginner/intermediate swap applies - never split them across days.
+  if (chestTriNames.has('weighted dips')) chestTriNames.add('bench dips');
+  if (chestTriNames.has('bench dips')) chestTriNames.add('weighted dips');
+  const shoulderTri = tricepsAll.filter((e) => !chestTriNames.has(e.name.toLowerCase())).slice(0, 3);
+  // Primary lifts are restricted to the day's own muscle group (by the same tagger the app uses), so an
+  // off-group move (e.g. face pulls on back day) can never take a slot from the accessory muscle.
+  const only = (items: ExerciseItem[], groups: string[]) => {
+    const kept = items.filter((e) => groups.includes(annotate(e.name).muscleGroup ?? ''));
+    return kept.length >= 3 ? kept : items;
+  };
   const armsBi = biceps.slice(0, 3);
   const armsTri = tricepsAll.slice(0, 3);
   const coreItems = EXTRA_POOL.core!.slice(0, 3);
   return [
-    { focus: 'Back & Biceps', exercises: [...by('Back'), ...biceps.slice(0, 4)] },
-    { focus: 'Chest & Triceps', exercises: [...by('Chest'), ...chestTri] },
+    { focus: 'Back & Biceps', exercises: [...only(by('Back'), ['back']), ...biceps.slice(0, 3)] },
+    { focus: 'Chest & Triceps', exercises: [...only(by('Chest'), ['chest']), ...chestTri] },
     // Shrugs are a traps move and would take a slot from the 3 shoulders + 3 triceps split, so they're left out here.
-    { focus: 'Shoulders & Triceps', exercises: [...by('Shoulders').filter((e) => !/shrug/i.test(e.name)), ...shoulderTri] },
+    { focus: 'Shoulders & Triceps', exercises: [...only(by('Shoulders'), ['shoulders']), ...shoulderTri] },
     { focus: 'Arms & Core', exercises: [...armsBi, ...armsTri, ...coreItems] },
   ];
 }
 
 /** Muscle buckets a focus label trains, used to pick padding exercises. */
 function bucketsForFocus(focus: string): string[] {
+  // Combined days: top-up padding uses ONLY the primary muscle, so the accessory muscle stays at exactly its 3 lifts.
+  const primaryOnly: Record<string, string[]> = {
+    'Back & Biceps': ['back'],
+    'Chest & Triceps': ['chest'],
+    'Shoulders & Triceps': ['shoulders'],
+    'Arms & Core': ['biceps', 'triceps', 'core'],
+  };
+  if (primaryOnly[focus]) return primaryOnly[focus]!;
   const f = focus.toLowerCase();
   const b = new Set<string>();
   if (/chest|push|pec/.test(f)) b.add('chest');

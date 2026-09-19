@@ -88,3 +88,89 @@ describe('user split: back+biceps / chest+triceps / shoulders+triceps / arms+cor
     }
   });
 });
+
+describe('combined split - robustness', () => {
+  const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+  const mainMax = { beginner: 5, intermediate: 6, advanced: 8 } as const;
+
+  it('every training block (weeks 0-15) x every level keeps the rules', () => {
+    for (let weeksSinceJoin = 0; weeksSinceJoin <= 15; weeksSinceJoin++) {
+      for (const level of LEVELS) {
+        const p = generateWeeklyWorkout('muscular', 'gym', {
+          split: 'body_part', fitnessLevel: level, weeksSinceJoin, startDate: START, today: START, dayFocusOverride: MAP,
+        });
+        const tag = `week ${weeksSinceJoin}/${level}`;
+        expect(p.days.map((d) => (d.rest ? 'Rest' : d.focus)), tag).toEqual([
+          'Back & Biceps', 'Legs & Abs', 'Arms & Core', 'Rest', 'Chest & Triceps', 'Legs & Abs', 'Shoulders & Triceps',
+        ]);
+        const chest = p.days[4]!; const sh = p.days[6]!; const back = p.days[0]!;
+        const tri = (d: typeof chest) => d.exercises.filter((e) => e.muscleGroup === 'triceps').map((e) => e.name);
+        // 3 triceps for intermediate; scales with level but never fewer than 2 and never overlapping between days
+        // exactly 3 accessory lifts (user's rule) for intermediate/advanced; beginner has a 5-lift budget -> at least 2
+        const want = level === 'beginner' ? 2 : 3;
+        const check = (n: number, label: string) => (level === 'beginner' ? expect(n, label).toBeGreaterThanOrEqual(want) : expect(n, label).toBe(want));
+        check(tri(chest).length, `${tag} chest triceps`);
+        check(tri(sh).length, `${tag} shoulder triceps`);
+        for (const n of tri(sh)) expect(tri(chest), `${tag} overlap`).not.toContain(n);
+        check(back.exercises.filter((e) => e.muscleGroup === 'biceps').length, `${tag} biceps`);
+        for (const d of p.days.filter((x) => !x.rest)) {
+          expect(d.exercises.length, `${tag}/${d.focus} size`).toBeLessThanOrEqual(mainMax[level]);
+          expect(d.exercises.length, `${tag}/${d.focus} size min`).toBeGreaterThanOrEqual(3);
+          expect(new Set(d.exercises.map((e) => e.name)).size, `${tag}/${d.focus} dupes`).toBe(d.exercises.length);
+          expect((d.core?.length ?? 0) >= 1 || d.focus === 'Arms & Core', `${tag}/${d.focus} abs`).toBe(true);
+          expect(d.warmup?.length ?? 0, `${tag}/${d.focus} warmup`).toBeGreaterThan(0);
+          expect(d.cooldown?.length ?? 0, `${tag}/${d.focus} cooldown`).toBeGreaterThan(0);
+          for (const e of d.exercises) {
+            expect(e.sets, `${tag} sets`).toBeGreaterThanOrEqual(1);
+            expect(e.sets).toBeLessThanOrEqual(6);
+            expect(e.muscleGroup, `${tag}/${e.name} muscleGroup`).toBeTruthy();
+            expect(e.cue, `${tag}/${e.name} cue`).toBeTruthy();
+          }
+        }
+        if (level === 'beginner') for (const d of p.days) for (const e of d.exercises) expect(e.name.toLowerCase()).not.toMatch(/weighted|^deadlift$/);
+        if (level !== 'advanced') for (const d of p.days) for (const e of d.exercises) expect(e.name.toLowerCase()).not.toContain('weighted');
+      }
+    }
+  });
+
+  it('is deterministic (same input -> identical plan)', () => {
+    const a = JSON.stringify(week());
+    const b = JSON.stringify(week());
+    expect(a).toBe(b);
+  });
+
+  it('unknown focus name and empty map fall back to the normal rotation without crashing', () => {
+    const bad = generateWeeklyWorkout('muscular', 'gym', { split: 'body_part', startDate: START, today: START, dayFocusOverride: { 0: 'Nonsense day', 1: '' } });
+    expect(bad.days.filter((d) => !d.rest).length).toBeGreaterThan(0);
+    for (const d of bad.days.filter((x) => !x.rest)) expect(d.exercises.length).toBeGreaterThan(0);
+    const none = generateWeeklyWorkout('muscular', 'gym', { split: 'body_part', startDate: START, today: START, dayFocusOverride: {} });
+    expect(none.days.some((d) => d.focus === 'Chest')).toBe(true);
+  });
+
+  it('old saved maps (classic focus names, e.g. "Chest") still work unchanged', () => {
+    const old = generateWeeklyWorkout('muscular', 'gym', {
+      split: 'body_part', startDate: START, today: START,
+      dayFocusOverride: { 0: 'Chest', 1: 'Back', 2: 'Biceps & Forearms', 3: 'Rest', 4: 'Chest', 5: 'Legs & Abs', 6: 'Shoulders' },
+    });
+    expect(old.days.map((d) => (d.rest ? 'Rest' : d.focus))).toEqual(['Chest', 'Back', 'Biceps & Forearms', 'Rest', 'Chest', 'Legs & Abs', 'Shoulders']);
+  });
+
+  it('home location ignores gym-only combined days but still produces a full valid week', () => {
+    const home = generateWeeklyWorkout('muscular', 'home', { split: 'body_part', startDate: START, today: START, dayFocusOverride: MAP });
+    for (const d of home.days.filter((x) => !x.rest)) expect(d.exercises.length).toBeGreaterThan(0);
+  });
+
+  it('override only applies to body_part split (other splits are untouched)', () => {
+    const ppl = generateWeeklyWorkout('muscular', 'gym', { split: 'push_pull_legs', startDate: START, today: START, dayFocusOverride: MAP });
+    expect(ppl.days.some((d) => /&/.test(String(d.focus)) && /Biceps|Triceps/.test(String(d.focus)))).toBe(false);
+  });
+
+  it('the profile schema accepts the saved map and the parser drops invalid keys', async () => {
+    const { parseDayFocusOverride } = await import('../src/modules/exercise/workoutGenerator');
+    expect(parseDayFocusOverride({ '0': 'Back & Biceps', '7': 'x', 'a': 'y', '-1': 'z' })).toEqual({ 0: 'Back & Biceps' });
+    expect(parseDayFocusOverride(undefined)).toBeUndefined();
+    const { sensitiveSchema } = await import('../src/modules/profile/profile.schemas');
+    const r = sensitiveSchema.safeParse({ sex: 'male', dob: '1998-04-01', currentWeightKg: 74, targetWeightKg: 69, bodyPartDayFocus: { '0': 'Back & Biceps' } });
+    expect(r.success).toBe(true);
+  });
+});
