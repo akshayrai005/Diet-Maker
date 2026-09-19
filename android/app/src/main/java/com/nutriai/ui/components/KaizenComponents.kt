@@ -163,13 +163,12 @@ fun PrimaryButton(
     enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.primary,
 ) {
-    Button(
+    // Always the blended gradient ([containerColor] is kept only so existing call sites still compile).
+    SpectrumButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = ComponentHeight.buttonLarge),
         shape = RoundedCornerShape(Radius.md),
-        colors = ButtonDefaults.buttonColors(containerColor = containerColor),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp),
     ) {
         icon?.let {
             Icon(it, contentDescription = null, modifier = Modifier.size(20.dp))

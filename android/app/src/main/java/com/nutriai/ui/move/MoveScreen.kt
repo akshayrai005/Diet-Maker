@@ -1,5 +1,6 @@
 package com.nutriai.ui.move
 
+import com.nutriai.ui.components.SpectrumButton
 import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -471,7 +472,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                                 }
                             }
                             if (state.activeSessionId != null) {
-                                Button(
+                                SpectrumButton(
                                     onClick = { viewModel.completeWorkout() },
                                     shape = Sharp,
                                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
@@ -1302,7 +1303,7 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
             }
         },
         confirmButton = {
-            Button(
+            SpectrumButton(
                 onClick = {
                     val out = rows.mapNotNull { r ->
                         val n = r.amount.toIntOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null

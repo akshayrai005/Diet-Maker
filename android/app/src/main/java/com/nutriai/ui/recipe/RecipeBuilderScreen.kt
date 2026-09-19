@@ -1,5 +1,6 @@
 package com.nutriai.ui.recipe
 
+import com.nutriai.ui.components.SpectrumButton
 import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -187,7 +188,7 @@ fun RecipeBuilderScreen(modifier: Modifier = Modifier, viewModel: RecipeViewMode
                 )
             }
             item {
-                Button(
+                SpectrumButton(
                     onClick = { showCreate = true },
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     shape = Sharp,
@@ -395,7 +396,7 @@ private fun LogRecipeDialog(recipe: UserRecipeDto, onDismiss: () -> Unit, onConf
                 dismissButton = { TextButton(onClick = { confirmImplausible = false }) { Text("Let me fix it") } },
             )
         }
-        Button(
+        SpectrumButton(
             onClick = {
                 if (implausible) confirmImplausible = true
                 else if (mode == "percent") onConfirm(slot, percent.toDoubleOrNull(), null)
@@ -636,7 +637,7 @@ private fun CreateRecipeDialog(onDismiss: () -> Unit, onSave: (String, List<Reci
             }
         }
 
-        Button(
+        SpectrumButton(
             onClick = {
                 val input = ingredients.mapNotNull { ing -> gramsFor(ing).takeIf { it > 0 }?.let { RecipeIngredientInput(ing.food.id, it) } }
                 if (name.isNotBlank() && input.isNotEmpty()) onSave(name.trim(), input)

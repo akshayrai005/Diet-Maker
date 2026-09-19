@@ -1,5 +1,6 @@
 package com.nutriai.ui.components
 
+import com.nutriai.ui.components.SpectrumButton
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,7 +76,7 @@ fun QuantityBottomSheet(food: FoodDto, onConfirm: (Double) -> Unit, onDismiss: (
                 )
             }
 
-            Button(
+            SpectrumButton(
                 onClick = { g.takeIf { it > 0 }?.let(onConfirm) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),

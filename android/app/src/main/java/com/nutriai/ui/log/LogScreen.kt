@@ -1,5 +1,6 @@
 package com.nutriai.ui.log
 
+import com.nutriai.ui.components.SpectrumButton
 import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -232,7 +233,7 @@ fun LogScreen(
         // Action row: Snap + Photo — compact
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(
+                SpectrumButton(
                     onClick = { snapMeal() },
                     modifier = Modifier.weight(1f).height(36.dp),
                     shape = Sharp,
@@ -438,7 +439,7 @@ private fun HighProteinSection(
                 }
             },
             confirmButton = {
-                Button(onClick = { onAdd(food); detailFood = null }, colors = ButtonDefaults.buttonColors(containerColor = NutritionColor)) {
+                SpectrumButton(onClick = { onAdd(food); detailFood = null }, colors = ButtonDefaults.buttonColors(containerColor = NutritionColor)) {
                     Text("Add")
                 }
             },
@@ -674,7 +675,7 @@ private fun ResultCard(food: FoodDto, onAdd: () -> Unit, onFavorite: () -> Unit)
             }
             Icon(Icons.Filled.StarBorder, contentDescription = null, tint = BrandAmber,
                 modifier = Modifier.size(18.dp).clickable { onFavorite() })
-            Button(onClick = onAdd, modifier = Modifier.height(28.dp), shape = Sharp,
+            SpectrumButton(onClick = onAdd, modifier = Modifier.height(28.dp), shape = Sharp,
                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
             ) { Text("Add", style = MaterialTheme.typography.labelSmall, fontSize = 11.sp) }
@@ -701,7 +702,7 @@ private fun DetectedItemCard(item: VisionFoodItem, onAdd: () -> Unit) {
                 Text("${item.grams.toInt()}g · 🔥${(item.per100g.kcal * item.grams / 100).toInt()} kcal",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
             }
-            Button(onClick = onAdd, modifier = Modifier.height(28.dp), shape = Sharp,
+            SpectrumButton(onClick = onAdd, modifier = Modifier.height(28.dp), shape = Sharp,
                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 0.dp),
             ) { Text("Add", style = MaterialTheme.typography.labelSmall, fontSize = 11.sp) }
@@ -746,7 +747,7 @@ private fun GenericQtyDialog(pq: PendingQty, onConfirm: (Double) -> Unit, onDism
                 Text("🔥 = ${(pq.kcalPer100 * grams / 100).toInt()} kcal", color = BrandGreenDeep, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
             }
         },
-        confirmButton = { Button(onClick = { g.toDoubleOrNull()?.takeIf { it > 0 }?.let(onConfirm) }, shape = Sharp, colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)) { Text("Add") } },
+        confirmButton = { SpectrumButton(onClick = { g.toDoubleOrNull()?.takeIf { it > 0 }?.let(onConfirm) }, shape = Sharp, colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)) { Text("Add") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
@@ -775,7 +776,7 @@ private fun CustomFoodDialog(onSave: (SavedFoodRequest) -> Unit, onDismiss: () -
             }
         },
         confirmButton = {
-            Button(
+            SpectrumButton(
                 onClick = {
                     val k = kcal.toDoubleOrNull()
                     if (name.isNotBlank() && k != null) {

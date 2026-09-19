@@ -9,6 +9,7 @@ import androidx.health.connect.client.records.StepsRecord
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import com.nutriai.ui.theme.SpectrumBrush
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -236,7 +237,7 @@ private fun KaizenBottomNav(currentRoute: String, onTabSelected: (String) -> Uni
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
-                            .background(bgColor)
+                            .background(if (selected) SpectrumBrush else androidx.compose.ui.graphics.SolidColor(Color.Transparent), alpha = if (selected) 0.16f else 1f)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,

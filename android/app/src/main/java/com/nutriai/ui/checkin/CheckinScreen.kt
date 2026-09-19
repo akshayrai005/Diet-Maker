@@ -1,5 +1,6 @@
 package com.nutriai.ui.checkin
 
+import com.nutriai.ui.components.SpectrumButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -216,7 +217,7 @@ fun CheckinScreen(
                             ) { Text("← Back") }
                         }
                         if (step < lastStep) {
-                            Button(
+                            SpectrumButton(
                                 onClick = { step++ },
                                 enabled = step != 0 || weight.isNotBlank(),
                                 modifier = Modifier.weight(1f).height(54.dp),
@@ -224,7 +225,7 @@ fun CheckinScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                             ) { Text("Next →") }
                         } else {
-                            Button(
+                            SpectrumButton(
                                 onClick = {
                                     val w = weight.toDoubleOrNull()
                                     if (w != null) {

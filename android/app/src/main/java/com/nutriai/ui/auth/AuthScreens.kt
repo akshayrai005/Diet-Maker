@@ -1,5 +1,6 @@
 package com.nutriai.ui.auth
 
+import com.nutriai.ui.components.SpectrumButton
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -218,7 +219,7 @@ fun RegisterScreen(
 
 @Composable
 private fun PrimaryButton(text: String, loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    Button(
+    SpectrumButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),

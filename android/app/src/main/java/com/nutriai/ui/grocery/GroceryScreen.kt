@@ -1,5 +1,6 @@
 package com.nutriai.ui.grocery
 
+import com.nutriai.ui.components.SpectrumButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -215,7 +216,7 @@ fun GroceryScreen(
                     title = "Nothing to shop yet",
                     message = err,
                     icon = Icons.Filled.ShoppingCart,
-                    action = { Button(onClick = { viewModel.load() }, shape = Sharp, colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)) { Text("Refresh") } },
+                    action = { SpectrumButton(onClick = { viewModel.load() }, shape = Sharp, colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)) { Text("Refresh") } },
                 )
             }
         }
