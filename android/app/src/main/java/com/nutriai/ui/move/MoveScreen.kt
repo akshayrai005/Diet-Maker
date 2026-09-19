@@ -926,12 +926,12 @@ private fun ExerciseGridCard(
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Box {
+        Box(Modifier.fillMaxWidth()) {
             Column(
-                Modifier.padding(Spacing.sm),
+                Modifier.fillMaxWidth().padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 36)
+                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 104, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text(labelOverride ?: ex.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 2, modifier = Modifier.padding(end = 20.dp))
                 ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                     Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)

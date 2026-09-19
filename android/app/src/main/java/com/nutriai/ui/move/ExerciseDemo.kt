@@ -68,9 +68,8 @@ fun ExerciseDemo(
             .semantics { contentDescription = "$name demonstration, tap to enlarge" },
         contentAlignment = Alignment.Center,
     ) {
-        // No automatic download: the thumbnail is the offline muscle picture; the GIF loads only when tapped.
-        ExerciseIllustration(muscleGroup = muscleGroup, sizeDp = sizeDp)
-        Text("▶", color = Color.White, style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).background(Color(0xAA000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp))
+        // Shown only for cards on screen (lazy grid), so nothing is fetched until a muscle is chosen and scrolled to.
+        GifImage(url = url, onError = { failed = true })
     }
 
     if (showDialog) {
