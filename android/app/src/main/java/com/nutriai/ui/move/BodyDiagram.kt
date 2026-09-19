@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.platform.LocalContext
@@ -53,7 +54,7 @@ object BodyPaths {
 }
 
 private val NON_MUSCLE = setOf("head", "hair", "hands", "feet", "ankles", "knees", "neck")
-private val BodyDark = Color(0xFF4B5563)
+private val BodyDark = Color(0xFF3F4854)
 private val BodyMid = Color(0xFF9AA3AF)
 
 /**
@@ -80,6 +81,8 @@ fun BodyDiagram(highlight: Map<String, Color>, modifier: Modifier = Modifier, fe
                 for (piece in v.pieces) {
                     val color = highlight[piece.slug]?.copy(alpha = highlightAlpha) ?: if (piece.slug in NON_MUSCLE) BodyMid else BodyDark
                     drawPath(piece.path, color)
+                    // fine light line between muscles, like an anatomy chart
+                    if (piece.slug !in NON_MUSCLE) drawPath(piece.path, Color.White.copy(alpha = 0.55f), style = Stroke(width = 1.4f / scale))
                 }
             }
         }
