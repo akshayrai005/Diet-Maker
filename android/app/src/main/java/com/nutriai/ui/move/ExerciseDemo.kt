@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -86,14 +88,27 @@ fun ExerciseDemo(
             confirmButton = { TextButton(onClick = { showDialog = false }) { Text("Close") } },
             title = { Text(name, fontWeight = FontWeight.Bold) },
             text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(16.dp)).background(Color.White),
                         contentAlignment = Alignment.Center,
                     ) { GifImage(url = url, onError = { failed = true }) }
+                    val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
+                    val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty() }
                     Text(
-                        "Looping demo of the movement. Free community GIF set (ExerciseGymGifsDB).",
-                        style = MaterialTheme.typography.bodySmall,
+                        listOfNotNull(muscleGroup?.replaceFirstChar { it.uppercase() }?.let { "Main: $it" }, secondary.takeIf { it.isNotEmpty() }?.let { "Also: " + it.joinToString(", ") { m -> m.replace('-', ' ') } }).joinToString("  ·  "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text("How to perform", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    guide.steps.forEachIndexed { i, step -> Text("${i + 1}. $step", style = MaterialTheme.typography.bodySmall) }
+                    Text("Common mistakes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    guide.mistakes.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                    Text("Safety", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(guide.safety, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

@@ -757,19 +757,25 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             return@Column
         }
         // Step 2: the chosen muscle, with search, equipment and its exercises.
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            OutlinedButton(onClick = { category = ExerciseCatalog.Category.ALL; query = "" }, shape = Sharp) { Text("← All muscles", style = MaterialTheme.typography.labelMedium) }
-            Text("${category.emoji} ${category.label}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        // One row: back to all muscles, the chosen muscle, and search.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(
+                onClick = { category = ExerciseCatalog.Category.ALL; query = "" },
+                shape = Sharp,
+                contentPadding = PaddingValues(horizontal = 10.dp),
+                modifier = Modifier.height(48.dp).semantics { contentDescription = "Back to all muscles" },
+            ) { Text("←", style = MaterialTheme.typography.titleMedium) }
+            Text("${category.emoji} ${category.label}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = { Text("Search...", style = MaterialTheme.typography.labelSmall) },
+                singleLine = true,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = Sharp,
+                textStyle = MaterialTheme.typography.bodySmall,
+            )
         }
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("Search exercises...", style = MaterialTheme.typography.labelSmall) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            shape = Sharp,
-            textStyle = MaterialTheme.typography.bodySmall,
-        )
         Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(ExerciseCatalog.equipmentFilters) { eq ->
@@ -921,25 +927,25 @@ private fun ExerciseGridCard(
     var showInfo by remember { mutableStateOf(false) }
     if (showInfo && ex.info != null) ExerciseInfoDialog(ex) { showInfo = false }
     Card(
-        Modifier.fillMaxWidth().heightIn(min = 110.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().height(232.dp).clickable(onClick = onClick),
         shape = Sharp,
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Box(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxWidth().padding(Spacing.sm),
+                Modifier.fillMaxSize().padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 104, modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text(labelOverride ?: ex.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 2, modifier = Modifier.padding(end = 20.dp))
+                ExerciseDemo(name = ex.name, muscleGroup = ex.muscleGroup, sizeDp = 100, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text(labelOverride ?: ex.name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, minLines = 2, maxLines = 2, modifier = Modifier.padding(end = 20.dp))
                 ex.muscleGroup?.takeIf { it.isNotBlank() }?.let { mg ->
                     Text(mg.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
-                if (ex.secondaryMuscles.isNotEmpty()) {
-                    Text("Also: " + ex.secondaryMuscles.take(3).joinToString(", ") { it.replace('-', ' ') }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
-                }
+                // Always one line (blank when none) so every card is the same height.
+                Text(if (ex.secondaryMuscles.isNotEmpty()) "Also: " + ex.secondaryMuscles.take(3).joinToString(", ") { it.replace('-', ' ') } else " ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
                 ProgressionChip(ex.nextSession)
+                Spacer(Modifier.weight(1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
