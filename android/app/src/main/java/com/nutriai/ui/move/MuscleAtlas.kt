@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
@@ -81,7 +82,7 @@ fun MuscleAtlas(selected: ExerciseCatalog.Category, onSelect: (ExerciseCatalog.C
                     ) {
                         Column(Modifier.fillMaxWidth().padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
                             Box(Modifier.weight(1f).fillMaxWidth().background(Color.Transparent), contentAlignment = Alignment.Center) {
-                                if (cat in BODY_DIAGRAM) AtlasFigure(cat, Modifier.fillMaxHeight().aspectRatio(0.62f))
+                                if (cat in BODY_DIAGRAM) AtlasFigure(cat, Modifier.fillMaxHeight().aspectRatio(100f / 222f))
                                 else Text(cat.emoji, fontSize = 34.sp)
                             }
                             Text(cat.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
@@ -107,69 +108,114 @@ private fun muscleColor(cat: ExerciseCatalog.Category): Color = when (cat) {
     else -> Color(0xFF8E24AA)
 }
 
-/** A filled body figure with the trained muscle painted in a strong colour (back view for Back and Glutes). */
+/** A proper anatomy-style figure (front view, or back view for Back and Glutes) with the trained muscle in colour. */
 @Composable
 private fun AtlasFigure(cat: ExerciseCatalog.Category, modifier: Modifier = Modifier) {
-    val body = Color(0xFFB9BFC7)
-    val outline = Color(0xFF6B7480)
-    Canvas(modifier) { drawAtlasFigure(cat, body, outline, muscleColor(cat)) }
+    val hi = muscleColor(cat)
+    Canvas(modifier) {
+        withTransform({ scale(size.width / 100f, size.height / 222f, pivot = Offset.Zero) }) {
+            drawFigure(cat, hi)
+        }
+    }
 }
 
-private fun DrawScope.drawAtlasFigure(cat: ExerciseCatalog.Category, body: Color, outline: Color, hi: Color) {
-    val w = size.width
-    val h = size.height
-    fun x(f: Float) = f * w
-    fun y(f: Float) = f * h
-    val cap = StrokeCap.Round
+private val BODY = Color(0xFFCBD0D8)
+private val SHADE = Color(0xFFB0B7C1)
+private val LINE = Color(0xFF7C8591)
 
-    // Limbs first (thick round strokes), then torso on top.
-    fun limb(x1: Float, y1: Float, x2: Float, y2: Float, width: Float, c: Color) =
-        drawLine(c, Offset(x(x1), y(y1)), Offset(x(x2), y(y2)), strokeWidth = width * w, cap = cap)
+private fun path(build: Path.() -> Unit) = Path().apply(build)
 
+/** Draws [block] for the left half, then mirrored for the right half (the figure is drawn in a 100 x 222 space). */
+private fun DrawScope.both(block: DrawScope.() -> Unit) {
+    block()
+    withTransform({ scale(-1f, 1f, pivot = Offset(50f, 0f)) }) { block() }
+}
+
+private fun DrawScope.part(p: Path, fill: Color) {
+    drawPath(p, fill)
+    drawPath(p, LINE, style = Stroke(width = 0.9f))
+}
+
+private fun DrawScope.drawFigure(cat: ExerciseCatalog.Category, hi: Color) {
+    val back = cat == ExerciseCatalog.Category.BACK || cat == ExerciseCatalog.Category.GLUTES
     val armsHi = cat == ExerciseCatalog.Category.ARMS
     val legsHi = cat == ExerciseCatalog.Category.LEGS
-    // arms
-    limb(0.25f, 0.27f, 0.16f, 0.47f, 0.13f, if (armsHi) hi else body)
-    limb(0.75f, 0.27f, 0.84f, 0.47f, 0.13f, if (armsHi) hi else body)
-    limb(0.16f, 0.47f, 0.12f, 0.66f, 0.10f, if (armsHi) hi.copy(alpha = 0.75f) else body)
-    limb(0.84f, 0.47f, 0.88f, 0.66f, 0.10f, if (armsHi) hi.copy(alpha = 0.75f) else body)
-    // legs
-    limb(0.42f, 0.60f, 0.40f, 0.80f, 0.17f, if (legsHi) hi else body)
-    limb(0.58f, 0.60f, 0.60f, 0.80f, 0.17f, if (legsHi) hi else body)
-    limb(0.40f, 0.80f, 0.40f, 0.96f, 0.12f, body)
-    limb(0.60f, 0.80f, 0.60f, 0.96f, 0.12f, body)
 
-    // torso
-    val torso = Path().apply {
-        moveTo(x(0.28f), y(0.24f)); lineTo(x(0.72f), y(0.24f))
-        lineTo(x(0.64f), y(0.46f)); lineTo(x(0.62f), y(0.62f))
-        lineTo(x(0.38f), y(0.62f)); lineTo(x(0.36f), y(0.46f)); close()
+    // legs (thigh + calf) and feet
+    val leg = path {
+        moveTo(35f, 122f); cubicTo(29f, 138f, 29f, 154f, 34f, 168f)
+        cubicTo(31f, 180f, 32f, 194f, 36f, 207f); lineTo(45f, 207f)
+        cubicTo(46f, 194f, 46f, 180f, 44f, 168f); cubicTo(49f, 154f, 50f, 138f, 50f, 124f); close()
     }
-    drawPath(torso, body)
-    // neck + head
-    drawRect(body, Offset(x(0.45f), y(0.17f)), Size(x(0.10f), y(0.08f)))
-    drawCircle(body, radius = w * 0.11f, center = Offset(x(0.5f), y(0.11f)))
+    both {
+        part(leg, if (legsHi) hi else BODY)
+        drawOval(if (legsHi) hi else SHADE, Offset(33f, 207f), Size(14f, 6f))
+        drawLine(LINE, Offset(40f, 150f), Offset(40f, 166f), strokeWidth = 0.7f) // knee crease
+    }
 
-    // trained muscle
-    fun blob(l: Float, t: Float, r: Float, b: Float, rad: Float = 0.06f) =
-        drawRoundRect(hi, Offset(x(l), y(t)), Size(x(r - l), y(b - t)), CornerRadius(w * rad, w * rad))
+    // arms: shoulder cap, upper arm, forearm, hand
+    val upperArm = path {
+        moveTo(26f, 37f); cubicTo(16f, 38f, 11f, 50f, 11f, 62f); lineTo(11f, 76f)
+        cubicTo(11f, 81f, 21f, 81f, 21f, 76f); lineTo(22f, 60f); cubicTo(22f, 52f, 26f, 46f, 30f, 44f); close()
+    }
+    val foreArm = path {
+        moveTo(11f, 77f); cubicTo(8f, 88f, 8f, 100f, 10f, 108f); lineTo(18f, 108f)
+        cubicTo(19f, 100f, 20f, 88f, 21f, 77f); close()
+    }
+    both {
+        part(upperArm, if (armsHi) hi else BODY)
+        part(foreArm, if (armsHi) hi.copy(alpha = 0.8f) else BODY)
+        drawOval(BODY, Offset(9f, 108f), Size(9f, 10f))
+    }
+
+    // torso (V taper) + neck + head
+    val torso = path {
+        moveTo(44f, 25f); cubicTo(38f, 30f, 30f, 32f, 25f, 37f)
+        cubicTo(21f, 46f, 23f, 60f, 28f, 72f); cubicTo(32f, 84f, 36f, 94f, 37f, 104f)
+        cubicTo(34f, 110f, 33f, 116f, 35f, 124f); lineTo(65f, 124f)
+        cubicTo(67f, 116f, 66f, 110f, 63f, 104f); cubicTo(64f, 94f, 68f, 84f, 72f, 72f)
+        cubicTo(77f, 60f, 79f, 46f, 75f, 37f); cubicTo(70f, 32f, 62f, 30f, 56f, 25f); close()
+    }
+    part(torso, BODY)
+    drawRect(BODY, Offset(44.5f, 18f), Size(11f, 9f))
+    drawOval(BODY, Offset(41f, 3f), Size(18f, 22f))
+    drawOval(LINE, Offset(41f, 3f), Size(18f, 22f), style = Stroke(width = 0.9f))
+
+    if (!back) {
+        drawLine(LINE, Offset(50f, 40f), Offset(50f, 118f), strokeWidth = 0.6f) // centre line
+        drawLine(SHADE, Offset(30f, 67f), Offset(70f, 67f), strokeWidth = 0.5f)
+    }
+
     when (cat) {
-        ExerciseCatalog.Category.CHEST -> { blob(0.31f, 0.26f, 0.49f, 0.39f); blob(0.51f, 0.26f, 0.69f, 0.39f) }
+        ExerciseCatalog.Category.CHEST -> both {
+            part(path {
+                moveTo(30f, 42f); cubicTo(38f, 39f, 46f, 41f, 49f, 45f); lineTo(49f, 62f)
+                cubicTo(41f, 67f, 32f, 62f, 28f, 54f); cubicTo(27f, 48f, 28f, 44f, 30f, 42f); close()
+            }, hi)
+        }
+        ExerciseCatalog.Category.SHOULDERS -> both { part(path {
+            moveTo(26f, 37f); cubicTo(16f, 38f, 12f, 48f, 12f, 56f); cubicTo(20f, 58f, 27f, 54f, 30f, 44f)
+            cubicTo(30f, 41f, 28f, 38f, 26f, 37f); close()
+        }, hi) }
+        ExerciseCatalog.Category.CORE -> both {
+            for (r in 0..3) part(path {
+                addRoundRect(androidx.compose.ui.geometry.RoundRect(43.5f, 72f + r * 12f, 49.2f, 82f + r * 12f, CornerRadius(2f, 2f)))
+            }, hi)
+        }
         ExerciseCatalog.Category.BACK -> {
-            drawPath(Path().apply { moveTo(x(0.33f), y(0.28f)); lineTo(x(0.47f), y(0.32f)); lineTo(x(0.45f), y(0.52f)); lineTo(x(0.38f), y(0.48f)); close() }, hi)
-            drawPath(Path().apply { moveTo(x(0.67f), y(0.28f)); lineTo(x(0.53f), y(0.32f)); lineTo(x(0.55f), y(0.52f)); lineTo(x(0.62f), y(0.48f)); close() }, hi)
-            drawLine(outline, Offset(x(0.5f), y(0.26f)), Offset(x(0.5f), y(0.60f)), strokeWidth = 0.02f * w, cap = cap)
+            // trapezius diamond + two lats wings, spine down the middle
+            part(path { moveTo(44f, 25f); cubicTo(38f, 30f, 30f, 32f, 25f, 37f); lineTo(50f, 62f); lineTo(75f, 37f); cubicTo(70f, 32f, 62f, 30f, 56f, 25f); close() }, Color(0xFF43A047))
+            both { part(path {
+                moveTo(27f, 50f); cubicTo(29f, 66f, 34f, 82f, 40f, 98f); lineTo(49f, 92f); lineTo(49f, 64f)
+                cubicTo(40f, 62f, 31f, 58f, 27f, 50f); close()
+            }, hi) }
+            drawLine(LINE, Offset(50f, 26f), Offset(50f, 122f), strokeWidth = 0.9f)
         }
-        ExerciseCatalog.Category.SHOULDERS -> { drawCircle(hi, w * 0.10f, Offset(x(0.27f), y(0.27f))); drawCircle(hi, w * 0.10f, Offset(x(0.73f), y(0.27f))) }
-        ExerciseCatalog.Category.CORE -> {
-            blob(0.42f, 0.40f, 0.58f, 0.60f, 0.04f)
-            for (i in 1..2) drawLine(body, Offset(x(0.42f), y(0.40f + 0.067f * i)), Offset(x(0.58f), y(0.40f + 0.067f * i)), strokeWidth = 0.012f * w)
-            drawLine(body, Offset(x(0.5f), y(0.40f)), Offset(x(0.5f), y(0.60f)), strokeWidth = 0.012f * w)
+        ExerciseCatalog.Category.GLUTES -> both {
+            part(path {
+                moveTo(50f, 108f); cubicTo(40f, 106f, 32f, 112f, 33f, 124f); cubicTo(34f, 136f, 44f, 138f, 50f, 132f); close()
+            }, hi)
         }
-        ExerciseCatalog.Category.GLUTES -> { drawCircle(hi, w * 0.12f, Offset(x(0.44f), y(0.62f))); drawCircle(hi, w * 0.12f, Offset(x(0.56f), y(0.62f))) }
-        else -> Unit // arms / legs are painted with the limbs above
+        else -> Unit // arms / legs are coloured with the limbs above
     }
-    // simple outline so the figure reads on light and dark cards
-    drawPath(torso, outline, style = Stroke(width = 0.012f * w))
-    drawCircle(outline, radius = w * 0.11f, center = Offset(x(0.5f), y(0.11f)), style = Stroke(width = 0.012f * w))
 }

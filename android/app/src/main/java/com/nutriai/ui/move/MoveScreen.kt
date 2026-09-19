@@ -729,7 +729,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
-    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, category, equipment) }
+    val results = remember(query, category, equipment) { ExerciseCatalog.search(query, if (query.isBlank()) category else ExerciseCatalog.Category.ALL, equipment) }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }
 
@@ -758,21 +758,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             shape = Sharp,
             textStyle = MaterialTheme.typography.bodySmall,
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(ExerciseCatalog.categories) { c ->
-                FilterChip(
-                    selected = category == c,
-                    onClick = { category = c },
-                    label = { Text("${c.emoji} ${c.label}", style = MaterialTheme.typography.labelSmall, fontWeight = if (category == c) FontWeight.Bold else FontWeight.Normal) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MoveAccent,
-                        selectedLabelColor = Color.White,
-                        containerColor = MoveAccent.copy(alpha = 0.08f),
-                        labelColor = MoveAccent,
-                    ),
-                )
-            }
-        }
         Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(ExerciseCatalog.equipmentFilters) { eq ->
