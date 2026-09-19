@@ -8,7 +8,8 @@ import { round } from './anthropometry';
  * (W kg, H cm, A years)
  */
 export function bmrMifflinStJeor(a: Anthropometrics): number {
-  if (a.weightKg <= 0 || a.heightCm <= 0 || a.ageYears <= 0) {
+  // `!(x > 0)` (not `x <= 0`) so NaN and undefined are rejected too, instead of silently producing a NaN target.
+  if (!(a.weightKg > 0) || !(a.heightCm > 0) || !(a.ageYears > 0)) {
     throw new RangeError('weight, height and age must be > 0');
   }
   const base = 10 * a.weightKg + 6.25 * a.heightCm - 5 * a.ageYears;

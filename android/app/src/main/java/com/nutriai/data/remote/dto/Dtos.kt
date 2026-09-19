@@ -206,6 +206,20 @@ data class ExerciseItem(
     // older payloads simply omit it (ignoreUnknownKeys is on).
     val substitutions: List<String> = emptyList(),
     val breathingCue: String = "",
+    /** Coaching guide: pattern, secondary muscles, difficulty, setup, mistakes, safety. Additive and optional. */
+    val info: ExerciseInfoDto? = null,
+)
+
+@Serializable
+data class ExerciseInfoDto(
+    val pattern: String = "",
+    val secondary: List<String> = emptyList(),
+    val difficulty: String = "",
+    val setup: String = "",
+    val mistakes: List<String> = emptyList(),
+    val safety: String = "",
+    val regression: String? = null,
+    val progression: String? = null,
 )
 
 @Serializable

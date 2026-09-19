@@ -554,6 +554,13 @@ fun ProgressScreen(modifier: Modifier = Modifier, viewModel: ProgressViewModel =
 
         // ---- Progress-photo timeline ----
         item { Text("📸 Progress photos", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+        item {
+            Text(
+                "Photos only compare well under the same conditions: same pose (front, side, back), same distance and camera height, same lighting, same time of day (e.g. mornings, before eating). Body-fat figures from photos are rough estimates, not measurements.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         if (!state.consentGiven) {
             item {

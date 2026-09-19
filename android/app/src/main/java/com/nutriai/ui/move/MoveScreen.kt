@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
@@ -919,6 +921,8 @@ private fun ExerciseGridCard(
     onToggleFavorite: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
 ) {
+    var showInfo by remember { mutableStateOf(false) }
+    if (showInfo && ex.info != null) ExerciseInfoDialog(ex) { showInfo = false }
     Card(
         Modifier.fillMaxWidth().heightIn(min = 110.dp).clickable(onClick = onClick),
         shape = Sharp,
@@ -944,6 +948,17 @@ private fun ExerciseGridCard(
                             .padding(horizontal = Spacing.sm, vertical = 3.dp),
                     ) {
                         Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    if (ex.info != null) {
+                        Text(
+                            "ℹ️",
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier
+                                .clip(Sharp)
+                                .clickable { showInfo = true }
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                .semantics { contentDescription = "Form guide for ${ex.name}" },
+                        )
                     }
                     if (onSwap != null) {
                         Text(
@@ -971,6 +986,44 @@ private fun ExerciseGridCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ExerciseInfoDialog(ex: ExerciseItem, onDismiss: () -> Unit) {
+    val info = ex.info ?: return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(16.dp),
+        title = { Text(ex.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    listOfNotNull(
+                        info.pattern.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() },
+                        info.difficulty.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() },
+                        info.secondary.takeIf { it.isNotEmpty() }?.let { "Also works: " + it.joinToString(", ") },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                ex.cue?.takeIf { it.isNotBlank() }?.let { GuideSection("Key cue", it) }
+                GuideSection("Setup", info.setup)
+                if (info.mistakes.isNotEmpty()) GuideSection("Common mistakes", info.mistakes.joinToString("\n") { "• $it" })
+                GuideSection("Safety", info.safety)
+                info.regression?.let { GuideSection("Too hard? Try", it) }
+                info.progression?.let { GuideSection("Ready for more?", it) }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun GuideSection(title: String, body: String) {
+    if (body.isBlank()) return
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        Text(body, style = MaterialTheme.typography.bodySmall)
     }
 }
 

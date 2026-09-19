@@ -14,8 +14,8 @@ export function round(value: number, dp = 1): number {
 
 /** Body Mass Index (kg/m²). */
 export function bmi(weightKg: number, heightCm: number): number {
-  if (heightCm <= 0) throw new RangeError('heightCm must be > 0');
-  if (weightKg <= 0) throw new RangeError('weightKg must be > 0');
+  if (!(heightCm > 0)) throw new RangeError('heightCm must be > 0');
+  if (!(weightKg > 0)) throw new RangeError('weightKg must be > 0');
   const m = heightCm / 100;
   return round(weightKg / (m * m), 1);
 }
