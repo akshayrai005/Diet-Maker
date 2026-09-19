@@ -101,6 +101,7 @@ object ExerciseDemoMap {
         "cardio core" to "cardio/high-knee-against-wall",
         "cardio core steady" to "cardio/walking-on-incline-treadmill",
         "cardio jog light march spot" to "cardio/high-knee-against-wall",
+        "bike run stationary" to "cardio/stationary-bike-run-v-3",
         "cardio mobility" to "cardio/high-knee-against-wall",
         "cardio steady" to "cardio/walking-on-incline-treadmill",
         "chair dip" to "triceps/bench-dip-on-floor",

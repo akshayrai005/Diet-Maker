@@ -35,7 +35,7 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     // Block A
     [
       { focus: 'Chest', exercises: [s('Barbell bench press', 4, '8-10'), s('Incline dumbbell press', 4, '10-12'), s('Cable fly', 3, '12-15'), s('Chest dips', 3, '10'), s('Push-up burnout', 2, 'AMRAP')] },
-      { focus: 'Back', exercises: [s('Deadlift', 4, '6-8'), s('Lat pulldown', 4, '10-12'), s('Barbell row', 4, '8-10'), s('Seated cable row', 3, '12'), s('Face pull', 3, '15')] },
+      { focus: 'Back', exercises: [s('Deadlift', 4, '6-8'), s('Lat pulldown', 4, '10-12'), s('Barbell row', 4, '8-10'), s('Seated cable row', 3, '12'), s('Cable rear delt row with rope', 3, '15')] },
       { focus: 'Shoulders', exercises: [s('Overhead barbell press', 4, '8-10'), s('Lateral raise', 4, '12-15'), s('Rear-delt fly', 3, '15'), s('Front raise', 3, '12'), s('Barbell shrugs', 3, '15')] },
       { focus: 'Biceps & Forearms', exercises: [s('Barbell curl', 4, '10-12'), s('Incline dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Concentration curl', 3, '12'), s('Wrist curl', 3, '20')] },
       { focus: 'Triceps & Core', exercises: [s('Close-grip bench press', 4, '10'), s('Rope pushdown', 4, '12-15'), s('Overhead extension', 3, '12'), s('Bench dips', 3, '15'), m('Plank', 3, '60s')] },
@@ -65,19 +65,19 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
   'muscular:home': [
     [
       { focus: 'Push (Chest / Shoulders / Triceps)', exercises: [s('Push-ups', 4, '15-20'), s('Pike push-ups', 3, '10'), s('Diamond push-ups', 3, '12'), s('Chair dips', 3, '15'), m('Plank', 3, '45s')] },
-      { focus: 'Pull (Back / Biceps)', exercises: [s('Backpack rows', 4, '12'), s('Doorway rows', 3, '12'), s('Superman', 3, '15'), s('Reverse snow-angels', 3, '15'), s('Backpack curls', 3, '15')] },
-      { focus: 'Legs & Abs', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Wall sit', 3, '45s'), s('Leg raises', 3, '15')] },
+      { focus: 'Pull (Back / Biceps)', exercises: [s('Backpack rows', 4, '12'), s('Inverted row with straps', 3, '12'), s('Superman', 3, '15'), s('Reverse snow-angels', 3, '15'), s('Backpack curls', 3, '15')] },
+      { focus: 'Legs & Abs', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Split squats', 3, '45s'), s('Leg raises', 3, '15')] },
       { focus: 'Push (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Pike push-ups', 3, '10'), s('Chair dips', 3, '15'), m('Plank', 3, '60s')] },
       { focus: 'Pull & Shoulders', exercises: [s('Backpack rows', 4, '15'), s('Towel curls', 3, '15'), s('Superman pulls', 3, '15'), s('Y-raise', 3, '15'), s('Backpack shrugs', 3, '20')] },
       { focus: 'Legs & Core', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Step-ups', 3, '15'), s('Bicycle crunch', 3, '20')] },
     ],
     [
       { focus: 'Push (Explosive)', exercises: [s('Clap push-ups', 4, '8'), s('Wide push-ups', 3, '15'), s('Hindu push-ups', 3, '12'), s('Bench dips (feet up)', 3, '15'), m('Side plank', 3, '30s each')] },
-      { focus: 'Pull (Volume)', exercises: [s('Towel door rows', 4, '15'), s('Inverted rows (table)', 3, '10'), s('Superman hold', 3, '30s'), s('Backpack curls', 4, '15'), s('Prone Y-T-W', 3, '10')] },
-      { focus: 'Legs & Abs', exercises: [s('Pistol squat (assisted)', 3, '8'), s('Curtsy lunges', 3, '15'), s('Hip thrust (feet up)', 3, '20'), s('Calf raises', 4, '25'), s('Hollow-body hold', 3, '30s')] },
+      { focus: 'Pull (Volume)', exercises: [s('Inverted row with straps', 4, '15'), s('Inverted row', 3, '10'), s('Superman hold', 3, '30s'), s('Backpack curls', 4, '15'), s('Band y raise', 3, '10')] },
+      { focus: 'Legs & Abs', exercises: [s('Pistol squat (assisted)', 3, '8'), s('Curtsy lunges', 3, '15'), s('Hip thrust (feet up)', 3, '20'), s('Calf raises', 4, '25'), s('Reverse plank with leg lift', 3, '30s')] },
       { focus: 'Push (Tempo)', exercises: [s('Slow push-ups (3s down)', 4, '10'), s('Decline push-ups', 3, '12'), s('Pseudo-planche push-ups', 3, '8'), s('Chair dips', 3, '15'), m('Plank reach', 3, '20')] },
-      { focus: 'Pull & Rear delts', exercises: [s('Backpack high-row', 4, '15'), s('Reverse fly (backpack)', 3, '15'), s('Superman pulls', 3, '15'), s('Hammer curls (backpack)', 3, '15'), s('Face-pull (towel)', 3, '15')] },
-      { focus: 'Legs & Core', exercises: [s('Jump lunges', 3, '12'), s('Wall sit', 3, '60s'), s('Single-leg RDL', 3, '12'), s('Step-ups', 3, '15'), s('Russian twist', 3, '20')] },
+      { focus: 'Pull & Rear delts', exercises: [s('Backpack high-row', 4, '15'), s('Reverse fly (backpack)', 3, '15'), s('Superman pulls', 3, '15'), s('Hammer curls (backpack)', 3, '15'), s('Cable rear delt row with rope', 3, '15')] },
+      { focus: 'Legs & Core', exercises: [s('Jump lunges', 3, '12'), s('Split squats', 3, '60s'), s('Single-leg RDL', 3, '12'), s('Step-ups', 3, '15'), s('Russian twist', 3, '20')] },
     ],
   ],
 
@@ -85,41 +85,41 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
   'athletic:gym': [[
     { focus: 'Upper strength', exercises: [s('Bench press', 4, '6'), s('Weighted pull-ups', 4, '6'), s('Overhead press', 3, '8'), s('Barbell row', 3, '8'), m('Plank', 3, '45s')] },
     { focus: 'Lower strength & core', exercises: [s('Back squat', 4, '6'), s('Romanian deadlift', 3, '8'), s('Walking lunges', 3, '12'), s('Hanging leg raise', 3, '15'), s('Calf raise', 3, '20')] },
-    { focus: 'HIIT conditioning', exercises: [c('Rowing intervals', 10, '30s hard / 30s easy'), s('Kettlebell swings', 4, '20'), c('Battle ropes', 4, '30s'), c('Burpees', 4, '12')] },
+    { focus: 'HIIT conditioning', exercises: [c('Cycle cross trainer', 10, '30s hard / 30s easy'), s('Kettlebell swings', 4, '20'), c('Battle ropes', 4, '30s'), c('Burpees', 4, '12')] },
     { focus: 'Upper hypertrophy', exercises: [s('Incline dumbbell press', 4, '10'), s('Lat pulldown', 4, '12'), s('Lateral raise', 4, '15'), s('Cable curl', 3, '12'), s('Tricep pushdown', 3, '12')] },
     { focus: 'Lower power', exercises: [c('Box jumps', 5, '5'), s('Trap-bar deadlift', 4, '5'), s('Bulgarian split squat', 3, '10'), s('Nordic curl', 3, '8'), m('Plank', 3, '60s')] },
-    { focus: 'Cardio & mobility', exercises: [c('Steady run', 1, '30-40 min'), m('Mobility flow', 1, '15 min'), s('Core circuit', 3, 'rounds')] },
+    { focus: 'Cardio & mobility', exercises: [c('Stationary bike run', 1, '30-40 min'), m("World's greatest stretch", 1, '15 min'), s('Air bike', 3, 'rounds')] },
   ]],
   'athletic:home': [[
     { focus: 'Full-body circuit', exercises: [s('Push-ups', 3, '15'), s('Bodyweight squats', 3, '20'), m('Plank', 3, '45s'), s('Reverse lunges', 3, '12'), s('Superman', 3, '15')] },
     { focus: 'HIIT', exercises: [c('Burpees', 5, '12'), c('High knees', 5, '30s'), c('Jump squats', 5, '15'), c('Mountain climbers', 5, '30s')] },
-    { focus: 'Core & mobility', exercises: [m('Plank', 3, '60s'), s('Leg raises', 3, '15'), s('Russian twists', 3, '20'), s('Dead bug', 3, '12'), m('Mobility flow', 1, '10 min')] },
+    { focus: 'Core & mobility', exercises: [m('Plank', 3, '60s'), s('Leg raises', 3, '15'), s('Russian twists', 3, '20'), s('Dead bug', 3, '12'), m("World's greatest stretch", 1, '10 min')] },
     { focus: 'Full-body circuit', exercises: [s('Pike push-ups', 3, '10'), s('Reverse lunges', 3, '15'), s('Chair dips', 3, '15'), s('Glute bridges', 3, '20'), s('Superman', 3, '15')] },
     { focus: 'Plyometrics', exercises: [c('Jump squats', 4, '15'), c('Broad jumps', 4, '8'), c('Skater jumps', 4, '20'), c('Burpees', 4, '10'), c('Plank jacks', 4, '20')] },
-    { focus: 'Cardio & core', exercises: [c('Brisk walk / jog', 1, '30-40 min'), s('Core circuit', 3, 'rounds')] },
+    { focus: 'Cardio & core', exercises: [c('Walking on incline treadmill', 1, '30-40 min'), s('Air bike', 3, 'rounds')] },
   ]],
   'fatloss:gym': [[
     { focus: 'Full-body weights', exercises: [s('Back squat', 3, '10'), s('Bench press', 3, '10'), s('Seated row', 3, '10'), s('Overhead press', 3, '10'), m('Plank', 3, '45s')] },
-    { focus: 'HIIT', exercises: [c('Treadmill sprints', 10, '30s on / 60s off'), s('Kettlebell swings', 4, '20'), c('Mountain climbers', 4, '30s')] },
+    { focus: 'HIIT', exercises: [c('Wind sprints', 10, '30s on / 60s off'), s('Kettlebell swings', 4, '20'), c('Mountain climbers', 4, '30s')] },
     { focus: 'Full-body weights', exercises: [s('Deadlift', 3, '8'), s('Incline press', 3, '10'), s('Lat pulldown', 3, '12'), s('Walking lunges', 3, '12'), s('Hanging knee raise', 3, '15')] },
-    { focus: 'Steady cardio & core', exercises: [c('Incline walk / cycle', 1, '40-45 min'), s('Core circuit', 3, 'rounds')] },
+    { focus: 'Steady cardio & core', exercises: [c('Walking on incline treadmill', 1, '40-45 min'), s('Air bike', 3, 'rounds')] },
     { focus: 'Full-body weights', exercises: [s('Leg press', 3, '12'), s('Dumbbell press', 3, '12'), s('Cable row', 3, '12'), s('Lateral raise', 3, '15'), s('Russian twist', 3, '20')] },
-    { focus: 'HIIT & core', exercises: [c('Bike intervals', 12, '20s on / 40s off'), c('Burpees', 4, '12'), m('Plank complex', 3, 'rounds')] },
+    { focus: 'HIIT & core', exercises: [c('Stationary bike run', 12, '20s on / 40s off'), c('Burpees', 4, '12'), m('Plank complex', 3, 'rounds')] },
   ]],
   'fatloss:home': [[
-    { focus: 'Cardio & circuit', exercises: [c('Brisk walk / jog', 1, '25-30 min'), s('Bodyweight squats', 3, '20'), s('Push-ups', 3, '12'), m('Plank', 3, '40s')] },
+    { focus: 'Cardio & circuit', exercises: [c('Walking on incline treadmill', 1, '25-30 min'), s('Bodyweight squats', 3, '20'), s('Push-ups', 3, '12'), m('Plank', 3, '40s')] },
     { focus: 'HIIT', exercises: [c('Jumping jacks', 5, '40s'), c('Burpees', 5, '10'), c('Mountain climbers', 5, '30s'), c('High knees', 5, '30s')] },
     { focus: 'Core & walk', exercises: [m('Plank', 3, '45s'), s('Leg raises', 3, '15'), s('Bicycle crunches', 3, '20'), c('Walk', 1, '20-30 min')] },
-    { focus: 'Bodyweight circuit', exercises: [s('Reverse lunges', 3, '15'), s('Push-ups', 3, '12'), s('Glute bridges', 3, '20'), s('Superman', 3, '15'), s('Wall sit', 3, '45s')] },
+    { focus: 'Bodyweight circuit', exercises: [s('Reverse lunges', 3, '15'), s('Push-ups', 3, '12'), s('Glute bridges', 3, '20'), s('Superman', 3, '15'), s('Split squats', 3, '45s')] },
     { focus: 'HIIT', exercises: [c('Squat jumps', 5, '15'), c('Skater jumps', 5, '20'), c('Burpees', 5, '10'), c('Plank jacks', 5, '20')] },
-    { focus: 'Steady cardio', exercises: [c('Brisk walk / cycle', 1, '35-40 min'), m('Stretching', 1, '10 min')] },
+    { focus: 'Steady cardio', exercises: [c('Stationary bike walk', 1, '35-40 min'), m('Hamstring stretch', 1, '10 min')] },
   ]],
 
   // ---- Selectable splits (Push/Pull/Legs, Upper/Lower, Full-body). Core/warm-up/cool-down are
   // appended automatically. body_part → 'muscular', fat_loss → 'fatloss' reuse the programs above. ----
   'ppl:gym': [[
     { focus: 'Push (Chest / Shoulders / Triceps)', exercises: [s('Barbell bench press', 4, '8-10'), s('Overhead barbell press', 4, '8-10'), s('Incline dumbbell press', 3, '10-12'), s('Lateral raise', 3, '15'), s('Rope pushdown', 3, '12-15')] },
-    { focus: 'Pull (Back / Biceps)', exercises: [s('Deadlift', 4, '6-8'), s('Lat pulldown', 4, '10-12'), s('Barbell row', 3, '8-10'), s('Face pull', 3, '15'), s('Barbell curl', 3, '10-12')] },
+    { focus: 'Pull (Back / Biceps)', exercises: [s('Deadlift', 4, '6-8'), s('Lat pulldown', 4, '10-12'), s('Barbell row', 3, '8-10'), s('Cable rear delt row with rope', 3, '15'), s('Barbell curl', 3, '10-12')] },
     { focus: 'Legs', exercises: [s('Back squat', 4, '8-10'), s('Romanian deadlift', 3, '10'), s('Leg press', 3, '12'), s('Leg curl', 3, '12'), s('Standing calf raise', 4, '15')] },
     { focus: 'Push (Volume)', exercises: [s('Incline barbell press', 4, '8-10'), s('Dumbbell shoulder press', 3, '10'), s('Cable fly', 3, '15'), s('Lateral raise', 3, '15'), s('Skull crushers', 3, '10')] },
     { focus: 'Pull (Volume)', exercises: [s('Weighted pull-ups', 4, '8'), s('T-bar row', 3, '10'), s('Seated cable row', 3, '12'), s('Rear-delt fly', 3, '15'), s('EZ-bar curl', 3, '10')] },
@@ -127,8 +127,8 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
   ]],
   'ppl:home': [[
     { focus: 'Push (Chest / Shoulders / Triceps)', exercises: [s('Push-ups', 4, '15-20'), s('Pike push-ups', 3, '10'), s('Diamond push-ups', 3, '12'), s('Chair dips', 3, '15')] },
-    { focus: 'Pull (Back / Biceps)', exercises: [s('Backpack rows', 4, '12'), s('Doorway rows', 3, '12'), s('Superman', 3, '15'), s('Backpack curls', 3, '15')] },
-    { focus: 'Legs', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Wall sit', 3, '45s')] },
+    { focus: 'Pull (Back / Biceps)', exercises: [s('Backpack rows', 4, '12'), s('Inverted row with straps', 3, '12'), s('Superman', 3, '15'), s('Backpack curls', 3, '15')] },
+    { focus: 'Legs', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Split squats', 3, '45s')] },
     { focus: 'Push (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Pike push-ups', 3, '10'), s('Chair dips', 3, '15')] },
     { focus: 'Pull (Advanced)', exercises: [s('Backpack rows', 4, '15'), s('Towel curls', 3, '15'), s('Superman pulls', 3, '15'), s('Y-raise', 3, '15')] },
     { focus: 'Legs (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Step-ups', 3, '15')] },
@@ -140,10 +140,10 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'Lower (Hypertrophy)', exercises: [s('Front squat', 4, '8'), s('Deadlift', 3, '6'), s('Walking lunges', 3, '12'), s('Leg extension', 3, '15'), s('Seated calf raise', 4, '20')] },
   ]],
   'upperlower:home': [[
-    { focus: 'Upper', exercises: [s('Push-ups', 4, '15-20'), s('Backpack rows', 4, '12'), s('Pike push-ups', 3, '10'), s('Doorway rows', 3, '12'), s('Chair dips', 3, '15'), s('Backpack curls', 3, '15')] },
-    { focus: 'Lower', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Wall sit', 3, '45s'), s('Single-leg glute bridge', 3, '12')] },
+    { focus: 'Upper', exercises: [s('Push-ups', 4, '15-20'), s('Backpack rows', 4, '12'), s('Pike push-ups', 3, '10'), s('Inverted row with straps', 3, '12'), s('Chair dips', 3, '15'), s('Backpack curls', 3, '15')] },
+    { focus: 'Lower', exercises: [s('Bodyweight squats', 4, '20'), s('Reverse lunges', 3, '15'), s('Glute bridges', 3, '20'), s('Split squats', 3, '45s'), s('Single-leg glute bridge', 3, '12')] },
     { focus: 'Upper (Advanced)', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Backpack rows', 4, '15'), s('Y-raise', 3, '15'), s('Chair dips', 3, '15')] },
-    { focus: 'Lower (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Step-ups', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Wall sit', 3, '60s')] },
+    { focus: 'Lower (Advanced)', exercises: [s('Bulgarian split squat (chair)', 3, '12'), s('Jump squats', 3, '15'), s('Step-ups', 3, '15'), s('Single-leg glute bridge', 3, '12'), s('Split squats', 3, '60s')] },
   ]],
   // Full-body: each day hits ALL major groups with ~2 movements each (chest, back, shoulders,
   // legs, biceps, triceps) ≈ 12 exercises. (Beginners are still trimmed by the level's exercise cap.)
@@ -153,15 +153,15 @@ const PROGRAMS: Record<string, DayTemplate[][]> = {
     { focus: 'Full-body C', exercises: [s('Flat dumbbell press', 4, '10'), s('Pec-deck fly', 3, '15'), s('T-bar row', 4, '10'), s('Straight-arm pulldown', 3, '15'), s('Arnold press', 3, '10'), s('Cable lateral raise', 3, '15'), s('Hack squat', 4, '12'), s('Walking lunges', 3, '12'), s('EZ-bar curl', 3, '10'), s('Cable overhead extension', 3, '12'), s('Leg extension', 3, '15'), s('Calf raise', 3, '20')] },
   ]],
   'fullbody:home': [[
-    { focus: 'Full-body A', exercises: [s('Push-ups', 4, '15-20'), s('Chair dips', 3, '15'), s('Backpack rows', 4, '15'), s('Doorway rows', 3, '12'), s('Pike push-ups', 3, '10'), s('Backpack curls', 3, '15'), s('Bodyweight squats', 4, '20'), s('Glute bridges', 3, '20'), s('Reverse lunges', 3, '15'), s('Wall sit', 3, '45s')] },
+    { focus: 'Full-body A', exercises: [s('Push-ups', 4, '15-20'), s('Chair dips', 3, '15'), s('Backpack rows', 4, '15'), s('Inverted row with straps', 3, '12'), s('Pike push-ups', 3, '10'), s('Backpack curls', 3, '15'), s('Bodyweight squats', 4, '20'), s('Glute bridges', 3, '20'), s('Reverse lunges', 3, '15'), s('Split squats', 3, '45s')] },
     { focus: 'Full-body B', exercises: [s('Diamond push-ups', 4, '12'), s('Wide push-ups', 3, '15'), s('Backpack rows', 4, '15'), s('Superman', 3, '15'), s('Pike push-ups', 3, '10'), s('Y-raise', 3, '15'), s('Bulgarian split squat (chair)', 3, '12'), s('Single-leg glute bridge', 3, '12'), s('Step-ups', 3, '15'), s('Towel curls', 3, '15')] },
-    { focus: 'Full-body C', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Doorway rows', 4, '12'), s('Reverse snow-angels', 3, '15'), s('Pike push-ups', 3, '12'), s('Backpack shrugs', 3, '20'), s('Jump squats', 3, '15'), s('Reverse lunges', 3, '15'), s('Wall sit', 3, '60s'), s('Backpack curls', 3, '15')] },
+    { focus: 'Full-body C', exercises: [s('Feet-elevated push-ups', 4, '12'), s('Archer push-ups', 3, '8'), s('Inverted row with straps', 4, '12'), s('Reverse snow-angels', 3, '15'), s('Pike push-ups', 3, '12'), s('Backpack shrugs', 3, '20'), s('Jump squats', 3, '15'), s('Reverse lunges', 3, '15'), s('Split squats', 3, '60s'), s('Backpack curls', 3, '15')] },
   ]],
 };
 
 const REST_DAY: ExerciseItem[] = [
-  c('Light walk', 1, '20-30 min'),
-  m('Full-body stretching', 1, '10 min'),
+  c('Walking on incline treadmill', 1, '20-30 min'),
+  m("World's greatest stretch", 1, '10 min'),
 ];
 
 const DISCLAIMER =
@@ -272,13 +272,13 @@ const EXTRA_POOL: Record<string, ExerciseItem[]> = {
   chest: [s('Push-ups', 3, '12-15'), s('Incline dumbbell press', 3, '12'), s('Cable fly', 3, '15'), s('Chest dips', 3, '10'), s('Dumbbell bench press', 3, '12'), s('Decline dumbbell press', 3, '10'), s('Machine chest press', 3, '12'), s('Pec-deck fly', 3, '15'), s('Incline cable press', 3, '12')],
   // (Face pull is a rear-delt/shoulder move - it lives in the shoulders pool, not here, or it steals a back-day slot.)
   back: [s('Lat pulldown', 3, '12'), s('Seated cable row', 3, '12'), s('Barbell row', 3, '10'), s('Superman', 3, '15'), s('T-bar row', 3, '10'), s('Single-arm dumbbell row', 3, '12'), s('Straight-arm pulldown', 3, '15'), s('Chest-supported row', 3, '12')],
-  shoulders: [s('Face pull', 3, '15'), s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
+  shoulders: [s('Cable rear delt row with rope', 3, '15'), s('Lateral raise', 3, '15'), s('Front raise', 3, '12'), s('Arnold press', 3, '12'), s('Dumbbell shoulder press', 3, '12'), s('Cable lateral raise', 3, '15'), s('Reverse pec-deck', 3, '15'), s('Machine shoulder press', 3, '10'), s('Upright row', 3, '12')],
   biceps: [s('Dumbbell curl', 3, '12'), s('Hammer curl', 3, '12'), s('Barbell curl', 3, '10'), s('Concentration curl', 3, '12'), s('Preacher curl', 3, '12'), s('Cable curl', 3, '12'), s('EZ-bar curl', 3, '10'), s('Incline dumbbell curl', 3, '12')],
-  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15'), s('Straight-bar pushdown', 3, '12'), s('Reverse-grip pushdown', 3, '12'), s('Tricep dips (machine)', 3, '12'), s('Tricep kickback (cable)', 3, '15')],
+  triceps: [s('Rope pushdown', 3, '15'), s('Bench dips', 3, '15'), s('Overhead extension', 3, '12'), s('Diamond push-ups', 3, '12'), s('Skull crushers', 3, '10'), s('Close-grip bench press', 3, '10'), s('Cable overhead extension', 3, '12'), s('Single-arm pushdown', 3, '15'), s('Straight-bar pushdown', 3, '12'), s('Reverse-grip pushdown', 3, '12'), s('Assisted triceps dip kneeling', 3, '12'), s('Tricep kickback (cable)', 3, '15')],
   legs: [s('Bodyweight squats', 3, '20'), s('Walking lunges', 3, '12'), s('Romanian deadlift', 3, '10'), s('Glute bridge', 3, '20'), s('Standing calf raise', 3, '20'), s('Leg press', 3, '15'), s('Back squat', 3, '10'), s('Leg curl', 3, '12'), s('Leg extension', 3, '15'), s('Hack squat', 3, '12'), s('Hip thrust', 3, '12')],
   // Ordered so any first three cover different trunk jobs: anti-extension (plank), anti-rotation (Pallof), flexion (reverse crunch);
   // then lateral control (side plank), stability (dead bug) and the harder loaded/hanging work.
-  core: [s('Plank', 3, '45s'), s('Pallof press', 3, '12 each side'), s('Reverse crunch', 3, '15'), s('Side plank', 3, '30s each side'), s('Dead bug', 3, '10 each side'), s('Cable crunch', 3, '15'), s('Ab wheel rollout', 3, '10'), s('Hanging leg raise', 3, '12'), s('Russian twist', 3, '20'), s('Bicycle crunch', 3, '20')],
+  core: [s('Plank', 3, '45s'), s('Band horizontal pallof press', 3, '12 each side'), s('Reverse crunch', 3, '15'), s('Side plank', 3, '30s each side'), s('Dead bug', 3, '10 each side'), s('Cable crunch', 3, '15'), s('Ab wheel rollout', 3, '10'), s('Hanging leg raise', 3, '12'), s('Russian twist', 3, '20'), s('Bicycle crunch', 3, '20')],
   cardio: [c('Jumping jacks', 3, '30s'), c('Mountain climbers', 3, '30s'), c('Burpees', 3, '10'), c('High knees', 3, '30s'), c('Skater jumps', 3, '20'), c('Squat jumps', 3, '15'), s('Kettlebell swings', 3, '15')],
 };
 
@@ -526,7 +526,7 @@ const CUE_RULES: Array<{ match: string[]; muscleGroup: string; cue: string }> = 
   },
   { match: ['push-up', 'push up', 'pushup'], muscleGroup: 'chest', cue: 'brace your core, keep a straight line head to heels' },
   { match: ['overhead', 'shoulder press', 'arnold', 'push press', 'military', 'upright row'], muscleGroup: 'shoulders', cue: 'brace your core, ribs down, press straight overhead' },
-  { match: ['lateral raise', 'front raise', 'rear-delt', 'reverse fly', 'reverse pec', 'y-raise', 'face pull', 'face-pull'], muscleGroup: 'shoulders', cue: 'lead with the elbows, no swinging' },
+  { match: ['lateral raise', 'front raise', 'rear-delt', 'rear delt', 'reverse fly', 'reverse pec', 'y-raise', 'y raise', 'face pull', 'face-pull', 'external shoulder rotation', 'shoulder tap'], muscleGroup: 'shoulders', cue: 'lead with the elbows, no swinging' },
   { match: ['pulldown', 'pull-up', 'pull up', 'pullup', 'chin-up', 'pullover', 'superman', 'back extension'], muscleGroup: 'back', cue: 'drive your elbows down, control the stretch' },
   { match: ['row'], muscleGroup: 'back', cue: 'flat back, pull to the ribs, squeeze the shoulder blades' },
   { match: ['shrug'], muscleGroup: 'traps', cue: 'lift straight up, no rolling, pause at the top' },
@@ -778,22 +778,22 @@ export function generateWeeklyWorkout(
 
 const DIET_FIRST_DAYS: DayTemplate[] = [
   { focus: 'Seated Mobility', exercises: [
-    m('Deep diaphragmatic breathing', 3, '2 min'),
-    m('Seated shoulder rolls', 2, '10 each way'),
-    m('Seated marching (gentle knee lift)', 2, '10 each side'),
-    m('Seated ankle pumps & circles', 2, '15 each foot'),
+    m('Hamstring stretch', 3, '2 min'),
+    m('Rear deltoid stretch', 2, '10 each way'),
+    m('Seated leg raise', 2, '10 each side'),
+    m('Ankle circles', 2, '15 each foot'),
   ] },
   { focus: 'Seated Upper Body', exercises: [
-    m('Seated arm circles', 2, '10 each way'),
-    m('Seated overhead reach & stretch', 2, '8'),
-    m('Wrist & finger stretches', 2, '30s'),
-    m('Deep diaphragmatic breathing', 2, '2 min'),
+    m('Rear deltoid stretch', 2, '10 each way'),
+    m('Overhead triceps stretch', 2, '8'),
+    m('Wrist circles', 2, '30s'),
+    m('Hamstring stretch', 2, '2 min'),
   ] },
   { focus: 'Gentle Stretch & Breathing', exercises: [
-    m('Seated neck rolls', 2, '5 each way'),
-    m('Seated gentle torso twist', 2, '8 each side'),
-    m('Seated forward reach (hamstring ease)', 2, '30s'),
-    m('Slow diaphragmatic breathing', 3, '2 min'),
+    m('Neck side stretch', 2, '5 each way'),
+    m('Band seated twist', 2, '8 each side'),
+    m('Hamstring stretch', 2, '30s'),
+    m('Neck side stretch', 3, '2 min'),
   ] },
 ];
 
@@ -805,13 +805,13 @@ const LIGHT_MOVEMENT_DAYS: DayTemplate[] = [
   ] },
   { focus: 'Standing Mobility', exercises: [
     s('Wall push-ups', 2, '10'),
-    m('Standing marching in place (low impact)', 2, '30s'),
-    m('Standing side bends (holding support)', 2, '8 each side'),
+    m('Glute bridge march', 2, '30s'),
+    m('Dumbbell side bend', 2, '8 each side'),
   ] },
   { focus: 'Walk + Gentle Strength', exercises: [
     c('Easy-paced walk (flat ground, self-paced)', 1, '10-20 min'),
     s('Seated leg extension (light, controlled)', 2, '10 each leg'),
-    m('Standing hip circles (holding support)', 2, '8 each way'),
+    m('Glute bridge march', 2, '8 each way'),
   ] },
 ];
 
@@ -843,7 +843,7 @@ export function generateStagedMovementPlan(
     if (isRest) {
       days.push({
         dayIndex: d, date, label: baseLabel ? `${baseLabel} · Rest` : 'Rest', focus: 'Rest & recovery', rest: true,
-        exercises: [m('Slow diaphragmatic breathing', 3, '3 min'), m('Gentle seated stretching', 1, '5 min')],
+        exercises: [m('Neck side stretch', 3, '3 min'), m('Neck side stretch', 1, '5 min')],
       });
     } else {
       const tmpl = templates[t % templates.length]!;
@@ -883,15 +883,15 @@ function focusRegion(focus: string): 'upper' | 'lower' | 'full' {
 function warmupFor(focus: string): ExerciseItem[] {
   const region = focusRegion(focus);
   const common = w('Light cardio (march/jog on spot)', '3 min');
-  if (region === 'upper') return [common, w('Arm circles & band pull-aparts', '2 × 15'), w('Scapular push-ups', '2 × 10'), w('Shoulder dislocates (band/towel)', '1 × 10')];
-  if (region === 'lower') return [common, w('Leg swings (front & side)', '2 × 10 each'), w('Bodyweight squats', '2 × 12'), w('Hip circles / world’s greatest stretch', '1 × 8')];
-  return [common, w('Jumping jacks', '2 × 20'), w('Bodyweight squats', '2 × 10'), w('Arm circles + hip openers', '1 × 10')];
+  if (region === 'upper') return [common, w('Shoulder tap', '2 × 15'), w('Scapular push-ups', '2 × 10'), w('Dumbbell lying external shoulder rotation', '1 × 10')];
+  if (region === 'lower') return [common, w('Glute bridge march', '2 × 10 each'), w('Bodyweight squats', '2 × 12'), w('Hip circles / world’s greatest stretch', '1 × 8')];
+  return [common, w('Jumping jacks', '2 × 20'), w('Bodyweight squats', '2 × 10'), w("World's greatest stretch", '1 × 10')];
 }
 
 function cooldownFor(focus: string): ExerciseItem[] {
   const region = focusRegion(focus);
-  const breathe = w('Slow diaphragmatic breathing', '2 min');
-  if (region === 'upper') return [w('Chest & doorway stretch', '2 × 30s'), w('Cross-body shoulder stretch', '2 × 30s'), breathe];
+  const breathe = w(region === 'upper' ? 'Neck side stretch' : 'Calf stretch with hands against wall', '2 × 30s');
+  if (region === 'upper') return [w('Chest & doorway stretch', '2 × 30s'), w('Rear deltoid stretch', '2 × 30s'), breathe];
   if (region === 'lower') return [w('Standing quad & hamstring stretch', '2 × 30s'), w('Hip flexor & glute stretch', '2 × 30s'), breathe];
   return [w('Full-body forward fold + child’s pose', '2 × 30s'), w('Standing quad stretch', '2 × 30s'), breathe];
 }
@@ -902,7 +902,7 @@ function cardioFor(intensity: IntensityPreference, medicalCaution?: boolean): Ex
   if (allowHiit) {
     return { name: 'HIIT conditioning (e.g. 30s hard / 90s easy)', sets: 1, reps: '6 rounds', type: 'cardio', cue: 'keep form clean; stop if dizzy or in pain', muscleGroup: 'full body', equipment: 'bodyweight' };
   }
-  return { name: 'Steady-state cardio (brisk walk/cycle)', sets: 1, reps: '15-20 min', type: 'cardio', cue: 'a pace you can hold a conversation at', muscleGroup: 'full body', equipment: 'bodyweight' };
+  return { name: 'Steady-state cardio (stationary bike walk)', sets: 1, reps: '15-20 min', type: 'cardio', cue: 'a pace you can hold a conversation at', muscleGroup: 'full body', equipment: 'bodyweight' };
 }
 
 /**
@@ -923,9 +923,9 @@ const DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Mountain climber', sets: 3, reps: '30s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Dead bug', sets: 3, reps: '10 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Flutter kicks', sets: 3, reps: '20', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
-  { name: 'V-up', sets: 3, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Jackknife sit-up', sets: 3, reps: '12', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
   { name: 'Side plank', sets: 3, reps: '30s each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
-  { name: 'Hollow body hold', sets: 3, reps: '20s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
+  { name: 'Reverse plank with leg lift', sets: 3, reps: '20s', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
 ];
 const GENTLE_DAILY_ABS_POOL: ExerciseItem[] = [
   { name: 'Dead bug (slow, controlled)', sets: 2, reps: '8 each side', type: 'strength', muscleGroup: 'core', equipment: 'bodyweight' },
