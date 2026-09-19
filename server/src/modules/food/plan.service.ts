@@ -115,7 +115,8 @@ export async function generateAndSavePlan(
   const variant = await prisma.dietPlan.count({ where: { userId } });
   const week = generateWeekPlan(foods.map(toFoodItem), targets, prefs, {
     variant,
-    days,
+    // On a Saturday tomorrow is next week's Sunday: plan that 8th day too so "Tomorrow" always has meals.
+    days: localToday(tzOffsetMin).getUTCDay() === 6 ? days + 1 : days,
     startDate: localSunday(tzOffsetMin),
     today: localToday(tzOffsetMin),
     fastDayOfWeek: sensitive.fastDayOfWeek,
@@ -134,6 +135,25 @@ export async function generateAndSavePlan(
   });
 
   return { id: saved.id, createdAt: saved.createdAt, ...week, flags: calc.flags };
+}
+
+/**
+ * Rebuilds ONLY today's and tomorrow's meals with fresh choices; every other day of the stored week (and the grocery list built
+ * from it) stays exactly as it was. Targets refresh to the latest calorie target.
+ */
+export async function regenerateTodayTomorrow(userId: string, tzOffsetMin = 0) {
+  const previous = await prisma.dietPlan.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } });
+  const fresh = await generateAndSavePlan(userId, 7, tzOffsetMin);
+  if (!previous) return fresh;
+  const todayKey = localToday(tzOffsetMin).toISOString().slice(0, 10);
+  const tomorrowKey = new Date(localToday(tzOffsetMin).getTime() + 86_400_000).toISOString().slice(0, 10);
+  const oldByDate = new Map((previous.days as unknown as DayPlan[]).map((d) => [d.date, d]));
+  const merged = (fresh.days as DayPlan[]).map((d) => {
+    const keepFresh = d.date === todayKey || d.date === tomorrowKey || !d.date;
+    return keepFresh ? d : (oldByDate.get(d.date) ?? d);
+  });
+  await prisma.dietPlan.update({ where: { id: fresh.id }, data: { days: merged as unknown as object } });
+  return { ...fresh, days: merged };
 }
 
 /**

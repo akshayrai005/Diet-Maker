@@ -177,11 +177,6 @@ fun PremiumDashboard(
             }
         }
 
-        // Phase plan — which stage of the stated timeline you're in (fat-loss/shape/muscle).
-        d.phasePlan?.let { phase ->
-            item { Column(sectionPadding) { PhasePlanCard(phase) } }
-        }
-
         // Domain cards — 2x2 grid, NO scrolling
         item {
             Column(sectionPadding) {
@@ -223,32 +218,9 @@ fun PremiumDashboard(
             }
         }
 
-        // Plan Tomorrow shortcut
-        item {
-            Column(sectionPadding) {
-                Card(
-                    Modifier.fillMaxWidth().clickable(onClick = onOpenPlan),
-                    shape = RoundedCornerShape(SharpRadius),
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Text("📅 Plan Tomorrow", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text(
-                                "Set workout + diet adapts automatically",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text("→", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
+        // Phase plan (right after "Plan Tomorrow") — which stage of the stated timeline you're in (fat-loss/shape/muscle).
+        d.phasePlan?.let { phase ->
+            item { Column(sectionPadding) { PhasePlanCard(phase) } }
         }
 
         // Vitamins (above Insight)
@@ -259,13 +231,6 @@ fun PremiumDashboard(
                         VitaminsRow(mn = mn, expanded = showVitamins, onToggle = { showVitamins = !showVitamins })
                     }
                 }
-            }
-        }
-
-        // Vitals (above Insight)
-        item {
-            Column(sectionPadding) {
-                VitalsRow(sleepHours = sleepHours, bloodPressure = bloodPressure, onEdit = { editingVitals = true })
             }
         }
 
@@ -288,6 +253,12 @@ fun PremiumDashboard(
         }
 
         if (showMoreInsights) {
+            // Sleep & BP is secondary: it lives down here now (edit it here or in Profile -> Vitals).
+            item {
+                Column(sectionPadding) {
+                    VitalsRow(sleepHours = sleepHours, bloodPressure = bloodPressure, onEdit = { editingVitals = true })
+                }
+            }
             // Insight
             if (rating != null || coach != null) {
                 item {

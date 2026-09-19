@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { generateAndSavePlan, latestPlan, swapMeal } from './plan.service';
+import { generateAndSavePlan, regenerateTodayTomorrow, latestPlan, swapMeal } from './plan.service';
 import { tzOffsetMin } from '../../lib/tz';
 import { prisma } from '../../lib/prisma';
 import { searchUsda, type FoodSearchItem } from './usda';
@@ -25,7 +25,10 @@ planRouter.post(
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
     const { days } = genSchema.parse(req.body ?? {});
-    const plan = await generateAndSavePlan(req.user!.id, days ?? 7, tzOffsetMin(req));
+    // days <= 2 means "just today and tomorrow": rebuild those two days and leave the rest of the week alone.
+    const plan = days !== undefined && days <= 2
+      ? await regenerateTodayTomorrow(req.user!.id, tzOffsetMin(req))
+      : await generateAndSavePlan(req.user!.id, days ?? 7, tzOffsetMin(req));
     res.status(201).json({ plan });
   }),
 );

@@ -123,6 +123,7 @@ fun LogScreen(
     val scope = rememberCoroutineScope()
     var pendingQty by remember { mutableStateOf<PendingQty?>(null) }
     var showCustom by remember { mutableStateOf(false) }
+    var quickTab by remember { mutableStateOf(0) }
     var showBarcode by remember { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -197,72 +198,84 @@ fun LogScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
-        // Header — single line with count
+        // Header card: theme gradient with the title and how many foods are logged today.
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("📝 Log Food", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                if (state.today.isNotEmpty()) {
-                    Text("✅ ${state.today.size} logged", style = MaterialTheme.typography.labelSmall, color = BrandGreenDeep, fontWeight = FontWeight.SemiBold)
-                }
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("📝 Log Food", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Text(
+                    if (state.today.isNotEmpty()) "✅ ${state.today.size} logged today" else "Nothing logged yet",
+                    style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.92f), fontWeight = FontWeight.SemiBold,
+                )
             }
         }
 
-        // Search + voice + barcode in one row
+        // ONE card for adding food: search (+ barcode) on top, then snap / gallery / custom.
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                SearchField(
-                    query = state.query,
-                    onQuery = { viewModel.onQuery(it) },
-                    onSearch = { viewModel.search(state.query) },
-                    modifier = Modifier.weight(1f),
-                )
-                // Barcode scanner button
-                Card(
-                    shape = Sharp,
-                    colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.15f)),
-                    border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.3f)),
-                    modifier = Modifier.size(48.dp).clickable { showBarcode = true },
-                ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan barcode", tint = BrandAmber, modifier = Modifier.size(24.dp))
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                elevation = CardDefaults.cardElevation(0.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+            ) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("➕ Add food", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                    SearchField(
+                        query = state.query,
+                        onQuery = { viewModel.onQuery(it) },
+                        onSearch = { viewModel.search(state.query) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Barcode scanner button
+                    Card(
+                        shape = Sharp,
+                        colors = CardDefaults.cardColors(containerColor = BrandAmber.copy(alpha = 0.15f)),
+                        border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.3f)),
+                        modifier = Modifier.size(48.dp).clickable { showBarcode = true },
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.QrCodeScanner, contentDescription = "Scan barcode", tint = BrandAmber, modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
-            }
-        }
-
-        // Action row: Snap + Photo — compact
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                SpectrumButton(
-                    onClick = { snapMeal() },
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    shape = Sharp,
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                    enabled = !state.analyzing,
-                ) {
-                    if (!state.analyzing) Icon(Icons.Filled.PhotoCamera, null, Modifier.size(14.dp))
-                    Spacer(Modifier.size(4.dp))
-                    Text(if (state.analyzing) "Analyzing..." else "Snap meal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    SpectrumButton(
+                        onClick = { snapMeal() },
+                        modifier = Modifier.weight(1f).height(36.dp),
+                        shape = Sharp,
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                        enabled = !state.analyzing,
+                    ) {
+                        if (!state.analyzing) Icon(Icons.Filled.PhotoCamera, null, Modifier.size(14.dp))
+                        Spacer(Modifier.size(4.dp))
+                        Text(if (state.analyzing) "Analyzing..." else "Snap meal", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedButton(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f).height(36.dp),
+                        shape = Sharp,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(14.dp))
+                        Spacer(Modifier.size(4.dp))
+                        Text("Gallery", style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = { showCustom = true },
+                        modifier = Modifier.weight(1f).height(36.dp),
+                        shape = Sharp,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+                    ) {
+                        Text("+ Custom", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
+                    }
                 }
-                OutlinedButton(
-                    onClick = { galleryLauncher.launch("image/*") },
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    shape = Sharp,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                ) {
-                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(14.dp))
-                    Spacer(Modifier.size(4.dp))
-                    Text("Gallery", style = MaterialTheme.typography.labelSmall)
-                }
-                OutlinedButton(
-                    onClick = { showCustom = true },
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    shape = Sharp,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                ) {
-                    Text("+ Custom", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -273,36 +286,6 @@ fun LogScreen(
             items(state.photoItems, key = { it.name + it.grams }) { it2 ->
                 DetectedItemCard(it2, onAdd = { viewModel.logVisionItem(it2) })
             }
-        }
-
-        // Recent — inline chips
-        if (state.recents.isNotEmpty()) {
-            item {
-                Text("🔄 Recent", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                QuickRow(names = state.recents.map { it.name }) { idx ->
-                    val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) }
-                }
-            }
-        }
-
-        // Saved — inline chips
-        if (state.saved.isNotEmpty()) {
-            item {
-                Text("⭐ Saved", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                QuickRow(names = state.saved.map { it.name }) { idx ->
-                    val s = state.saved[idx]; pendingQty = PendingQty(s.name, s.kcal) { g -> viewModel.logSaved(s, g) }
-                }
-            }
-        }
-
-        // High-protein quick reference
-        item {
-            HighProteinSection(
-                proteinLoggedToday = state.today.sumOf { it.proteinG },
-                onAdd = { food -> pendingFood = food },
-            )
         }
 
         // Status message
@@ -327,6 +310,56 @@ fun LogScreen(
             }
         }
 
+        // Quick add: your recent and saved foods, one list at a time.
+        if (state.recents.isNotEmpty() || state.saved.isNotEmpty()) {
+            item {
+                val tabs = buildList { if (state.recents.isNotEmpty()) add("🔄 Recent") ; if (state.saved.isNotEmpty()) add("⭐ Saved") }
+                val active = quickTab.coerceIn(0, tabs.size - 1)
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("⚡ Quick add", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        if (tabs.size > 1) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                tabs.forEachIndexed { i, label ->
+                                    val on = i == active
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(50))
+                                            .background(if (on) com.nutriai.ui.theme.SpectrumBrush else androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.surfaceVariant))
+                                            .clickable { quickTab = i }
+                                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                                    ) { Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant) }
+                                }
+                            }
+                        }
+                        if (tabs[active].endsWith("Recent")) {
+                            QuickRow(names = state.recents.map { it.name }) { idx ->
+                                val r = state.recents[idx]; pendingQty = PendingQty(r.name, r.per100g.kcal) { g -> viewModel.logRecent(r, g) }
+                            }
+                        } else {
+                            QuickRow(names = state.saved.map { it.name }) { idx ->
+                                val sv = state.saved[idx]; pendingQty = PendingQty(sv.name, sv.kcal) { g -> viewModel.logSaved(sv, g) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // High-protein quick reference
+        item {
+            HighProteinSection(
+                proteinLoggedToday = state.today.sumOf { it.proteinG },
+                onAdd = { food -> pendingFood = food },
+            )
+        }
+
         // Today's log
         if (state.today.isNotEmpty()) {
             val totalKcal = state.today.sumOf { it.kcal }
@@ -341,8 +374,8 @@ fun LogScreen(
                     Modifier.fillMaxWidth(),
                     shape = Sharp,
                     elevation = CardDefaults.cardElevation(2.dp),
-                    border = BorderStroke(1.dp, KaizenLavender.copy(alpha = 0.2f)),
-                    colors = CardDefaults.cardColors(containerColor = CardLavenderLight),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                 ) {
                     Column(Modifier.padding(Spacing.sm)) {
                         state.today.forEachIndexed { index, entry ->
@@ -692,7 +725,7 @@ private fun DetectedItemCard(item: VisionFoodItem, onAdd: () -> Unit) {
         shape = Sharp,
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, KaizenLavender.copy(alpha = 0.2f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("🤖", fontSize = 12.sp)

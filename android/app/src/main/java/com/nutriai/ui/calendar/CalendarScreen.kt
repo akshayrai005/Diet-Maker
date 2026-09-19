@@ -274,7 +274,7 @@ class CalendarViewModel @Inject constructor(
     fun regenerate() {
         _state.value = _state.value.copy(loading = true)
         viewModelScope.launch {
-            repository.generatePlan()
+            repository.generatePlan(days = 2) // just today and tomorrow
             load()
         }
     }
@@ -374,16 +374,6 @@ fun CalendarScreen(
             }
         }
 
-        state.adaptation?.takeIf { it.status != "insufficient_data" }?.let { adapt ->
-            item {
-                AdaptiveInsightCard(
-                    adaptation = adapt,
-                    applying = state.applying,
-                    onApply = { viewModel.applyAdaptation() },
-                )
-            }
-        }
-
         // Menstrual-cycle section (renders only for female profiles).
         item { com.nutriai.ui.cycle.CycleSection() }
 
@@ -430,7 +420,7 @@ fun CalendarScreen(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                state.dietDays.forEach { day ->
+                                state.dietDays.filter { it.label == "Today" || it.label == "Tomorrow" }.forEach { day ->
                                     DayPill(
                                         label = day.label,
                                         date = day.date,
@@ -447,7 +437,7 @@ fun CalendarScreen(
                                 title = "Suggested Plan",
                                 emoji = "🍲",
                                 action = {
-                                    TextAction(text = "🔄 Regenerate week", onClick = { viewModel.regenerate() })
+                                    TextAction(text = "🔄 Regenerate", onClick = { viewModel.regenerate() })
                                 },
                             )
                             Text(
@@ -541,6 +531,7 @@ fun CalendarScreen(
                         DayTotalTile(Modifier.weight(1f), "💪", "${dietDay.totals.proteinG.toInt()}g", "Protein", NutritionColor, com.nutriai.ui.theme.CardGreenLight)
                         DayTotalTile(Modifier.weight(1f), "🌾", "${dietDay.totals.carbG.toInt()}g", "Carbs", BrandAmber, com.nutriai.ui.theme.CardAmberLight)
                         DayTotalTile(Modifier.weight(1f), "🥑", "${dietDay.totals.fatG.toInt()}g", "Fat", KaizenCoral, com.nutriai.ui.theme.CardCoralLight)
+                        DayTotalTile(Modifier.weight(1f), "🥬", "${dietDay.totals.fiberG.toInt()}g", "Fibre", com.nutriai.ui.theme.KaizenTeal, com.nutriai.ui.theme.CardTealLight)
                     }
                 }
             }
@@ -549,6 +540,17 @@ fun CalendarScreen(
         // Personalized guidance — shown BELOW diet content
         state.guidance?.takeIf { it.dietTips.isNotEmpty() || it.exerciseTips.isNotEmpty() }?.let { g ->
             item { GuidanceCard(g) }
+        }
+
+        // Coach insight lives at the bottom: the plan comes first, the advice after.
+        state.adaptation?.takeIf { it.status != "insufficient_data" }?.let { adapt ->
+            item {
+                AdaptiveInsightCard(
+                    adaptation = adapt,
+                    applying = state.applying,
+                    onApply = { viewModel.applyAdaptation() },
+                )
+            }
         }
 
         item {
@@ -700,6 +702,7 @@ private fun FoodDetailDialog(item: com.nutriai.data.remote.dto.MealItem, onRecip
                 DetailRow("💪 Protein", "${item.proteinG.toInt()} g", NutritionColor)
                 DetailRow("🌾 Carbs", "${item.carbG.toInt()} g", BrandAmber)
                 DetailRow("🥑 Fat", "${item.fatG.toInt()} g", KaizenCoral)
+                DetailRow("🥬 Fibre", "${"%.1f".format(item.fiberG)} g", com.nutriai.ui.theme.KaizenTeal)
             }
         },
         confirmButton = {

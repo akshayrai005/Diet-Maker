@@ -160,7 +160,7 @@ class AppRepository @Inject constructor(
         }
     }
 
-    suspend fun generatePlan(): Result<PlanDto?> = runCatching { api.generatePlan(mapOf("days" to 7)).plan }
+    suspend fun generatePlan(days: Int = 7): Result<PlanDto?> = runCatching { api.generatePlan(mapOf("days" to days)).plan }
 
     suspend fun swapMeal(dayIndex: Int, slot: String): Result<PlanDto?> = runCatching {
         api.swapMeal(com.nutriai.data.remote.dto.SwapMealRequest(dayIndex, slot)).plan
