@@ -4,6 +4,11 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
@@ -95,17 +100,26 @@ fun ExerciseDemo(
                     ) { GifImage(url = url, onError = { failed = true }) }
                     val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
                     val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty() }
-                    Text(
-                        listOfNotNull(muscleGroup?.replaceFirstChar { it.uppercase() }?.let { "Main: $it" }, secondary.takeIf { it.isNotEmpty() }?.let { "Also: " + it.joinToString(", ") { m -> m.replace('-', ' ') } }).joinToString("  ·  "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    GuideTable(
+                        headers = listOf("Main muscle", "Also works"),
+                        rows = listOf(listOf(muscleGroup?.replaceFirstChar { it.uppercase() } ?: "-", secondary.takeIf { it.isNotEmpty() }?.joinToString(", ") { m -> m.replace('-', ' ') } ?: "-")),
+                        weights = listOf(0.4f, 0.6f),
                     )
-                    Text("How to perform", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    guide.steps.forEachIndexed { i, step -> Text("${i + 1}. $step", style = MaterialTheme.typography.bodySmall) }
-                    Text("Common mistakes", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    guide.mistakes.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
-                    Text("Safety", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Text(guide.safety, style = MaterialTheme.typography.bodySmall)
+                    GuideTable(
+                        headers = listOf("Step", "How to perform"),
+                        rows = guide.steps.mapIndexed { i, step -> listOf("${i + 1}", step) },
+                        weights = listOf(0.16f, 0.84f),
+                    )
+                    GuideTable(
+                        headers = listOf("#", "Common mistakes"),
+                        rows = guide.mistakes.mapIndexed { i, m -> listOf("${i + 1}", m) },
+                        weights = listOf(0.16f, 0.84f),
+                    )
+                    GuideTable(
+                        headers = listOf("Safety"),
+                        rows = listOf(listOf(guide.safety)),
+                        weights = listOf(1f),
+                    )
                     Text(
                         "General guidance, not medical advice. Demo GIFs: free community set (ExerciseGymGifsDB).",
                         style = MaterialTheme.typography.labelSmall,
@@ -146,5 +160,36 @@ private fun GifImage(url: String, onError: () -> Unit, showSpinner: Boolean = tr
             },
         )
         if (loading && showSpinner) androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+    }
+}
+
+/** A bordered table: shaded header row, every cell boxed, columns sized by [weights]. */
+@Composable
+private fun GuideTable(headers: List<String>, rows: List<List<String>>, weights: List<Float>) {
+    val line = Color(0xFF5C6B7A)
+    @Composable
+    fun tableRow(cells: List<String>, header: Boolean) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            cells.forEachIndexed { i, text ->
+                Box(
+                    Modifier
+                        .weight(weights[i])
+                        .fillMaxHeight()
+                        .background(if (header) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent)
+                        .border(0.8.dp, line)
+                        .padding(horizontal = 6.dp, vertical = 5.dp),
+                ) {
+                    Text(
+                        text,
+                        style = if (header) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
+                        fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
+                    )
+                }
+            }
+        }
+    }
+    Column(Modifier.fillMaxWidth()) {
+        tableRow(headers, header = true)
+        rows.forEach { tableRow(it, header = false) }
     }
 }
