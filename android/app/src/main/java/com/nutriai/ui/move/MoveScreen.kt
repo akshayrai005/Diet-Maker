@@ -242,7 +242,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
     }
 
     /** Refreshes what's actually been logged today, for the planned-vs-actual adherence chip. */
-    private fun refreshTodayLogged() {
+    fun refreshTodayLogged() {
         viewModelScope.launch {
             val names = repository.exerciseLogs(null).getOrDefault(emptyList()).map { it.exerciseName.lowercase().trim() }.toSet()
             _state.value = _state.value.copy(todayLoggedNames = names)
@@ -307,7 +307,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             val r = repository.logExercise(
                 ExerciseLogRequest(
                     exerciseName = name, focus = focus, weightKg = weightKg, reps = reps, sets = sets,
-                    durationMin = durationMin, sessionId = sessionId, performedAt = performedAtDate?.let { "${it}T12:00:00" },
+                    durationMin = durationMin, sessionId = sessionId, performedAt = performedAtIso(performedAtDate),
                 ),
             )
             com.nutriai.ui.components.LogFeedback.done(r.isSuccess, "Logged")
@@ -352,7 +352,7 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
                         durationMin = s.durationMin,
                         notes = s.note,
                         sessionId = sessionId,
-                        performedAt = performedAtDate?.let { "${it}T12:00:00" },
+                        performedAt = performedAtIso(performedAtDate),
                         speedKmh = s.speedKmh,
                         inclinePct = s.inclinePct,
                         distanceKm = s.distanceKm,
@@ -404,6 +404,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     // a still-alive process never re-triggers init{}. Cheap: no-op unless the date actually moved.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshIfNewDay()
+        viewModel.refreshTodayLogged() // ticks reflect deletes made on the Log tab too
         onPauseOrDispose {}
     }
     val plan = state.plan
@@ -1448,6 +1449,18 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
             }
         }
     }
+}
+
+/**
+ * The timestamp to log against. Today (or no date) -> null so the server stamps the real time (which keeps the 4 am eating day right);
+ * another day -> local noon of that day as a full UTC instant, which is the only form the server accepts.
+ */
+private fun performedAtIso(date: String?): String? {
+    if (date.isNullOrBlank()) return null
+    val day = runCatching { java.time.LocalDate.parse(date) }.getOrNull() ?: return null
+    val eatingToday = java.time.LocalDateTime.now().minusHours(4).toLocalDate()
+    if (day == eatingToday || day == java.time.LocalDate.now()) return null
+    return day.atTime(12, 0).atZone(java.time.ZoneId.systemDefault()).toInstant().toString()
 }
 
 private fun trimKg(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()

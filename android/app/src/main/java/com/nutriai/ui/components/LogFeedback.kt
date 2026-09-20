@@ -78,7 +78,8 @@ object LogFeedback {
     }
 }
 
-private val TickGreen = Color(0xFF1DB954)
+/** The confirmation tick follows the app theme (it used to be a fixed green). */
+private val TickGreen: Color get() = com.nutriai.ui.theme.AppPalette.primary
 
 @Composable
 fun LogFeedbackHost() {
