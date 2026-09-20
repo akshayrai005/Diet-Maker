@@ -76,6 +76,8 @@ fun DietScreen(
     logFoodViewModel: com.nutriai.ui.home.LogFoodViewModel = hiltViewModel(),
 ) {
     var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
+    // Back goes from Log / Recipes to Today before it leaves the Nutrition tab.
+    androidx.activity.compose.BackHandler(enabled = section != 0) { section = 0 }
     val dashboard by summaryViewModel.dashboard.collectAsStateWithLifecycle()
     val refreshAfterLog: () -> Unit = { summaryViewModel.load(); logFoodViewModel.loadToday() }
 

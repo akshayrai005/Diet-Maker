@@ -349,7 +349,7 @@ class LogFoodViewModel @Inject constructor(
     val slots = listOf("breakfast", "midmorning", "lunch", "eveningsnack", "dinner", "bedtime")
 
     init {
-        search("")
+        // No food list until the user searches (an empty search used to dump the whole database on open).
         loadToday()
         loadExtras()
     }

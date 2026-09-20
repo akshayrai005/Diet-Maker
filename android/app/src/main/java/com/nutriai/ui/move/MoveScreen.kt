@@ -113,6 +113,8 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     val builderGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { SessionStore.refresh(ctx) }
     // After choosing what to train, land in the Library on that body part (its Upper / Middle / Lower cards).
+    // Back steps out one level at a time: Library / Log go back to Today before leaving the Move tab.
+    androidx.activity.compose.BackHandler(enabled = section != 0) { section = 0 }
     LaunchedEffect(wantBuilder) {
         if (wantBuilder && builderGroups.isNotEmpty()) {
             section = 1
@@ -503,41 +505,44 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         }
 
         // Today's session: what the user picked at the check-in (kept until 4 am), with a quick way to add more.
-        if (sessionPicks.isNotEmpty() || sessionGroups.isNotEmpty()) {
-            item(span = { GridItemSpan(2) }) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (sessionPicks.isNotEmpty()) {
-                            Text(
-                                "Clear",
-                                Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable { SessionStore.clearPicks(ctx) }.padding(horizontal = 12.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
-                            )
-                        }
+        item(span = { GridItemSpan(2) }) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (sessionPicks.isNotEmpty()) {
                         Text(
-                            "＋ Add more",
-                            Modifier.clip(RoundedCornerShape(50)).background(SpectrumBrush).clickable { showPicker = true }.padding(horizontal = 12.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
+                            "Clear",
+                            Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable { SessionStore.clearPicks(ctx) }.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
                         )
                     }
+                    Text(
+                        "＋ Add",
+                        Modifier.clip(RoundedCornerShape(50)).background(SpectrumBrush).clickable { showPicker = true }.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
+                    )
                 }
             }
-            if (sessionPicks.isNotEmpty()) exerciseCards(sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
-        } else {
-            item(span = { GridItemSpan(2) }) {
-                Box(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(SpectrumBrush).clickable { showPicker = true }.padding(14.dp),
-                    contentAlignment = Alignment.Center,
-                ) { Text("🎯 What are you training today?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White) }
-            }
         }
-
-        item(span = { GridItemSpan(2) }) { StrengthTrendSection(Modifier.padding(top = Spacing.xs)) }
-
-        plan?.disclaimer?.takeIf { it.isNotBlank() }?.let { d ->
-            item(span = { GridItemSpan(2) }) {
-                Text(d, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs))
+        // Ten slots. The exercises you add fill them in order, first pick on the first card; the rest stay plain and empty.
+        val picked = sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }
+        val slotCount = maxOf(10, picked.size)
+        items(slotCount) { i ->
+            val ex = picked.getOrNull(i)
+            if (ex != null) {
+                ExerciseGridCard(ex = ex, onClick = { logTarget = ex }, done = ex.name.lowercase().trim() in state.todayLoggedNames)
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().height(226.dp).clip(RoundedCornerShape(12.dp)).background(Color.White)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                        .clickable { showPicker = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("${i + 1}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
+                        Text("Empty", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                    }
+                }
             }
         }
     }
@@ -594,6 +599,14 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
     val results = remember(query, category, equipment, sub) {
         ExerciseCatalog.search(query, category, equipment).let { list -> if (sub == null || sub == ALL_REGIONS) list else list.filter { SubParts.classify(category, it.name) == sub } }
+    }
+    // Back inside the Library: search text -> region -> body part -> the muscle picker (only then does Back leave the Library).
+    androidx.activity.compose.BackHandler(enabled = query.isNotEmpty() || sub != null || category != ExerciseCatalog.Category.ALL) {
+        when {
+            query.isNotEmpty() -> query = ""
+            sub != null -> sub = null
+            else -> category = ExerciseCatalog.Category.ALL
+        }
     }
     val typed = query.trim()
     val hasExactName = results.any { it.name.equals(typed, ignoreCase = true) }

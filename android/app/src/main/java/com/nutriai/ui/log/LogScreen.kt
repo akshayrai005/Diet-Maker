@@ -124,6 +124,7 @@ fun LogScreen(
     var pendingQty by remember { mutableStateOf<PendingQty?>(null) }
     var showCustom by remember { mutableStateOf(false) }
     var quickTab by remember { mutableStateOf(0) }
+    var todayOpen by remember { mutableStateOf(false) }
     var showBarcode by remember { mutableStateOf(false) }
     var cameraUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -199,17 +200,43 @@ fun LogScreen(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Spacing.md),
     ) {
         // Header card: theme gradient with the title and how many foods are logged today.
+        // ONE section: the Log Food header is also the fold-away toggle for today's log (folded until tapped, nothing to open when empty).
         item {
+            val logged = state.today.isNotEmpty()
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(com.nutriai.ui.theme.SpectrumBrush)
+                    .clickable(enabled = logged) { todayOpen = !todayOpen }.padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("📝 Log Food", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Column {
+                    Text("📝 Log Food", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                    if (logged) Text("🔥 ${state.today.sumOf { it.kcal }.toInt()} kcal today", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.92f))
+                }
                 Text(
-                    if (state.today.isNotEmpty()) "✅ ${state.today.size} logged today" else "Nothing logged yet",
-                    style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.92f), fontWeight = FontWeight.SemiBold,
+                    if (logged) "✅ ${state.today.size} logged  ${if (todayOpen) "▲" else "▼"}" else "Nothing logged yet",
+                    style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.95f), fontWeight = FontWeight.SemiBold,
                 )
+            }
+        }
+
+        // Today's log (the list under the header above)
+        if (state.today.isNotEmpty()) {
+            if (todayOpen) item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = Sharp,
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                ) {
+                    Column(Modifier.padding(Spacing.sm)) {
+                        state.today.forEachIndexed { index, entry ->
+                            LogEntryRow(entry, onDelete = { viewModel.delete(entry.id) })
+                            if (index != state.today.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                        }
+                    }
+                }
             }
         }
 
@@ -231,6 +258,14 @@ fun LogScreen(
                         onSearch = { viewModel.search(state.query) },
                         modifier = Modifier.weight(1f),
                     )
+                    // Search button: results only appear after this (or the keyboard's search key) - nothing loads before that.
+                    Box(
+                        Modifier.height(52.dp).clip(RoundedCornerShape(10.dp)).background(com.nutriai.ui.theme.SpectrumBrush)
+                            .clickable(enabled = state.query.isNotBlank()) { viewModel.search(state.query) }.padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("Search", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = if (state.query.isNotBlank()) 1f else 0.6f))
+                    }
                     // Barcode scanner button
                     Card(
                         shape = Sharp,
@@ -303,7 +338,7 @@ fun LogScreen(
         }
 
         // Results
-        if (state.results.isNotEmpty()) {
+        if (state.query.isNotBlank() && state.results.isNotEmpty()) {
             item { Text("🔍 Results", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
             items(state.results, key = { it.id }) { food ->
                 ResultCard(food = food, onAdd = { pendingFood = food }, onFavorite = { viewModel.favorite(food) })
@@ -360,32 +395,6 @@ fun LogScreen(
             )
         }
 
-        // Today's log
-        if (state.today.isNotEmpty()) {
-            val totalKcal = state.today.sumOf { it.kcal }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("📝 Today's log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    Text("🔥 ${totalKcal.toInt()} kcal", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = BrandGreenDeep)
-                }
-            }
-            item {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                ) {
-                    Column(Modifier.padding(Spacing.sm)) {
-                        state.today.forEachIndexed { index, entry ->
-                            LogEntryRow(entry, onDelete = { viewModel.delete(entry.id) })
-                            if (index != state.today.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

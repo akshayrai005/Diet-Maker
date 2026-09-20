@@ -507,29 +507,33 @@ fun CalendarScreen(
                                 }
                             }
                             Spacer(Modifier.height(Spacing.sm))
-                            // Table header — 3 columns only
-                            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)).background(mealColor.copy(alpha = 0.1f)).padding(horizontal = Spacing.sm, vertical = 6.dp)) {
-                                Text("Item", Modifier.weight(3f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor)
-                                Text("Amount", Modifier.weight(1.2f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
-                                Text("Cal", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.End)
-                            }
-                            meal.items.forEachIndexed { i, mi ->
-                                Row(
-                                    Modifier.fillMaxWidth().clickable { detailItem = mi }.padding(horizontal = Spacing.sm, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(mi.name, Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
-                                    Text("${mi.grams.toInt()} g", Modifier.weight(1.2f), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("${mi.kcal.toInt()}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen, textAlign = TextAlign.End)
+                            // A proper bordered table: centred header, every row ruled, fixed-width Amount / Cal columns.
+                            val grid = mealColor.copy(alpha = 0.35f)
+                            val wItem = 3.2f; val wAmt = 1.3f; val wCal = 1.1f
+                            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, grid, RoundedCornerShape(10.dp))) {
+                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(mealColor.copy(alpha = 0.14f)), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Item", Modifier.weight(wItem).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
+                                    Text("Amount", Modifier.weight(wAmt).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
+                                    Text("Cal", Modifier.weight(wCal).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
                                 }
-                                if (i != meal.items.lastIndex) HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
-                            }
-                            // Meal total row
-                            HorizontalDivider(color = mealColor.copy(alpha = 0.3f), thickness = 1.dp)
-                            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = 6.dp)) {
-                                Text("Total", Modifier.weight(3f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.weight(1.2f))
-                                Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = BrandGreen, textAlign = TextAlign.End)
+                                meal.items.forEach { mi ->
+                                    HorizontalDivider(color = grid)
+                                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clickable { detailItem = mi }, verticalAlignment = Alignment.CenterVertically) {
+                                        Text(mi.name, Modifier.weight(wItem).padding(horizontal = 10.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
+                                        Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
+                                        Text("${mi.grams.toInt()} g", Modifier.weight(wAmt).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
+                                        Text("${mi.kcal.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.Center)
+                                    }
+                                }
+                                HorizontalDivider(color = grid)
+                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(mealColor.copy(alpha = 0.08f)), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Total", Modifier.weight(wItem + wAmt).padding(horizontal = 10.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold)
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
+                                    Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
+                                }
                             }
                         }
                     }
