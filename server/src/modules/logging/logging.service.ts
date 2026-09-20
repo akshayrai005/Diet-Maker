@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { DAY_START_HOUR } from '../../lib/tz';
 import { decryptJson, encryptJson } from '../../lib/crypto';
 import { round } from '../../calc/anthropometry';
 import { HttpError } from '../../middleware/error';
@@ -157,8 +158,9 @@ async function estimateTodayMicronutrients(
  * offsetMin = the user's UTC offset in minutes (0 => plain UTC day, backward-compatible).
  */
 export function dayRange(date: Date, offsetMin = 0): { start: Date; end: Date } {
-  const w = new Date(date.getTime() + offsetMin * 60_000);
-  const startMs = Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate()) - offsetMin * 60_000;
+  // The eating day runs 04:00 -> 04:00 (a 1 am meal belongs to the previous day).
+  const w = new Date(date.getTime() + offsetMin * 60_000 - DAY_START_HOUR * 3_600_000);
+  const startMs = Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate()) + DAY_START_HOUR * 3_600_000 - offsetMin * 60_000;
   return { start: new Date(startMs), end: new Date(startMs + 86_400_000) };
 }
 

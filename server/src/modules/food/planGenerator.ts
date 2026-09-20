@@ -231,8 +231,9 @@ function buildMeal(
     if (la !== lb) return la - lb;
     // Fat-dense foods (nuts, seeds, ghee-heavy) go last: they blow the day's fat target far past the
     // dashboard's (e.g. 87 g planned vs 58 g target from one 120 g peanut snack).
-    const fa = a.fatG > 25 ? 1 : 0;
-    const fb = b.fatG > 25 ? 1 : 0;
+    const fatShare = (f: FoodItem) => (f.fatG * 9) / Math.max(1, f.kcal);
+    const fa = fatShare(a) > 0.5 ? 1 : 0;
+    const fb = fatShare(b) > 0.5 ? 1 : 0;
     if (fa !== fb) return fa - fb;
     return a.kcal - b.kcal;
   });
@@ -242,7 +243,7 @@ function buildMeal(
       : lightFirst,
     slotSeed,
   );
-  const items = only ? [toItem(only, gramsForKcal(only, slotKcal))] : [];
+  const items = only ? [toItem(only, gramsForKcal(only, Math.min(slotKcal, 300)))] : [];
   items.forEach((i) => usedToday.add(i.foodId));
   return meal(slot, items);
 }
@@ -413,7 +414,7 @@ function topUpDayToTarget(
   const shortfall = dailyKcal - currentKcal;
   if (shortfall < dailyKcal * 0.08) return; // close enough - not worth a whole extra item
   // Never fill a meal past ~110% of its own share of the day (that is how dinner used to balloon); prefer any meal with room.
-  const roomy = (m: Meal) => m.kcal < (shares[m.slot] ?? 0.3) * dailyKcal * 1.1;
+  const roomy = (m: Meal) => m.kcal < (shares[m.slot] ?? 0.3) * dailyKcal * 1.25;
   const withItems = meals.filter((m) => mains.includes(m.slot) && m.items.length > 0);
   const mainMeals = withItems.filter(roomy);
   if (mainMeals.length === 0) return;

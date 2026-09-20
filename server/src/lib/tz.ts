@@ -12,9 +12,15 @@ export function tzOffsetMin(req: Request): number {
   return Math.max(-14 * 60, Math.min(14 * 60, n));
 }
 
-/** Local wall-clock as a Date whose UTC getters read the user's local Y/M/D/H. */
+/**
+ * The eating day starts at 04:00, not midnight: a late-night meal at 1 am still belongs to the day that just ended, and the
+ * new day begins at 4 am. Every "today" (logs, water, plans, dashboard) uses this same boundary.
+ */
+export const DAY_START_HOUR = 4;
+
+/** Local wall-clock (shifted back by DAY_START_HOUR) as a Date whose UTC getters read the user's local Y/M/D/H. */
 function localWall(offsetMin: number, at: number): Date {
-  return new Date(at + offsetMin * 60_000);
+  return new Date(at + offsetMin * 60_000 - DAY_START_HOUR * 3_600_000);
 }
 
 /** 'YYYY-MM-DD' for the user's local day. */
@@ -37,6 +43,6 @@ export function localSunday(offsetMin: number, at = Date.now()): Date {
 /** The UTC instants [start, end) bounding the user's local calendar day. */
 export function localDayRange(offsetMin: number, at = Date.now()): { start: Date; end: Date } {
   const w = localWall(offsetMin, at);
-  const startMs = Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate()) - offsetMin * 60_000;
+  const startMs = Date.UTC(w.getUTCFullYear(), w.getUTCMonth(), w.getUTCDate()) + DAY_START_HOUR * 3_600_000 - offsetMin * 60_000;
   return { start: new Date(startMs), end: new Date(startMs + 86_400_000) };
 }

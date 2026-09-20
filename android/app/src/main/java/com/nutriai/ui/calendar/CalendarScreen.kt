@@ -950,6 +950,8 @@ private fun DayPill(
                 .getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
         }.getOrNull()
     } ?: label
+    // The two pills are just "Today" and "Tomorrow" (the date number stays underneath).
+    val title = if (label == "Today" || label == "Tomorrow") label else weekday
     val container = when {
         isSelected -> BrandGreenDark
         isToday -> NutritionColor.copy(alpha = 0.15f)
@@ -973,14 +975,13 @@ private fun DayPill(
             verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             Text(
-                weekday ?: "-",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                title ?: "-",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
                 color = content,
                 maxLines = 1,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-                fontSize = 10.sp,
             )
             Text(
                 dayNumber,
