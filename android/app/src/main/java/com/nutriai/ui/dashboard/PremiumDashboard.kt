@@ -447,7 +447,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
-        Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             // Line, not ring — progress toward today's eating target, value at the end of the line.
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text("🔥", fontSize = 18.sp)
@@ -457,12 +457,12 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
             }
             KaizenProgressBar(progress = pct, color = NutritionColor, height = 10.dp)
 
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
                 StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", KaizenCoral)
                 StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenCoral)
             }
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
                 StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
                 StatCell(
@@ -473,7 +473,7 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
                     KaizenBlue,
                 )
             }
-            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 StatCell(
                     Modifier.weight(1f),
                     "💪",
