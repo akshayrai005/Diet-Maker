@@ -1203,114 +1203,85 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
-        title = { Text("🏋️ Log · ${ex.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    when {
-                        singleBlock -> "⏱️ How long did you go?"
-                        timed -> "⏱️ Seconds held per set"
-                        else -> "💪 Reps per set - edit any that differed"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                rows.forEachIndexed { i, row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier.size(22.dp).clip(CircleShape).background(MoveAccent),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                if (singleBlock) "•" else "${i + 1}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 10.sp,
-                            )
-                        }
-                        val fieldColors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        )
-                        OutlinedTextField(
-                            value = row.amount,
-                            onValueChange = { v -> row.amount = v.filter { c -> c.isDigit() } },
-                            label = { Text(if (singleBlock) "Min" else if (timed) "Sec" else "Reps", style = MaterialTheme.typography.labelSmall) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = Sharp,
-                            colors = fieldColors,
-                        )
-                        if (weighted) {
-                            OutlinedTextField(
-                                value = row.weight,
-                                onValueChange = { v -> row.weight = v.filter { c -> c.isDigit() || c == '.' } },
-                                label = { Text("kg", style = MaterialTheme.typography.labelSmall) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
-                                shape = Sharp,
-                                colors = fieldColors,
-                            )
-                        }
-                        if (rows.size > 1) {
-                            Icon(
-                                Icons.Filled.Close,
-                                contentDescription = "Remove set ${i + 1}",
-                                tint = KaizenCoral,
-                                modifier = Modifier.clickable { rows.removeAt(i) }.padding(4.dp).size(16.dp),
-                            )
-                        }
-                    }
+    val save: () -> Unit = {
+            val out = rows.mapNotNull { r ->
+                val n = r.amount.toIntOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
+                when {
+                    singleBlock -> LoggedSet(
+                        durationMin = n,
+                        note = "$n min",
+                        speedKmh = if (speedBased) speedKmh.toDoubleOrNull() else null,
+                        inclinePct = if (speedBased) inclinePct.toDoubleOrNull() else null,
+                        distanceKm = if (speedBased) distanceKm.toDoubleOrNull() else null,
+                    )
+                    timed -> LoggedSet(durationMin = maxOf(1, Math.round(n / 60.0).toInt()), note = "${n}s")
+                    else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n, rir = if (weighted) rir else null)
                 }
-                if (!singleBlock) {
-                    TextButton(onClick = { rows.add(SetRow(rows.lastOrNull()?.amount ?: "", rows.lastOrNull()?.weight ?: "")) }) {
-                        Text("+ Add set", color = MoveAccent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+            }
+            if (out.isNotEmpty()) {
+                onConfirm(out)
+                if (addToPlan) onPlanTomorrow?.invoke(ex.name)
+            }
+    }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White)
+                .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp)),
+        ) {
+            Text(
+                "🏋️ Log · ${ex.name}",
+                Modifier.fillMaxWidth().background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 16.dp, vertical = 14.dp),
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Box(Modifier.padding(14.dp).weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                when {
+                    singleBlock -> "⏱️ How long did you go?"
+                    timed -> "⏱️ Seconds held per set"
+                    else -> "💪 Reps per set - edit any that differed"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            rows.forEachIndexed { i, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(22.dp).clip(CircleShape).background(MoveAccent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (singleBlock) "•" else "${i + 1}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                        )
                     }
-                }
-
-                // Speed/incline/distance - only for treadmill/walk/run/cycle, sharpens the calorie
-                // estimate instead of treating every pace the same (dynamic logging per ex type).
-                if (speedBased) {
                     val fieldColors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface,
                     )
-                    Text("🏃 Speed & terrain (optional, sharpens kcal estimate)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(
+                        value = row.amount,
+                        onValueChange = { v -> row.amount = v.filter { c -> c.isDigit() } },
+                        label = { Text(if (singleBlock) "Min" else if (timed) "Sec" else "Reps", style = MaterialTheme.typography.labelSmall) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f),
+                        shape = Sharp,
+                        colors = fieldColors,
+                    )
+                    if (weighted) {
                         OutlinedTextField(
-                            value = speedKmh,
-                            onValueChange = { v -> speedKmh = v.filter { c -> c.isDigit() || c == '.' } },
-                            label = { Text("km/h", style = MaterialTheme.typography.labelSmall) },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f),
-                            shape = Sharp,
-                            colors = fieldColors,
-                        )
-                        if (isTreadmill(ex)) {
-                            OutlinedTextField(
-                                value = inclinePct,
-                                onValueChange = { v -> inclinePct = v.filter { c -> c.isDigit() || c == '.' } },
-                                label = { Text("Incline (%)", style = MaterialTheme.typography.labelSmall) },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
-                                shape = Sharp,
-                                colors = fieldColors,
-                            )
-                        }
-                        OutlinedTextField(
-                            value = distanceKm,
-                            onValueChange = { v -> distanceKm = v.filter { c -> c.isDigit() || c == '.' } },
-                            label = { Text("Distance (km)", style = MaterialTheme.typography.labelSmall) },
+                            value = row.weight,
+                            onValueChange = { v -> row.weight = v.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("kg", style = MaterialTheme.typography.labelSmall) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f),
@@ -1318,70 +1289,111 @@ private fun LogExerciseDialog(exercise: ExerciseItem, onDismiss: () -> Unit, onC
                             colors = fieldColors,
                         )
                     }
-                }
-
-                // How hard was it? Reps in reserve lets the app decide whether to add weight or hold it.
-                if (weighted && !timed && !singleBlock) {
-                    var rirOpen by remember { mutableStateOf(false) }
-                    val rirOptions = listOf<Pair<Int?, String>>(null to "Not sure", 0 to "Failure (0 left)", 1 to "1 rep left", 2 to "2 reps left", 3 to "3+ reps left")
-                    Box {
-                        OutlinedButton(onClick = { rirOpen = true }, shape = Sharp, modifier = Modifier.fillMaxWidth()) {
-                            Text("Effort: " + (rirOptions.first { it.first == rir }.second), style = MaterialTheme.typography.labelMedium)
-                        }
-                        DropdownMenu(expanded = rirOpen, onDismissRequest = { rirOpen = false }) {
-                            rirOptions.forEach { (value, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    trailingIcon = { if (rir == value) Text("✓", fontWeight = FontWeight.Bold) },
-                                    onClick = { rir = value; rirOpen = false },
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (!timed) RestTimer(compact = true)
-
-                // Plan tomorrow option
-                if (onPlanTomorrow != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { addToPlan = !addToPlan },
-                    ) {
-                        Checkbox(checked = addToPlan, onCheckedChange = { addToPlan = it })
-                        Text("📅 Also add to tomorrow's plan", style = MaterialTheme.typography.labelSmall)
+                    if (rows.size > 1) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Remove set ${i + 1}",
+                            tint = KaizenCoral,
+                            modifier = Modifier.clickable { rows.removeAt(i) }.padding(4.dp).size(16.dp),
+                        )
                     }
                 }
             }
-        },
-        confirmButton = {
-            SpectrumButton(
-                onClick = {
-                    val out = rows.mapNotNull { r ->
-                        val n = r.amount.toIntOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
-                        when {
-                            singleBlock -> LoggedSet(
-                                durationMin = n,
-                                note = "$n min",
-                                speedKmh = if (speedBased) speedKmh.toDoubleOrNull() else null,
-                                inclinePct = if (speedBased) inclinePct.toDoubleOrNull() else null,
-                                distanceKm = if (speedBased) distanceKm.toDoubleOrNull() else null,
+            if (!singleBlock) {
+                TextButton(onClick = { rows.add(SetRow(rows.lastOrNull()?.amount ?: "", rows.lastOrNull()?.weight ?: "")) }) {
+                    Text("+ Add set", color = MoveAccent, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+
+            // Speed/incline/distance - only for treadmill/walk/run/cycle, sharpens the calorie
+            // estimate instead of treating every pace the same (dynamic logging per ex type).
+            if (speedBased) {
+                val fieldColors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface,
+                )
+                Text("🏃 Speed & terrain (optional, sharpens kcal estimate)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedTextField(
+                        value = speedKmh,
+                        onValueChange = { v -> speedKmh = v.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("km/h", style = MaterialTheme.typography.labelSmall) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        shape = Sharp,
+                        colors = fieldColors,
+                    )
+                    if (isTreadmill(ex)) {
+                        OutlinedTextField(
+                            value = inclinePct,
+                            onValueChange = { v -> inclinePct = v.filter { c -> c.isDigit() || c == '.' } },
+                            label = { Text("Incline (%)", style = MaterialTheme.typography.labelSmall) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f),
+                            shape = Sharp,
+                            colors = fieldColors,
+                        )
+                    }
+                    OutlinedTextField(
+                        value = distanceKm,
+                        onValueChange = { v -> distanceKm = v.filter { c -> c.isDigit() || c == '.' } },
+                        label = { Text("Distance (km)", style = MaterialTheme.typography.labelSmall) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        shape = Sharp,
+                        colors = fieldColors,
+                    )
+                }
+            }
+
+            // How hard was it? Reps in reserve lets the app decide whether to add weight or hold it.
+            if (weighted && !timed && !singleBlock) {
+                var rirOpen by remember { mutableStateOf(false) }
+                val rirOptions = listOf<Pair<Int?, String>>(null to "Not sure", 0 to "Failure (0 left)", 1 to "1 rep left", 2 to "2 reps left", 3 to "3+ reps left")
+                Box {
+                    OutlinedButton(onClick = { rirOpen = true }, shape = Sharp, modifier = Modifier.fillMaxWidth()) {
+                        Text("Effort: " + (rirOptions.first { it.first == rir }.second), style = MaterialTheme.typography.labelMedium)
+                    }
+                    DropdownMenu(expanded = rirOpen, onDismissRequest = { rirOpen = false }) {
+                        rirOptions.forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                trailingIcon = { if (rir == value) Text("✓", fontWeight = FontWeight.Bold) },
+                                onClick = { rir = value; rirOpen = false },
                             )
-                            timed -> LoggedSet(durationMin = maxOf(1, Math.round(n / 60.0).toInt()), note = "${n}s")
-                            else -> LoggedSet(weightKg = r.weight.toDoubleOrNull(), reps = n, rir = if (weighted) rir else null)
                         }
                     }
-                    if (out.isNotEmpty()) {
-                        onConfirm(out)
-                        if (addToPlan) onPlanTomorrow?.invoke(ex.name)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MoveAccent),
-                shape = Sharp,
-            ) { Text("✅ Save", fontWeight = FontWeight.Bold) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
+                }
+            }
+
+            if (!timed) RestTimer(compact = true)
+
+            // Plan tomorrow option
+            if (onPlanTomorrow != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { addToPlan = !addToPlan },
+                ) {
+                    Checkbox(checked = addToPlan, onCheckedChange = { addToPlan = it })
+                    Text("📅 Also add to tomorrow's plan", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+            }
+            Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(12.dp)) { Text("Cancel", fontWeight = FontWeight.Bold) }
+                Box(
+                    Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp)).background(com.nutriai.ui.theme.SpectrumBrush).clickable { save() },
+                    contentAlignment = Alignment.Center,
+                ) { Text("✅ Save", fontWeight = FontWeight.Bold, color = Color.White) }
+            }
+        }
+    }
 }
 
 private fun trimKg(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
