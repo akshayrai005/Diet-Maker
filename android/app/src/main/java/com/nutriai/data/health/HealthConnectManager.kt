@@ -87,7 +87,7 @@ class HealthConnectManager @Inject constructor(
         val heightCm: Double? = null,
         val bmrKcal: Int? = null,
     ) {
-        val any: Boolean get() = listOf(distanceKm, caloriesBurned, exerciseSessions, topSpeedKmh, restingHr, weightKg, heightCm, bmrKcal).any { it != null }
+        val any: Boolean get() = listOf(distanceKm, caloriesBurned, exerciseSessions, topSpeedKmh, weightKg, heightCm, bmrKcal).any { it != null }
     }
 
     suspend fun readExtras(): Extras {

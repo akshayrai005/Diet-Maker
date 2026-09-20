@@ -214,6 +214,7 @@ fun PremiumDashboard(
                     bloodPressure = bloodPressure,
                     oxygenSaturation = oxygenSaturation,
                     bodyTemperature = bodyTemperature,
+                    restingHr = healthExtras?.restingHr,
                     onAddWater = onAddWater,
                     onOpenDietLog = onOpenDietLog,
                     onOpenMove = onOpenMove,
@@ -570,6 +571,7 @@ private fun DomainCardsGrid(
     bloodPressure: Pair<Int, Int>? = null,
     oxygenSaturation: Int? = null,
     bodyTemperature: Double? = null,
+    restingHr: Int? = null,
     onAddWater: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenMove: () -> Unit = {},
@@ -682,7 +684,7 @@ private fun DomainCardsGrid(
                 mainUnit = if (heartRate != null) "bpm" else "",
                 progress = heartRate?.let { ((it - 50) / (120.0 - 50)).coerceIn(0.0, 1.0).toFloat() } ?: 0f,
                 accentColor = GridRed, bgColor = GridRedLight,
-                detail = if (heartRate != null) "Latest reading" else "Needs a synced watch reading",
+                detail = if (heartRate != null) "Latest reading" + (restingHr?.let { " · resting $it bpm" } ?: "") else "Needs a synced watch reading",
                 borderColor = GridRed,
                 onQuickAction = onOpenVitals,
             )
@@ -1173,36 +1175,35 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
 }
 
 
-/** Health Connect extras: distance, calories, workouts, speed, resting heart rate, weight, height and BMR - only the ones that have data. */
+/** Health Connect extras as the same cards as Nutrition / Movement: distance, calories, workouts, speed, resting heart rate, weight, height, metabolism. */
 @Composable
 private fun HealthExtrasCard(x: com.nutriai.data.health.HealthConnectManager.Extras) {
+    class Tile(val emoji: String, val title: String, val value: String, val unit: String, val progress: Float, val detail: String)
     val tiles = buildList {
-        x.distanceKm?.let { add(Triple("📏", String.format("%.2f km", it), "Distance today")) }
-        x.caloriesBurned?.let { add(Triple("🔥", "$it kcal", "Burned today")) }
-        x.exerciseSessions?.let { n -> add(Triple("🏃", "$n" + (x.exerciseMinutes?.let { " · $it min" } ?: ""), if (n == 1) "Workout today" else "Workouts today")) }
-        x.topSpeedKmh?.let { add(Triple("⚡", String.format("%.1f km/h", it), "Top speed today")) }
-        x.restingHr?.let { add(Triple("💓", "$it bpm", "Resting heart rate")) }
-        x.weightKg?.let { add(Triple("⚖️", String.format("%.1f kg", it), "Weight")) }
-        x.heightCm?.let { add(Triple("📐", String.format("%.0f cm", it), "Height")) }
-        x.bmrKcal?.let { add(Triple("🫀", "$it kcal", "Basal metabolic rate")) }
+        x.distanceKm?.let { add(Tile("📏", "Distance", String.format("%.2f", it), "km", (it / 5.0).toFloat().coerceIn(0f, 1f), "goal 5 km")) }
+        x.caloriesBurned?.let { add(Tile("🔥", "Calories burned", "$it", "kcal", 1f, "total burned today")) }
+        x.exerciseSessions?.let { n ->
+            val mins = x.exerciseMinutes ?: 0
+            add(Tile("🏃", "Workouts", "$n", if (n == 1) "session" else "sessions", (mins / 45f).coerceIn(0f, 1f), if (mins > 0) "$mins min today" else "today"))
+        }
+        x.topSpeedKmh?.let { add(Tile("⚡", "Top speed", String.format("%.1f", it), "km/h", 1f, "fastest today")) }
+        x.weightKg?.let { add(Tile("⚖️", "Weight", String.format("%.1f", it), "kg", 1f, "latest reading")) }
+        x.heightCm?.let { add(Tile("📐", "Height", String.format("%.0f", it), "cm", 1f, "from your profile")) }
+        x.bmrKcal?.let { add(Tile("🫀", "Metabolism (BMR)", "$it", "kcal/day", 1f, "burned at rest")) }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         SectionHeader("From your watch & phone", emoji = "⌚")
         tiles.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                pair.forEachIndexed { i, (emoji, value, label) ->
-                    Column(
-                        Modifier.weight(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                            .background(com.nutriai.ui.theme.AppPalette.tint(com.nutriai.ui.theme.AppPalette.stop(tiles.indexOf(pair[i]))))
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(emoji, style = MaterialTheme.typography.titleMedium)
-                        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), modifier = Modifier.fillMaxWidth()) {
+                pair.forEach { t ->
+                    val color = com.nutriai.ui.theme.AppPalette.stop(tiles.indexOf(t))
+                    DomainCard(
+                        modifier = Modifier.weight(1f),
+                        emoji = t.emoji, title = t.title, mainValue = t.value, mainUnit = t.unit,
+                        progress = t.progress, accentColor = color, bgColor = Color.Transparent,
+                        detail = t.detail, borderColor = Color.Transparent,
+                    )
                 }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
