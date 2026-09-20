@@ -381,6 +381,12 @@ class AppRepository @Inject constructor(
 
     suspend fun reportPdfBytes(): Result<ByteArray> = runCatching { api.weeklyPdf().bytes() }
 
+    /** The AI weekly/monthly report as PDF or HTML bytes. */
+    suspend fun aiReportBytes(monthly: Boolean, html: Boolean): Result<ByteArray> = runCatching {
+        val range = if (monthly) "monthly" else "weekly"
+        if (html) api.aiReportHtml(range).bytes() else api.aiReportPdf(range).bytes()
+    }
+
     /** Full account data export as JSON bytes (spec Section 12: backup/restore). */
     suspend fun exportDataBytes(): Result<ByteArray> = runCatching { api.exportData().bytes() }
 

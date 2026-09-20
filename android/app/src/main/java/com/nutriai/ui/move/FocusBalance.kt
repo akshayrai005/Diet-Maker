@@ -117,6 +117,11 @@ object SessionStore {
         refresh(c)
     }
 
+    fun clearPicks(c: Context) {
+        prefs(c).edit().putString("ck_picks", "").apply()
+        refresh(c)
+    }
+
     fun removePick(c: Context, name: String) {
         val left = picksFlow.value.filter { it != name }
         prefs(c).edit().putString("ck_picks", left.joinToString("|")).apply()

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../lib/asyncHandler';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth';
-import { getGrocery, getWeeklyReport, getGamification, getReportView } from './reports.service';
+import { getGrocery, getWeeklyReport, getGamification, getReportView, getReportData } from './reports.service';
 import { getAnalysis } from './analysis.service';
 import { reportToCsv } from './report';
 import { renderReportPdf } from './pdf';
@@ -66,6 +66,32 @@ reportsRouter.get(
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="nutriai-weekly.csv"');
     res.send(reportToCsv(report));
+  }),
+);
+
+// Downloadable AI report - GET /reports/report.pdf?range=weekly|monthly  (also /reports/report.html).
+reportsRouter.get(
+  '/reports/report.pdf',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const range = req.query.range === 'monthly' ? 'monthly' : 'weekly';
+    const { report, insights, label } = await getReportData(req.user!.id, range, 1);
+    const pdf = await renderReportPdf(report, insights, label);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="kaizen-${range}-report.pdf"`);
+    res.send(pdf);
+  }),
+);
+
+reportsRouter.get(
+  '/reports/report.html',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const range = req.query.range === 'monthly' ? 'monthly' : 'weekly';
+    const html = await getReportView(req.user!.id, range, 1);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="kaizen-${range}-report.html"`);
+    res.send(html);
   }),
 );
 

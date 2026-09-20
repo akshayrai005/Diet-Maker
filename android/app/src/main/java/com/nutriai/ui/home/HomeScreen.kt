@@ -177,6 +177,7 @@ fun HomeScreen(
                         }
                     },
                     onOpenPlan = { navController.navigate("me/plan") { launchSingleTop = true } },
+                    onOpenReports = { navController.navigate("me/reports") { launchSingleTop = true } },
                 )
             }
             composable("vitals") {
@@ -192,6 +193,14 @@ fun HomeScreen(
                     Modifier.fillMaxSize(),
                     onEditProfile = onCompleteProfile,
                     onLoggedOut = onLogout,
+                )
+            }
+            composable("me/reports") {
+                MoreScreen(
+                    Modifier.fillMaxSize(),
+                    onEditProfile = onCompleteProfile,
+                    onLoggedOut = onLogout,
+                    initialPage = "reports",
                 )
             }
             composable("me/plan") {
@@ -286,6 +295,7 @@ private fun DashboardTab(
     onOpenDietLog: () -> Unit = {},
     onOpenProgress: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
+    onOpenReports: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -373,6 +383,7 @@ private fun DashboardTab(
             onOpenDietLog = onOpenDietLog,
             onOpenProgress = onOpenProgress,
             onOpenPlan = onOpenPlan,
+            onOpenReports = onOpenReports,
             onConnectSteps = {
                 if (state.stepsAvailable) {
                     runCatching { stepLauncher.launch(stepPerms) }

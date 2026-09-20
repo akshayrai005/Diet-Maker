@@ -10,6 +10,8 @@ import { buildWeeklyReport, type ReportDay } from './report';
 import { renderReportHtml, type ReportAnalysis } from './reportHtml';
 import { getAnalysis, toReportAnalysis } from './analysis.service';
 import { computeBadges, badgeSummary, type GamificationStats } from './gamification';
+import { summariseExercise, type ExerciseSummary } from './exerciseSummary';
+import { aiInsights, ruleInsights, type ReportInsights } from './reportInsights';
 
 function toFoodItem(f: {
   id: string; name: string; locale: string; region: string | null; category: string;
@@ -123,6 +125,17 @@ async function waterInRange(userId: string, now: Date, windowDays = 7) {
   return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, ml]) => ({ date, ml }));
 }
 
+/** What was trained in the window, from the exercise log. */
+async function exerciseInRange(userId: string, now: Date, windowDays = 7): Promise<ExerciseSummary> {
+  const since = new Date(now.getTime() - windowDays * 86_400_000);
+  const logs = await prisma.exerciseLog.findMany({
+    where: { userId, performedAt: { gte: since } },
+    orderBy: { performedAt: 'asc' },
+    select: { exerciseName: true, sets: true, reps: true, weightKg: true, durationMin: true, kcal: true, performedAt: true, sessionId: true },
+  });
+  return summariseExercise(logs, dayKey);
+}
+
 /** Lifetime totals, so the report doubles as an all-time record. */
 async function allTimeStats(userId: string) {
   const [foodAgg, distinctDays, waterAgg] = await Promise.all([
@@ -146,7 +159,7 @@ export async function getWeeklyReport(
   now: Date = new Date(),
   windowDays = 7,
 ) {
-  const [user, targets, wp, days, entries, waterByDay, allTime, curWeight] = await Promise.all([
+  const [user, targets, wp, days, entries, waterByDay, allTime, curWeight, exercise] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId } }),
     latestTargets(userId),
     weightPoints(userId),
@@ -155,6 +168,7 @@ export async function getWeeklyReport(
     waterInRange(userId, now, windowDays),
     allTimeStats(userId),
     currentWeight(userId),
+    exerciseInRange(userId, now, windowDays),
   ]);
   const trend = weightTrend(wp);
   return buildWeeklyReport({
@@ -172,7 +186,27 @@ export async function getWeeklyReport(
     maintenanceKcal: targets?.tdee ?? null,
     currentWeightKg: curWeight,
     weightLossBlocked: targets?.weightLossBlocked ?? false,
+    exercise,
   });
+}
+
+export function periodLabel(range: 'weekly' | 'monthly', count: number): string {
+  const c = Math.max(1, Math.min(12, Math.round(count) || 1));
+  return range === 'monthly' ? (c === 1 ? 'Last month' : `Last ${c} months`) : c === 1 ? 'Last week' : `Last ${c} weeks`;
+}
+
+/** The report's data + AI read-out for a weekly/monthly span (used by the PDF and HTML downloads). */
+export async function getReportData(
+  userId: string,
+  range: 'weekly' | 'monthly',
+  count: number,
+  now: Date = new Date(),
+): Promise<{ report: Awaited<ReturnType<typeof getWeeklyReport>>; insights: ReportInsights; label: string }> {
+  const c = Math.max(1, Math.min(12, Math.round(count) || 1));
+  const report = await getWeeklyReport(userId, now.toISOString(), now, range === 'monthly' ? c * 30 : c * 7);
+  const label = periodLabel(range, c);
+  const insights = await aiInsights(report, label).catch(() => ruleInsights(report));
+  return { report, insights, label };
 }
 
 /**
@@ -188,14 +222,8 @@ export async function getReportView(
   const c = Math.max(1, Math.min(12, Math.round(count) || 1));
   const windowDays = range === 'monthly' ? c * 30 : c * 7;
   const report = await getWeeklyReport(userId, now.toISOString(), now, windowDays);
-  const label =
-    range === 'monthly'
-      ? c === 1
-        ? 'Last month'
-        : `Last ${c} months`
-      : c === 1
-        ? 'Last week'
-        : `Last ${c} weeks`;
+  const label = periodLabel(range, c);
+  const insights = await aiInsights(report, label).catch(() => ruleInsights(report));
 
   // Lead the report with the coach-voice analysis (rating ring + pillar bars + narrative).
   let analysis: ReportAnalysis | undefined;
@@ -204,7 +232,7 @@ export async function getReportView(
   } catch {
     // Incomplete profile / no rating yet - render the report without the analysis header.
   }
-  return renderReportHtml(report, { label, analysis });
+  return renderReportHtml(report, { label, analysis, insights });
 }
 
 export async function getGamification(userId: string, now: Date = new Date()) {

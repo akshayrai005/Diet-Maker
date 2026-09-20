@@ -1,4 +1,5 @@
 import { round } from '../../calc/anthropometry';
+import type { ExerciseSummary } from './exerciseSummary';
 
 export interface ReportDay {
   date: string; // YYYY-MM-DD
@@ -103,6 +104,8 @@ export interface WeeklyReport {
   /** TDEE - the body's daily "max" to hold weight. */
   maintenanceKcal: number | null;
   prediction: Prediction | null;
+  /** What was trained in the window (absent on older callers). */
+  exercise?: ExerciseSummary | null;
   disclaimer: string;
 }
 
@@ -120,6 +123,7 @@ export interface BuildReportInput {
   maintenanceKcal?: number | null; // TDEE
   currentWeightKg?: number | null;
   weightLossBlocked?: boolean;
+  exercise?: ExerciseSummary | null;
 }
 
 const DISCLAIMER =
@@ -160,6 +164,7 @@ export function buildWeeklyReport(input: BuildReportInput): WeeklyReport {
     totalTargetKcal,
     maintenanceKcal: input.maintenanceKcal ?? null,
     prediction,
+    exercise: input.exercise ?? null,
     disclaimer: DISCLAIMER,
   };
 }

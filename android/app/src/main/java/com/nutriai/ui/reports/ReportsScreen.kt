@@ -1,6 +1,8 @@
 package com.nutriai.ui.reports
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +94,34 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    /** Downloads the AI weekly/monthly report (PDF or HTML) and opens the share sheet so it can be saved or sent. */
+    fun shareAiReport(context: Context, monthly: Boolean, html: Boolean, onDone: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            val r = repository.aiReportBytes(monthly, html)
+            val bytes = r.getOrNull()
+            if (bytes == null || bytes.isEmpty()) {
+                onDone()
+                onError(r.exceptionOrNull()?.message ?: "Could not build the report")
+                return@launch
+            }
+            try {
+                val name = "kaizen-${if (monthly) "monthly" else "weekly"}-report.${if (html) "html" else "pdf"}"
+                val file = File(context.cacheDir, name)
+                file.writeBytes(bytes)
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = if (html) "text/html" else "application/pdf"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Save or share report").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (e: Exception) {
+                onError(e.message ?: "Could not open the report")
+            }
+            onDone()
+        }
+    }
+
     /** Downloads the server-generated PDF and opens the Android share sheet. */
     fun sharePdf(context: Context, onError: (String) -> Unit) {
         viewModelScope.launch {
@@ -144,6 +174,11 @@ fun ReportsScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         contentPadding = PaddingValues(vertical = Spacing.md),
     ) {
+        item {
+            AiReportCard(onDownload = { monthly, html, done ->
+                viewModel.shareAiReport(context, monthly, html, onDone = done, onError = { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show() })
+            })
+        }
         state.report?.let { report ->
             item { HeroSummaryCard(report) }
             item {
@@ -194,6 +229,62 @@ fun ReportsScreen(
 // ---------------------------------------------------------------------------
 // Gradient hero summary
 // ---------------------------------------------------------------------------
+
+/**
+ * One card for the AI report: pick Weekly or Monthly, then download a PDF or an HTML file. The report covers eating, drinking and
+ * training, with a coach read-out written from the logged numbers. On Tuesdays it announces that the weekly report is ready.
+ */
+@Composable
+private fun AiReportCard(onDownload: (monthly: Boolean, html: Boolean, done: () -> Unit) -> Unit) {
+    var monthly by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val isTuesday = remember { java.time.LocalDate.now().dayOfWeek == java.time.DayOfWeek.TUESDAY }
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+    ) {
+        Column {
+            Text(
+                "📄 AI report - eat · drink · exercise",
+                Modifier.fillMaxWidth().background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 14.dp, vertical = 12.dp),
+                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White,
+            )
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (isTuesday) {
+                    Text("📅 It's Tuesday - your weekly report is ready.", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    "Your coach reviews what you ate, drank and trained, then tells you what to fix next. Save it or share it as a file.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("Weekly" to false, "Monthly" to true).forEach { (label, m) ->
+                        val on = monthly == m
+                        Box(
+                            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(10.dp))
+                                .then(if (on) Modifier.background(com.nutriai.ui.theme.SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)))
+                                .clickable { monthly = m },
+                            contentAlignment = Alignment.Center,
+                        ) { Text(label, fontWeight = FontWeight.Bold, color = if (on) Color.White else MaterialTheme.colorScheme.onSurface) }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("⬇ PDF" to false, "⬇ HTML" to true).forEach { (label, html) ->
+                        Box(
+                            Modifier.weight(1f).height(46.dp).clip(RoundedCornerShape(12.dp))
+                                .background(if (busy) androidx.compose.ui.graphics.SolidColor(Color(0xFFCFD3DA)) else com.nutriai.ui.theme.SpectrumBrush)
+                                .clickable(enabled = !busy) { busy = true; onDownload(monthly, html) { busy = false } },
+                            contentAlignment = Alignment.Center,
+                        ) { Text(if (busy) "Building..." else label, fontWeight = FontWeight.Bold, color = if (busy) Color(0xFF4A5060) else Color.White) }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun HeroSummaryCard(report: WeeklyReport) {

@@ -141,6 +141,7 @@ fun PremiumDashboard(
     onOpenPlan: () -> Unit = {},
     onOpenDietLog: () -> Unit = {},
     onOpenProgress: () -> Unit = {},
+    onOpenReports: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val d = dashboard
@@ -169,6 +170,26 @@ fun PremiumDashboard(
     ) {
         // Hero greeting
         item { HeroSection(greetingName = greetingName, streakDays = d.streakDays, dashboard = d) }
+
+        // Every Tuesday: the weekly AI report is ready.
+        if (java.time.LocalDate.now().dayOfWeek == java.time.DayOfWeek.TUESDAY) {
+            item {
+                Column(sectionPadding) {
+                    androidx.compose.foundation.layout.Row(
+                        Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                            .background(com.nutriai.ui.theme.SpectrumBrush).clickable { onOpenReports() }.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("📄 Your weekly report is ready", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("What you ate, drank and trained - with your coach's read-out", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.92f))
+                        }
+                        Text("Open ›", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
 
         // Calorie ring card
         item {

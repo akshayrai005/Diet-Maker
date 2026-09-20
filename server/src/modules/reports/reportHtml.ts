@@ -1,3 +1,5 @@
+import type { ExerciseSummary } from './exerciseSummary';
+import type { ReportInsights } from './reportInsights';
 import type { WeeklyReport, FoodEntry } from './report';
 
 const esc = (s: string) =>
@@ -185,7 +187,36 @@ function analysisSection(a: ReportAnalysis): string {
 <div class="card" style="margin-top:12px;font-size:13.5px">${body}</div></section>`;
 }
 
-export function renderReportHtml(r: WeeklyReport, opts: { label: string; analysis?: ReportAnalysis }): string {
+function insightsSection(i: ReportInsights): string {
+  const block = (title: string, icon: string, items: string[]) =>
+    items.length
+      ? `<div class="card" style="margin-top:10px"><div style="font-weight:700;margin-bottom:4px">${icon} ${esc(title)}</div>${items.map((t) => `<p style="margin:4px 0;font-size:13.5px">${esc(t)}</p>`).join('')}</div>`
+      : '';
+  return `<section><div class="sh"><h2>Coach read-out</h2><span class="hint">${i.source === 'ai' ? 'written by AI from your logs' : 'from your logs'}</span></div>
+<div class="card" style="font-size:14.5px;font-weight:600">${esc(i.headline)}</div>
+${block('Eating', '🍽️', i.eat)}${block('Drinking', '💧', i.drink)}${block('Training', '🏋️', i.exercise)}${block('Do this next week', '🎯', i.nextWeek)}</section>`;
+}
+
+function exerciseSection(ex: ExerciseSummary | null | undefined): string {
+  if (!ex || !ex.totalSets) return '';
+  const max = Math.max(1, ...ex.byMuscle.map((m) => m.sets));
+  const bars = ex.byMuscle
+    .map((m) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${esc(m.group)}</span><b>${m.sets} sets</b></div><div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden"><div style="height:8px;width:${Math.round((m.sets / max) * 100)}%;background:var(--accent);border-radius:4px"></div></div></div>`)
+    .join('');
+  const top = ex.top
+    .map((t) => `<tr><td>${esc(t.name)}</td><td style="text-align:center">${t.sets}</td><td style="text-align:center">${t.bestKg != null ? t.bestKg + ' kg' : '-'}</td></tr>`)
+    .join('');
+  return `<section><div class="sh"><h2>Training</h2><span class="hint">what you actually did</span></div>
+<div class="card" style="display:flex;gap:16px;flex-wrap:wrap;text-align:center">
+<div style="flex:1;min-width:80px"><div style="font-size:22px;font-weight:800">${ex.sessions}</div><div style="font-size:11px;color:var(--muted)">workouts</div></div>
+<div style="flex:1;min-width:80px"><div style="font-size:22px;font-weight:800">${ex.activeDays}</div><div style="font-size:11px;color:var(--muted)">active days</div></div>
+<div style="flex:1;min-width:80px"><div style="font-size:22px;font-weight:800">${ex.totalSets}</div><div style="font-size:11px;color:var(--muted)">sets</div></div>
+<div style="flex:1;min-width:80px"><div style="font-size:22px;font-weight:800">${ex.kcalBurned}</div><div style="font-size:11px;color:var(--muted)">kcal burned (est.)</div></div></div>
+${bars ? `<div class="card" style="margin-top:10px"><div style="font-weight:700;margin-bottom:4px">Muscle balance</div>${bars}</div>` : ''}
+${top ? `<div class="card" style="margin-top:10px"><div style="font-weight:700;margin-bottom:6px">Most done</div><table style="width:100%;font-size:13px;border-collapse:collapse"><tr style="color:var(--muted);text-align:left"><th>Exercise</th><th>Sets</th><th>Best</th></tr>${top}</table></div>` : ''}</section>`;
+}
+
+export function renderReportHtml(r: WeeklyReport, opts: { label: string; analysis?: ReportAnalysis; insights?: ReportInsights }): string {
   const x = derive(r, 30);
   const target = r.targets?.dailyKcal ?? 0;
   const pT = r.targets?.proteinG ?? 0;
@@ -248,6 +279,8 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:v
 <div class="sub"><b>${esc(r.name)}</b> · ${esc(opts.label)} · generated ${new Date(r.generatedAt).toDateString()}</div></div></header>
 
 ${opts.analysis ? analysisSection(opts.analysis) : ''}
+${opts.insights ? insightsSection(opts.insights) : ''}
+${exerciseSection(r.exercise)}
 
 <section><div class="sh"><h2>How you're doing</h2><span class="hint">${esc(opts.label).toLowerCase()}</span></div>
 <div class="hero"><div class="card score-card">${ring(x.score, 'var(--accent)')}<div class="verdict">${x.scoreWord}</div></div>
@@ -260,7 +293,7 @@ ${opts.analysis ? analysisSection(opts.analysis) : ''}
 <div class="card metric"><div class="lab"><span class="dot" style="background:var(--warn)"></span>Days logged</div><div class="v num">${r.allTime?.daysLogged ?? r.days.length}</div><div class="foot">${r.days.length} in this period</div></div>
 </div></div></section>
 
-${insights ? `<section><div class="sh"><h2>AI insights</h2><span class="hint">act on these</span></div>${insights}</section>` : ''}
+${insights ? `<section><div class="sh"><h2>Quick flags</h2><span class="hint">act on these</span></div>${insights}</section>` : ''}
 
 ${r.days.length ? `<section><div class="sh"><h2>Calorie trend</h2><span class="hint">daily vs target</span></div><div class="card chart">${trendChart(r)}</div></section>` : ''}
 

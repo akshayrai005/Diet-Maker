@@ -235,6 +235,15 @@ interface NutriApi {
     @GET("reports/weekly.pdf")
     suspend fun weeklyPdf(): okhttp3.ResponseBody
 
+    /** The AI report (eat / drink / exercise + coach read-out) for a week or a month, as a PDF. */
+    @retrofit2.http.Streaming
+    @GET("reports/report.pdf")
+    suspend fun aiReportPdf(@Query("range") range: String): okhttp3.ResponseBody
+
+    @retrofit2.http.Streaming
+    @GET("reports/report.html")
+    suspend fun aiReportHtml(@Query("range") range: String): okhttp3.ResponseBody
+
     /** GDPR-style full data export (profile, food/water logs, plans, check-ins) as JSON. */
     @retrofit2.http.Streaming
     @GET("me/export")

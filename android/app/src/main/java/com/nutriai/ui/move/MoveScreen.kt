@@ -523,93 +523,25 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
-        if (state.loading) {
-            item(span = { GridItemSpan(2) }) { Box(Modifier.fillMaxWidth().padding(Spacing.xxl), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = MoveAccent) } }
-        }
-        state.error?.let { err ->
-            item(span = { GridItemSpan(2) }) { EmptyState(title = err, emoji = "🏋️") }
-        }
-
-        // Today's focus — a slim status strip (day name + adherence). Actually starting or
-        // logging an exercise happens on its own row further down, so no button here.
-        shownDay?.let { day ->
-            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
-            item(span = { GridItemSpan(2) }) {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = Sharp,
-                    elevation = CardDefaults.cardElevation(1.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Row(
-                        Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        Text(if (day.rest || !hasContent) "💤" else "💪", fontSize = 16.sp)
-                        Text(
-                            if (day.rest || !hasContent) "Rest day 🧘" else day.focus,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                        )
-
-                        // Planned-vs-actual adherence - only meaningful for TODAY's own plan, not
-                        // a different day the user is just previewing in the week strip.
-                        if (!day.rest && hasContent && day === today) {
-                            val planned = (day.warmup + day.exercises + day.core + listOfNotNull(day.cardio) + day.cooldown)
-                                .distinctBy { it.name.lowercase().trim() }
-                            val done = planned.count { it.name.lowercase().trim() in state.todayLoggedNames }
-                            if (planned.isNotEmpty()) {
-                                val adherencePct = (done * 100) / planned.size
-                                Text("$done/${planned.size} · $adherencePct%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Just two choices: what to do today, and what is planned for tomorrow.
-        plan?.days?.takeIf { it.isNotEmpty() }?.let { days ->
-            val todayIdx = days.indexOfFirst { it === today }.takeIf { it >= 0 } ?: 0
-            val tomorrowIdx = (todayIdx + 1).takeIf { it < days.size }
-            if (tomorrowIdx != null) {
-                item(span = { GridItemSpan(2) }) {
-                    val current = selectedIdx ?: todayIdx
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        listOf("Today" to todayIdx, "Tomorrow" to tomorrowIdx).forEach { (label, idx) ->
-                            val on = current == idx
-                            val focus = days[idx].let { if (it.rest) "Rest" else it.focus }
-                            Column(
-                                Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (on) SpectrumBrush else androidx.compose.ui.graphics.SolidColor(Color.White))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                                    .clickable { selectedIdx = idx }
-                                    .padding(vertical = 10.dp, horizontal = 8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Text(label, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleSmall, color = if (on) Color.White else Color(0xFF1B1F23))
-                                Text(focus, style = MaterialTheme.typography.labelSmall, maxLines = 1, color = if (on) Color.White.copy(alpha = 0.9f) else Color(0xFF6B7280))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // Today's session: what the user picked at the check-in (kept until 4 am), with a quick way to add more.
         if (sessionPicks.isNotEmpty() || sessionGroups.isNotEmpty()) {
             item(span = { GridItemSpan(2) }) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
-                    Text(
-                        "＋ Add more",
-                        Modifier.clip(RoundedCornerShape(50)).background(SpectrumBrush).clickable { showPicker = true }.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (sessionPicks.isNotEmpty()) {
+                            Text(
+                                "Clear",
+                                Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable { SessionStore.clearPicks(ctx) }.padding(horizontal = 12.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Text(
+                            "＋ Add more",
+                            Modifier.clip(RoundedCornerShape(50)).background(SpectrumBrush).clickable { showPicker = true }.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
+                        )
+                    }
                 }
             }
             if (sessionPicks.isNotEmpty()) exerciseCards(sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
@@ -619,43 +551,6 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(SpectrumBrush).clickable { showPicker = true }.padding(14.dp),
                     contentAlignment = Alignment.Center,
                 ) { Text("🎯 What are you training today?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White) }
-            }
-        }
-
-        // Exercises for shown day — grid cards, matching the Library look.
-        shownDay?.let { day ->
-            val hasContent = day.exercises.isNotEmpty() || day.warmup.isNotEmpty() || day.core.isNotEmpty() || day.cardio != null || day.cooldown.isNotEmpty()
-            if (day.rest || !hasContent) {
-                item(span = { GridItemSpan(2) }) {
-                    Card(Modifier.fillMaxWidth(), shape = Sharp, elevation = CardDefaults.cardElevation(1.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            Text("🧘", fontSize = 20.sp)
-                            Text("Rest & recovery day - light movement, stretch, hydrate.", style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                }
-            } else {
-                if (day.warmup.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) { Text("🔥 Warm-up", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.warmup, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
-                }
-                if (day.exercises.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) { Text("💪 Main Workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.exercises, onLog = { logTarget = it }, onSwap = { swapTarget = it }, doneNames = state.todayLoggedNames)
-                }
-                if (day.core.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) { Text("🦾 Core & Abs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.core, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
-                }
-                day.cardio?.let { c ->
-                    item(span = { GridItemSpan(2) }) { Text("❤️ Cardio", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    item(span = { GridItemSpan(2) }) { ExerciseGridCard(ex = c, onClick = { logTarget = c }, done = c.name.lowercase().trim() in state.todayLoggedNames) }
-                }
-                if (day.cooldown.isNotEmpty()) {
-                    item(span = { GridItemSpan(2) }) { Text("🧘 Cool-down", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.cooldown, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
-                }
-                item(span = { GridItemSpan(2) }) { RestTimer(Modifier.padding(top = Spacing.xs)) }
             }
         }
 

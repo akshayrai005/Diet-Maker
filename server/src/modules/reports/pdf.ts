@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import type { WeeklyReport } from './report';
+import type { ReportInsights } from './reportInsights';
 
 // Palette
 const GREEN = '#0E7C3A';
@@ -28,7 +29,7 @@ function formatDate(iso: string): string {
 }
 
 /** Renders a WeeklyReport to a colourful, well-organised PDF Buffer (pdfkit, pure JS). */
-export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
+export function renderReportPdf(r: WeeklyReport, insights?: ReportInsights, label = 'This week'): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const chunks: Buffer[] = [];
@@ -56,7 +57,7 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
     doc.y = 110;
 
     // ---- Summary stat cards ----
-    sectionHeader(doc, 'This week at a glance');
+    sectionHeader(doc, `${label} at a glance`);
     const consumed = r.avgKcal ?? 0;
     const target = r.targets?.dailyKcal ?? 0;
     statCards(doc, [
@@ -72,6 +73,27 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
     if (r.weightDeltaKg != null) wLine.push(`Change: ${r.weightDeltaKg > 0 ? '+' : ''}${r.weightDeltaKg} kg`);
     if (wLine.length) doc.text(wLine.join('    ·    '), PAGE_LEFT, doc.y);
     doc.moveDown(1);
+
+    // ---- Coach read-out (AI) ----
+    if (insights) {
+      ensure(120);
+      sectionHeader(doc, `Coach read-out - ${label}`);
+      doc.font('Helvetica-Bold').fontSize(11).fillColor(INK).text(insights.headline, PAGE_LEFT, doc.y, { width: CONTENT_W });
+      doc.moveDown(0.4);
+      const block = (title: string, items: string[]) => {
+        if (!items.length) return;
+        ensure(40 + items.length * 14);
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(GREEN_DEEP).text(title, PAGE_LEFT, doc.y);
+        doc.font('Helvetica').fontSize(10).fillColor(INK);
+        items.forEach((t) => doc.text(`•  ${t}`, PAGE_LEFT + 6, doc.y + 2, { width: CONTENT_W - 6 }));
+        doc.moveDown(0.5);
+      };
+      block('Eating', insights.eat);
+      block('Drinking', insights.drink);
+      block('Training', insights.exercise);
+      block('Do this next week', insights.nextWeek);
+      doc.moveDown(0.5);
+    }
 
     // ---- Daily calories vs target ----
     ensure(140);
@@ -121,6 +143,37 @@ export function renderReportPdf(r: WeeklyReport): Promise<Buffer> {
         prevDate = e.date;
         gridRow(doc, [dateCell, slotLabel(e.mealSlot), e.name, `${e.grams} g`, String(e.kcal)], widths, i, [GREY, GREEN_DEEP, INK, INK, INK]);
       });
+      doc.moveDown(1);
+    }
+
+    // ---- Training ----
+    if (r.exercise && r.exercise.totalSets) {
+      const ex = r.exercise;
+      ensure(150);
+      sectionHeader(doc, 'Training');
+      statCards(doc, [
+        ['Workouts', `${ex.sessions}`, GREEN],
+        ['Active days', `${ex.activeDays}`, INK],
+        ['Sets', `${ex.totalSets}`, INK],
+        ['Kcal burned', `${ex.kcalBurned}`, AMBER],
+      ]);
+      doc.moveDown(0.5);
+      if (ex.byMuscle.length) {
+        tableHeader(doc, ['Muscle group', 'Sets'], [300, 195]);
+        ex.byMuscle.forEach((m, i) => {
+          ensure(22);
+          row(doc, [m.group, String(m.sets)], [300, 195], i, [INK, GREEN]);
+        });
+      }
+      if (ex.top.length) {
+        doc.moveDown(0.6);
+        ensure(60);
+        tableHeader(doc, ['Most done', 'Sets', 'Best weight'], [280, 90, 125]);
+        ex.top.forEach((t, i) => {
+          ensure(22);
+          row(doc, [t.name, String(t.sets), t.bestKg != null ? `${t.bestKg} kg` : '-'], [280, 90, 125], i, [INK, GREEN, GREY]);
+        });
+      }
       doc.moveDown(1);
     }
 
