@@ -107,7 +107,7 @@ private val MoveAccent: Color
 
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 3)) }
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val wantBuilder by SessionStore.builderRequest.collectAsStateWithLifecycle()
     val builderGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
@@ -131,7 +131,7 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         }
 
         // Tab bar — same style as Nutrition
-        val tabs = listOf("🏋️" to "Today", "📚" to "Library", "⭐" to "My Gym", "📊" to "Log")
+        val tabs = listOf("🏋️" to "Today", "📚" to "Library", "📊" to "Log")
         Card(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
             shape = Sharp,
@@ -172,7 +172,6 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
         when (section) {
             0 -> ExerciseTab(Modifier.fillMaxSize())
             1 -> ExerciseLibraryTab(Modifier.fillMaxSize())
-            2 -> MyGymTab(Modifier.fillMaxSize(), onGoToLibrary = { section = 1 })
             else -> MoveLogScreen(Modifier.fillMaxSize())
         }
     }
@@ -199,8 +198,6 @@ data class MoveState(
     val sessionEntries: List<SessionEntry> = emptyList(),
     /** Lower-cased names of exercises actually logged today - drives "planned vs actual" adherence. */
     val todayLoggedNames: Set<String> = emptySet(),
-    /** Exercise names the user has starred into "My Gym" for quick-access logging. */
-    val gymFavoriteNames: Set<String> = emptySet(),
     /** Local date (yyyy-MM-dd) the plan was last loaded for - lets [MoveViewModel.refreshIfNewDay]
      * detect a day boundary crossed while the app sat in the background, instead of silently
      * showing yesterday's "Today" plan until the process is killed and relaunched. */
@@ -241,7 +238,6 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
             }
         }
         refreshTodayLogged()
-        loadGymFavorites()
     }
 
     /** Refreshes what's actually been logged today, for the planned-vs-actual adherence chip. */
@@ -249,31 +245,6 @@ class MoveViewModel @Inject constructor(private val repository: AppRepository) :
         viewModelScope.launch {
             val names = repository.exerciseLogs(null).getOrDefault(emptyList()).map { it.exerciseName.lowercase().trim() }.toSet()
             _state.value = _state.value.copy(todayLoggedNames = names)
-        }
-    }
-
-    private fun loadGymFavorites() {
-        viewModelScope.launch {
-            val names = repository.gymFavorites().getOrDefault(emptyList()).toSet()
-            _state.value = _state.value.copy(gymFavoriteNames = names)
-        }
-    }
-
-    /** Toggles an exercise in/out of "My Gym" - optimistic, so the star flips instantly. */
-    fun toggleGymFavorite(exerciseName: String) {
-        val currentlyFavorite = exerciseName in _state.value.gymFavoriteNames
-        _state.value = _state.value.copy(
-            gymFavoriteNames = if (currentlyFavorite) _state.value.gymFavoriteNames - exerciseName else _state.value.gymFavoriteNames + exerciseName,
-        )
-        viewModelScope.launch {
-            val r = if (currentlyFavorite) repository.removeGymFavorite(exerciseName) else repository.addGymFavorite(exerciseName)
-            if (r.isFailure) {
-                // Revert on failure.
-                _state.value = _state.value.copy(
-                    gymFavoriteNames = if (currentlyFavorite) _state.value.gymFavoriteNames + exerciseName else _state.value.gymFavoriteNames - exerciseName,
-                    toast = "Couldn't update My Gym - try again",
-                )
-            }
         }
     }
 
@@ -848,8 +819,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                 ExerciseGridCard(
                     ex = ex,
                     onClick = { logTarget = ex },
-                    isFavorite = ex.name in state.gymFavoriteNames,
-                    onToggleFavorite = { viewModel.toggleGymFavorite(ex.name) },
                     inSession = ex.name in sessionPicks,
                     onToggleSession = { if (ex.name in sessionPicks) SessionStore.removePick(ctx, ex.name) else SessionStore.addPicks(ctx, listOf(ex.name)) },
                 )
@@ -857,74 +826,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             if (results.isEmpty() && typed.isNotEmpty()) {
                 item(span = { GridItemSpan(2) }) {
                     EmptyState(title = "No match - tap above to log it anyway", emoji = "🤷")
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// "My Gym" tab — the exercises the user starred in Library, one page, quick to log.
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun MyGymTab(
-    modifier: Modifier = Modifier,
-    onGoToLibrary: () -> Unit,
-    viewModel: MoveViewModel = hiltViewModel(),
-    planVm: com.nutriai.ui.plan.PlanViewModel = hiltViewModel(),
-) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
-    val favorites = remember(state.gymFavoriteNames) {
-        ExerciseCatalog.all.filter { it.name in state.gymFavoriteNames }
-    }
-
-    logTarget?.let { ex ->
-        LogExerciseDialog(
-            exercise = ex,
-            onDismiss = { logTarget = null },
-            onConfirm = { sets ->
-                viewModel.logSets(ex.name, null, sets)
-                logTarget = null
-            },
-            onPlanTomorrow = { name ->
-                planVm.addExerciseToDate(java.time.LocalDate.now().plusDays(1).toString(), name, ex.muscleGroup)
-            },
-        )
-    }
-
-    Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text("⭐ My Gym", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-        Text(
-            "The equipment at your gym — starred once in Library, logged from here every time.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (favorites.isEmpty()) {
-            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                EmptyState(title = "No equipment added yet", emoji = "⭐")
-                Spacer(Modifier.height(Spacing.sm))
-                Box(
-                    Modifier.clip(Sharp).background(MoveAccent).clickable(onClick = onGoToLibrary).padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                ) {
-                    Text("📚 Go star some in Library", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                gridItems(favorites) { ex ->
-                    ExerciseGridCard(
-                        ex = ex,
-                        onClick = { logTarget = ex },
-                        isFavorite = true,
-                        onToggleFavorite = { viewModel.toggleGymFavorite(ex.name) },
-                    )
                 }
             }
         }
@@ -961,8 +862,6 @@ private fun ExerciseGridCard(
     ex: ExerciseItem,
     onClick: () -> Unit,
     labelOverride: String? = null,
-    isFavorite: Boolean = false,
-    onToggleFavorite: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
     done: Boolean = false,
     inSession: Boolean = false,
@@ -1046,18 +945,6 @@ private fun ExerciseGridCard(
                         )
                     }
                 }
-            }
-            if (onToggleFavorite != null) {
-                Text(
-                    if (isFavorite) "⭐" else "☆",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .clip(CircleShape)
-                        .clickable(onClick = onToggleFavorite)
-                        .padding(6.dp)
-                        .semantics { contentDescription = if (isFavorite) "Remove ${ex.name} from My Gym" else "Add ${ex.name} to My Gym" },
-                )
             }
         }
     }

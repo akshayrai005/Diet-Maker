@@ -185,12 +185,6 @@ data class NextSession(
     val rationale: String = "",
 )
 
-// ---- "My Gym" favorites - a quick-access subset of the exercise library ----
-@Serializable
-data class GymFavoritesResponse(val exerciseNames: List<String> = emptyList())
-
-@Serializable
-data class GymFavoriteRequest(val exerciseName: String)
 
 @Serializable
 data class ExerciseItem(
