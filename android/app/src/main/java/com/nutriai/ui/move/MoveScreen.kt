@@ -34,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -610,7 +611,7 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                     )
                 }
             }
-            if (sessionPicks.isNotEmpty()) exerciseCards(sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }, onLog = { logTarget = it })
+            if (sessionPicks.isNotEmpty()) exerciseCards(sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
         } else {
             item(span = { GridItemSpan(2) }) {
                 Box(
@@ -635,23 +636,23 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             } else {
                 if (day.warmup.isNotEmpty()) {
                     item(span = { GridItemSpan(2) }) { Text("🔥 Warm-up", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.warmup, onLog = { logTarget = it })
+                    exerciseCards(day.warmup, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
                 }
                 if (day.exercises.isNotEmpty()) {
                     item(span = { GridItemSpan(2) }) { Text("💪 Main Workout", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.exercises, onLog = { logTarget = it }, onSwap = { swapTarget = it })
+                    exerciseCards(day.exercises, onLog = { logTarget = it }, onSwap = { swapTarget = it }, doneNames = state.todayLoggedNames)
                 }
                 if (day.core.isNotEmpty()) {
                     item(span = { GridItemSpan(2) }) { Text("🦾 Core & Abs", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.core, onLog = { logTarget = it })
+                    exerciseCards(day.core, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
                 }
                 day.cardio?.let { c ->
                     item(span = { GridItemSpan(2) }) { Text("❤️ Cardio", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    item(span = { GridItemSpan(2) }) { ExerciseGridCard(ex = c, onClick = { logTarget = c }) }
+                    item(span = { GridItemSpan(2) }) { ExerciseGridCard(ex = c, onClick = { logTarget = c }, done = c.name.lowercase().trim() in state.todayLoggedNames) }
                 }
                 if (day.cooldown.isNotEmpty()) {
                     item(span = { GridItemSpan(2) }) { Text("🧘 Cool-down", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
-                    exerciseCards(day.cooldown, onLog = { logTarget = it })
+                    exerciseCards(day.cooldown, onLog = { logTarget = it }, doneNames = state.todayLoggedNames)
                 }
                 item(span = { GridItemSpan(2) }) { RestTimer(Modifier.padding(top = Spacing.xs)) }
             }
@@ -1007,6 +1008,7 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.exerciseCards(
     list: List<ExerciseItem>,
     onLog: (ExerciseItem) -> Unit,
     onSwap: ((ExerciseItem) -> Unit)? = null,
+    doneNames: Set<String> = emptySet(),
 ) {
     items(
         count = list.size,
@@ -1017,6 +1019,7 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.exerciseCards(
             ex = ex,
             onClick = { onLog(ex) },
             onSwap = if (onSwap != null && ex.substitutions.isNotEmpty()) ({ onSwap(ex) }) else null,
+            done = ex.name.lowercase().trim() in doneNames,
         )
     }
 }
@@ -1029,6 +1032,7 @@ private fun ExerciseGridCard(
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
+    done: Boolean = false,
 ) {
     var showInfo by remember { mutableStateOf(false) }
     val mainMuscle = remember(ex.name, ex.muscleGroup) {
@@ -1042,11 +1046,18 @@ private fun ExerciseGridCard(
         Modifier.fillMaxWidth().height(226.dp).clickable(onClick = onClick),
         // Same look as the muscle picker tiles: white card, rounded, a clear outline.
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = androidx.compose.foundation.BorderStroke(if (done) 2.dp else 1.dp, if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
         elevation = CardDefaults.cardElevation(0.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Box(Modifier.fillMaxSize()) {
+            // Done tick (theme colour) once the exercise has been logged today.
+            if (done) {
+                Box(
+                    Modifier.align(Alignment.TopStart).padding(6.dp).size(22.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(androidx.compose.material.icons.Icons.Filled.Check, contentDescription = "Logged", tint = Color.White, modifier = Modifier.size(15.dp)) }
+            }
             Column(
                 Modifier.fillMaxSize().padding(Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
