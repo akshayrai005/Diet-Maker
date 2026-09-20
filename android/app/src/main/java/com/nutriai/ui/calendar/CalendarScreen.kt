@@ -433,18 +433,24 @@ fun CalendarScreen(
                             }
                         }
                         if (!state.loading && (dietDay != null || workoutDay != null)) {
-                            SectionHeader(
-                                title = "Suggested Plan",
-                                emoji = "🍲",
-                                action = {
-                                    TextAction(text = "🔄 Regenerate", onClick = { viewModel.regenerate() })
-                                },
-                            )
-                            Text(
-                                "What to eat today, not what you've logged - log actual meals in the Log tab.",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            // One tidy row: title on the left, a coloured Regenerate pill on the right.
+                            Row(
+                                Modifier.fillMaxWidth().padding(top = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column {
+                                    Text("🍲 Suggested Plan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                                    Text("What to eat - log real meals in Log", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Box(
+                                    Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(com.nutriai.ui.theme.SpectrumBrush)
+                                        .clickable { viewModel.regenerate() }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                                ) { Text("🔄 Regenerate", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color.White) }
+                            }
                         }
                     }
                 }
@@ -688,32 +694,46 @@ private fun DayTotalTile(modifier: Modifier, emoji: String, value: String, label
 
 @Composable
 private fun FoodDetailDialog(item: com.nutriai.data.remote.dto.MealItem, onRecipe: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(16.dp),
-        title = {
-            Text("🍽️ ${item.name}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                DetailRow("Amount", "${item.grams.toInt()} g", MaterialTheme.colorScheme.onSurface)
-                DetailRow("Calories", "${item.kcal.toInt()} kcal", BrandGreen)
-                HorizontalDivider(color = MaterialTheme.kaizenColors.divider)
-                DetailRow("💪 Protein", "${item.proteinG.toInt()} g", NutritionColor)
-                DetailRow("🌾 Carbs", "${item.carbG.toInt()} g", BrandAmber)
-                DetailRow("🥑 Fat", "${item.fatG.toInt()} g", KaizenCoral)
-                DetailRow("🥬 Fibre", "${"%.1f".format(item.fiberG)} g", com.nutriai.ui.theme.KaizenTeal)
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White)
+                .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp)),
+        ) {
+            // colourful header: food name + amount
+            Column(
+                Modifier.fillMaxWidth().background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 16.dp, vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("🍽️ ${item.name}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(4.dp))
+                Text("${item.grams.toInt()} g  ·  ${item.kcal.toInt()} kcal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.95f))
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onRecipe) {
-                Text("📖 Recipe", color = KaizenBlue, fontWeight = FontWeight.Bold)
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DayTotalTile(Modifier.weight(1f), "💪", "${item.proteinG.toInt()} g", "Protein", NutritionColor, NutritionColor.copy(alpha = 0.10f))
+                    DayTotalTile(Modifier.weight(1f), "🌾", "${item.carbG.toInt()} g", "Carbs", BrandAmber, BrandAmber.copy(alpha = 0.12f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DayTotalTile(Modifier.weight(1f), "🥑", "${item.fatG.toInt()} g", "Fat", KaizenCoral, KaizenCoral.copy(alpha = 0.10f))
+                    DayTotalTile(Modifier.weight(1f), "🥬", "${"%.1f".format(item.fiberG)} g", "Fibre", com.nutriai.ui.theme.KaizenTeal, com.nutriai.ui.theme.KaizenTeal.copy(alpha = 0.10f))
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f).height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    ) { Text("Close", fontWeight = FontWeight.Bold) }
+                    Box(
+                        Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(12.dp)).background(com.nutriai.ui.theme.SpectrumBrush).clickable { onRecipe() },
+                        contentAlignment = Alignment.Center,
+                    ) { Text("📖 Recipe", fontWeight = FontWeight.Bold, color = Color.White) }
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
-        },
-    )
+        }
+    }
 }
 
 @Composable
