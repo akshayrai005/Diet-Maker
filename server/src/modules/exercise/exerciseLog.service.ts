@@ -47,6 +47,15 @@ export async function listExercise(userId: string, date: Date, offsetMin = 0) {
   });
 }
 
+export async function listRecentExercise(userId: string, days: number) {
+  const since = new Date(Date.now() - days * 86_400_000);
+  return prisma.exerciseLog.findMany({
+    where: { userId, performedAt: { gte: since } },
+    orderBy: { performedAt: 'desc' },
+    take: 1500,
+  });
+}
+
 export async function deleteExercise(userId: string, id: string) {
   const res = await prisma.exerciseLog.deleteMany({ where: { id, userId } });
   if (res.count === 0) throw new HttpError(404, 'Exercise log not found');

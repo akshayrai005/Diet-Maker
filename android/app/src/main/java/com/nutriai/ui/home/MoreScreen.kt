@@ -78,6 +78,8 @@ private val GROUPS = listOf(
             ProfileItem("plan", "📅", "Plan", "Plan tomorrow's food & workout", MovementColor),
             ProfileItem("coach", "🤖", "Coach", "Chat with your coach", KaizenLavender),
             ProfileItem("checkin", "⚖️", "Check-in", "Weekly weigh-in", BrandGreen),
+            ProfileItem("grocery", "🛒", "Grocery", "Shopping list from your plan", NutritionColor),
+            ProfileItem("office", "🏢", "Office", "Work-day eating & routine", RecoveryColor),
         ),
     ),
     ProfileGroup(
@@ -140,6 +142,8 @@ fun MoreScreen(
             }
             when (selected) {
                 "plan" -> com.nutriai.ui.plan.PlanScreen(Modifier.fillMaxSize())
+                "grocery" -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
+                "office" -> com.nutriai.ui.lifestyle.LifestyleScreen(Modifier.fillMaxSize())
                 "mind" -> com.nutriai.ui.wellness.WellnessScreen(Modifier.fillMaxSize())
                 "coach" -> com.nutriai.ui.coach.CoachScreen(Modifier.fillMaxSize())
                 "discipline" -> com.nutriai.ui.discipline.DisciplineScreen(Modifier.fillMaxSize())

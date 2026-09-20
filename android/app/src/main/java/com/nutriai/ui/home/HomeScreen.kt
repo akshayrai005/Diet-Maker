@@ -116,6 +116,15 @@ fun HomeScreen(
         }
     }
 
+    // Once a day: "Ready to train?" -> what to train -> straight to the exercise picker on the Move tab.
+    com.nutriai.ui.move.WorkoutCheckInHost(onChose = {
+        navController.navigate("move") {
+            popUpTo(navController.graph.startDestinationId) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    })
+
     androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = MaterialTheme.kaizenColors.pageBackground,

@@ -107,6 +107,14 @@ private val MoveAccent: Color
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 3)) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val wantBuilder by SessionStore.builderRequest.collectAsStateWithLifecycle()
+    val builderGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { SessionStore.refresh(ctx) }
+    if (wantBuilder && builderGroups.isNotEmpty()) {
+        section = 0
+        SessionBuilderDialog(groups = builderGroups, onDone = { SessionStore.builderRequest.value = false })
+    }
 
     Column(modifier.fillMaxSize()) {
         // Purple gradient header
@@ -405,6 +413,19 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
 
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val sessionPicks by SessionStore.picksFlow.collectAsStateWithLifecycle()
+    val sessionGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
+    var showPicker by remember { mutableStateOf(false) }
+    val focusVm: FocusViewModel = hiltViewModel()
+    val focusReport by focusVm.report.collectAsStateWithLifecycle()
+    if (showPicker) {
+        GroupPickerDialog(
+            report = focusReport, initial = sessionGroups.toSet(), title = "🎯 What are you training?",
+            onDismiss = { showPicker = false },
+            onConfirm = { g -> SessionStore.saveGroups(ctx, g); SessionStore.builderRequest.value = true; showPicker = false },
+        )
+    }
 
     logTarget?.let { ex ->
         LogExerciseDialog(
@@ -574,6 +595,28 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
                         }
                     }
                 }
+            }
+        }
+
+        // Today's session: what the user picked at the check-in (kept until 4 am), with a quick way to add more.
+        if (sessionPicks.isNotEmpty() || sessionGroups.isNotEmpty()) {
+            item(span = { GridItemSpan(2) }) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        "＋ Add more",
+                        Modifier.clip(RoundedCornerShape(50)).background(SpectrumBrush).clickable { showPicker = true }.padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
+                    )
+                }
+            }
+            if (sessionPicks.isNotEmpty()) exerciseCards(sessionPicks.mapNotNull { n -> ExerciseCatalog.entries.firstOrNull { it.item.name == n }?.item }, onLog = { logTarget = it })
+        } else {
+            item(span = { GridItemSpan(2) }) {
+                Box(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(SpectrumBrush).clickable { showPicker = true }.padding(14.dp),
+                    contentAlignment = Alignment.Center,
+                ) { Text("🎯 What are you training today?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color.White) }
             }
         }
 

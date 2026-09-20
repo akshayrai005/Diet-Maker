@@ -226,6 +226,17 @@ exerciseRouter.get(
   }),
 );
 
+// What the user trained over the last N days (default 30, max 90) - feeds the check-in's "what's behind" suggestion.
+exerciseRouter.get(
+  '/exercise-logs/recent',
+  requireAuth,
+  asyncHandler(async (req: AuthedRequest, res) => {
+    const days = Math.min(90, Math.max(1, Number(req.query.days) || 30));
+    const entries = await logSvc.listRecentExercise(req.user!.id, days);
+    res.json({ entries });
+  }),
+);
+
 exerciseRouter.get(
   '/exercise-logs/last',
   requireAuth,

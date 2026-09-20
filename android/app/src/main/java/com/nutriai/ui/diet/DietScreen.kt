@@ -75,7 +75,7 @@ fun DietScreen(
     // never appear until relaunch, the same root cause as the barcode-log bug fixed earlier.
     logFoodViewModel: com.nutriai.ui.home.LogFoodViewModel = hiltViewModel(),
 ) {
-    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 4)) }
+    var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
     val dashboard by summaryViewModel.dashboard.collectAsStateWithLifecycle()
     val refreshAfterLog: () -> Unit = { summaryViewModel.load(); logFoodViewModel.loadToday() }
 
@@ -113,7 +113,7 @@ fun DietScreen(
         }
 
         // ── Tab bar ──
-        val tabs = listOf("📅" to "Today", "📝" to "Log", "🍳" to "Recipes", "🛒" to "Grocery", "🏢" to "Office")
+        val tabs = listOf("📅" to "Today", "📝" to "Log", "🍳" to "Recipes")
         Card(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.screenHorizontal),
             shape = RoundedCornerShape(Sharp),
@@ -155,9 +155,7 @@ fun DietScreen(
         when (section) {
             0 -> com.nutriai.ui.calendar.CalendarScreen(Modifier.fillMaxSize())
             1 -> com.nutriai.ui.log.LogScreen(Modifier.fillMaxSize(), viewModel = logFoodViewModel, onLogged = refreshAfterLog)
-            2 -> com.nutriai.ui.recipe.RecipeBuilderScreen(Modifier.fillMaxSize(), onLogged = refreshAfterLog)
-            3 -> com.nutriai.ui.grocery.GroceryScreen(Modifier.fillMaxSize())
-            else -> com.nutriai.ui.lifestyle.LifestyleScreen(Modifier.fillMaxSize())
+            else -> com.nutriai.ui.recipe.RecipeBuilderScreen(Modifier.fillMaxSize(), onLogged = refreshAfterLog)
         }
     }
 }

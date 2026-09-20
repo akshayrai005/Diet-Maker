@@ -471,6 +471,10 @@ class AppRepository @Inject constructor(
     suspend fun lastPerformance(): Result<Map<String, com.nutriai.data.remote.dto.LastPerformance>> =
         runCatching { api.exerciseLast().last }
 
+    /** Everything logged in the last [days] days - drives the check-in's suggestion and the region balance. */
+    suspend fun recentExerciseLogs(days: Int = 30): Result<List<com.nutriai.data.remote.dto.ExerciseLogDto>> =
+        runCatching { api.recentExerciseLogs(days).entries }
+
     suspend fun deleteExerciseLog(id: String): Result<Unit> =
         runCatching { api.deleteExerciseLog(id) }
 

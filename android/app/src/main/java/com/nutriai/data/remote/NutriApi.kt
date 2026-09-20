@@ -296,6 +296,9 @@ interface NutriApi {
     @GET("exercise-logs")
     suspend fun exerciseLogs(@Query("date") date: String?): com.nutriai.data.remote.dto.ExerciseLogsEnvelope
 
+    @GET("exercise-logs/recent")
+    suspend fun recentExerciseLogs(@Query("days") days: Int): com.nutriai.data.remote.dto.ExerciseLogsEnvelope
+
     @GET("exercise-logs/last")
     suspend fun exerciseLast(): com.nutriai.data.remote.dto.LastPerformanceEnvelope
 
