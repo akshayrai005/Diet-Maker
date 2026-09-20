@@ -656,7 +656,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     }
 
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text("📚 Exercise Library", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         // The parts chosen at the check-in, one tap to switch between them; picks are added with "＋ Today" on each exercise.
         val chosenCats = remember(sessionGroups) { sessionGroups.flatMap { it.cats } }
         if (chosenCats.isNotEmpty()) {
@@ -711,34 +710,9 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                 title = "${category.emoji} ${category.label}" + (sub?.takeIf { it != ALL_REGIONS }?.let { " · $it" } ?: ""),
                 onBack = { if (regionCount > 0 && sub != null) { sub = null; query = "" } else { category = ExerciseCatalog.Category.ALL; query = "" } },
             )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("🔍 Search in ${category.label.lowercase()}...", style = MaterialTheme.typography.bodySmall) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = Sharp,
-                textStyle = MaterialTheme.typography.bodyMedium,
-            )
         } else {
             // Searching from the first screen: a header card too, so the way back is always the same.
             LibraryHeader(title = "🔍 Results for \"${query.trim()}\"", onBack = { query = "" })
-        }
-        Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(ExerciseCatalog.equipmentFilters) { eq ->
-                FilterChip(
-                    selected = equipment == eq,
-                    onClick = { equipment = eq },
-                    label = { Text("${eq.emoji} ${eq.label}", style = MaterialTheme.typography.labelSmall, fontWeight = if (equipment == eq) FontWeight.Bold else FontWeight.Normal) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = BrandAmber,
-                        selectedLabelColor = Color.White,
-                        containerColor = BrandAmber.copy(alpha = 0.08f),
-                        labelColor = BrandAmber,
-                    ),
-                )
-            }
         }
         // a new list (other part, region or search text) always starts at the top
         val gridState = remember(category, sub, query) { androidx.compose.foundation.lazy.grid.LazyGridState() }
@@ -749,6 +723,40 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             modifier = Modifier.fillMaxSize(),
         ) {
+            // Search and equipment scroll away with the list, so the exercises get the whole screen.
+            if (category != ExerciseCatalog.Category.ALL) {
+                item(span = { GridItemSpan(2) }) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        placeholder = { Text("🔍 Search in ${category.label.lowercase()}...", style = MaterialTheme.typography.bodySmall) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = Sharp,
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            item(span = { GridItemSpan(2) }) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(ExerciseCatalog.equipmentFilters) { eq ->
+                            FilterChip(
+                                selected = equipment == eq,
+                                onClick = { equipment = eq },
+                                label = { Text("${eq.emoji} ${eq.label}", style = MaterialTheme.typography.labelSmall, fontWeight = if (equipment == eq) FontWeight.Bold else FontWeight.Normal) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = BrandAmber,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = BrandAmber.copy(alpha = 0.08f),
+                                    labelColor = BrandAmber,
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
             if (typed.isNotEmpty() && !hasExactName) {
                 item {
                     ExerciseGridCard(
