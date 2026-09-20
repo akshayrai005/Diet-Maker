@@ -136,6 +136,7 @@ fun PremiumDashboard(
     rating: com.nutriai.data.remote.dto.RatingResult? = null,
     todayWorkout: com.nutriai.data.remote.dto.WorkoutDay? = null,
     adherence: com.nutriai.data.remote.dto.AdherenceRead? = null,
+    healthExtras: com.nutriai.data.health.HealthConnectManager.Extras? = null,
     onOpenVitals: () -> Unit = {},
     onOpenMove: () -> Unit = {},
     onOpenPlan: () -> Unit = {},
@@ -220,6 +221,11 @@ fun PremiumDashboard(
                     onOpenVitals = onOpenVitals,
                 )
             }
+        }
+
+        // Everything else Health Connect knows about today (watch + phone), one tidy card.
+        if (healthExtras != null && healthExtras.any) {
+            item { Column(sectionPadding) { HealthExtrasCard(healthExtras) } }
         }
 
         // Priorities
@@ -1164,4 +1170,40 @@ private fun VitalsEntryDialog(initialHr: Int?, initialStress: Int?, initialSoren
         confirmButton = { TextButton(onClick = { onSave(hrText.toIntOrNull(), stress, soreness, sleepText.toDoubleOrNull()) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+
+/** Health Connect extras: distance, calories, workouts, speed, resting heart rate, weight, height and BMR - only the ones that have data. */
+@Composable
+private fun HealthExtrasCard(x: com.nutriai.data.health.HealthConnectManager.Extras) {
+    val tiles = buildList {
+        x.distanceKm?.let { add(Triple("📏", String.format("%.2f km", it), "Distance today")) }
+        x.caloriesBurned?.let { add(Triple("🔥", "$it kcal", "Burned today")) }
+        x.exerciseSessions?.let { n -> add(Triple("🏃", "$n" + (x.exerciseMinutes?.let { " · $it min" } ?: ""), if (n == 1) "Workout today" else "Workouts today")) }
+        x.topSpeedKmh?.let { add(Triple("⚡", String.format("%.1f km/h", it), "Top speed today")) }
+        x.restingHr?.let { add(Triple("💓", "$it bpm", "Resting heart rate")) }
+        x.weightKg?.let { add(Triple("⚖️", String.format("%.1f kg", it), "Weight")) }
+        x.heightCm?.let { add(Triple("📐", String.format("%.0f cm", it), "Height")) }
+        x.bmrKcal?.let { add(Triple("🫀", "$it kcal", "Basal metabolic rate")) }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeader("From your watch & phone", emoji = "⌚")
+        tiles.chunked(2).forEach { pair ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                pair.forEachIndexed { i, (emoji, value, label) ->
+                    Column(
+                        Modifier.weight(1f).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                            .background(com.nutriai.ui.theme.AppPalette.tint(com.nutriai.ui.theme.AppPalette.stop(tiles.indexOf(pair[i]))))
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(emoji, style = MaterialTheme.typography.titleMedium)
+                        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+                if (pair.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
 }

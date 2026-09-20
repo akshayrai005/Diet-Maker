@@ -22,6 +22,7 @@ data class DashboardState(
     val exerciseKcal: Int = 0,
     val stepsAvailable: Boolean = false,
     val stepsPermission: Boolean = false,
+    val healthExtras: com.nutriai.data.health.HealthConnectManager.Extras? = null,
     val heartRate: Int? = null,
     val sleepHours: Double? = null,
     val manualSleepHours: Double? = null,
@@ -93,7 +94,9 @@ class DashboardViewModel @Inject constructor(
             val bp = if (available) healthConnect.readLatestBloodPressure() else null
             val spo2 = if (available) healthConnect.readLatestOxygenSaturation() else null
             val bodyTemp = if (available) healthConnect.readLatestBodyTemperature() else null
+            val extras = if (available && perm) healthConnect.readExtras() else null
             _state.value = _state.value.copy(
+                healthExtras = extras,
                 steps = steps,
                 stepsKcal = (steps * 0.04).toInt(), // ~0.04 kcal/step
                 stepsAvailable = available,

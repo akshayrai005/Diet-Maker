@@ -390,6 +390,7 @@ private fun DashboardTab(
             rating = state.rating,
             todayWorkout = state.todayWorkout,
             adherence = state.adherence,
+            healthExtras = state.healthExtras,
             onOpenVitals = onOpenVitals,
             onOpenMove = onOpenMove,
             onOpenDietLog = onOpenDietLog,

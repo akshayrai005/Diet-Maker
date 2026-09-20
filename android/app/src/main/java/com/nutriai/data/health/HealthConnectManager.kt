@@ -9,6 +9,14 @@ import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.DistanceRecord
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.SpeedRecord
+import androidx.health.connect.client.records.RestingHeartRateRecord
+import androidx.health.connect.client.records.WeightRecord
+import androidx.health.connect.client.records.HeightRecord
+import androidx.health.connect.client.records.BasalMetabolicRateRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,8 +44,19 @@ class HealthConnectManager @Inject constructor(
     private val spo2Permissions = setOf(HealthPermission.getReadPermission(OxygenSaturationRecord::class))
     private val tempPermissions = setOf(HealthPermission.getReadPermission(BodyTemperatureRecord::class))
 
-    /** All permissions requested at once so one grant covers steps, heart rate, sleep, BP, SpO2 and temp. */
-    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions + spo2Permissions + tempPermissions
+    private val extraPermissions = setOf(
+        HealthPermission.getReadPermission(DistanceRecord::class),
+        HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+        HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+        HealthPermission.getReadPermission(SpeedRecord::class),
+        HealthPermission.getReadPermission(RestingHeartRateRecord::class),
+        HealthPermission.getReadPermission(WeightRecord::class),
+        HealthPermission.getReadPermission(HeightRecord::class),
+        HealthPermission.getReadPermission(BasalMetabolicRateRecord::class),
+    )
+
+    /** All permissions requested at once so one grant covers steps, heart rate, sleep, BP, SpO2, temp and the body/activity extras. */
+    val readPermissions: Set<String> = stepPermissions + heartPermissions + sleepPermissions + bpPermissions + spo2Permissions + tempPermissions + extraPermissions
 
     fun isAvailable(): Boolean =
         HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
@@ -54,6 +73,71 @@ class HealthConnectManager @Inject constructor(
     suspend fun missingPermissions(): Set<String> {
         val client = clientOrNull() ?: return emptySet()
         return readPermissions - client.permissionController.getGrantedPermissions()
+    }
+
+    /** Today's extra Health Connect numbers for the dashboard (each null when not granted or no data yet). */
+    data class Extras(
+        val distanceKm: Double? = null,
+        val caloriesBurned: Int? = null,
+        val exerciseSessions: Int? = null,
+        val exerciseMinutes: Int? = null,
+        val topSpeedKmh: Double? = null,
+        val restingHr: Int? = null,
+        val weightKg: Double? = null,
+        val heightCm: Double? = null,
+        val bmrKcal: Int? = null,
+    ) {
+        val any: Boolean get() = listOf(distanceKm, caloriesBurned, exerciseSessions, topSpeedKmh, restingHr, weightKg, heightCm, bmrKcal).any { it != null }
+    }
+
+    suspend fun readExtras(): Extras {
+        val client = clientOrNull() ?: return Extras()
+        val have = client.permissionController.getGrantedPermissions()
+        fun ok(c: kotlin.reflect.KClass<out androidx.health.connect.client.records.Record>) = HealthPermission.getReadPermission(c) in have
+        val zone = ZoneId.systemDefault()
+        val start = LocalDate.now().atStartOfDay(zone).toInstant()
+        val now = Instant.now()
+        val today = androidx.health.connect.client.time.TimeRangeFilter.between(start, now)
+        val recent = androidx.health.connect.client.time.TimeRangeFilter.between(now.minus(java.time.Duration.ofDays(365)), now)
+
+        suspend fun <T : Any> safe(block: suspend () -> T?): T? = try { block() } catch (e: Exception) { null }
+
+        val distance = if (ok(DistanceRecord::class)) safe {
+            client.aggregate(androidx.health.connect.client.request.AggregateRequest(setOf(DistanceRecord.DISTANCE_TOTAL), today))[DistanceRecord.DISTANCE_TOTAL]?.inKilometers
+        } else null
+        val calories = if (ok(TotalCaloriesBurnedRecord::class)) safe {
+            client.aggregate(androidx.health.connect.client.request.AggregateRequest(setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL), today))[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories?.toInt()
+        } else null
+        val sessions = if (ok(ExerciseSessionRecord::class)) safe {
+            client.readRecords(androidx.health.connect.client.request.ReadRecordsRequest(ExerciseSessionRecord::class, today)).records
+        } else null
+        val topSpeed = if (ok(SpeedRecord::class)) safe {
+            client.aggregate(androidx.health.connect.client.request.AggregateRequest(setOf(SpeedRecord.SPEED_MAX), today))[SpeedRecord.SPEED_MAX]?.inKilometersPerHour
+        } else null
+        val resting = if (ok(RestingHeartRateRecord::class)) safe {
+            client.readRecords(androidx.health.connect.client.request.ReadRecordsRequest(RestingHeartRateRecord::class, recent, ascendingOrder = false, pageSize = 1)).records.firstOrNull()?.beatsPerMinute?.toInt()
+        } else null
+        val weight = if (ok(WeightRecord::class)) safe {
+            client.readRecords(androidx.health.connect.client.request.ReadRecordsRequest(WeightRecord::class, recent, ascendingOrder = false, pageSize = 1)).records.firstOrNull()?.weight?.inKilograms
+        } else null
+        val height = if (ok(HeightRecord::class)) safe {
+            client.readRecords(androidx.health.connect.client.request.ReadRecordsRequest(HeightRecord::class, recent, ascendingOrder = false, pageSize = 1)).records.firstOrNull()?.height?.inMeters?.times(100)
+        } else null
+        val bmr = if (ok(BasalMetabolicRateRecord::class)) safe {
+            client.readRecords(androidx.health.connect.client.request.ReadRecordsRequest(BasalMetabolicRateRecord::class, recent, ascendingOrder = false, pageSize = 1)).records.firstOrNull()?.basalMetabolicRate?.inKilocaloriesPerDay?.toInt()
+        } else null
+
+        return Extras(
+            distanceKm = distance?.takeIf { it > 0 },
+            caloriesBurned = calories?.takeIf { it > 0 },
+            exerciseSessions = sessions?.size?.takeIf { it > 0 },
+            exerciseMinutes = sessions?.sumOf { java.time.Duration.between(it.startTime, it.endTime).toMinutes() }?.toInt()?.takeIf { it > 0 },
+            topSpeedKmh = topSpeed?.takeIf { it > 0 },
+            restingHr = resting,
+            weightKg = weight,
+            heightCm = height,
+            bmrKcal = bmr,
+        )
     }
 
     /** True if at least the steps permission is granted (used to show the connected state). */
