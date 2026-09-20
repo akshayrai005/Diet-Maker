@@ -392,8 +392,12 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     var swapTarget by remember { mutableStateOf<ExerciseItem?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val sessionPicks by SessionStore.picksFlow.collectAsStateWithLifecycle()
+    val todayPicks by SessionStore.picksFlow.collectAsStateWithLifecycle()
+    val tomorrowPicks by SessionStore.tomorrowFlow.collectAsStateWithLifecycle()
     val sessionGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
+    var showTomorrow by remember { mutableStateOf(false) }
+    // What the page is showing: today's session (log it) or tomorrow's plan (add / remove only).
+    val sessionPicks = if (showTomorrow) tomorrowPicks else todayPicks
     var showPicker by remember { mutableStateOf(false) }
     val focusVm: FocusViewModel = hiltViewModel()
     val focusReport by focusVm.report.collectAsStateWithLifecycle()
@@ -504,15 +508,36 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
             }
         }
 
-        // Today's session: what the user picked at the check-in (kept until 4 am), with a quick way to add more.
+        // Today | Tomorrow: the trainer can plan tomorrow's exercises here (or with "+ Tomorrow" in the Library).
+        item(span = { GridItemSpan(2) }) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                listOf("Today" to false, "Tomorrow" to true).forEach { (label, isTomorrow) ->
+                    val on = showTomorrow == isTomorrow
+                    val count = if (isTomorrow) tomorrowPicks.size else todayPicks.size
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (on) SpectrumBrush else androidx.compose.ui.graphics.SolidColor(Color.White))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                            .clickable { showTomorrow = isTomorrow }
+                            .padding(vertical = 10.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(label, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleSmall, color = if (on) Color.White else Color(0xFF1B1F23))
+                        Text("$count exercise${if (count == 1) "" else "s"}", style = MaterialTheme.typography.labelSmall, color = if (on) Color.White.copy(alpha = 0.9f) else Color(0xFF6B7280))
+                    }
+                }
+            }
+        }
         item(span = { GridItemSpan(2) }) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
+                Text(if (showTomorrow) "📅 Tomorrow's plan" else "🎯 Your session today", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (sessionPicks.isNotEmpty()) {
                         Text(
                             "Clear",
-                            Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable { SessionStore.clearPicks(ctx) }.padding(horizontal = 12.dp, vertical = 6.dp),
+                            Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable { SessionStore.clearPicks(ctx, tomorrow = showTomorrow) }.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
                         )
                     }
@@ -530,10 +555,14 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         items(slotCount) { i ->
             val ex = picked.getOrNull(i)
             if (ex != null) {
-                ExerciseGridCard(ex = ex, onClick = { logTarget = ex }, done = ex.name.lowercase().trim() in state.todayLoggedNames)
+                if (showTomorrow) {
+                    ExerciseGridCard(ex = ex, onClick = { }, onRemove = { SessionStore.removePick(ctx, ex.name, tomorrow = true) })
+                } else {
+                    ExerciseGridCard(ex = ex, onClick = { logTarget = ex }, done = ex.name.lowercase().trim() in state.todayLoggedNames)
+                }
             } else {
                 Box(
-                    Modifier.fillMaxWidth().height(226.dp).clip(RoundedCornerShape(12.dp)).background(Color.White)
+                    Modifier.fillMaxWidth().height(262.dp).clip(RoundedCornerShape(12.dp)).background(Color.White)
                         .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                         .clickable { showPicker = true },
                     contentAlignment = Alignment.Center,
@@ -590,6 +619,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     val requestedCat by SessionStore.libraryCat.collectAsStateWithLifecycle()
     val sessionGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
     val sessionPicks by SessionStore.picksFlow.collectAsStateWithLifecycle()
+    val tomorrowPicks by SessionStore.tomorrowFlow.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { SessionStore.refresh(ctx) }
     LaunchedEffect(requestedCat) {
         requestedCat?.let { category = it; sub = null; query = ""; SessionStore.libraryCat.value = null }
@@ -734,6 +764,8 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                     onClick = { logTarget = ex },
                     inSession = ex.name in sessionPicks,
                     onToggleSession = { if (ex.name in sessionPicks) SessionStore.removePick(ctx, ex.name) else SessionStore.addPicks(ctx, listOf(ex.name)) },
+                    inTomorrow = ex.name in tomorrowPicks,
+                    onToggleTomorrow = { if (ex.name in tomorrowPicks) SessionStore.removePick(ctx, ex.name, tomorrow = true) else SessionStore.addPicks(ctx, listOf(ex.name), tomorrow = true) },
                 )
             }
             if (results.isEmpty() && typed.isNotEmpty()) {
@@ -779,6 +811,9 @@ private fun ExerciseGridCard(
     done: Boolean = false,
     inSession: Boolean = false,
     onToggleSession: (() -> Unit)? = null,
+    inTomorrow: Boolean = false,
+    onToggleTomorrow: (() -> Unit)? = null,
+    onRemove: (() -> Unit)? = null,
 ) {
     var showInfo by remember { mutableStateOf(false) }
     val mainMuscle = remember(ex.name, ex.muscleGroup) {
@@ -789,7 +824,7 @@ private fun ExerciseGridCard(
     }
     if (showInfo && ex.info != null) ExerciseInfoDialog(ex) { showInfo = false }
     Card(
-        Modifier.fillMaxWidth().height(226.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().height(262.dp).clickable(onClick = onClick),
         // Same look as the muscle picker tiles: white card, rounded, a clear outline.
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(if (done) 2.dp else 1.dp, if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
@@ -815,47 +850,67 @@ private fun ExerciseGridCard(
                 Text(if (alsoMuscles.isNotEmpty()) "Also: " + alsoMuscles.take(3).joinToString(", ") { it.replace('-', ' ') } else " ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, maxLines = 1)
                 ProgressionChip(ex.nextSession)
                 Spacer(Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .clip(Sharp)
-                            .background(SpectrumBrush)
-                            .padding(horizontal = Spacing.sm, vertical = 3.dp),
-                    ) {
-                        Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                    if (onToggleSession != null) {
-                        Text(
-                            if (inSession) "✓ Today" else "＋ Today",
-                            Modifier.clip(Sharp)
-                                .then(if (inSession) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier.border(1.dp, MaterialTheme.colorScheme.primary, Sharp))
-                                .clickable(onClick = onToggleSession)
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
-                            color = if (inSession) Color.White else MaterialTheme.colorScheme.primary,
-                        )
+                // Buttons in a tidy grid: every button is 30 dp tall with the same corners.
+                //   row 1:  [ + Log (wide) ] [ i ] [ swap ]        row 2:  [ + Today ] [ + Tomorrow ]  (equal halves)
+                val btnH = 30.dp
+                val btnShape = RoundedCornerShape(8.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    if (onRemove != null) {
+                        Box(
+                            Modifier.weight(1f).height(btnH).clip(btnShape).border(1.dp, MaterialTheme.colorScheme.outline, btnShape).clickable(onClick = onRemove),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("✕ Remove", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold) }
+                    } else {
+                        Box(
+                            Modifier.weight(1f).height(btnH).clip(btnShape).background(SpectrumBrush).clickable(onClick = onClick),
+                            contentAlignment = Alignment.Center,
+                        ) { Text("+ Log", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White) }
                     }
                     if (ex.info != null) {
-                        Text(
-                            "ℹ️",
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier
-                                .clip(Sharp)
-                                .clickable { showInfo = true }
-                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        Box(
+                            Modifier.size(btnH).clip(btnShape).border(1.dp, MaterialTheme.colorScheme.outline, btnShape).clickable { showInfo = true }
                                 .semantics { contentDescription = "Form guide for ${ex.name}" },
-                        )
+                            contentAlignment = Alignment.Center,
+                        ) { Text("ℹ️", style = MaterialTheme.typography.labelMedium) }
                     }
                     if (onSwap != null) {
-                        Text(
-                            "🔄",
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier
-                                .clip(Sharp)
-                                .clickable(onClick = onSwap)
-                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        Box(
+                            Modifier.size(btnH).clip(btnShape).border(1.dp, MaterialTheme.colorScheme.outline, btnShape).clickable(onClick = onSwap)
                                 .semantics { contentDescription = "Swap ${ex.name} for an alternative" },
-                        )
+                            contentAlignment = Alignment.Center,
+                        ) { Text("🔄", style = MaterialTheme.typography.labelMedium) }
+                    }
+                }
+                if (onToggleSession != null || onToggleTomorrow != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        if (onToggleSession != null) {
+                            Box(
+                                Modifier.weight(1f).height(btnH).clip(btnShape)
+                                    .then(if (inSession) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier.border(1.dp, MaterialTheme.colorScheme.primary, btnShape))
+                                    .clickable(onClick = onToggleSession),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (inSession) "✓ Today" else "+ Today",
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1,
+                                    color = if (inSession) Color.White else MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                        if (onToggleTomorrow != null) {
+                            Box(
+                                Modifier.weight(1f).height(btnH).clip(btnShape)
+                                    .then(if (inTomorrow) Modifier.background(SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.primary, btnShape))
+                                    .clickable(onClick = onToggleTomorrow),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    if (inTomorrow) "✓ Tomorrow" else "+ Tomorrow",
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1,
+                                    color = if (inTomorrow) Color.White else MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
                     }
                 }
             }

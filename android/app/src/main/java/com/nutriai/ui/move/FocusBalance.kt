@@ -118,13 +118,32 @@ object SessionStore {
         prefs(c).edit().putString("ck_day", dayKey()).putBoolean("ck_yes", yes).apply()
     }
 
+    /** Picks planned for tomorrow's session (added from the Library with "+ Tomorrow" or from the Tomorrow tab). */
+    val tomorrowFlow = MutableStateFlow<List<String>>(emptyList())
+
+    private fun today(): java.time.LocalDate = java.time.LocalDateTime.now().minusHours(4).toLocalDate()
+    private fun picksKey(tomorrow: Boolean) = "picks_" + today().plusDays(if (tomorrow) 1 else 0).toString()
+    private fun readPicks(c: Context, tomorrow: Boolean): List<String> =
+        prefs(c).getString(picksKey(tomorrow), "").orEmpty().split('|').filter { it.isNotBlank() }
+
     fun refresh(c: Context) {
         val p = prefs(c)
-        if (p.getString("ck_day", null) != dayKey() || !p.getBoolean("ck_yes", false)) {
-            picksFlow.value = emptyList(); groupsFlow.value = emptyList(); return
+        // one-time carry-over of the old single "ck_picks" list (it belonged to the current eating day)
+        if (p.contains("ck_picks")) {
+            val old = p.getString("ck_picks", "").orEmpty()
+            val e = p.edit().remove("ck_picks")
+            if (old.isNotBlank() && p.getString("ck_day", null) == dayKey() && !p.contains(picksKey(false))) e.putString(picksKey(false), old)
+            e.apply()
         }
-        picksFlow.value = p.getString("ck_picks", "").orEmpty().split('|').filter { it.isNotBlank() }
-        groupsFlow.value = p.getString("ck_groups", "").orEmpty().split('|').mapNotNull { n -> TrainGroup.values().firstOrNull { it.name == n } }
+        // forget plans older than today
+        val cutoff = today().toString()
+        val stale = p.all.keys.filter { it.startsWith("picks_") && it.removePrefix("picks_") < cutoff }
+        if (stale.isNotEmpty()) p.edit().apply { stale.forEach { remove(it) } }.apply()
+        picksFlow.value = readPicks(c, false)
+        tomorrowFlow.value = readPicks(c, true)
+        groupsFlow.value = if (p.getString("ck_day", null) == dayKey() && p.getBoolean("ck_yes", false))
+            p.getString("ck_groups", "").orEmpty().split('|').mapNotNull { n -> TrainGroup.values().firstOrNull { it.name == n } }
+        else emptyList()
     }
 
     fun saveGroups(c: Context, groups: List<TrainGroup>) {
@@ -132,20 +151,20 @@ object SessionStore {
         refresh(c)
     }
 
-    fun addPicks(c: Context, names: List<String>) {
-        val merged = (picksFlow.value + names).distinct()
-        prefs(c).edit().putString("ck_picks", merged.joinToString("|")).apply()
+    fun addPicks(c: Context, names: List<String>, tomorrow: Boolean = false) {
+        val merged = (readPicks(c, tomorrow) + names).distinct()
+        prefs(c).edit().putString(picksKey(tomorrow), merged.joinToString("|")).apply()
         refresh(c)
     }
 
-    fun clearPicks(c: Context) {
-        prefs(c).edit().putString("ck_picks", "").apply()
+    fun clearPicks(c: Context, tomorrow: Boolean = false) {
+        prefs(c).edit().remove(picksKey(tomorrow)).apply()
         refresh(c)
     }
 
-    fun removePick(c: Context, name: String) {
-        val left = picksFlow.value.filter { it != name }
-        prefs(c).edit().putString("ck_picks", left.joinToString("|")).apply()
+    fun removePick(c: Context, name: String, tomorrow: Boolean = false) {
+        val left = readPicks(c, tomorrow).filter { it != name }
+        prefs(c).edit().putString(picksKey(tomorrow), left.joinToString("|")).apply()
         refresh(c)
     }
 }
