@@ -684,7 +684,7 @@ private fun DayTotalTile(modifier: Modifier, emoji: String, value: String, label
         colors = CardDefaults.cardColors(containerColor = bgColor),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, color.copy(alpha = 0.3f)),
     ) {
-        Column(Modifier.padding(Spacing.sm), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth().padding(vertical = Spacing.sm, horizontal = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(emoji, style = MaterialTheme.typography.labelMedium)
             Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
