@@ -712,13 +712,28 @@ private fun FoodDetailDialog(item: com.nutriai.data.remote.dto.MealItem, onRecip
                 Text("${item.grams.toInt()} g  ·  ${item.kcal.toInt()} kcal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.95f))
             }
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DayTotalTile(Modifier.weight(1f), "💪", "${item.proteinG.toInt()} g", "Protein", NutritionColor, NutritionColor.copy(alpha = 0.10f))
-                    DayTotalTile(Modifier.weight(1f), "🌾", "${item.carbG.toInt()} g", "Carbs", BrandAmber, BrandAmber.copy(alpha = 0.12f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DayTotalTile(Modifier.weight(1f), "🥑", "${item.fatG.toInt()} g", "Fat", KaizenCoral, KaizenCoral.copy(alpha = 0.10f))
-                    DayTotalTile(Modifier.weight(1f), "🥬", "${"%.1f".format(item.fiberG)} g", "Fibre", com.nutriai.ui.theme.KaizenTeal, com.nutriai.ui.theme.KaizenTeal.copy(alpha = 0.10f))
+                // Nutrient table: centred header, one row per nutrient, thin lines between rows.
+                val line = MaterialTheme.colorScheme.outline
+                val rows = listOf(
+                    Triple("💪 Protein", "${item.proteinG.toInt()} g", NutritionColor),
+                    Triple("🌾 Carbs", "${item.carbG.toInt()} g", BrandAmber),
+                    Triple("🥑 Fat", "${item.fatG.toInt()} g", KaizenCoral),
+                    Triple("🥬 Fibre", "${"%.1f".format(item.fiberG)} g", com.nutriai.ui.theme.KaizenTeal),
+                )
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, line, RoundedCornerShape(10.dp))) {
+                    Row(Modifier.fillMaxWidth().background(com.nutriai.ui.theme.AppPalette.tint(NutritionColor, 0.16f)).padding(vertical = 8.dp)) {
+                        Text("Nutrient", Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Box(Modifier.width(1.dp).height(20.dp).background(line))
+                        Text("Amount", Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    }
+                    rows.forEach { (name, value, color) ->
+                        HorizontalDivider(color = line)
+                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+                            Text(name, Modifier.weight(1f).padding(vertical = 9.dp, horizontal = 12.dp), style = MaterialTheme.typography.bodyMedium)
+                            Box(Modifier.width(1.dp).fillMaxHeight().background(line))
+                            Text(value, Modifier.weight(1f).padding(vertical = 9.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = color)
+                        }
+                    }
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
