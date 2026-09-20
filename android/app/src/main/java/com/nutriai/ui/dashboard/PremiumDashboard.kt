@@ -443,9 +443,10 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
 
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(6.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(0.dp), // flat, not raised
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             // Line, not ring — progress toward today's eating target, value at the end of the line.
@@ -732,9 +733,10 @@ private fun DomainCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(SharpRadius),
-        elevation = CardDefaults.cardElevation(2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(0.dp), // flat, not raised
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
     ) {
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
