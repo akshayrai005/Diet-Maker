@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -127,6 +130,7 @@ fun WorkoutCheckInHost(onChose: () -> Unit, vm: FocusViewModel = hiltViewModel()
             onDismiss = { stage = 0 },
             onConfirm = { groups ->
                 SessionStore.saveGroups(ctx, groups)
+                SessionStore.libraryCat.value = groups.firstOrNull()?.cats?.firstOrNull()
                 SessionStore.builderRequest.value = true
                 stage = 0
                 onChose()
@@ -147,6 +151,8 @@ fun GroupPickerDialog(
     val suggestion = remember(report) { FocusBalance.suggest(report) }
     var picked by remember { mutableStateOf(initial) }
     KaizenPopup(title, onDismiss) {
+      androidx.compose.foundation.layout.Box(Modifier.heightIn(max = 520.dp)) {
+       Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (suggestion.isNotEmpty()) {
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)).padding(10.dp),
@@ -181,6 +187,8 @@ fun GroupPickerDialog(
                 }
             }
         }
+       }
+      }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).height(46.dp), shape = RoundedCornerShape(12.dp)) { Text("Cancel", fontWeight = FontWeight.Bold) }
             GradientButton("Choose exercises", Modifier.weight(1f), enabled = picked.isNotEmpty()) { onConfirm(TrainGroup.values().filter { it in picked }) }

@@ -112,9 +112,12 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     val wantBuilder by SessionStore.builderRequest.collectAsStateWithLifecycle()
     val builderGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { SessionStore.refresh(ctx) }
-    if (wantBuilder && builderGroups.isNotEmpty()) {
-        section = 0
-        SessionBuilderDialog(groups = builderGroups, onDone = { SessionStore.builderRequest.value = false })
+    // After choosing what to train, land in the Library on that body part (its Upper / Middle / Lower cards).
+    LaunchedEffect(wantBuilder) {
+        if (wantBuilder && builderGroups.isNotEmpty()) {
+            section = 1
+            SessionStore.builderRequest.value = false
+        }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -425,7 +428,12 @@ private fun ExerciseTab(modifier: Modifier = Modifier, viewModel: MoveViewModel 
         GroupPickerDialog(
             report = focusReport, initial = sessionGroups.toSet(), title = "🎯 What are you training?",
             onDismiss = { showPicker = false },
-            onConfirm = { g -> SessionStore.saveGroups(ctx, g); SessionStore.builderRequest.value = true; showPicker = false },
+            onConfirm = { g ->
+                SessionStore.saveGroups(ctx, g)
+                SessionStore.libraryCat.value = g.firstOrNull()?.cats?.firstOrNull()
+                SessionStore.builderRequest.value = true
+                showPicker = false
+            },
         )
     }
 
@@ -702,6 +710,14 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     // Region inside the chosen body part (Chest -> Upper / Middle / Lower ...); reset whenever the body part changes.
     var sub by remember(category) { mutableStateOf<String?>(null) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val requestedCat by SessionStore.libraryCat.collectAsStateWithLifecycle()
+    val sessionGroups by SessionStore.groupsFlow.collectAsStateWithLifecycle()
+    val sessionPicks by SessionStore.picksFlow.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { SessionStore.refresh(ctx) }
+    LaunchedEffect(requestedCat) {
+        requestedCat?.let { category = it; sub = null; query = ""; SessionStore.libraryCat.value = null }
+    }
     // Female users get the female anatomy figure in the muscle picker.
     var female by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
@@ -727,6 +743,24 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
 
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("📚 Exercise Library", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+        // The parts chosen at the check-in, one tap to switch between them; picks are added with "＋ Today" on each exercise.
+        val chosenCats = remember(sessionGroups) { sessionGroups.flatMap { it.cats } }
+        if (chosenCats.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(chosenCats) { c ->
+                    val on = c == category
+                    Text(
+                        "${c.emoji} ${c.label}",
+                        Modifier.clip(RoundedCornerShape(50))
+                            .then(if (on) Modifier.background(SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)))
+                            .clickable { category = c; sub = null; query = "" }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
+                        color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
         if (category == ExerciseCatalog.Category.ALL) {
             // Search everything from the first screen: type a name, get exercises you can log straight away.
             OutlinedTextField(
@@ -816,6 +850,8 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                     onClick = { logTarget = ex },
                     isFavorite = ex.name in state.gymFavoriteNames,
                     onToggleFavorite = { viewModel.toggleGymFavorite(ex.name) },
+                    inSession = ex.name in sessionPicks,
+                    onToggleSession = { if (ex.name in sessionPicks) SessionStore.removePick(ctx, ex.name) else SessionStore.addPicks(ctx, listOf(ex.name)) },
                 )
             }
             if (results.isEmpty() && typed.isNotEmpty()) {
@@ -929,6 +965,8 @@ private fun ExerciseGridCard(
     onToggleFavorite: (() -> Unit)? = null,
     onSwap: (() -> Unit)? = null,
     done: Boolean = false,
+    inSession: Boolean = false,
+    onToggleSession: (() -> Unit)? = null,
 ) {
     var showInfo by remember { mutableStateOf(false) }
     val mainMuscle = remember(ex.name, ex.muscleGroup) {
@@ -973,6 +1011,17 @@ private fun ExerciseGridCard(
                             .padding(horizontal = Spacing.sm, vertical = 3.dp),
                     ) {
                         Text("+ Log", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    if (onToggleSession != null) {
+                        Text(
+                            if (inSession) "✓ Today" else "＋ Today",
+                            Modifier.clip(Sharp)
+                                .then(if (inSession) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier.border(1.dp, MaterialTheme.colorScheme.primary, Sharp))
+                                .clickable(onClick = onToggleSession)
+                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
+                            color = if (inSession) Color.White else MaterialTheme.colorScheme.primary,
+                        )
                     }
                     if (ex.info != null) {
                         Text(

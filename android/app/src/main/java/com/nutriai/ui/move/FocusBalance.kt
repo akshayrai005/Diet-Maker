@@ -8,11 +8,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** The muscle groups offered at the daily check-in. Each one covers one or more Library body parts. */
 enum class TrainGroup(val label: String, val emoji: String, val cats: List<C>) {
     CHEST("Chest", "🫁", listOf(C.CHEST)),
-    BACK("Back", "🦅", listOf(C.LATS, C.UPPER_BACK)),
+    LATS("Lats", "🦅", listOf(C.LATS)),
+    UPPER_BACK("Upper back", "🔙", listOf(C.UPPER_BACK)),
+    TRAPS("Traps", "🔺", listOf(C.TRAPS)),
+    NECK("Neck", "🧣", listOf(C.NECK)),
+    LOWER_BACK("Lower back", "🪑", listOf(C.LOWER_BACK)),
     SHOULDERS("Shoulders", "🏔️", listOf(C.SHOULDERS)),
-    ARMS("Arms", "💪", listOf(C.BICEPS, C.TRICEPS, C.FOREARMS)),
-    LEGS("Legs", "🦵", listOf(C.QUADS, C.HAMSTRINGS, C.GLUTES, C.CALVES)),
+    BICEPS("Biceps", "💪", listOf(C.BICEPS)),
+    TRICEPS("Triceps", "🔱", listOf(C.TRICEPS)),
+    FOREARMS("Forearms", "✊", listOf(C.FOREARMS)),
     CORE("Core", "🎯", listOf(C.CORE)),
+    GLUTES("Glutes", "🍑", listOf(C.GLUTES)),
+    QUADS("Quads", "🦵", listOf(C.QUADS)),
+    HAMSTRINGS("Hamstrings", "🦿", listOf(C.HAMSTRINGS)),
+    CALVES("Calves", "🥾", listOf(C.CALVES)),
+    INNER_THIGH("Inner thigh", "🔻", listOf(C.INNER_THIGH)),
+    OUTER_THIGH("Outer thigh", "🔺", listOf(C.OUTER_THIGH)),
+    CARDIO("Cardio", "❤️", listOf(C.CARDIO)),
+    MOBILITY("Mobility", "🧘", listOf(C.MOBILITY)),
 }
 
 /**
@@ -66,7 +79,7 @@ object FocusBalance {
     fun suggest(report: Report?): List<TrainGroup> {
         if (report == null) return emptyList()
         return TrainGroup.values()
-            .filter { (report.groupLastDays[it] ?: 99) >= 2 }
+            .filter { it != TrainGroup.CARDIO && it != TrainGroup.MOBILITY && (report.groupLastDays[it] ?: 99) >= 2 }
             .sortedWith(compareBy<TrainGroup> { report.groupSets14[it] ?: 0 }.thenByDescending { report.groupLastDays[it] ?: 99 })
             .take(2)
     }
@@ -87,6 +100,8 @@ object SessionStore {
     val builderRequest = MutableStateFlow(false)
     val picksFlow = MutableStateFlow<List<String>>(emptyList())
     val groupsFlow = MutableStateFlow<List<TrainGroup>>(emptyList())
+    /** The body part the Library should open on (set by the check-in, consumed by the Library). */
+    val libraryCat = MutableStateFlow<ExerciseCatalog.Category?>(null)
 
     private fun dayKey(): String = java.time.LocalDateTime.now().minusHours(4).toLocalDate().toString()
     private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
