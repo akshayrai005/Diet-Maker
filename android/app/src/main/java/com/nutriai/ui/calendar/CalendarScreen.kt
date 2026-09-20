@@ -290,6 +290,8 @@ private data class PendingLog(
 )
 
 /** Human-readable meal slot name (server sends compact slugs like "eveningsnack", "midmorning"). */
+private val MEAL_SLOT_ORDER = listOf("wakeup", "breakfast", "midmorning", "lunch", "eveningsnack", "dinner", "bedtime")
+
 private fun mealSlotLabel(slot: String): String = when (slot.lowercase()) {
     "wakeup" -> "Wake-up"
     "breakfast" -> "Breakfast"
@@ -476,64 +478,84 @@ fun CalendarScreen(
                         "breakfast" -> BrandAmber; "lunch" -> NutritionColor
                         "dinner" -> KaizenLavender; "snack", "snacks" -> KaizenCoral; else -> KaizenBlue
                     }
+                    // Raised card: a coloured header bar (meal + calories), themed chips, then the table.
+                    val slotIdx = MEAL_SLOT_ORDER.indexOf(meal.slot.lowercase()).coerceAtLeast(0)
+                    val c1 = com.nutriai.ui.theme.AppPalette.stop(slotIdx)
+                    val c2 = com.nutriai.ui.theme.AppPalette.stop(slotIdx + 1)
                     Card(
                         Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(0.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(5.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
                     ) {
-                        Column(Modifier.padding(Spacing.md)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                    Text(mealEmoji, style = MaterialTheme.typography.titleMedium)
-                                    Text(mealSlotLabel(meal.slot), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = mealColor)
-                                    if (meal.tag != null) {
-                                        Text(
-                                            if (meal.tag == "pre-workout") "⚡ Pre-workout" else "💪 Post-workout",
-                                            Modifier.clip(RoundedCornerShape(50)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 8.dp, vertical = 2.dp),
-                                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White,
-                                        )
+                        Column {
+                            Row(
+                                Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(c1, c2))).padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
+                                    Text(mealEmoji, style = MaterialTheme.typography.titleLarge)
+                                    Column {
+                                        Text(mealSlotLabel(meal.slot), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                        Text("${meal.items.sumOf { it.kcal }.toInt()} kcal · ${meal.items.sumOf { it.proteinG }.toInt()} g protein", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.92f))
                                     }
                                 }
-                                Text("🔀 Swap", style = MaterialTheme.typography.labelMedium, color = KaizenCoral, fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) })
+                                Text(
+                                    "🔀 Swap",
+                                    Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.22f)).clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) }.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium, color = Color.White, fontWeight = FontWeight.Bold,
+                                )
+                            }
+                            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (meal.tag != null) {
+                                Text(
+                                    if (meal.tag == "pre-workout") "⚡ Pre-workout" else "💪 Post-workout",
+                                    Modifier.clip(RoundedCornerShape(50)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 10.dp, vertical = 3.dp),
+                                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White,
+                                )
                             }
                             meal.note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             val highlights = meal.friendliness?.highlights.orEmpty()
                             if (highlights.isNotEmpty()) {
-                                Spacer(Modifier.height(Spacing.xs))
-                                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                    highlights.forEach { h -> StatusIndicator(text = h, status = Status.Positive) }
+                                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(highlights.size) { hi ->
+                                        val hc = com.nutriai.ui.theme.AppPalette.stop(hi + slotIdx)
+                                        Text(
+                                            "✓ ${highlights[hi]}",
+                                            Modifier.clip(RoundedCornerShape(50)).background(hc.copy(alpha = 0.14f)).border(1.dp, hc.copy(alpha = 0.5f), RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 4.dp),
+                                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = hc,
+                                        )
+                                    }
                                 }
                             }
-                            Spacer(Modifier.height(Spacing.sm))
                             // A proper bordered table: centred header, every row ruled, fixed-width Amount / Cal columns.
-                            val grid = mealColor.copy(alpha = 0.35f)
+                            val grid = c1.copy(alpha = 0.35f)
                             val wItem = 3.2f; val wAmt = 1.3f; val wCal = 1.1f
                             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, grid, RoundedCornerShape(10.dp))) {
-                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(mealColor.copy(alpha = 0.14f)), verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Item", Modifier.weight(wItem).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
-                                    Text("Amount", Modifier.weight(wAmt).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
-                                    Text("Cal", Modifier.weight(wCal).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
+                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(c1, c2))), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Item", Modifier.weight(wItem).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.4f)))
+                                    Text("Amount", Modifier.weight(wAmt).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(Color.White.copy(alpha = 0.4f)))
+                                    Text("Cal", Modifier.weight(wCal).padding(vertical = 8.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.ExtraBold, color = Color.White, textAlign = TextAlign.Center)
                                 }
-                                meal.items.forEach { mi ->
+                                meal.items.forEachIndexed { rowIdx, mi ->
                                     HorizontalDivider(color = grid)
-                                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clickable { detailItem = mi }, verticalAlignment = Alignment.CenterVertically) {
+                                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(if (rowIdx % 2 == 1) c1.copy(alpha = 0.06f) else Color.White).clickable { detailItem = mi }, verticalAlignment = Alignment.CenterVertically) {
                                         Text(mi.name, Modifier.weight(wItem).padding(horizontal = 10.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, maxLines = 2)
                                         Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
                                         Text("${mi.grams.toInt()} g", Modifier.weight(wAmt).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
-                                        Text("${mi.kcal.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = mealColor, textAlign = TextAlign.Center)
+                                        Text("${mi.kcal.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = c1, textAlign = TextAlign.Center)
                                     }
                                 }
                                 HorizontalDivider(color = grid)
-                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(mealColor.copy(alpha = 0.08f)), verticalAlignment = Alignment.CenterVertically) {
+                                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(c1.copy(alpha = 0.14f)), verticalAlignment = Alignment.CenterVertically) {
                                     Text("Total", Modifier.weight(wItem + wAmt).padding(horizontal = 10.dp, vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold)
                                     Box(Modifier.width(1.dp).fillMaxHeight().background(grid))
-                                    Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = mealColor, textAlign = TextAlign.Center)
+                                    Text("${meal.items.sumOf { it.kcal }.toInt()}", Modifier.weight(wCal).padding(vertical = 9.dp), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold, color = c1, textAlign = TextAlign.Center)
                                 }
+                            }
                             }
                         }
                     }
