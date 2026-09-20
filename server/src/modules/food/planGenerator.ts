@@ -11,6 +11,7 @@ import {
   PlanTargets,
   SLOT_KCAL_WEIGHTS,
   WeekPlan,
+  type TrainTime,
 } from './food.types';
 import { eligibleFoods } from './foodFilter';
 import { mealFriendliness } from './friendliness';
@@ -471,6 +472,80 @@ export const EATING_PATTERNS: Record<string, EatingPatternPlan> = {
   omad: { slots: ['dinner', 'bedtime'], weights: { dinner: 0.85, bedtime: 0.15 }, mains: ['dinner'] },
 };
 
+const SLOT_ORDER = new Map(MEAL_SLOTS.map((s, i) => [s, i] as const));
+
+interface TrainingAdjust {
+  slots: MealSlot[];
+  weights: Record<string, number>;
+  mains: MealSlot[];
+  pre: MealSlot;
+  post: MealSlot;
+}
+
+/**
+ * Times the day's meals around the workout: a light carb-forward meal before it, a bigger protein meal after it.
+ * Morning trainers get a small wake-up snack and a protein breakfast; evening trainers a pre-gym snack and a protein dinner;
+ * night trainers a pre-gym snack, a lighter dinner and a protein bedtime meal.
+ */
+export function applyTraining(slots: MealSlot[], weights: Record<string, number>, mains: MealSlot[], when: TrainTime): TrainingAdjust {
+  const w: Record<string, number> = { ...weights };
+  const set = new Set<MealSlot>(slots);
+  const has = (s: MealSlot) => set.has(s);
+  const add = (s: MealSlot, weight: number) => {
+    if (!has(s)) {
+      set.add(s);
+      w[s] = weight;
+    }
+  };
+  const bump = (s: MealSlot, by: number) => {
+    w[s] = (w[s] ?? 0.1) + by;
+  };
+  let pre: MealSlot;
+  let post: MealSlot;
+  if (when === 'morning') {
+    pre = 'wakeup';
+    add('wakeup', 0.06);
+    if (!has('breakfast')) add('breakfast', 0.28);
+    post = 'breakfast';
+    bump('breakfast', 0.05);
+  } else if (when === 'afternoon') {
+    pre = has('midmorning') ? 'midmorning' : has('lunch') ? 'lunch' : 'eveningsnack';
+    add('eveningsnack', 0.12);
+    post = 'eveningsnack';
+    bump('eveningsnack', 0.06);
+  } else if (when === 'evening') {
+    pre = 'eveningsnack';
+    add('eveningsnack', 0.1);
+    if (!has('dinner')) add('dinner', 0.27);
+    post = 'dinner';
+    bump('dinner', 0.04);
+  } else {
+    pre = 'eveningsnack';
+    add('eveningsnack', 0.1);
+    post = 'bedtime';
+    add('bedtime', 0.12);
+    bump('bedtime', 0.03);
+    if (has('dinner')) w.dinner = Math.max(0.12, (w.dinner ?? 0.25) - 0.06); // an earlier, lighter dinner before a late session
+  }
+  const ordered = [...set].sort((a, b) => SLOT_ORDER.get(a)! - SLOT_ORDER.get(b)!);
+  const nextMains = mains.filter((m) => m !== pre);
+  if (!nextMains.includes(post) && (post === 'breakfast' || post === 'dinner')) nextMains.push(post);
+  return { slots: ordered, weights: w, mains: nextMains, pre, post };
+}
+
+const PRE_NOTE: Record<TrainTime, string> = {
+  morning: 'Small and carb-based, 30-45 min before you train - light enough to sit well.',
+  afternoon: 'Carb-forward and light, about 60-90 min before you train.',
+  evening: 'Carb-forward and low in fat, about 60-90 min before you train.',
+  night: 'Carb-forward and light, about 60-90 min before your late session.',
+};
+const POST_NOTE: Record<TrainTime, string> = {
+  morning: 'Protein-rich meal within an hour after training to repair and refuel.',
+  afternoon: 'Protein-rich snack within an hour after training.',
+  evening: 'Protein-rich dinner after training to repair muscle.',
+  night: 'Light, protein-rich meal after training - easy on sleep.',
+};
+
 function buildDay(
   dayIndex: number,
   eligible: FoodItem[],
@@ -478,6 +553,7 @@ function buildDay(
   dietType: string,
   fasting = false,
   eatingPattern?: string,
+  trainTime?: TrainTime,
 ): DayPlan {
   // Morning + Night working pattern (spec Section 6): most common for office users who skip lunch.
   // Only 3 slots, front-loaded 40% breakfast / 25% evening snack / 35% dinner.
@@ -493,7 +569,17 @@ function buildDay(
         : MEAL_SLOTS;
 
   // Per-slot calorie weights: the morning+night pattern overrides the standard distribution.
-  const slotWeight: Record<string, number> = pattern ? (pattern.weights as Record<string, number>) : SLOT_KCAL_WEIGHTS;
+  let slotWeight: Record<string, number> = pattern ? (pattern.weights as Record<string, number>) : SLOT_KCAL_WEIGHTS;
+  let activeSlots: MealSlot[] = slots;
+  let mains: MealSlot[] = pattern ? pattern.mains : MAIN_SLOTS;
+  // On a training day the meals are timed around the workout (not on fasting days / IF).
+  let training: TrainingAdjust | undefined;
+  if (trainTime && !fasting && dietType !== 'if') {
+    training = applyTraining(slots, slotWeight, mains, trainTime);
+    activeSlots = training.slots;
+    slotWeight = training.weights;
+    mains = training.mains;
+  }
 
   const dailyKcal = fasting ? Math.round(targets.dailyKcal * FASTING_KCAL_FACTOR) : targets.dailyKcal;
 
@@ -508,13 +594,12 @@ function buildDay(
     : eligible;
 
   // Renormalise slot weights over the active slots so kcal still sums to the target.
-  const weightSum = slots.reduce((s, sl) => s + slotWeight[sl]!, 0);
+  const weightSum = activeSlots.reduce((s, sl) => s + slotWeight[sl]!, 0);
 
   // Shared across the day's meals so the same food is never served twice in one day.
   const usedToday = new Set<string>();
   // With only three meals the evening one is a real plate, not a snack (otherwise its calories pile onto breakfast/dinner).
-  const mains: MealSlot[] = pattern ? pattern.mains : MAIN_SLOTS;
-  const meals = slots.map((slot) => {
+  const meals = activeSlots.map((slot) => {
     const slotKcal = (dailyKcal * slotWeight[slot]!) / weightSum;
     return buildMeal(slot, pool, slotKcal, dietType, dayIndex, usedToday, mains);
   });
@@ -529,13 +614,20 @@ function buildDay(
   // e.g. the 3-slot morning+night pattern) - top up with one more food item on the biggest meal
   // rather than silently leaving the day under target.
   // Realistic serving caps can leave a big target short (esp. with only 3 meals) - add up to 3 extra items, one per pass.
-  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday, Object.fromEntries(slots.map((sl) => [sl, slotWeight[sl]! / weightSum])), mains);
+  for (let pass = 0; pass < 3; pass++) topUpDayToTarget(meals, dailyKcal, pool, dietType, dayIndex, usedToday, Object.fromEntries(activeSlots.map((sl) => [sl, slotWeight[sl]! / weightSum])), mains);
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday); // a second lean item if the day is still well short
   for (const m of meals) {
     m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
     m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);
+  }
+
+  if (training && trainTime) {
+    for (const m of meals) {
+      if (m.slot === training.pre) { m.tag = 'pre-workout'; m.note = PRE_NOTE[trainTime]; }
+      else if (m.slot === training.post) { m.tag = 'post-workout'; m.note = POST_NOTE[trainTime]; }
+    }
   }
 
   // Attach condition-friendliness scores per meal (diabetes/heart/gut/inflammation).
@@ -550,6 +642,7 @@ function buildDay(
   return {
     dayIndex,
     meals,
+    ...(training && trainTime ? { training: trainTime } : {}),
     totals: {
       kcal: round(sum((i) => i.kcal), 0),
       proteinG: round(sum((i) => i.proteinG), 1),
@@ -573,6 +666,8 @@ export interface GenerateOptions {
   eatingPattern?: string;
   /** Regeneration counter - shifts every food pick so Regenerate week gives a different plan. */
   variant?: number;
+  /** YYYY-MM-DD -> when the user trains that day; the meals are timed around it. */
+  training?: Record<string, TrainTime>;
 }
 
 /** Label a date relative to today: Yesterday / Today / Tomorrow / weekday name. */
@@ -635,7 +730,8 @@ export function generateWeekPlan(
       dt = new Date(options.startDate.getTime() + d * 86_400_000);
       fasting = options.fastDayOfWeek !== undefined && dt.getUTCDay() === options.fastDayOfWeek;
     }
-    const day = buildDay(d + (options.variant ?? 0) * 5, ordered, targets, prefs.dietType, fasting, options.eatingPattern);
+    const dayKey = dt ? dt.toISOString().slice(0, 10) : undefined;
+    const day = buildDay(d + (options.variant ?? 0) * 5, ordered, targets, prefs.dietType, fasting, options.eatingPattern, dayKey ? options.training?.[dayKey] : undefined);
     if (dt) {
       day.date = dt.toISOString().slice(0, 10);
       const base = dayLabel(dt, options.today ?? options.startDate ?? dt);

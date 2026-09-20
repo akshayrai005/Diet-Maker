@@ -177,7 +177,7 @@ const csvCell = (v: string | number | null): string => {
 /** Renders the report as CSV (opens directly in Excel/Sheets). */
 export function reportToCsv(r: WeeklyReport): string {
   const lines: string[] = [];
-  lines.push(csvCell('NutriAI Weekly Report'));
+  lines.push(csvCell('Kaizen Report'));
   lines.push([csvCell('Name'), csvCell(r.name)].join(','));
   lines.push([csvCell('Generated'), csvCell(r.generatedAt)].join(','));
   lines.push('');

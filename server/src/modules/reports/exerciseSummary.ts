@@ -45,7 +45,6 @@ export function summariseExercise(logs: ExerciseLogRow[], dayKeyOf: (d: Date) =>
   const days = new Map<string, { sets: number; kcal: number }>();
   const muscles = new Map<string, number>();
   const exercises = new Map<string, { sets: number; bestKg: number | null }>();
-  const sessionIds = new Set<string>();
   let totalSets = 0;
   let kcalBurned = 0;
   let cardioMin = 0;
@@ -67,13 +66,12 @@ export function summariseExercise(logs: ExerciseLogRow[], dayKeyOf: (d: Date) =>
     if (l.weightKg != null && (e.bestKg == null || l.weightKg > e.bestKg)) e.bestKg = l.weightKg;
     exercises.set(l.exerciseName, e);
 
-    if (l.sessionId) sessionIds.add(l.sessionId);
     totalSets += sets;
     kcalBurned += l.kcal ?? 0;
   }
 
   return {
-    sessions: sessionIds.size || days.size,
+    sessions: days.size, // one workout per active day (per-set session ids inflate the count)
     activeDays: days.size,
     totalSets,
     kcalBurned: Math.round(kcalBurned),

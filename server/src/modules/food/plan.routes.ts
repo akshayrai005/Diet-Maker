@@ -7,12 +7,16 @@ import { tzOffsetMin } from '../../lib/tz';
 import { prisma } from '../../lib/prisma';
 import { searchUsda, type FoodSearchItem } from './usda';
 import { searchOpenFoodFacts } from './openFoodFacts';
-import { MEAL_SLOTS, type MealSlot } from './food.types';
+import { MEAL_SLOTS, TRAIN_TIMES, type MealSlot, type TrainTime } from './food.types';
 import { portionInfoFor } from './portionUnit';
 
 export const planRouter = Router();
 
-const genSchema = z.object({ days: z.number().int().min(1).max(30).optional() });
+const genSchema = z.object({
+  days: z.number().int().min(1).max(30).optional(),
+  /** YYYY-MM-DD -> when the user trains that day; the meals are timed around it. */
+  training: z.record(z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.enum(TRAIN_TIMES as [TrainTime, ...TrainTime[]])).optional(),
+});
 
 const swapSchema = z.object({
   dayIndex: z.number().int().min(0).max(30),
@@ -24,11 +28,11 @@ planRouter.post(
   '/plan',
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
-    const { days } = genSchema.parse(req.body ?? {});
+    const { days, training } = genSchema.parse(req.body ?? {});
     // days <= 2 means "just today and tomorrow": rebuild those two days and leave the rest of the week alone.
     const plan = days !== undefined && days <= 2
-      ? await regenerateTodayTomorrow(req.user!.id, tzOffsetMin(req))
-      : await generateAndSavePlan(req.user!.id, days ?? 2, tzOffsetMin(req));
+      ? await regenerateTodayTomorrow(req.user!.id, tzOffsetMin(req), training)
+      : await generateAndSavePlan(req.user!.id, days ?? 2, tzOffsetMin(req), 0, training);
     res.status(201).json({ plan });
   }),
 );

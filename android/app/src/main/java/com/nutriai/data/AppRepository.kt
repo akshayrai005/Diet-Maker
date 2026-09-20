@@ -22,6 +22,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AppRepository @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val api: NutriApi,
     private val tokenStore: TokenStore,
     private val cacheDao: CacheDao,
@@ -60,7 +61,7 @@ class AppRepository @Inject constructor(
         // Regenerate the meal plan to match the new profile/targets so the Diet tab updates
         // automatically - no manual "Regenerate week" needed. Best-effort: a plan failure must not
         // fail the whole save. (The exercise plan already regenerates live from the profile.)
-        runCatching { api.generatePlan(mapOf("days" to 2)) }
+        runCatching { api.generatePlan(planRequest(2)) }
         // Drop stale cached copies so the next Diet/Home fetch shows the freshly-generated data.
         runCatching { cacheDao.delete("plan"); cacheDao.delete("dashboard") }
         Unit
@@ -160,7 +161,10 @@ class AppRepository @Inject constructor(
         }
     }
 
-    suspend fun generatePlan(days: Int = 2): Result<PlanDto?> = runCatching { api.generatePlan(mapOf("days" to days)).plan }
+    /** Every plan request carries the gym times the user set, so the meals are timed around the workout. */
+    private fun planRequest(days: Int) = com.nutriai.data.remote.dto.GeneratePlanRequest(days, GymTimes.all(appContext).ifEmpty { null })
+
+    suspend fun generatePlan(days: Int = 2): Result<PlanDto?> = runCatching { api.generatePlan(planRequest(days)).plan }
 
     suspend fun swapMeal(dayIndex: Int, slot: String): Result<PlanDto?> = runCatching {
         api.swapMeal(com.nutriai.data.remote.dto.SwapMealRequest(dayIndex, slot)).plan

@@ -539,6 +539,9 @@ data class Meal(
     val kcal: Double,
     val proteinG: Double,
     val friendliness: MealFriendliness? = null,
+    /** pre-workout | post-workout on a training day */
+    val tag: String? = null,
+    val note: String? = null,
 )
 
 @Serializable
@@ -558,8 +561,17 @@ data class DayPlan(
     val dayIndex: Int,
     val date: String? = null,
     val label: String? = null,
+    /** When the user trains that day (meals are timed around it); null on rest days. */
+    val training: String? = null,
     val meals: List<Meal>,
     val totals: DayTotals,
+)
+
+@Serializable
+data class GeneratePlanRequest(
+    val days: Int = 2,
+    /** YYYY-MM-DD -> morning | afternoon | evening | night */
+    val training: Map<String, String>? = null,
 )
 
 @Serializable

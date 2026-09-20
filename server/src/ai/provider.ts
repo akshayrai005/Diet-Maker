@@ -24,7 +24,7 @@ export interface AiProvider {
 }
 
 /**
- * Builds the NutriAI diet-coach system prompt. The known targets and conditions are
+ * Builds the Kaizen diet-coach system prompt. The known targets and conditions are
  * injected so the model can reference them, with an explicit instruction never to
  * invent calorie/nutrient numbers beyond what is provided.
  */

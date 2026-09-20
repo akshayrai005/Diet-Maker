@@ -3,10 +3,12 @@ import type { WeeklyReport } from './report';
 import type { ReportInsights } from './reportInsights';
 
 // Palette
-const GREEN = '#0E7C3A';
-const GREEN_DEEP = '#0A5C2B';
-const GREEN_TINT = '#E7F4EC';
-const AMBER = '#B45309';
+// Kaizen spectrum. The names are kept (GREEN = the main accent) so the layout code below is unchanged.
+const SPECTRUM = ['#F57C00', '#E91E63', '#8E24AA', '#3949AB'];
+const GREEN = '#8E24AA';
+const GREEN_DEEP = '#6A1B9A';
+const GREEN_TINT = '#F6EAF9';
+const AMBER = '#E64A19';
 const GREY = '#6B7280';
 const INK = '#111827';
 const ROW_ALT = '#F6F8F6';
@@ -31,6 +33,7 @@ function formatDate(iso: string): string {
 /** Renders a WeeklyReport to a colourful, well-organised PDF Buffer (pdfkit, pure JS). */
 export function renderReportPdf(r: WeeklyReport, insights?: ReportInsights, label = 'This week'): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    sectionIdx = 0;
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
     const chunks: Buffer[] = [];
     doc.on('data', (c: Buffer) => chunks.push(c));
@@ -46,10 +49,12 @@ export function renderReportPdf(r: WeeklyReport, insights?: ReportInsights, labe
     };
 
     // ---- Header band ----
-    doc.rect(0, 0, doc.page.width, 90).fill(GREEN);
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(24).text('NutriAI', PAGE_LEFT, 28);
-    doc.font('Helvetica').fontSize(12).fillColor('#DCFCE7').text('Health & Nutrition Report', PAGE_LEFT, 58);
-    doc.fontSize(10).fillColor('#DCFCE7').text(
+    const grad = doc.linearGradient(0, 0, doc.page.width, 0);
+    SPECTRUM.forEach((c, i) => grad.stop(i / (SPECTRUM.length - 1), c));
+    doc.rect(0, 0, doc.page.width, 90).fill(grad);
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(24).text('Kaizen', PAGE_LEFT, 28);
+    doc.font('Helvetica').fontSize(12).fillColor('#FFFFFF').text('Health & Fitness Report', PAGE_LEFT, 58);
+    doc.fontSize(10).fillColor('#FFFFFF').text(
       `${r.name}   ·   ${new Date(r.generatedAt).toDateString()}`,
       PAGE_LEFT,
       74,
@@ -216,10 +221,12 @@ export function renderReportPdf(r: WeeklyReport, insights?: ReportInsights, labe
 // Drawing helpers
 // ---------------------------------------------------------------------------
 
+let sectionIdx = 0;
 function sectionHeader(doc: PDFKit.PDFDocument, title: string) {
   const y = doc.y;
-  doc.rect(PAGE_LEFT, y, 4, 16).fill(GREEN);
-  doc.fillColor(GREEN_DEEP).font('Helvetica-Bold').fontSize(14).text(title, PAGE_LEFT + 12, y);
+  const c = SPECTRUM[sectionIdx++ % SPECTRUM.length]!;
+  doc.rect(PAGE_LEFT, y, 5, 16).fill(c);
+  doc.fillColor(c).font('Helvetica-Bold').fontSize(14).text(title, PAGE_LEFT + 12, y);
   doc.moveDown(0.6);
   doc.fillColor(INK);
 }
@@ -231,7 +238,9 @@ function statCards(doc: PDFKit.PDFDocument, cards: Array<[string, string, string
   const h = 54;
   cards.forEach(([label, value, color], i) => {
     const x = PAGE_LEFT + i * (w + gap);
+    const accent = SPECTRUM[i % SPECTRUM.length]!;
     doc.roundedRect(x, y, w, h, 8).fill(GREEN_TINT);
+    doc.roundedRect(x, y, w, 5, 2).fill(accent);
     doc.fillColor(color).font('Helvetica-Bold').fontSize(18).text(value, x, y + 10, { width: w, align: 'center' });
     doc.fillColor(GREY).font('Helvetica').fontSize(8).text(label.toUpperCase(), x, y + 34, { width: w, align: 'center' });
   });

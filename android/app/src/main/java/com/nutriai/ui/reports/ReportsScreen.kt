@@ -297,11 +297,7 @@ private fun HeroSummaryCard(report: WeeklyReport) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(BrandGreenLight, BrandGreen, BrandGreenDeep),
-                    ),
-                )
+                .background(com.nutriai.ui.theme.SpectrumBrush)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -320,16 +316,19 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                         value = report.targets?.dailyKcal?.let { "${it.toInt()}" } ?: "-",
                         unit = "kcal target",
                         modifier = Modifier.weight(1f),
+                        tile = 0,
                     )
                     HeroStat(
                         value = report.targets?.proteinG?.let { "${it.toInt()}" } ?: "-",
                         unit = "g protein",
                         modifier = Modifier.weight(1f),
+                        tile = 1,
                     )
                     HeroStat(
                         value = report.adherencePct?.let { "${it.toInt()}%" } ?: "-",
                         unit = "adherence",
                         modifier = Modifier.weight(1f),
+                        tile = 2,
                     )
                 }
 
@@ -341,11 +340,13 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                         value = report.bmi?.let { String.format("%.1f", it) } ?: "-",
                         unit = "BMI",
                         modifier = Modifier.weight(1f),
+                        tile = 3,
                     )
                     HeroStat(
                         value = report.latestWeightKg?.let { "$it" } ?: "-",
                         unit = "kg now",
                         modifier = Modifier.weight(1f),
+                        tile = 4,
                     )
                     HeroStat(
                         value = report.weightDeltaKg?.let { d ->
@@ -354,6 +355,7 @@ private fun HeroSummaryCard(report: WeeklyReport) {
                         } ?: "-",
                         unit = "kg change",
                         modifier = Modifier.weight(1f),
+                        tile = 5,
                     )
                 }
 
@@ -379,12 +381,13 @@ private fun HeroSummaryCard(report: WeeklyReport) {
 }
 
 @Composable
-private fun HeroStat(value: String, unit: String, modifier: Modifier = Modifier) {
+private fun HeroStat(value: String, unit: String, modifier: Modifier = Modifier, tile: Int = 0) {
     Column(
         modifier = modifier
-            .clip(Sharp)
-            .background(Color.White.copy(alpha = 0.16f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(com.nutriai.ui.theme.AppPalette.stop(tile))
             .padding(vertical = Spacing.md, horizontal = Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(

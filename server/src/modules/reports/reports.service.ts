@@ -172,7 +172,7 @@ export async function getWeeklyReport(
   ]);
   const trend = weightTrend(wp);
   return buildWeeklyReport({
-    name: user ? `${user.firstName} ${user.lastName}` : 'NutriAI user',
+    name: user ? `${user.firstName} ${user.lastName}` : 'Kaizen user',
     generatedAt,
     targets: targets ? { dailyKcal: targets.dailyKcal, proteinG: targets.proteinG, waterMl: targets.waterMl } : null,
     bmi: targets?.bmi ?? null,

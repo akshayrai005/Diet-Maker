@@ -457,6 +457,13 @@ fun CalendarScreen(
             }
         }
 
+        // Gym timing: meals are planned around when you train today / tomorrow.
+        if (state.dietDays.isNotEmpty()) {
+            item {
+                GymTimingCard(days = state.dietDays.filter { it.label == "Today" || it.label == "Tomorrow" }, onChanged = { viewModel.regenerate() })
+            }
+        }
+
         if (!state.loading && (dietDay != null || workoutDay != null)) {
             if (dietDay == null || dietDay.meals.isEmpty()) {
                 item {
@@ -487,10 +494,18 @@ fun CalendarScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                     Text(mealEmoji, style = MaterialTheme.typography.titleMedium)
                                     Text(mealSlotLabel(meal.slot), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = mealColor)
+                                    if (meal.tag != null) {
+                                        Text(
+                                            if (meal.tag == "pre-workout") "⚡ Pre-workout" else "💪 Post-workout",
+                                            Modifier.clip(RoundedCornerShape(50)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 8.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White,
+                                        )
+                                    }
                                 }
                                 Text("🔀 Swap", style = MaterialTheme.typography.labelMedium, color = KaizenCoral, fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.clickable { viewModel.swapMeal(dietDay.dayIndex, meal.slot) })
                             }
+                            meal.note?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                             val highlights = meal.friendliness?.highlights.orEmpty()
                             if (highlights.isNotEmpty()) {
                                 Spacer(Modifier.height(Spacing.xs))
@@ -1033,6 +1048,56 @@ private fun DayPill(
                         .clip(CircleShape)
                         .background(if (isSelected) Color.White else BrandGreen),
                 )
+            }
+        }
+    }
+}
+
+
+/**
+ * When do you train today / tomorrow? Picking a time (or Rest) re-plans that day's meals: a light carb meal before the session and a
+ * protein meal after it. The choice is kept on the phone and sent with every plan request.
+ */
+@Composable
+private fun GymTimingCard(days: List<DayPlan>, onChanged: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var version by remember { androidx.compose.runtime.mutableStateOf(0) }
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(0.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("🏋️ When do you train?", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+            Text("Meals are timed around your gym session.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            days.forEach { day ->
+                val date = day.date ?: return@forEach
+                val current = remember(version, date) { com.nutriai.data.GymTimes.get(ctx, date) }
+                Text(day.label ?: date, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val choices = listOf<Pair<String?, String>>(null to "Rest") + com.nutriai.data.GymTimes.options
+                    items(choices.size) { i: Int ->
+                        val (slug, label) = choices[i]
+                        val on = current == slug
+                        Text(
+                            label,
+                            Modifier.clip(RoundedCornerShape(50))
+                                .then(if (on) Modifier.background(com.nutriai.ui.theme.SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)))
+                                .clickable {
+                                    if (!on) {
+                                        com.nutriai.data.GymTimes.set(ctx, date, slug)
+                                        version++
+                                        onChanged()
+                                    }
+                                }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                            style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
+                            color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
         }
     }

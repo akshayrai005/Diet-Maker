@@ -82,7 +82,7 @@ describe('weekly report', () => {
 
   it('renders CSV with a header and rows', () => {
     const csv = reportToCsv(report);
-    expect(csv).toContain('NutriAI Weekly Report');
+    expect(csv).toContain('Kaizen Report');
     expect(csv).toContain('2026-07-19,1900,120');
     expect(csv.split('\n').length).toBeGreaterThan(5);
   });

@@ -73,7 +73,7 @@ interface NutriApi {
     suspend fun dashboard(): DashboardEnvelope
 
     @POST("plan")
-    suspend fun generatePlan(@Body body: Map<String, Int>): PlanEnvelope
+    suspend fun generatePlan(@Body body: com.nutriai.data.remote.dto.GeneratePlanRequest): PlanEnvelope
 
     @GET("plan/latest")
     suspend fun latestPlan(): PlanEnvelope

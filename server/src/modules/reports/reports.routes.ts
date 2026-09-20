@@ -64,7 +64,7 @@ reportsRouter.get(
   asyncHandler(async (req: AuthedRequest, res) => {
     const report = await getWeeklyReport(req.user!.id, new Date().toISOString());
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="nutriai-weekly.csv"');
+    res.setHeader('Content-Disposition', 'attachment; filename="kaizen-weekly.csv"');
     res.send(reportToCsv(report));
   }),
 );
@@ -102,7 +102,7 @@ reportsRouter.get(
     const report = await getWeeklyReport(req.user!.id, new Date().toISOString());
     const pdf = await renderReportPdf(report);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="nutriai-weekly.pdf"');
+    res.setHeader('Content-Disposition', 'attachment; filename="kaizen-weekly.pdf"');
     res.send(pdf);
   }),
 );

@@ -7,7 +7,7 @@ import { eligibleFoods } from './foodFilter';
 import { localSunday, localToday } from '../../lib/tz';
 import { round } from '../../calc/anthropometry';
 import { CALORIE_FLOOR } from '../../guardrails';
-import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets } from './food.types';
+import type { DayPlan, FoodItem, MealSlot, PlanPreferences, PlanTargets, TrainTime } from './food.types';
 import { SLOT_KCAL_WEIGHTS } from './food.types';
 import type { Food } from '@prisma/client';
 
@@ -52,6 +52,7 @@ export async function generateAndSavePlan(
   days = 7,
   tzOffsetMin = 0,
   kcalDeltaOverride = 0,
+  training?: Record<string, TrainTime>,
 ) {
   const { profile, sensitive } = await requireCompleteProfile(userId);
 
@@ -121,6 +122,7 @@ export async function generateAndSavePlan(
     today: localToday(tzOffsetMin),
     fastDayOfWeek: sensitive.fastDayOfWeek,
     eatingPattern: (sensitive as { eatingPattern?: string }).eatingPattern,
+    training,
   });
 
   const saved = await prisma.dietPlan.create({
@@ -138,8 +140,8 @@ export async function generateAndSavePlan(
 }
 
 /** Builds a fresh plan for just today and tomorrow (2 days) - that is all the app shows, so that is all it generates. */
-export async function regenerateTodayTomorrow(userId: string, tzOffsetMin = 0) {
-  return generateAndSavePlan(userId, 2, tzOffsetMin);
+export async function regenerateTodayTomorrow(userId: string, tzOffsetMin = 0, training?: Record<string, TrainTime>) {
+  return generateAndSavePlan(userId, 2, tzOffsetMin, 0, training);
 }
 
 /**

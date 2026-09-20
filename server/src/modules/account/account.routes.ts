@@ -11,7 +11,7 @@ accountRouter.get(
   requireAuth,
   asyncHandler(async (req: AuthedRequest, res) => {
     const data = await exportUserData(req.user!.id);
-    res.setHeader('Content-Disposition', 'attachment; filename="nutriai-my-data.json"');
+    res.setHeader('Content-Disposition', 'attachment; filename="kaizen-my-data.json"');
     res.json(data);
   }),
 );

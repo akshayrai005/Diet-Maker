@@ -131,12 +131,21 @@ export interface Meal {
   proteinG: number;
   /** Optional condition-friendliness scores + highlight labels (see friendliness.ts). */
   friendliness?: import('./friendliness').MealFriendliness;
+  /** Set on a training day: this meal fuels the workout (carbs, light) or repairs after it (protein). */
+  tag?: 'pre-workout' | 'post-workout';
+  /** Why the meal is timed/sized this way - shown under the meal in the app. */
+  note?: string;
 }
+
+export type TrainTime = 'morning' | 'afternoon' | 'evening' | 'night';
+export const TRAIN_TIMES: TrainTime[] = ['morning', 'afternoon', 'evening', 'night'];
 
 export interface DayPlan {
   dayIndex: number; // 0..6
   date?: string; // YYYY-MM-DD (today + dayIndex)
   label?: string; // e.g. "Today", "Tomorrow", weekday name
+  /** When the user trains that day (the meals are timed around it); absent on rest days. */
+  training?: TrainTime;
   meals: Meal[];
   totals: {
     kcal: number;
