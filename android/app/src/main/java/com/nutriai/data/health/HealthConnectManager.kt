@@ -50,6 +50,12 @@ class HealthConnectManager @Inject constructor(
         return client.permissionController.getGrantedPermissions().containsAll(perms)
     }
 
+    /** Health Connect permissions the app wants that are not granted yet (empty when everything is allowed or HC is missing). */
+    suspend fun missingPermissions(): Set<String> {
+        val client = clientOrNull() ?: return emptySet()
+        return readPermissions - client.permissionController.getGrantedPermissions()
+    }
+
     /** True if at least the steps permission is granted (used to show the connected state). */
     suspend fun hasStepPermission(): Boolean = granted(stepPermissions)
 

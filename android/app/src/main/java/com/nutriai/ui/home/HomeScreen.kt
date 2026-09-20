@@ -116,21 +116,6 @@ fun HomeScreen(
         }
     }
 
-    // The walk nudge needs the phone's live step sensor; ask once, and only when the nudge is switched on.
-    val walkCtx = androidx.compose.ui.platform.LocalContext.current
-    val activityLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
-    ) { }
-    LaunchedEffect(Unit) {
-        val asked = walkCtx.getSharedPreferences("kaizen_prefs", android.content.Context.MODE_PRIVATE)
-        if (!asked.getBoolean("asked_activity", false) && !com.nutriai.notifications.LiveSteps.permitted(walkCtx) &&
-            com.nutriai.notifications.ReminderPrefs(walkCtx).isWalkEnabled()
-        ) {
-            asked.edit().putBoolean("asked_activity", true).apply()
-            activityLauncher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
-        }
-    }
-
     // Once a day: "Ready to train?" -> what to train -> straight to the exercise picker on the Move tab.
     com.nutriai.ui.move.WorkoutCheckInHost(onChose = {
         navController.navigate("move") {
@@ -317,30 +302,42 @@ private fun DashboardTab(
     var showDelete by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val stepPerms = remember {
-        setOf(
-            HealthPermission.getReadPermission(StepsRecord::class),
-            HealthPermission.getReadPermission(HeartRateRecord::class),
-            HealthPermission.getReadPermission(SleepSessionRecord::class),
-            HealthPermission.getReadPermission(androidx.health.connect.client.records.BloodPressureRecord::class),
-        )
-    }
+    val stepPerms = remember { com.nutriai.data.health.HealthConnectManager(context).readPermissions }
     val stepLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract(),
     ) { viewModel.loadSteps() }
 
     LaunchedEffect(Unit) { viewModel.refresh(); viewModel.loadSteps() }
 
-    // Proactively ask for Health Connect (steps/HR/sleep/BP) once, the same way the notification
-    // permission is asked on first launch - instead of waiting for the user to find "Connect" and
-    // tap it themselves. Only asks once ever (a "no" or a dismiss both count) so it never nags.
-    LaunchedEffect(state.stepsAvailable) {
-        if (!state.stepsAvailable) return@LaunchedEffect
-        val prefs = context.getSharedPreferences("kaizen_prefs", android.content.Context.MODE_PRIVATE)
-        val alreadyAsked = prefs.getBoolean("health_connect_asked", false)
-        if (!alreadyAsked && !state.stepsPermission) {
-            prefs.edit().putBoolean("health_connect_asked", true).apply()
-            runCatching { stepLauncher.launch(stepPerms) }
+    // Every permission the app uses is asked for here, one after another, the first time the app opens - the person should
+    // never have to dig through phone settings. Each one is asked only if it is still missing, and only once per install
+    // (a "no" is respected), except that the Health Connect list is topped up if new kinds of data were added.
+    val permPrefs = remember { context.getSharedPreferences("kaizen_prefs", android.content.Context.MODE_PRIVATE) }
+    var permStep by remember { mutableStateOf(0) }
+    val notifPermLauncher = rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { permStep = 1 }
+    val activityPermLauncher = rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { permStep = 2 }
+    val healthPermLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { permStep = 3; viewModel.loadSteps() }
+    LaunchedEffect(permStep, state.stepsAvailable) {
+        when (permStep) {
+            0 -> {
+                val need = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                    androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                    !permPrefs.getBoolean("asked_notif", false)
+                if (need) { permPrefs.edit().putBoolean("asked_notif", true).apply(); notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) } else permStep = 1
+            }
+            1 -> {
+                val need = !com.nutriai.notifications.LiveSteps.permitted(context) && !permPrefs.getBoolean("asked_activity", false)
+                if (need) { permPrefs.edit().putBoolean("asked_activity", true).apply(); activityPermLauncher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION) } else permStep = 2
+            }
+            2 -> {
+                if (!state.stepsAvailable) return@LaunchedEffect // wait until we know Health Connect is on this phone
+                val missing = com.nutriai.data.health.HealthConnectManager(context).missingPermissions()
+                val askedKey = "asked_hc_${missing.size}"
+                if (missing.isNotEmpty() && !permPrefs.getBoolean(askedKey, false)) {
+                    permPrefs.edit().putBoolean(askedKey, true).apply()
+                    runCatching { healthPermLauncher.launch(missing) }.onFailure { permStep = 3 }
+                } else permStep = 3
+            }
         }
     }
 
