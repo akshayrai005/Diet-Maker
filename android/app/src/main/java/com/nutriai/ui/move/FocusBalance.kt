@@ -108,6 +108,12 @@ object SessionStore {
 
     fun needsCheckIn(c: Context): Boolean = prefs(c).getString("ck_day", null) != dayKey()
 
+    /** True when today's check-in was answered "Not today" (a rest day, so no workout-timed meals). */
+    fun saidNoToday(c: Context): Boolean {
+        val p = prefs(c)
+        return p.getString("ck_day", null) == dayKey() && !p.getBoolean("ck_yes", false)
+    }
+
     fun answer(c: Context, yes: Boolean) {
         prefs(c).edit().putString("ck_day", dayKey()).putBoolean("ck_yes", yes).apply()
     }

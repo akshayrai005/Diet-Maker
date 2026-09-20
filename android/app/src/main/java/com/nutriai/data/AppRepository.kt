@@ -27,6 +27,7 @@ class AppRepository @Inject constructor(
     private val tokenStore: TokenStore,
     private val cacheDao: CacheDao,
     private val json: Json,
+    private val reminderPrefs: com.nutriai.notifications.ReminderPrefs,
 ) {
     val isLoggedIn: Flow<Boolean> = tokenStore.accessTokenFlow.map { !it.isNullOrBlank() }
 
@@ -161,8 +162,22 @@ class AppRepository @Inject constructor(
         }
     }
 
-    /** Every plan request carries the gym times the user set, so the meals are timed around the workout. */
-    private fun planRequest(days: Int) = com.nutriai.data.remote.dto.GeneratePlanRequest(days, GymTimes.all(appContext).ifEmpty { null })
+    /** Every plan request carries the workout time from Settings, so the meals are timed around the session. */
+    private suspend fun planRequest(days: Int): com.nutriai.data.remote.dto.GeneratePlanRequest {
+        val hour = reminderPrefs.workoutTime().first
+        val slot = when {
+            hour < 11 -> "morning"
+            hour < 16 -> "afternoon"
+            hour < 20 -> "evening"
+            else -> "night"
+        }
+        val today = java.time.LocalDateTime.now().minusHours(4).toLocalDate() // the eating day rolls over at 4 am
+        val training = mutableMapOf<String, String>()
+        // Today counts as a training day unless the morning check-in said "Not today".
+        if (!com.nutriai.ui.move.SessionStore.saidNoToday(appContext)) training[today.toString()] = slot
+        training[today.plusDays(1).toString()] = slot
+        return com.nutriai.data.remote.dto.GeneratePlanRequest(days, training)
+    }
 
     suspend fun generatePlan(days: Int = 2): Result<PlanDto?> = runCatching { api.generatePlan(planRequest(days)).plan }
 
