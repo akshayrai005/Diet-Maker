@@ -444,6 +444,66 @@ function topUpDayToTarget(
   target.proteinG = round(target.items.reduce((s, i) => s + i.proteinG, 0), 1);
 }
 
+/**
+ * Keeps every meal a size a person can actually eat. A main meal is capped at ~30% of the day; whatever that trims is moved into the
+ * snacks, which may grow to ~11% of the day each (a second light item if one is not enough). If the meals still cannot carry the
+ * whole target the day lands a little under it, which is better than a 1,200 kcal breakfast. Mutates `meals` in place.
+ */
+function capMeals(meals: Meal[], dailyKcal: number, mains: MealSlot[], shares: Record<string, number>, pool: FoodItem[], dietType: string, usedToday: Set<string>): void {
+  // A main meal may be a little above its own share of the day (never a huge one); a one-meal pattern keeps its big meal.
+  const capFor = (slot: string) => {
+    const share = shares[slot] ?? 0.3;
+    return dailyKcal * (share >= 0.5 ? Math.min(0.9, share * 1.05) : Math.min(0.34, Math.max(0.3, share * 1.1)));
+  };
+  const snackCap = Math.min(320, Math.max(250, dailyKcal * 0.11));
+  const refresh = (m: Meal) => {
+    m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
+    m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);
+  };
+  let freed = 0;
+  for (const m of meals) {
+    const mainCap = capFor(m.slot);
+    if (!mains.includes(m.slot) || m.kcal <= mainCap) continue;
+    const factor = Math.max(0.6, mainCap / m.kcal);
+    for (const it of m.items) scaleItem(it, factor, true);
+    const before = m.kcal;
+    refresh(m);
+    freed += before - m.kcal;
+  }
+  if (freed <= 0) return;
+  const snacks = meals.filter((m) => !mains.includes(m.slot) && m.items.length > 0).sort((a, b) => a.kcal - b.kcal);
+  for (const m of snacks) {
+    if (freed <= 5) break;
+    const room = Math.min(freed, snackCap - m.kcal);
+    if (room < 40) continue;
+    // 1) grow the existing item (up to its own realistic serving cap)
+    // fat-dense snack items (nuts, seeds) are not grown - that is how the day's fat overshoots
+    const grow = m.items.filter((i) => i.kcal >= 20 && (i.fatG * 9) / Math.max(1, i.kcal) <= 0.5);
+    const cur = grow.reduce((t, i) => t + i.kcal, 0);
+    if (cur > 0) {
+      for (const it of grow) scaleItem(it, Math.min(2, (cur + room) / cur));
+      const added = m.items.reduce((t, i) => t + i.kcal, 0) - m.kcal;
+      refresh(m);
+      freed -= Math.max(0, added);
+    }
+    // 2) still room: add one more light item
+    const left = Math.min(freed, snackCap - m.kcal);
+    if (left >= 60) {
+      const cands = candidatesForSlot(pool, m.slot, dietType).filter(
+        (f) => !usedToday.has(f.id) && !NOT_A_SNACK.test(f.name) && !clashesWithMeal(m, f.name) && (f.fatG * 9) / Math.max(1, f.kcal) <= 0.35,
+      );
+      const pick = cands.find((f) => f.tags.some((t) => LIGHT_TAGS.has(t))) ?? cands[0];
+      if (pick) {
+        const item = toItem(pick, gramsForKcal(pick, left));
+        m.items.push(item);
+        usedToday.add(pick.id);
+        refresh(m);
+        freed -= item.kcal;
+      }
+    }
+  }
+}
+
 const LIGHT_TAGS = new Set(['fruit', 'beverage', 'light', 'probiotic', 'high-fiber']);
 
 /**
@@ -618,12 +678,29 @@ function buildDay(
   balanceMacros(meals, { proteinG: targets.proteinG, fatG: targets.fatG });
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday);
   proteinTopUp(meals, { proteinG: targets.proteinG }, pool, usedToday); // a second lean item if the day is still well short
+  // Last, so nothing above can re-inflate a meal: no plate is bigger than a person can reasonably eat.
+  capMeals(meals, dailyKcal, mains, Object.fromEntries(activeSlots.map((sl) => [sl, slotWeight[sl]! / weightSum])), pool, dietType, usedToday);
   for (const m of meals) {
     m.kcal = round(m.items.reduce((s, i) => s + i.kcal, 0), 0);
     m.proteinG = round(m.items.reduce((s, i) => s + i.proteinG, 0), 1);
   }
 
   if (training && trainTime) {
+    // A pre-workout meal must be real fuel, not black coffee: swap a near-empty one for a light carb food (~180 kcal).
+    const preMeal = meals.find((m) => m.slot === training!.pre);
+    if (preMeal && preMeal.kcal < 120) {
+      const carb = pool
+        .filter((f) => !usedToday.has(f.id) && f.kcal >= 40 && !NOT_A_SNACK.test(f.name) && (f.fatG * 9) / Math.max(1, f.kcal) <= 0.3 &&
+          (f.tags.includes('fruit') || /banana|dates|oats|poha|toast|bread|idli|upma|sattu|khichdi|corn/i.test(f.name)))
+        .sort((x, y) => Number(/banana|dates/i.test(y.name)) - Number(/banana|dates/i.test(x.name)) || x.kcal - y.kcal)[0];
+      if (carb) {
+        const item = toItem(carb, gramsForKcal(carb, 180));
+        usedToday.add(carb.id);
+        preMeal.items = [item];
+        preMeal.kcal = round(item.kcal, 0);
+        preMeal.proteinG = round(item.proteinG, 1);
+      }
+    }
     for (const m of meals) {
       if (m.slot === training.pre) { m.tag = 'pre-workout'; m.note = PRE_NOTE[trainTime]; }
       else if (m.slot === training.post) { m.tag = 'post-workout'; m.note = POST_NOTE[trainTime]; }

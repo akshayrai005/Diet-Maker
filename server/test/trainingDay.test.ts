@@ -45,6 +45,21 @@ describe('meals follow the gym plan', () => {
     expect(dinner(night)).toBeLessThan(dinner(rest));
   });
 
+  it('the pre-workout meal is real fuel (at least ~100 kcal of carbs), not a black coffee', () => {
+    for (const when of TRAIN_TIMES) {
+      const pre = plan({ '2026-09-21': when }).days[0]!.meals.find((m) => m.tag === 'pre-workout')!;
+      expect(pre.kcal, `${when}: ${pre.items.map((i) => i.name).join(', ')}`).toBeGreaterThanOrEqual(100);
+    }
+  });
+
+  it('no meal is bigger than ~35% of the day on a big target (except one-meal-a-day)', () => {
+    for (const pattern of ['morning_night', 'office_canteen', 'home', undefined]) {
+      const d = generateWeekPlan(SEED_FOODS, { ...targets, dailyKcal: 2913, proteinG: 148 }, prefs, { days: 1, startDate: start, today: start, eatingPattern: pattern }).days[0]!;
+      const biggest = Math.max(...d.meals.map((m) => m.kcal));
+      expect(biggest, `${pattern}: ${d.meals.map((m) => `${m.slot}:${m.kcal}`).join(' ')}`).toBeLessThanOrEqual(2913 * 0.35);
+    }
+  });
+
   it('works with a working-day eating pattern too', () => {
     const d = plan({ '2026-09-21': 'evening' }, 'office_canteen').days[0]!;
     expect(d.meals.find((m) => m.tag === 'post-workout')!.slot).toBe('dinner');
