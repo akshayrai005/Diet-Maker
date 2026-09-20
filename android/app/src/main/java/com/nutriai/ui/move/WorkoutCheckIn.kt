@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -93,10 +94,10 @@ private fun KaizenPopup(title: String, onDismiss: () -> Unit, content: @Composab
 private fun GradientButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         modifier.height(46.dp).clip(RoundedCornerShape(12.dp))
-            .background(if (enabled) SpectrumBrush else SolidColor(MaterialTheme.colorScheme.surfaceVariant))
+            .background(if (enabled) SpectrumBrush else SolidColor(Color(0xFFCFD3DA)))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(text, fontWeight = FontWeight.Bold, color = if (enabled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant) }
+    ) { Text(text, fontWeight = FontWeight.Bold, color = if (enabled) Color.White else Color(0xFF4A5060)) }
 }
 
 /**
@@ -267,6 +268,8 @@ fun SessionBuilderDialog(groups: List<TrainGroup>, onDone: () -> Unit, vm: Focus
                                                         ExerciseDemo(name = name, muscleGroup = e.item.muscleGroup, sizeDp = 90)
                                                         Text(name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, maxLines = 2, minLines = 2, textAlign = TextAlign.Center)
                                                     }
+                                                    // sits above the GIF so a tap anywhere on the card selects it (the GIF itself would open the info popup)
+                                                    Box(Modifier.matchParentSize().clickable { if (on) selected.remove(name) else selected.add(name) })
                                                     if (on) {
                                                         Box(Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(primary), contentAlignment = Alignment.Center) {
                                                             Icon(Icons.Filled.Check, null, tint = Color.White, modifier = Modifier.size(14.dp))
@@ -283,7 +286,7 @@ fun SessionBuilderDialog(groups: List<TrainGroup>, onDone: () -> Unit, vm: Focus
                 }
                 GradientButton(
                     if (selected.isEmpty()) "Pick exercises above" else "Add ${selected.size} to today's session",
-                    Modifier.fillMaxWidth().padding(12.dp), enabled = selected.isNotEmpty(),
+                    Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp).padding(bottom = 60.dp), enabled = selected.isNotEmpty(),
                 ) { SessionStore.addPicks(ctx, selected.toList()); onDone() }
             }
         }
