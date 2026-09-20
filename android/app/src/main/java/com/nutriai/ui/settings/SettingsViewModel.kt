@@ -111,7 +111,12 @@ class SettingsViewModel @Inject constructor(
             prefs.workoutTime?.split(":")?.let { parts ->
                 val h = parts.getOrNull(0)?.toIntOrNull()
                 val m = parts.getOrNull(1)?.toIntOrNull()
-                if (h != null && m != null) reminderPrefs.setWorkoutTime(h, m)
+                if (h != null && m != null) {
+                    val before = com.nutriai.data.workoutSlot(reminderPrefs.workoutTime().first)
+                    reminderPrefs.setWorkoutTime(h, m)
+                    // A different part of the day (e.g. evening -> morning) changes when the pre/post-workout meals go: re-plan.
+                    if (com.nutriai.data.workoutSlot(h) != before) launch { repository.replanForWorkoutTime() }
+                }
             }
             reminderPrefs.setEnabled(ReminderGroup.WORKOUT, prefs.workoutEnabled)
             if (prefs.workoutEnabled) reminderScheduler.scheduleGroup(ReminderGroup.WORKOUT)

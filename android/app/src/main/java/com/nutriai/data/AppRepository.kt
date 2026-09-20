@@ -20,6 +20,14 @@ import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Which part of the day a workout hour falls in; the diet plan times the meals around it. */
+fun workoutSlot(hour: Int): String = when {
+    hour < 11 -> "morning"
+    hour < 16 -> "afternoon"
+    hour < 20 -> "evening"
+    else -> "night"
+}
+
 @Singleton
 class AppRepository @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
@@ -164,19 +172,19 @@ class AppRepository @Inject constructor(
 
     /** Every plan request carries the workout time from Settings, so the meals are timed around the session. */
     private suspend fun planRequest(days: Int): com.nutriai.data.remote.dto.GeneratePlanRequest {
-        val hour = reminderPrefs.workoutTime().first
-        val slot = when {
-            hour < 11 -> "morning"
-            hour < 16 -> "afternoon"
-            hour < 20 -> "evening"
-            else -> "night"
-        }
+        val slot = workoutSlot(reminderPrefs.workoutTime().first)
         val today = java.time.LocalDateTime.now().minusHours(4).toLocalDate() // the eating day rolls over at 4 am
         val training = mutableMapOf<String, String>()
         // Today counts as a training day unless the morning check-in said "Not today".
         if (!com.nutriai.ui.move.SessionStore.saidNoToday(appContext)) training[today.toString()] = slot
         training[today.plusDays(1).toString()] = slot
         return com.nutriai.data.remote.dto.GeneratePlanRequest(days, training)
+    }
+
+    /** Re-plans today and tomorrow around the new workout time and drops stale cached copies. */
+    suspend fun replanForWorkoutTime() {
+        generatePlan(2)
+        runCatching { cacheDao.delete("plan"); cacheDao.delete("dashboard") }
     }
 
     suspend fun generatePlan(days: Int = 2): Result<PlanDto?> = runCatching { api.generatePlan(planRequest(days)).plan }
