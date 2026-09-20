@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,9 +94,11 @@ fun StrengthTrendSection(
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "Strength trend",
+            "📈 Strength trend",
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(com.nutriai.ui.theme.SpectrumBrush).padding(horizontal = 16.dp, vertical = 12.dp),
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
         )
 
         when {
@@ -143,17 +148,21 @@ private fun StrengthTrendContent(trends: List<StrengthTrend>) {
                     .heightIn(min = 48.dp)
                     .semantics { contentDescription = "Select exercise. Current: ${selected.exerciseName}" },
                 shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(0.dp),
             ) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(selected.exerciseName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    TextButton(
-                        onClick = { menuOpen = true },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Change ▾") }
+                    Text(selected.exerciseName, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Change ▾",
+                        Modifier.clip(RoundedCornerShape(50)).background(com.nutriai.ui.theme.SpectrumBrush).clickable { menuOpen = true }.padding(horizontal = 12.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.White,
+                    )
                 }
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -168,10 +177,10 @@ private fun StrengthTrendContent(trends: List<StrengthTrend>) {
 
         // Stats row: best · latest · change.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatChip("Best", "${trimNum(selected.best)} kg", Modifier.weight(1f))
-            StatChip("Latest", "${trimNum(selected.latest)} kg", Modifier.weight(1f))
+            StatChip("Best", "${trimNum(selected.best)} kg", Modifier.weight(1f), 0)
+            StatChip("Latest", "${trimNum(selected.latest)} kg", Modifier.weight(1f), 1)
             val sign = if (selected.change > 0) "+" else ""
-            StatChip("Change", "$sign${trimNum(selected.change)} kg", Modifier.weight(1f))
+            StatChip("Change", "$sign${trimNum(selected.change)} kg", Modifier.weight(1f), 2)
         }
 
         // Chart.
@@ -205,17 +214,18 @@ private fun StrengthTrendContent(trends: List<StrengthTrend>) {
 }
 
 @Composable
-private fun StatChip(label: String, value: String, modifier: Modifier = Modifier) {
+private fun StatChip(label: String, value: String, modifier: Modifier = Modifier, tile: Int = 0) {
+    val accent = com.nutriai.ui.theme.AppPalette.stop(tile)
     Card(
         modifier.semantics { contentDescription = "$label $value" },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = com.nutriai.ui.theme.AppPalette.tint(accent)),
     ) {
         Column(
             Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = accent)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
