@@ -86,6 +86,7 @@ fun SettingsScreen(
 
     val context = LocalContext.current
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    val activityLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -183,6 +184,9 @@ fun SettingsScreen(
                                 PackageManager.PERMISSION_GRANTED
                             ) {
                                 notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                            if (enabled && !com.nutriai.notifications.LiveSteps.permitted(context)) {
+                                activityLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
                             }
                             viewModel.setWalkNudge(enabled)
                         },
@@ -425,7 +429,19 @@ private fun WorkoutReminderRows(
         AlertDialog(
             onDismissRequest = { showPicker = false },
             title = { Text("When do you work out?") },
-            text = { TimePicker(state = tp) },
+            text = {
+                // The chosen AM / PM is a solid theme-colour block with white text, so it is obvious which one is on.
+                TimePicker(
+                    state = tp,
+                    colors = androidx.compose.material3.TimePickerDefaults.colors(
+                        periodSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary,
+                        periodSelectorSelectedContentColor = androidx.compose.ui.graphics.Color.White,
+                        periodSelectorUnselectedContainerColor = androidx.compose.ui.graphics.Color.White,
+                        periodSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        periodSelectorBorderColor = MaterialTheme.colorScheme.primary,
+                    ),
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     hour = tp.hour; minute = tp.minute; showPicker = false

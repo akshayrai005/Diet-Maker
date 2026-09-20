@@ -34,17 +34,28 @@ class WalkNudgeWorker(
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         if (hour < 8 || hour >= 21) return Result.success()
 
+        // Two sources: the phone's live step sensor (real time) and Health Connect (can lag by hours). Either one seeing
+        // movement means the person is not still, so no nudge - this is what stops a "you haven't walked" while you are walking.
         val hc = HealthConnectManager(applicationContext)
-        if (!hc.isAvailable() || !hc.hasStepPermission()) return Result.success() // graceful fallback
+        val hcReady = hc.isAvailable() && hc.hasStepPermission()
+        val sensorNow = LiveSteps.counter(applicationContext)
+        if (!hcReady && sensorNow == null) return Result.success() // no way to tell - stay quiet
 
-        val current = hc.readTodaySteps()
-        val last = prefs.walkLastSteps()
-        prefs.setWalkLastSteps(current)
-
-        // New day (counter reset) → just re-baseline, don't nudge.
-        if (current < last) return Result.success()
-
-        val moved = current - last
+        var moved = 0L
+        var known = false
+        if (sensorNow != null) {
+            val lastSensor = prefs.walkLastSensor()
+            prefs.setWalkLastSensor(sensorNow)
+            // A first reading, or a reboot (counter went back to 0), only sets the baseline.
+            if (lastSensor >= 0 && sensorNow >= lastSensor) { moved = maxOf(moved, sensorNow - lastSensor); known = true }
+        }
+        if (hcReady) {
+            val current = hc.readTodaySteps()
+            val last = prefs.walkLastSteps()
+            prefs.setWalkLastSteps(current)
+            if (current >= last) { moved = maxOf(moved, current - last); known = true } // a smaller number means a new day
+        }
+        if (!known) return Result.success() // nothing to compare against yet
         if (moved >= MOVED_THRESHOLD_STEPS) return Result.success() // they moved - no nudge
 
         // Android 13+ runtime permission.

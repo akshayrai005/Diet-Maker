@@ -71,6 +71,15 @@ class ReminderPrefs @Inject constructor(
         context.reminderStore.edit { it[walkLastStepsKey] = steps }
     }
 
+    /** Live step-sensor reading at the previous check (the counter runs since boot, so it is compared with itself). */
+    private val walkLastSensorKey = longPreferencesKey("walk_last_sensor")
+
+    suspend fun walkLastSensor(): Long = context.reminderStore.data.first()[walkLastSensorKey] ?: -1L
+
+    suspend fun setWalkLastSensor(steps: Long) {
+        context.reminderStore.edit { it[walkLastSensorKey] = steps }
+    }
+
     // ---- Evening calorie check-in nudge ----
     private val eveningNudgeEnabledKey = booleanPreferencesKey("evening_nudge_enabled")
     private val eveningNudgeLastDateKey = stringPreferencesKey("evening_nudge_last_date")

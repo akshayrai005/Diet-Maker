@@ -157,7 +157,16 @@ class AppRepository @Inject constructor(
     suspend fun latestPlan(): Result<PlanDto?> {
         val r = runCatching { api.latestPlan().plan }
         return if (r.isSuccess) {
-            val p = r.getOrThrow()
+            var p = r.getOrThrow()
+            // The app must only ever show current data: a plan built on an earlier day (its "Today" is no longer today) is
+            // replaced by a fresh one the first time the app is opened on the new eating day (which starts at 4 am).
+            if (p != null) {
+                val eatingToday = java.time.LocalDateTime.now().minusHours(4).toLocalDate().toString()
+                val planToday = p.days.firstOrNull { it.label?.startsWith("Today") == true }?.date
+                if (planToday != null && planToday != eatingToday) {
+                    generatePlan(2).getOrNull()?.let { p = it }
+                }
+            }
             if (p != null) {
                 runCatching { cacheDao.put(CacheEntry("plan", json.encodeToString(PlanDto.serializer(), p), System.currentTimeMillis())) }
             }

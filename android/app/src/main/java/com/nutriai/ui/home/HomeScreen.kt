@@ -116,6 +116,21 @@ fun HomeScreen(
         }
     }
 
+    // The walk nudge needs the phone's live step sensor; ask once, and only when the nudge is switched on.
+    val walkCtx = androidx.compose.ui.platform.LocalContext.current
+    val activityLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { }
+    LaunchedEffect(Unit) {
+        val asked = walkCtx.getSharedPreferences("kaizen_prefs", android.content.Context.MODE_PRIVATE)
+        if (!asked.getBoolean("asked_activity", false) && !com.nutriai.notifications.LiveSteps.permitted(walkCtx) &&
+            com.nutriai.notifications.ReminderPrefs(walkCtx).isWalkEnabled()
+        ) {
+            asked.edit().putBoolean("asked_activity", true).apply()
+            activityLauncher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
+        }
+    }
+
     // Once a day: "Ready to train?" -> what to train -> straight to the exercise picker on the Move tab.
     com.nutriai.ui.move.WorkoutCheckInHost(onChose = {
         navController.navigate("move") {
