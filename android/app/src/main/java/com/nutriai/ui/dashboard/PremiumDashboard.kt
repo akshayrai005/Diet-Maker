@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -46,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -443,10 +443,9 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
 
     Card(
         Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(0.dp), // flat, not raised
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.fillMaxWidth().padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             // Line, not ring — progress toward today's eating target, value at the end of the line.
@@ -458,56 +457,44 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
             }
             KaizenProgressBar(progress = pct, color = NutritionColor, height = 10.dp)
 
-            // The nine numbers as one ruled table (same look as the popup tables), each cell centred.
-            val gridLine = MaterialTheme.colorScheme.outline
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, gridLine, RoundedCornerShape(10.dp))) {
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", KaizenCoral)
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenCoral)
-                }
-                HorizontalDivider(color = gridLine)
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(
-                        Modifier.weight(1f),
-                        if (deficit > 0) "📉" else "📈",
-                        if (deficit > 0) "Deficit" else "Surplus",
-                        "%,d".format(kotlin.math.abs(deficit)),
-                        KaizenBlue,
-                    )
-                }
-                HorizontalDivider(color = gridLine)
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    StatCell(
-                        Modifier.weight(1f),
-                        "💪",
-                        "Protein",
-                        dashboard.protein.target?.let { "${(dashboard.protein.consumed ?: 0.0).toInt()}/${it.toInt()}g" } ?: "${(dashboard.protein.consumed ?: 0.0).toInt()}g",
-                        NutritionColor,
-                    )
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(
-                        Modifier.weight(1f),
-                        "🌾",
-                        "Carbs",
-                        dashboard.macros.carbTargetG?.let { "${dashboard.macros.carbG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.carbG.toInt()}g",
-                        NutritionColor,
-                    )
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(gridLine))
-                    StatCell(
-                        Modifier.weight(1f),
-                        "🥑",
-                        "Fat",
-                        dashboard.macros.fatTargetG?.let { "${dashboard.macros.fatG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.fatG.toInt()}g",
-                        NutritionColor,
-                    )
-                }
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                StatCell(Modifier.weight(1f), "🏋️", "Body Need", "%,d".format(bodyNeed), KaizenCoral)
+                StatCell(Modifier.weight(1f), "🎯", "Target", if (hasTarget) "%,d".format(target) else "—", KaizenCoral)
+                StatCell(Modifier.weight(1f), "⏳", "Remaining", "%,d".format(remaining), KaizenCoral)
+            }
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                StatCell(Modifier.weight(1f), "🍽️", "Eaten", "%,d".format(consumed), KaizenBlue)
+                StatCell(Modifier.weight(1f), "🔥", "Burned", if (burned > 0) "%,d".format(burned) else "—", KaizenBlue)
+                StatCell(
+                    Modifier.weight(1f),
+                    if (deficit > 0) "📉" else "📈",
+                    if (deficit > 0) "Deficit" else "Surplus",
+                    "%,d".format(kotlin.math.abs(deficit)),
+                    KaizenBlue,
+                )
+            }
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                StatCell(
+                    Modifier.weight(1f),
+                    "💪",
+                    "Protein",
+                    dashboard.protein.target?.let { "${(dashboard.protein.consumed ?: 0.0).toInt()}/${it.toInt()}g" } ?: "${(dashboard.protein.consumed ?: 0.0).toInt()}g",
+                    NutritionColor,
+                )
+                StatCell(
+                    Modifier.weight(1f),
+                    "🌾",
+                    "Carbs",
+                    dashboard.macros.carbTargetG?.let { "${dashboard.macros.carbG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.carbG.toInt()}g",
+                    NutritionColor,
+                )
+                StatCell(
+                    Modifier.weight(1f),
+                    "🥑",
+                    "Fat",
+                    dashboard.macros.fatTargetG?.let { "${dashboard.macros.fatG.toInt()}/${it.toInt()}g" } ?: "${dashboard.macros.fatG.toInt()}g",
+                    NutritionColor,
+                )
             }
         }
     }
@@ -515,17 +502,21 @@ private fun CalorieSummaryCard(dashboard: Dashboard, steps: Long, stepsKcal: Int
 
 @Composable
 private fun StatCell(modifier: Modifier = Modifier, emoji: String, label: String, value: String, color: Color) {
-    Column(
-        modifier
-            .fillMaxHeight()
-            .background(color.copy(alpha = 0.07f))
-            .padding(vertical = Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    // Each of the nine numbers is its own raised card (a real shadow), not one flat block.
+    Card(
+        modifier,
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f).compositeOver(Color.White)),
     ) {
-        Text(emoji, fontSize = 14.sp)
-        Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(emoji, fontSize = 14.sp)
+            Text(value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = color)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -733,10 +724,9 @@ private fun DomainCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.cardElevation(0.dp), // flat, not raised
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(SharpRadius),
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
