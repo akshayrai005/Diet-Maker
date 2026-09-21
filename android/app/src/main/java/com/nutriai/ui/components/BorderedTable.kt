@@ -48,7 +48,7 @@ fun BorderedTable(
     modifier: Modifier = Modifier,
     title: String? = null,
     accent: Color = Color(0xFF5C6BC0),
-    startExpanded: Boolean = true,
+    startExpanded: Boolean = false,
     /** Column indexes whose text (and header) is centred, both ways. */
     centeredColumns: Set<Int> = emptySet(),
 ) {

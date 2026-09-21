@@ -874,7 +874,7 @@ private fun AdherenceChip(label: String, score: com.nutriai.data.remote.dto.Dime
 
 @Composable
 private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     val order = mapOf("critical" to 0, "warning" to 1, "info" to 2)
     val sorted = flags.sortedBy { order[it.severity] ?: 3 }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -935,7 +935,7 @@ private fun SafetyRows(flags: List<com.nutriai.data.remote.dto.Flag>) {
 
 @Composable
 private fun RiskRows(findings: List<com.nutriai.data.remote.dto.RiskFinding>) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         SectionHeader("Health Signals", emoji = "📡")
         // Header card

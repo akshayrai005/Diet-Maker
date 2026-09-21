@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -58,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -105,6 +107,15 @@ private val Sharp = RoundedCornerShape(8.dp)
 private val MoveAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary
 
+/** What the Library tab shows in the Move header: back arrow + body-part chips. The tab publishes it; the header draws it. */
+object LibraryNav {
+    var category by mutableStateOf<ExerciseCatalog.Category?>(null)   // null = nothing chosen yet (no row shown)
+    var sub by mutableStateOf<String?>(null)
+    var chips by mutableStateOf<List<ExerciseCatalog.Category>>(emptyList())
+    var onPick: (ExerciseCatalog.Category) -> Unit = {}
+    var onBack: () -> Unit = {}
+}
+
 @Composable
 fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
     var section by remember { mutableIntStateOf(initialSection.coerceIn(0, 2)) }
@@ -124,12 +135,41 @@ fun MoveScreen(modifier: Modifier = Modifier, initialSection: Int = 0) {
 
     Column(modifier.fillMaxSize()) {
         // Purple gradient header
-        Box(
+        Column(
             Modifier.fillMaxWidth()
                 .background(SpectrumBrush)
                 .padding(horizontal = Spacing.screenHorizontal, vertical = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("🏃 Move", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            val navCat = LibraryNav.category
+            if (section == 1 && navCat != null && navCat != ExerciseCatalog.Category.ALL) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        Modifier.size(38.dp).clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = 0.25f)).clickable { LibraryNav.onBack() }
+                            .semantics { contentDescription = "Back" },
+                        contentAlignment = Alignment.Center,
+                    ) { Text("←", color = Color.White, fontWeight = FontWeight.ExtraBold) }
+                    val chips = LibraryNav.chips.ifEmpty { listOf(navCat) }
+                    val block: @Composable (ExerciseCatalog.Category, Modifier) -> Unit = { c, m ->
+                        val on = c == navCat
+                        Box(
+                            m.height(38.dp).clip(RoundedCornerShape(10.dp))
+                                .background(if (on) Color.White else Color.White.copy(alpha = 0.22f))
+                                .clickable { LibraryNav.onPick(c) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "${c.emoji} ${c.label}" + if (on) (LibraryNav.sub?.takeIf { it != ALL_REGIONS }?.let { " · $it" } ?: "") else "",
+                                style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1,
+                                color = if (on) Color(0xFF3A2A5A) else Color.White,
+                            )
+                        }
+                    }
+                    if (chips.size <= 3) chips.forEach { c -> block(c, Modifier.weight(1f)) }
+                    else LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(chips) { c -> block(c, Modifier.widthIn(min = 110.dp)) } }
+                }
+            }
         }
 
         // Tab bar — same style as Nutrition
@@ -612,6 +652,8 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(ExerciseCatalog.Category.ALL) }
     var equipment by remember { mutableStateOf(ExerciseCatalog.EquipmentFilter.ANY) }
+    // Which small tool is open under the top row: "search", "equip" or none.
+    var tool by remember { mutableStateOf<String?>(null) }
     // Region inside the chosen body part (Chest -> Upper / Middle / Lower ...); reset whenever the body part changes.
     var sub by remember(category) { mutableStateOf<String?>(null) }
     var logTarget by remember { mutableStateOf<ExerciseItem?>(null) }
@@ -624,6 +666,18 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     LaunchedEffect(requestedCat) {
         requestedCat?.let { category = it; sub = null; query = ""; SessionStore.libraryCat.value = null }
     }
+    // Publish this tab's position to the Move header (which draws the back arrow + body-part chips) and take its taps.
+    val chosenForHeader = remember(sessionGroups) { sessionGroups.flatMap { it.cats } }
+    SideEffect {
+        LibraryNav.category = category
+        LibraryNav.sub = sub
+        LibraryNav.chips = (chosenForHeader + category).filter { it != ExerciseCatalog.Category.ALL }.distinct()
+        LibraryNav.onPick = { c -> category = c; sub = null; query = "" }
+        LibraryNav.onBack = {
+            if (SubParts.forCategory(category).isNotEmpty() && sub != null) { sub = null; query = "" } else { category = ExerciseCatalog.Category.ALL; query = "" }
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { LibraryNav.category = null } }
     // Female users get the female anatomy figure in the muscle picker.
     var female by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(Unit) { female = viewModel.isFemale() }
@@ -656,24 +710,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
     }
 
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.screenHorizontal), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        // The parts chosen at the check-in, one tap to switch between them; picks are added with "＋ Today" on each exercise.
-        val chosenCats = remember(sessionGroups) { sessionGroups.flatMap { it.cats } }
-        if (chosenCats.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(chosenCats) { c ->
-                    val on = c == category
-                    Text(
-                        "${c.emoji} ${c.label}",
-                        Modifier.clip(RoundedCornerShape(50))
-                            .then(if (on) Modifier.background(SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)))
-                            .clickable { category = c; sub = null; query = "" }
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
-                        color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
-        }
+        // (The back arrow and body-part chips live in the Move header at the top of the page.)
         if (category == ExerciseCatalog.Category.ALL) {
             // Search everything from the first screen: type a name, get exercises you can log straight away.
             OutlinedTextField(
@@ -697,7 +734,6 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
         val regionCount = remember(category) { SubParts.forCategory(category).size }
         if (regionCount > 0 && sub == null && query.isBlank()) {
             // Step 2: pick a region of the body part (cards, like the muscle picker).
-            LibraryHeader(title = "${category.emoji} ${category.label}", onBack = { category = ExerciseCatalog.Category.ALL; query = "" })
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 SubPartTiles(category = category, onPick = { sub = it })
             }
@@ -705,11 +741,22 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
         }
         // Step 3: the chosen part, with search, equipment and its exercises.
         if (category != ExerciseCatalog.Category.ALL) {
-            // Header card: back arrow + the body part / region as the title, then a search box for this part.
-            LibraryHeader(
-                title = "${category.emoji} ${category.label}" + (sub?.takeIf { it != ALL_REGIONS }?.let { " · $it" } ?: ""),
-                onBack = { if (regionCount > 0 && sub != null) { sub = null; query = "" } else { category = ExerciseCatalog.Category.ALL; query = "" } },
-            )
+            // One row, two small tabs: tap Search to type, tap Equipment to filter. Only the chosen one opens (in the list below).
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("🔍 Search" to "search", "🎒 Equipment" to "equip").forEach { (label, key) ->
+                    val open = tool == key || (key == "search" && query.isNotBlank())
+                    val tag = if (key == "equip" && equipment != ExerciseCatalog.EquipmentFilter.ANY) " · ${equipment.label}" else ""
+                    Box(
+                        Modifier.weight(1f).height(38.dp).clip(RoundedCornerShape(10.dp))
+                            .then(if (open) Modifier.background(SpectrumBrush) else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)))
+                            .clickable { tool = if (tool == key) null else key },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(label + tag, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1,
+                            color = if (open) Color.White else MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
         } else {
             // Searching from the first screen: a header card too, so the way back is always the same.
             LibraryHeader(title = "🔍 Results for \"${query.trim()}\"", onBack = { query = "" })
@@ -724,7 +771,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
             modifier = Modifier.fillMaxSize(),
         ) {
             // Search and equipment scroll away with the list, so the exercises get the whole screen.
-            if (category != ExerciseCatalog.Category.ALL) {
+            if (category != ExerciseCatalog.Category.ALL && (tool == "search" || query.isNotBlank())) {
                 item(span = { GridItemSpan(2) }) {
                     OutlinedTextField(
                         value = query,
@@ -737,7 +784,7 @@ private fun ExerciseLibraryTab(modifier: Modifier = Modifier, viewModel: MoveVie
                     )
                 }
             }
-            item(span = { GridItemSpan(2) }) {
+            if (tool == "equip") item(span = { GridItemSpan(2) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("🎒 Equipment today", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

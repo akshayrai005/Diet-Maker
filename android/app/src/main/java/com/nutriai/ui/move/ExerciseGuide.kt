@@ -209,12 +209,66 @@ object ExerciseGuide {
         return muscleGroup?.lowercase()?.let { SECONDARY_BY_GROUP[it] }.orEmpty()
     }
 
-    /** A guide for any exercise; never null. */
-    fun forName(name: String, muscleGroup: String? = null): Guide {
+    /**
+     * Mistakes that belong to THIS variation of the movement (the angle, the equipment, the grip, one arm or two...). They are put ahead of the
+     * movement-type mistakes, so two presses no longer show the same list: an incline press warns about the bench angle, a decline press about
+     * the head-down position, a dumbbell version about uneven arms, and so on.
+     */
+    private val VARIATION_MISTAKES: List<Pair<Regex, List<String>>> = listOf(
+        Regex("incline") to listOf("Setting the bench too steep, so the shoulders take over from the upper chest (30-45 degrees is enough)", "Letting the bar or dumbbells drift toward your face instead of over your upper chest"),
+        Regex("decline") to listOf("Sliding down the pad or letting your feet slip out of the leg holders", "Lowering the weight toward your neck instead of your lower chest", "Rushing the rep because the head-down position feels awkward"),
+        Regex("reverse.?grip") to listOf("Gripping too wide, which strains the wrists and shoulders", "Letting the wrists bend back under the bar"),
+        Regex("close.?grip|narrow") to listOf("Bringing the hands so close that the wrists are stressed (about shoulder width is enough)", "Letting the elbows flare instead of staying tucked"),
+        Regex("wide") to listOf("Going so wide that the shoulders feel pinched at the bottom", "Cutting the range short because the grip is too wide"),
+        Regex("dumbbell|dumb.?bell") to listOf("Letting the two dumbbells drift apart or move unevenly", "Swinging the weights up with momentum instead of controlling both sides", "Clanging the dumbbells together at the top"),
+        Regex("barbell") to listOf("Gripping the bar unevenly so one side sits higher", "Letting the bar drift away from your body's line"),
+        Regex("cable") to listOf("Standing too close to the stack so the cable pulls at the wrong angle", "Letting the weight stack touch down between reps and losing tension", "Using body swing to move the handle"),
+        Regex("machine|lever|smith") to listOf("Leaving the seat or pad set for someone else - adjust it so the joint lines up with the machine's pivot", "Letting the weight stack slam back at the end of each rep"),
+        Regex("band|resistance band") to listOf("Letting the band snap back instead of controlling the return", "Using a band that is too light or too heavy for the full range"),
+        Regex("single|one.?arm|one.?leg|unilateral|alternating") to listOf("Twisting or leaning the body to lift the weight", "Doing many more reps on the strong side than the weak one"),
+        Regex("seated|sitting") to listOf("Slouching or rounding the lower back against the seat", "Bouncing off the seat to start the rep"),
+        Regex("standing") to listOf("Locking the knees or leaning back to cheat the weight up", "Letting the hips shift forward as you tire"),
+        Regex("lying|prone|supine") to listOf("Letting the lower back lift off the bench or floor", "Dropping the weight fast instead of a slow lowering phase"),
+        Regex("bent.?over") to listOf("Standing up as you tire so it turns into a shrug", "Rounding the upper back instead of keeping it flat"),
+        Regex("hammer") to listOf("Rotating the wrists during the rep instead of keeping the palms facing each other", "Swinging the elbows forward"),
+        Regex("preacher") to listOf("Lifting the upper arm off the pad", "Dropping the weight hard at the bottom and straining the elbow"),
+        Regex("concentration") to listOf("Resting the elbow on a moving knee instead of the inside of your thigh", "Leaning back to help the curl"),
+        Regex("overhead") to listOf("Arching the lower back to finish the rep", "Letting the elbows drift wide or back"),
+        Regex("skull|crusher") to listOf("Letting the elbows flare out to the sides", "Lowering the weight toward the forehead too fast"),
+        Regex("goblet") to listOf("Letting the weight pull your chest forward and your heels lift", "Holding the weight away from your chest"),
+        Regex("sumo") to listOf("Letting the knees cave inward instead of tracking over the toes", "Rounding the back as you pull"),
+        Regex("romanian|stiff.?leg|rdl") to listOf("Bending the knees so it becomes a squat", "Letting the bar drift away from your legs", "Going lower than your back can stay flat"),
+        Regex("bulgarian|split") to listOf("Standing too close so the front knee travels far past the toes", "Leaning the torso forward and losing balance"),
+        Regex("pull.?up|chin.?up") to listOf("Kipping or swinging to get above the bar", "Stopping short of a full hang at the bottom", "Shrugging the shoulders up to the ears"),
+        Regex("pulldown|pull.?down") to listOf("Leaning far back and turning it into a row", "Pulling the bar behind the neck", "Letting the shoulders shrug up as you pull"),
+        Regex("row") to listOf("Jerking the weight with the lower back", "Shrugging the shoulders instead of squeezing the shoulder blades"),
+        Regex("curl") to listOf("Swinging the elbows forward or the back backward to lift", "Dropping the weight quickly instead of lowering it slowly"),
+        Regex("shrug") to listOf("Rolling the shoulders in circles", "Bending the elbows to pull the weight up"),
+        Regex("lateral|side raise") to listOf("Raising the weight higher than the shoulders", "Leading with the hands so the traps take over the delts"),
+        Regex("calf") to listOf("Bouncing at the bottom instead of pausing", "Rolling the ankles outward or inward"),
+        Regex("lunge|step.?up") to listOf("Taking too short a step so the knee pushes far past the toes", "Letting the front knee cave inward"),
+        Regex("crunch|sit.?up") to listOf("Pulling on the neck with the hands", "Hurrying instead of squeezing the abs at the top"),
+    )
+
+    /** A guide for any exercise; never null. Mistakes are specific to the variation first, then the movement type. */
+    fun forName(name: String, muscleGroup: String? = null): Guide = withVariation(name, baseFor(name, muscleGroup))
+
+    private fun baseFor(name: String, muscleGroup: String?): Guide {
         val n = name.trim()
         RULES.firstOrNull { it.match.containsMatchIn(n) }?.let { return it.guide }
         val proxy = muscleGroup?.lowercase()?.let { BY_GROUP[it] }
         if (proxy != null) RULES.firstOrNull { it.match.containsMatchIn(proxy) }?.let { return it.guide }
         return GENERIC
+    }
+
+    private fun withVariation(name: String, g: Guide): Guide {
+        val n = name.lowercase()
+        val extra = VARIATION_MISTAKES.filter { it.first.containsMatchIn(n) }.flatMap { it.second }
+        if (extra.isEmpty()) return g
+        // up to three specific ones first (spread across the matching variations), then the general movement ones, five in total
+        val perGroup = VARIATION_MISTAKES.filter { it.first.containsMatchIn(n) }.map { it.second.first() }
+        val specific = (perGroup + extra).distinct().take(3)
+        val merged = (specific + g.mistakes).distinct().take(5)
+        return g.copy(mistakes = merged)
     }
 }
