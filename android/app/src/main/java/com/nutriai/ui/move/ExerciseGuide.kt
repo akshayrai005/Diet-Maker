@@ -250,8 +250,61 @@ object ExerciseGuide {
         Regex("crunch|sit.?up") to listOf("Pulling on the neck with the hands", "Hurrying instead of squeezing the abs at the top"),
     )
 
-    /** A guide for any exercise; never null. Mistakes are specific to the variation first, then the movement type. */
-    fun forName(name: String, muscleGroup: String? = null): Guide = withVariation(name, baseFor(name, muscleGroup))
+    /**
+     * The opposite of what an exercise's OWN instructions say. Every instruction line that matches one of these becomes the matching
+     * "don't": "keep your elbows tucked" -> "Letting your elbows flare out". Because the steps differ per exercise, the mistakes do too -
+     * two chest exercises show different lists even though both work the chest.
+     */
+    private val STEP_MISTAKES: List<Pair<Regex, String>> = listOf(
+        Regex("elbows? (tucked|close|in\\b|at your sides?|next to)|tuck your elbows|elbows? (pointing|pointed) (down|back|forward)") to "Letting your elbows flare out to the sides",
+        Regex("elbows? (pointing|pointed) (outward|out)|elbows? (out|wide)") to "Dropping the elbows too far down or in so the shoulders take the load",
+        Regex("back (straight|flat|neutral)|straight back|neutral spine|flat back|spine (neutral|straight)|keep your back") to "Rounding or arching your lower back",
+        Regex("(engage|brace|tighten|contract|activate|tense)[a-z ]{0,20}(core|abs|abdominal|glutes)|core (engaged|tight|braced)") to "Letting your core go slack so the lower back takes over",
+        Regex("slowly (lower|return|bring|descend|release)|lower (it |the [a-z ]+ )?slowly|controlled|under control|in a controlled") to "Dropping the weight fast instead of lowering it slowly",
+        Regex("pause|hold (for|the)|squeeze at the (top|bottom)|for a (moment|second|beat|count)") to "Skipping the pause and letting momentum do the work",
+        Regex("knees? (behind|over|in line|aligned|tracking|do not|don.t|out)|toes|knee (over|past)") to "Letting your knees cave inward or drift past your toes",
+        Regex("(feet|heels?|foot)[a-z ]{0,20}(flat|planted|on the (floor|ground|platform))|flat on the (floor|ground)") to "Letting your heels or feet lift off the floor",
+        Regex("shoulders? (back|down|away from your ears|relaxed)|shoulder blades?|retract|depress") to "Shrugging or rolling your shoulders forward",
+        Regex("chest (up|out|high)|proud chest|open your chest") to "Letting your chest cave in and your upper back round",
+        Regex("hips? (level|square|forward|back|down|high|up|under)|do not (let|allow) your hips|hips? (stay|remain)") to "Letting your hips sag or shoot up out of line",
+        Regex("neck|head (up|neutral|in line|aligned)|look (straight|forward|ahead|down)|gaze") to "Straining your neck or pushing your head forward",
+        Regex("wrists? (straight|neutral|in line|aligned)|(grip|grasp|hold)[a-z ]{0,25}(firmly|tightly)") to "Letting your wrists bend back or your grip loosen",
+        Regex("exhale|inhale|breath|breathe") to "Holding your breath instead of breathing out on the effort",
+        Regex("shoulder.?width|wider than|narrower than|hip.?width|grip width|stance") to "Setting your grip or stance too wide or too narrow",
+        Regex("without (swinging|momentum|jerking|using momentum|rocking)|do not (swing|jerk|rock)|keep(ing)? (your )?(torso|body|upper body) (still|stationary|upright)|stationary") to "Swinging or rocking your body to move the weight",
+        Regex("fully (extend|straighten)|full range|lock ?out|completely (straight|extend)|until your arms? (are )?straight") to "Stopping short of full range instead of finishing every rep",
+        Regex("(all the way|as far as|until|as low as|deep|full stretch|stretch) (down|comfortable|parallel|your thighs|the floor)|parallel|full depth") to "Cutting the depth short instead of going to full range",
+        Regex("bench|pad|seat") to "Letting your back or hips lift off the bench or seat",
+        Regex("upright|tall|vertical|straight up") to "Leaning back or forward to cheat the weight up",
+        Regex("(one|single|each|other) (side|arm|leg)|alternate|opposite") to "Favouring your stronger side instead of matching both",
+        Regex("touch|towards your (chest|chin|forehead|face|thigh|shoulder)|to your (chest|chin|forehead)") to "Bouncing the weight off your body instead of stopping short of it",
+        Regex("stretch") to "Bouncing in the stretch instead of easing into it and holding",
+        Regex("rack|unrack|lift the (bar|barbell)|lift off|un-?rack") to "Unracking or lifting the weight off unevenly, or without a set-up",
+        Regex("rotat|twist|turn") to "Twisting from the lower back instead of turning at the hips or upper back",
+        Regex("toward|pull (the|your)|row|squeeze your shoulder blades") to "Yanking with your arms instead of pulling with your back",
+        Regex("push (through|off|up|the)|drive|press (through|up|the)") to "Pushing through the wrong part of your foot or hand instead of driving evenly",
+        Regex("weight|dumbbell|barbell|kettlebell|plate|handle|cable|band") to "Using a weight so heavy that your form breaks down before the last rep",
+    )
+
+    /** Up to [limit] "don'ts" that follow from these instructions; each instruction line contributes at most one. */
+    fun mistakesFromSteps(steps: List<String>?, limit: Int = 3): List<String> {
+        if (steps.isNullOrEmpty()) return emptyList()
+        val out = ArrayList<String>()
+        for (step in steps) {
+            val t = step.lowercase()
+            val hit = STEP_MISTAKES.firstOrNull { (re, msg) -> re.containsMatchIn(t) && msg !in out }
+            if (hit != null) out.add(hit.second)
+            if (out.size >= limit) break
+        }
+        return out
+    }
+
+    /**
+     * A guide for any exercise; never null. Mistakes come first from what is specific to THIS exercise (its variation and its own
+     * instructions), and only then from the general list for the movement type - so exercises that train the same muscle still differ.
+     */
+    fun forName(name: String, muscleGroup: String? = null, steps: List<String>? = null): Guide =
+        withVariation(name, baseFor(name, muscleGroup), steps)
 
     private fun baseFor(name: String, muscleGroup: String?): Guide {
         val n = name.trim()
@@ -261,14 +314,12 @@ object ExerciseGuide {
         return GENERIC
     }
 
-    private fun withVariation(name: String, g: Guide): Guide {
+    private fun withVariation(name: String, g: Guide, steps: List<String>?): Guide {
         val n = name.lowercase()
-        val extra = VARIATION_MISTAKES.filter { it.first.containsMatchIn(n) }.flatMap { it.second }
-        if (extra.isEmpty()) return g
-        // up to three specific ones first (spread across the matching variations), then the general movement ones, five in total
-        val perGroup = VARIATION_MISTAKES.filter { it.first.containsMatchIn(n) }.map { it.second.first() }
-        val specific = (perGroup + extra).distinct().take(3)
-        val merged = (specific + g.mistakes).distinct().take(5)
-        return g.copy(mistakes = merged)
+        val matched = VARIATION_MISTAKES.filter { it.first.containsMatchIn(n) }
+        val fromName = (matched.map { it.second.first() } + matched.flatMap { it.second }).distinct().take(2)
+        val fromSteps = mistakesFromSteps(steps, limit = if (fromName.isEmpty()) 4 else 3)
+        val merged = (fromName + fromSteps + g.mistakes).distinct().take(5)
+        return if (merged == g.mistakes) g else g.copy(mistakes = merged)
     }
 }

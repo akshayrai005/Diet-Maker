@@ -102,9 +102,10 @@ fun ExerciseDemo(
                         contentAlignment = Alignment.Center,
                     ) { GifImage(url = url, onError = { failed = true }) }
                     val context = LocalContext.current
-                    val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup) }
                     // Exercise-specific steps when the dataset has them (84% of the library); otherwise the movement-type steps.
                     val specificSteps = remember(name) { ExerciseInstructions.forName(context, name) }
+                    // The mistakes are worked out from THIS exercise's own steps (plus its variation), so each exercise differs.
+                    val guide = remember(name) { ExerciseGuide.forName(name, muscleGroup, specificSteps) }
                     val secondary = remember(name) { ExerciseMetaDb.forName(name)?.secondary.orEmpty().ifEmpty { ExerciseGuide.secondaryFor(name, muscleGroup) } }
                     // Always show a muscle name: the recorded one, else worked out from the exercise name, else "Full body".
                     val mainName = muscleGroup?.takeIf { it.isNotBlank() }?.replaceFirstChar { it.uppercase() }
